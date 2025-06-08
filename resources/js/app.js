@@ -1,26 +1,20 @@
 import { createApp, h } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
-const appName =
-    window.document.getElementsByTagName("title")[0]?.innerText || "Laravel";
+const appName = import.meta.env.VITE_APP_NAME || 'gymportal.io';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => {
-        console.log("Resolving component:", name); // Debug
-        const pages = import.meta.glob("./Pages/**/*.vue", { eager: true });
-        console.log("Available pages:", Object.keys(pages)); // Debug
-        const component = pages[`./Pages/${name}.vue`];
-        console.log("Found component:", component); // Debug
-        return component;
-    },
+    resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
-        console.log("Setting up Inertia app:", { el, App, props }); // Debug
-        createApp({ render: () => h(App, props) })
+        return createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(ZiggyVue)
             .mount(el);
     },
     progress: {
-        color: '#4B5563',
+        color: '#4F46E5',
     },
 });
