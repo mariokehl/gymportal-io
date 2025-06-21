@@ -3,10 +3,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Gym;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules;
@@ -57,6 +57,17 @@ class AuthController extends Controller
             'last_name' => $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+        ]);
+
+        Gym::create([
+            'name' => Gym::DEFAULT_ORGANIZATION_NAME,
+            'owner_id' => $user->id,
+            'address' => 'Mustergasse 1a',
+            'city' => 'Hamburg',
+            'postal_code' => '22761',
+            'country' => 'Deutschland',
+            'phone' => '+4930123456789',
+            'email' => $request->email,
         ]);
 
         Auth::login($user);

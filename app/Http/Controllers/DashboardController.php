@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -94,8 +95,12 @@ class DashboardController extends Controller
             ]
         ];
 
+        /** @var User $user */
+        $user = Auth::user();
+        $user->load('ownedGyms');
+
         return Inertia::render('Dashboard/Index', [
-            'user' => Auth::user(),
+            'user' => $user,
             'members' => $members,
             'stats' => $stats,
             'notifications' => $notifications
