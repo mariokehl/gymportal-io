@@ -1,13 +1,13 @@
 <template>
   <div class="flex h-screen bg-gray-100">
     <!-- Sidebar -->
-    <div class="w-64 bg-white shadow-md">
+    <div class="w-64 bg-white shadow-md flex flex-col">
       <div class="p-4 border-b border-gray-200">
         <h2 class="text-xl font-bold text-blue-600">gymportal.io</h2>
         <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
       </div>
 
-      <nav class="mt-6">
+      <nav class="mt-6 h-full">
         <SidebarItem
           :icon="BarChart"
           label="Dashboard"
@@ -51,6 +51,43 @@
           @click="handleLogout"
         />
       </nav>
+
+      <!-- Organization Selector -->
+      <div class="relative">
+          <button @click="showOrgPopover = !showOrgPopover" class="w-full flex items-center justify-between p-3 hover:bg-gray-100 transition-colors">
+              <div class="flex items-center">
+                  <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white text-sm font-semibold">
+                      {{ currentOrgName.charAt(0) }}
+                  </div>
+                  <div class="ml-3 text-left">
+                      <p class="text-sm font-medium text-gray-900 truncate">{{ currentOrgName }}</p>
+                      <p class="text-xs text-gray-500">Organisation</p>
+                  </div>
+              </div>
+              <component :is="ChevronDown" :class="['w-4 h-4 text-gray-400 transition-transform', showOrgPopover ? 'rotate-180' : '']" />
+          </button>
+
+          <!-- Popover -->
+          <div v-if="showOrgPopover" class="absolute bottom-full left-0 right-0 mb-2 ml-2 mr-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div class="p-3 border-b border-gray-100">
+                  <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Organisation verwalten</p>
+              </div>
+              <div class="py-1">
+                  <button class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+                      <component :is="Settings" class="w-4 h-4 mr-2 text-gray-400" />
+                      Einstellungen
+                  </button>
+                  <button class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+                      <component :is="DollarSign" class="w-4 h-4 mr-2 text-gray-400" />
+                      Abrechnung
+                  </button>
+                  <button class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+                      <component :is="Plus" class="w-4 h-4 mr-2 text-gray-400" />
+                      Neue Organisation erstellen
+                  </button>
+              </div>
+          </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -297,6 +334,14 @@
           </div>
         </div>
 
+        <!-- Finances Content -->
+        <div v-else-if="activeTab === 'finances'" class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center">
+            <MollieSetupWizard
+                :organization="currentOrganization"
+                @setup-completed="reloadUserData"
+            />
+        </div>
+
         <!-- Other Tab Content -->
         <div v-else class="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center">
           <p class="text-gray-500">Inhalt für "{{ activeTab }}" hier anzeigen.</p>
@@ -307,7 +352,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
@@ -316,6 +361,7 @@ import {
   ChevronRight, Edit, Trash2, FilePlus
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
+import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
 
 // Props
 const props = defineProps({
@@ -339,6 +385,7 @@ const contractForm = ref({
   membership: 'Basic',
   duration: '12 Monate'
 })
+const showOrgPopover = ref(false)
 
 // Computed properties
 const userInitials = computed(() => {
@@ -353,6 +400,14 @@ const filteredMembers = computed(() => {
     member.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
     member.email.toLowerCase().includes(searchTerm.value.toLowerCase())
   )
+})
+
+const currentOrganization = computed(() => {
+  return props.user.owned_gyms?.[0] || null; // TODO: Make this selectable instead of always the first
+})
+
+const currentOrgName = computed(() => {
+  return props.user.owned_gyms?.[0]?.name || 'Kein Gym vorhanden';
 })
 
 // Methods
@@ -405,4 +460,26 @@ const submitContract = async () => {
     isSubmitting.value = false
   }
 }
+
+const reloadUserData = () => {
+  router.reload({
+    only: ['user'],
+    preserveState: true
+  })
+}
+
+// Click outside handler
+const handleClickOutside = (event) => {
+  if (showOrgPopover.value && !event.target.closest('.relative')) {
+    showOrgPopover.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>

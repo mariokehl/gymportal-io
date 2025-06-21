@@ -45,6 +45,7 @@ class PaymentSeeder extends Seeder
                 }
 
                 DB::table('payments')->insert([
+                    'gym_id' => $membershipPlan->gym_id,
                     'membership_id' => $membership->id,
                     'mollie_payment_id' => 'tr_' . uniqid(),
                     'amount' => $membershipPlan->price,
