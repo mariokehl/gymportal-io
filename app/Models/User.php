@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -20,6 +21,7 @@ class User extends Authenticatable
         'password',
         'role_id',
         'phone',
+        'current_gym_id',
     ];
 
     protected $hidden = [
@@ -40,6 +42,16 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Get the current gym that the user is working with.
+     *
+     * @return BelongsTo
+     */
+    public function currentGym(): BelongsTo
+    {
+        return $this->belongsTo(Gym::class, 'current_gym_id');
     }
 
     public function ownedGyms()
