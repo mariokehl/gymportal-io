@@ -65,7 +65,7 @@ class AuthController extends Controller
             'address' => 'Mustergasse 1a',
             'city' => 'Hamburg',
             'postal_code' => '22761',
-            'country' => 'Deutschland',
+            'country' => 'DE',
             'phone' => '+4930123456789',
             'email' => $request->email,
         ]);

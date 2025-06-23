@@ -30,6 +30,7 @@ class UserSeeder extends Seeder
             'email' => 'max@fitzone.de',
             'password' => Hash::make('password'),
             'role_id' => 2, // Owner role
+            'current_gym_id' => 1,
             'phone' => '+49987654321',
             'email_verified_at' => now(),
             'created_at' => now(),
@@ -42,6 +43,7 @@ class UserSeeder extends Seeder
             'email' => 'anna@powerfit.de',
             'password' => Hash::make('password'),
             'role_id' => 2, // Owner role
+            'current_gym_id' => 2,
             'phone' => '+49123123123',
             'email_verified_at' => now(),
             'created_at' => now(),
@@ -55,6 +57,7 @@ class UserSeeder extends Seeder
             'email' => 'lisa@fitzone.de',
             'password' => Hash::make('password'),
             'role_id' => 3, // Staff role
+            'current_gym_id' => 1,
             'phone' => '+49456456456',
             'email_verified_at' => now(),
             'created_at' => now(),
@@ -68,6 +71,7 @@ class UserSeeder extends Seeder
             'email' => 'thomas@fitzone.de',
             'password' => Hash::make('password'),
             'role_id' => 4, // Trainer role
+            'current_gym_id' => 1,
             'phone' => '+49789789789',
             'email_verified_at' => now(),
             'created_at' => now(),

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class GymSeeder extends Seeder
 {
@@ -18,7 +17,7 @@ class GymSeeder extends Seeder
             'address' => 'Berliner Straße 123',
             'city' => 'Berlin',
             'postal_code' => '10115',
-            'country' => 'Deutschland',
+            'country' => 'DE',
             'phone' => '+4930123456789',
             'email' => 'info@fitzone.de',
             'website' => 'https://fitzone.de',
@@ -37,7 +36,7 @@ class GymSeeder extends Seeder
             'address' => 'Münchener Straße 456',
             'city' => 'München',
             'postal_code' => '80331',
-            'country' => 'Deutschland',
+            'country' => 'DE',
             'phone' => '+4989987654321',
             'email' => 'info@powerfit.de',
             'website' => 'https://powerfit.de',

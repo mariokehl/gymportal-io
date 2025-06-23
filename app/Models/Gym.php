@@ -39,17 +39,12 @@ class Gym extends Model
         parent::boot();
 
         static::creating(function ($gym) {
-            if (empty($gym->slug)) {
-                $slug = Str::slug($gym->name);
-                $originalSlug = $slug;
-                $count = 1;
+            $gym->generateSlug();
+        });
 
-                // Check if the slug already exists
-                while (static::where('slug', $slug)->exists()) {
-                    $slug = $originalSlug . '-' . $count++;
-                }
-
-                $gym->slug = $slug;
+        static::updating(function ($gym) {
+            if ($gym->isDirty('name')) {
+                $gym->generateSlug();
             }
         });
     }
@@ -199,5 +194,23 @@ class Gym extends Model
     public function getPendingPaymentsCount(): int
     {
         return $this->payments()->where('status', 'pending')->count();
+    }
+
+    protected function generateSlug()
+    {
+        $slug = Str::slug($this->name);
+        $originalSlug = $slug;
+        $count = 1;
+
+        while (
+            static::withTrashed()
+                ->where('slug', $slug)
+                ->when($this->exists, fn($query) => $query->where('id', '!=', $this->id))
+                ->exists()
+        ) {
+            $slug = $originalSlug . '-' . $count++;
+        }
+
+        $this->slug = $slug;
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Gym;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,9 +39,32 @@ class HandleInertiaRequests extends Middleware
     {
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                'user' => function () use ($request): array {
+                    /** @var User|null $user */
+                    $user = $request->user();
+
+                    if ($user === null) {
+                        return [];
+                    }
+
+                    return array_merge([
+                        'id' => $user->id,
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'current_gym' => $user->currentGym !== null ? [
+                            'id' => $user->currentGym->id,
+                            'name' => $user->currentGym->name,
+                        ] : null,
+                    ], array_filter([
+                        'all_gyms' => $user->ownedGyms->map(function (Gym $organization): array {
+                            return [
+                                'id' => $organization->id,
+                                'name' => $organization->name,
+                            ];
+                        })->all(),
+                    ]));
+                },
             ],
-            'csrf_token' => csrf_token(),
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),
                 'error' => fn () => $request->session()->get('error'),
