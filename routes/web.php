@@ -35,7 +35,7 @@ Route::middleware('guest')->group(function () {
 // Protected routes
 Route::middleware('auth:web')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+    Route::resource('members', MemberController::class);
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
     Route::get('/finances', [FinanceController::class, 'index'])->name('finances.index');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

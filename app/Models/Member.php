@@ -36,6 +36,8 @@ class Member extends Model
         'joined_date' => 'date',
     ];
 
+    protected $appends = ['initials', 'full_name', 'status_text', 'status_color'];
+
     public function gym()
     {
         return $this->belongsTo(Gym::class);
@@ -76,11 +78,6 @@ class Member extends Model
         return $this->hasMany(NotificationRecipient::class);
     }
 
-    public function fullName()
-    {
-        return $this->first_name . ' ' . $this->last_name;
-    }
-
     public function getStatusTextAttribute()
     {
         return [
@@ -99,6 +96,21 @@ class Member extends Model
             'paused' => 'yellow',
             'overdue' => 'red',
         ][$this->status] ?? 'gray';
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        return substr($this->first_name, 0, 1) . substr($this->last_name, 0, 1);
+    }
+
+    public function fullName()
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 
     public function getAgeAttribute()

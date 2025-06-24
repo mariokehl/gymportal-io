@@ -4,7 +4,9 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Member;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -12,44 +14,48 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $members = [
-            [
-                'id' => 1,
-                'name' => 'Max Mustermann',
-                'membership' => 'Premium',
-                'status' => 'Aktiv',
-                'lastVisit' => '04.04.2025',
-                'contractEnd' => '15.12.2025',
-                'email' => 'max@example.com'
-            ],
-            [
-                'id' => 2,
-                'name' => 'Anna Schmidt',
-                'membership' => 'Standard',
-                'status' => 'Aktiv',
-                'lastVisit' => '02.04.2025',
-                'contractEnd' => '05.09.2025',
-                'email' => 'anna@example.com'
-            ],
-            [
-                'id' => 3,
-                'name' => 'Felix Bauer',
-                'membership' => 'Basic',
-                'status' => 'Inaktiv',
-                'lastVisit' => '15.03.2025',
-                'contractEnd' => '01.05.2025',
-                'email' => 'felix@example.com'
-            ],
-            [
-                'id' => 4,
-                'name' => 'Laura Müller',
-                'membership' => 'Premium',
-                'status' => 'Aktiv',
-                'lastVisit' => '03.04.2025',
-                'contractEnd' => '22.11.2025',
-                'email' => 'laura@example.com'
-            ]
-        ];
+        /** @var User $user */
+        $user = Auth::user();
+
+        // Get paginated members with search functionality
+        $members = Member::query()
+            ->when(request('search'), function ($query, $search) {
+                $query->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->when(request('status'), function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when(request('membership'), function ($query, $membership) {
+                $query->where('membership_type', $membership);
+            })
+            ->where('gym_id', $user->current_gym_id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10) // Limit for dashboard view
+            ->get()
+            ->map(function ($member) {
+                return [
+                    'id' => $member->id,
+                    'initials' => $member->initials,
+                    'name' => $member->full_name,
+                    'email' => $member->email,
+                    'status' => $member->status
+                ];
+            });
+
+        // Calculate statistics
+        $totalMembers = Member::query()
+            ->where('gym_id', $user->current_gym_id)
+            ->count();
+        $activeMembers = Member::active()
+            ->where('gym_id', $user->current_gym_id)
+            ->count();
+        $newMembersThisMonth = Member::whereMonth('created_at', Carbon::now()->month)
+                                   ->whereYear('created_at', Carbon::now()->year)
+                                   ->count();
+        //$expiringThisMonth = Member::expiringThisMonth()->count();
+        //$monthlyRevenue = Member::active()->sum('monthly_fee');
 
         $stats = [
             [
@@ -99,7 +105,13 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard/Index', [
             'members' => $members,
             'stats' => $stats,
-            'notifications' => $notifications
+            'notifications' => $notifications,
+            'totalMembers' => $totalMembers,
+            'filters' => [
+                'search' => request('search'),
+                'status' => request('status'),
+                'membership' => request('membership')
+            ]
         ]);
     }
 }

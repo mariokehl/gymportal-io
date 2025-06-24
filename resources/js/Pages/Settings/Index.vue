@@ -4,7 +4,7 @@
             Einstellungen
         </template>
 
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-4xl mx-auto">
             <!-- Tabs -->
             <div class="border-b border-gray-200 mb-6">
                 <nav class="-mb-px flex space-x-8">
@@ -56,10 +56,8 @@
                                 <LogoUpload v-model="gymForm.logo_path" :current-gym="currentGym" />
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-gray-700">Adresse <span
-                                            class="text-red-500">*</span></label>
-                                    <input v-model="gymForm.address" type="text"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <label class="block text-sm/6 font-medium text-gray-700">Straße und Hausnummer <span class="text-red-500">*</span></label>
+                                    <input v-model="gymForm.address" type="text" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
 
                                 <div>
