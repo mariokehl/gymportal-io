@@ -43,11 +43,19 @@
                     <h3 class="font-medium mb-3">Neuen Online-Vertrag erstellen</h3>
                     <form @submit.prevent="submitContract">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Vorname & Nachname</label>
-                                <input v-model="contractForm.name" type="text"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Max Mustermann" required />
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
+                                    <input v-model="contractForm.first_name" type="text"
+                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Max" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
+                                    <input v-model="contractForm.last_name" type="text"
+                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Mustermann" required />
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
@@ -130,7 +138,7 @@
                                     <div class="flex items-center">
                                         <div
                                             class="w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center font-medium">
-                                            {{ member.name.charAt(0) }}
+                                            {{ member.initials }}
                                         </div>
                                         <div class="ml-3">
                                             <p class="text-sm font-medium">{{ member.name }}</p>
@@ -140,22 +148,29 @@
                                 </td>
                                 <td class="py-3 px-4 text-sm">{{ member.membership }}</td>
                                 <td class="py-3 px-4">
-                                    <span :class="[
-                                        'px-2 py-1 text-xs rounded-full',
-                                        member.status === 'Aktiv' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                    ]">
-                                        {{ member.status }}
-                                    </span>
+                                    <MemberStatusBadge :status="member.status" />
                                 </td>
-                                <td class="py-3 px-4 text-sm">{{ member.lastVisit }}</td>
-                                <td class="py-3 px-4 text-sm">{{ member.contractEnd }}</td>
+                                <td class="py-3 px-4 text-sm">
+                                    {{ member.last_visit ? formatDate(member.last_visit) : 'Noch nie' }}
+                                </td>
+                                <td class="py-3 px-4 text-sm">
+                                    {{ member.contract_end_date ? formatDate(member.contract_end_date) : '-' }}
+                                </td>
                                 <td class="py-3 px-4 text-right">
-                                    <button class="p-1 text-blue-500 hover:text-blue-700 transition-colors">
-                                        <component :is="Edit" class="w-4 h-4" />
-                                    </button>
-                                    <button class="p-1 text-red-500 hover:text-red-700 ml-2 transition-colors">
-                                        <component :is="Trash2" class="w-4 h-4" />
-                                    </button>
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <Link
+                                            :href="route('members.show', member.id)"
+                                            class="text-blue-600 hover:text-blue-900 p-1 rounded"
+                                            title="Anzeigen">
+                                            <Eye class="w-4 h-4" />
+                                        </Link>
+                                        <Link
+                                            :href="route('members.edit', member.id)"
+                                            class="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                                            title="Bearbeiten">
+                                            <Edit class="w-4 h-4" />
+                                        </Link>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -164,7 +179,7 @@
 
                 <!-- Pagination -->
                 <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-500">Zeige 1-{{ filteredMembers.length }} von 248 Mitgliedern</p>
+                    <p class="text-sm text-gray-500">Zeige 1-{{ filteredMembers.length }} von {{ totalMembers }} Mitgliedern</p>
                     <div class="flex items-center space-x-1">
                         <button class="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
                             <component :is="ChevronRight" class="w-4 h-4 text-gray-500 transform rotate-180" />
@@ -208,16 +223,19 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { router, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart, Plus, Search,
-    Filter, ChevronDown, Edit, Trash2, ChevronRight
+    Filter, ChevronDown, Edit, Trash2, ChevronRight, Eye
 } from 'lucide-vue-next'
+import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 
 // Reactive data
 const showNewContract = ref(false)
 const contractForm = ref({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     membership: 'Basic',
     duration: '12 Monate'
@@ -240,6 +258,7 @@ const props = defineProps({
         required: true
     },
     members: Array,
+    totalMembers: Number,
     stats: Array,
     notifications: Array
 })
@@ -263,7 +282,8 @@ const submitContract = async () => {
             onSuccess: () => {
                 showNewContract.value = false
                 contractForm.value = {
-                    name: '',
+                    first_name: '',
+                    last_name: '',
                     email: '',
                     membership: 'Basic',
                     duration: '12 Monate'
