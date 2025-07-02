@@ -165,7 +165,7 @@
                                             <Eye class="w-4 h-4" />
                                         </Link>
                                         <Link
-                                            :href="route('members.edit', member.id)"
+                                            :href="route('members.show', member.id) + '?edit=true'"
                                             class="text-indigo-600 hover:text-indigo-900 p-1 rounded"
                                             title="Bearbeiten">
                                             <Edit class="w-4 h-4" />

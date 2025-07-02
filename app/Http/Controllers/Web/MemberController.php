@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -77,8 +78,10 @@ class MemberController extends Controller
      */
     public function store(Request $request)
     {
+        /** @var User $user */
+        $user = Auth::user();
+
         $validated = $request->validate([
-            'member_number' => ['required', 'string', 'max:50', 'unique:members,member_number'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:members,email'],
@@ -95,9 +98,14 @@ class MemberController extends Controller
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
         ]);
 
+        // Next member number
+        $lastMember = Member::orderBy('id', 'desc')->first();
+        $nextNumber = $lastMember ? $lastMember->id + 1337 : 100001;
+        $validated['member_number'] = $nextNumber; // TODO: Implement number ranges
+
         // Add gym_id to the validated data
-        $validated['gym_id'] = auth()->user()->current_gym_id;
-        $validated['user_id'] = auth()->id();
+        $validated['gym_id'] = $user->current_gym_id;
+        $validated['user_id'] = $user->id;
 
         Member::create($validated);
 
@@ -120,19 +128,6 @@ class MemberController extends Controller
         }]);
 
         return Inertia::render('Members/Show', [
-            'member' => $member
-        ]);
-    }
-
-    /**
-     * Show the form for editing the specified member.
-     */
-    public function edit(Member $member)
-    {
-        // Ensure the member belongs to the current gym
-        //$this->authorize('update', $member);
-
-        return Inertia::render('Members/Edit', [
             'member' => $member
         ]);
     }
@@ -169,8 +164,7 @@ class MemberController extends Controller
 
         $member->update($validated);
 
-        return redirect()->route('members.index')
-            ->with('success', 'Mitglied wurde erfolgreich aktualisiert.');
+        return redirect()->route('members.show', ['member' => $member->id])->with('success', 'Mitglied wurde erfolgreich aktualisiert.');
     }
 
     /**
