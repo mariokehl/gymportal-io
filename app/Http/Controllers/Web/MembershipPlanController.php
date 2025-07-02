@@ -1,0 +1,216 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Models\MembershipPlan;
+use App\Models\Member;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
+
+class MembershipPlanController extends Controller
+{
+    /**
+     * Display a listing of the membership plans.
+     */
+    public function index(): Response
+    {
+        $membershipPlans = MembershipPlan::where('gym_id', auth()->user()->current_gym_id)
+            ->withCount(['memberships' => function ($query) {
+                $query->where('status', 'active');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('MembershipPlans/Index', [
+            'membershipPlans' => $membershipPlans,
+            'flash' => session('flash')
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new membership plan.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('MembershipPlans/Create');
+    }
+
+    /**
+     * Store a newly created membership plan in storage.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'price' => 'required|numeric|min:0|max:9999.99',
+            'billing_cycle' => 'required|in:monthly,quarterly,yearly',
+            'is_active' => 'boolean',
+            'commitment_months' => 'nullable|integer|min:0|max:36',
+            'cancellation_period_days' => 'required|integer|min:0|max:365',
+        ]);
+
+        $validated['gym_id'] = auth()->user()->current_gym_id;
+        $validated['is_active'] = $request->boolean('is_active');
+
+        MembershipPlan::create($validated);
+
+        return Redirect::route('contracts.index')->with('flash', [
+            'type' => 'success',
+            'message' => 'Mitgliedschaftsplan wurde erfolgreich erstellt.'
+        ]);
+    }
+
+    /**
+     * Display the specified membership plan.
+     */
+    public function show(MembershipPlan $membershipPlan): Response
+    {
+        //$this->authorize('view', $membershipPlan);
+
+        $activeMembers = $membershipPlan->memberships()
+            ->where('status', 'active')
+            ->with(['user'])
+            ->get();
+
+        return Inertia::render('MembershipPlans/Show', [
+            'membershipPlan' => $membershipPlan,
+            'activeMembers' => $activeMembers,
+            'activeMembersCount' => $activeMembers->count()
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified membership plan.
+     */
+    public function edit(MembershipPlan $membershipPlan): Response
+    {
+        //$this->authorize('update', $membershipPlan);
+
+        $activeMembersCount = $membershipPlan->memberships()
+            ->where('status', 'active')
+            ->count();
+
+        $activeMembers = [];
+        if ($activeMembersCount > 0) {
+            $activeMembers = $membershipPlan->memberships()
+                ->where('status', 'active')
+                ->with(['user'])
+                ->limit(10)
+                ->get();
+        }
+
+        return Inertia::render('MembershipPlans/Edit', [
+            'membershipPlan' => $membershipPlan,
+            'activeMembersCount' => $activeMembersCount,
+            'activeMembers' => $activeMembers
+        ]);
+    }
+
+    /**
+     * Update the specified membership plan in storage.
+     */
+    public function update(Request $request, MembershipPlan $membershipPlan): RedirectResponse
+    {
+        //$this->authorize('update', $membershipPlan);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'price' => 'required|numeric|min:0|max:9999.99',
+            'billing_cycle' => 'required|in:monthly,quarterly,yearly',
+            'is_active' => 'boolean',
+            'commitment_months' => 'nullable|integer|min:0|max:36',
+            'cancellation_period_days' => 'required|integer|min:0|max:365',
+        ]);
+
+        $validated['is_active'] = $request->boolean('is_active');
+
+        $membershipPlan->update($validated);
+
+        return Redirect::route('contracts.index')->with('flash', [
+            'type' => 'success',
+            'message' => 'Mitgliedschaftsplan wurde erfolgreich aktualisiert.'
+        ]);
+    }
+
+    /**
+     * Remove the specified membership plan from storage.
+     */
+    public function destroy(MembershipPlan $membershipPlan): RedirectResponse
+    {
+        //$this->authorize('delete', $membershipPlan);
+
+        // Check if there are active members using this plan
+        $activeMembersCount = $membershipPlan->memberships()
+            ->where('status', 'active')
+            ->count();
+
+        if ($activeMembersCount > 0) {
+            $activeMembers = $membershipPlan->memberships()
+                ->where('status', 'active')
+                ->with(['user'])
+                ->limit(5)
+                ->get();
+
+            $memberNames = $activeMembers->pluck('user.first_name')->join(', ');
+            $additionalCount = max(0, $activeMembersCount - 5);
+            $additionalText = $additionalCount > 0 ? " und {$additionalCount} weitere" : '';
+
+            return Redirect::route('contracts.index')->with('flash', [
+                'type' => 'error',
+                'message' => "Dieser Mitgliedschaftsplan kann nicht gelöscht werden, da noch {$activeMembersCount} aktive Mitglieder diesen nutzen: {$memberNames}{$additionalText}."
+            ]);
+        }
+
+        $membershipPlan->delete();
+
+        return Redirect::route('contracts.index')->with('flash', [
+            'type' => 'success',
+            'message' => 'Mitgliedschaftsplan wurde erfolgreich gelöscht.'
+        ]);
+    }
+
+    /**
+     * Check if membership plan can be deleted
+     */
+    public function checkDeletion(MembershipPlan $membershipPlan)
+    {
+        //$this->authorize('delete', $membershipPlan);
+
+        $activeMembersCount = $membershipPlan->memberships()
+            ->where('status', 'active')
+            ->count();
+
+        if ($activeMembersCount > 0) {
+            $activeMembers = $membershipPlan->memberships()
+                ->where('status', 'active')
+                ->with(['user'])
+                ->limit(10)
+                ->get();
+
+            return response()->json([
+                'canDelete' => false,
+                'activeMembersCount' => $activeMembersCount,
+                'activeMembers' => $activeMembers->map(function ($member) {
+                    return [
+                        'id' => $member->id,
+                        'name' => $member->user->first_name . ' ' . $member->user->last_name,
+                        'email' => $member->user->email
+                    ];
+                })
+            ]);
+        }
+
+        return response()->json([
+            'canDelete' => true,
+            'activeMembersCount' => 0,
+            'activeMembers' => []
+        ]);
+    }
+}
