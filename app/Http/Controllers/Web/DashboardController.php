@@ -31,16 +31,33 @@ class DashboardController extends Controller
                 $query->where('membership_type', $membership);
             })
             ->where('gym_id', $user->current_gym_id)
+            ->with('memberships.membershipPlan')
+            ->with('checkIns')
             ->orderBy('created_at', 'desc')
             ->limit(10) // Limit for dashboard view
             ->get()
             ->map(function ($member) {
+                $firstMembership = $member->memberships->first();
+
+                if (!$firstMembership) {
+                    return [
+                        'id' => $member->id,
+                        'initials' => $member->initials,
+                        'name' => $member->full_name,
+                        'email' => $member->email,
+                        'membership' => 'Keine Mitgliedschaft',
+                        'status' => $member->status
+                    ];
+                }
+
                 return [
                     'id' => $member->id,
                     'initials' => $member->initials,
                     'name' => $member->full_name,
                     'email' => $member->email,
-                    'status' => $member->status
+                    'membership' => $firstMembership->toArray()['membership_plan']['name'],
+                    'status' => $member->status,
+                    'last_check_in' => $member->last_check_in,
                 ];
             });
 

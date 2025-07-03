@@ -151,7 +151,7 @@
                                     <MemberStatusBadge :status="member.status" />
                                 </td>
                                 <td class="py-3 px-4 text-sm">
-                                    {{ member.last_visit ? formatDate(member.last_visit) : 'Noch nie' }}
+                                    {{ member.last_check_in ? formatDate(member.last_check_in.check_in_time) : 'Noch nie' }}
                                 </td>
                                 <td class="py-3 px-4 text-sm">
                                     {{ member.contract_end_date ? formatDate(member.contract_end_date) : '-' }}
@@ -264,6 +264,11 @@ const props = defineProps({
 })
 
 // Methods
+const formatDate = (date) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('de-DE')
+}
+
 const getIcon = (iconName) => {
     const icons = {
         users: Users,
