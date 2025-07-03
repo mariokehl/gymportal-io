@@ -26,18 +26,18 @@
             {{ activeMembersCount === 1 ? 'Mitglied' : 'Mitgliedern' }} genutzt.
             Änderungen können sich auf bestehende Mitgliedschaften auswirken.
           </p>
-          <div v-if="activeMembers.length > 0" class="mt-3">
+          <div v-if="activeMemberships.length > 0" class="mt-3">
             <p class="text-xs text-amber-600 font-medium mb-2">Betroffene Mitglieder:</p>
             <div class="flex flex-wrap gap-2">
               <span
-                v-for="member in activeMembers"
-                :key="member.id"
+                v-for="membership in activeMemberships"
+                :key="membership.id"
                 class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs"
               >
-                {{ member.user.first_name }} {{ member.user.last_name }}
+                {{ membership.member.first_name }} {{ membership.member.last_name }}
               </span>
-              <span v-if="activeMembersCount > activeMembers.length" class="text-xs text-amber-600">
-                +{{ activeMembersCount - activeMembers.length }} weitere
+              <span v-if="activeMembersCount > activeMemberships.length" class="text-xs text-amber-600">
+                +{{ activeMembersCount - activeMemberships.length }} weitere
               </span>
             </div>
           </div>
@@ -227,7 +227,7 @@ import { Save, X, Eye, AlertTriangle } from 'lucide-vue-next'
 const props = defineProps({
   membershipPlan: Object,
   activeMembersCount: Number,
-  activeMembers: Array
+  activeMemberships: Array
 })
 
 // Form data

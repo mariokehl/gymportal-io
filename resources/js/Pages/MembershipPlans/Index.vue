@@ -78,7 +78,7 @@
 
           <div class="flex justify-between">
             <span class="text-gray-600 text-sm">Aktive Mitglieder:</span>
-            <span class="font-medium text-blue-600">{{ plan.members_count || 0 }}</span>
+            <span class="font-medium text-blue-600">{{ plan.member_count || 0 }}</span>
           </div>
         </div>
 
