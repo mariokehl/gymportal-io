@@ -10,7 +10,7 @@ class GymUserSeeder extends Seeder
     public function run()
     {
         // Assign staff to FitZone
-        DB::table('gym_user')->insert([
+        DB::table('gym_users')->insert([
             'gym_id' => 1, // FitZone Berlin
             'user_id' => 4, // Lisa Müller
             'role' => 'staff',
@@ -19,7 +19,7 @@ class GymUserSeeder extends Seeder
         ]);
 
         // Assign trainer to FitZone
-        DB::table('gym_user')->insert([
+        DB::table('gym_users')->insert([
             'gym_id' => 1, // FitZone Berlin
             'user_id' => 5, // Thomas Weber
             'role' => 'trainer',
