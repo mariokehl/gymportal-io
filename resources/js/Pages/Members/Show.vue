@@ -223,24 +223,23 @@
           <!-- Membership Tab -->
           <div v-show="activeTab === 'membership'" class="space-y-6">
             <div v-if="member.memberships && member.memberships.length > 0">
-              <div v-for="membership in member.memberships" :key="membership.id" class="border rounded-lg p-4 mb-4">
+              <div v-for="membership in member.memberships" :key="membership.id" class="border border-gray-200 rounded-lg p-4 mb-4">
                 <div class="flex justify-between items-start">
                   <div>
-                    <h4 class="text-lg font-semibold">{{ membership.membership_plan.name }}</h4>
-                    <p class="text-gray-600">{{ membership.membership_plan.description }}</p>
-                    <div class="mt-2 space-y-1">
-                      <p class="text-sm"><span class="font-medium">Preis:</span> {{ formatCurrency(membership.membership_plan.price) }} / {{ membership.membership_plan.billing_cycle }}</p>
-                      <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
-                      <p class="text-sm"><span class="font-medium">Status:</span>
+                    <h4 class="text-lg font-semibold">
+                        {{ membership.membership_plan.name }}
                         <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
                           {{ getStatusText(membership.status) }}
                         </span>
-                      </p>
+                    </h4>
+                    <p class="text-gray-600">{{ membership.membership_plan.description }}</p>
+                    <div class="mt-2 space-y-1">
+                      <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
                     </div>
                   </div>
                   <div class="text-right">
                     <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
-                    <p class="text-sm text-gray-500">{{ membership.membership_plan.billing_cycle }}</p>
+                    <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
                   </div>
                 </div>
                 <div v-if="membership.pause_start_date" class="mt-3 p-3 bg-yellow-50 rounded-md">
@@ -406,6 +405,15 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
+const getBillingCycleText = (cycle) => {
+  const cycles = {
+    'monthly': 'Monat',
+    'quarterly': 'Quartal',
+    'yearly': 'Jahr'
+  }
+  return cycles[cycle] || cycle
+}
+
 const getPaymentStatusClass = (status) => getStatusBadgeClass(status)
 
 const getPaymentStatusText = (status) => {
@@ -435,7 +443,7 @@ const formatCurrency = (amount) => {
   return new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR'
-  }).format(amount / 100)
+  }).format(amount)
 }
 
 const calculateDuration = (checkIn, checkOut) => {

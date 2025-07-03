@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
 
@@ -19,10 +20,11 @@ class MembershipPlanController extends Controller
      */
     public function index(): Response
     {
-        $membershipPlans = MembershipPlan::where('gym_id', auth()->user()->current_gym_id)
-            ->withCount(['memberships' => function ($query) {
-                $query->where('status', 'active');
-            }])
+        /** @var User $user */
+        $user = Auth::user();
+
+        $membershipPlans = MembershipPlan::where('gym_id', $user->current_gym_id)
+            ->withCount('memberships as member_count')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -73,15 +75,15 @@ class MembershipPlanController extends Controller
     {
         //$this->authorize('view', $membershipPlan);
 
-        $activeMembers = $membershipPlan->memberships()
+        $activeMemberships = $membershipPlan->memberships()
             ->where('status', 'active')
-            ->with(['user'])
+            ->with(['member'])
             ->get();
 
         return Inertia::render('MembershipPlans/Show', [
             'membershipPlan' => $membershipPlan,
-            'activeMembers' => $activeMembers,
-            'activeMembersCount' => $activeMembers->count()
+            'activeMemberships' => $activeMemberships,
+            'activeMembersCount' => $activeMemberships->count()
         ]);
     }
 
@@ -96,11 +98,11 @@ class MembershipPlanController extends Controller
             ->where('status', 'active')
             ->count();
 
-        $activeMembers = [];
+        $activeMemberships = [];
         if ($activeMembersCount > 0) {
-            $activeMembers = $membershipPlan->memberships()
+            $activeMemberships = $membershipPlan->memberships()
                 ->where('status', 'active')
-                ->with(['user'])
+                ->with(['member'])
                 ->limit(10)
                 ->get();
         }
@@ -108,7 +110,7 @@ class MembershipPlanController extends Controller
         return Inertia::render('MembershipPlans/Edit', [
             'membershipPlan' => $membershipPlan,
             'activeMembersCount' => $activeMembersCount,
-            'activeMembers' => $activeMembers
+            'activeMemberships' => $activeMemberships
         ]);
     }
 

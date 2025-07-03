@@ -116,7 +116,7 @@ const props = defineProps({
 
 // Computed properties
 const pageTitle = computed(() => {
-  return props.title ? `${props.title} - gymportal.io` : 'gymportal.io'
+  return props.title ? `${props.title}` : 'Unbekannt'
 })
 
 const user = computed(() => page.props.auth.user)

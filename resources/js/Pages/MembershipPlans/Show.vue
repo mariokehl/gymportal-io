@@ -101,25 +101,25 @@
 
           <div v-if="activeMembersCount > 0" class="space-y-3">
             <div
-              v-for="member in activeMembers"
-              :key="member.id"
+              v-for="membership in activeMemberships"
+              :key="membership.id"
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div class="flex items-center space-x-3">
                 <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-sm font-semibold">
-                  {{ getUserInitials(member.user) }}
+                  {{ getUserInitials(membership.member) }}
                 </div>
                 <div>
                   <p class="font-medium text-gray-900">
-                    {{ member.user.first_name }} {{ member.user.last_name }}
+                    {{ membership.member.first_name }} {{ membership.member.last_name }}
                   </p>
-                  <p class="text-sm text-gray-600">{{ member.user.email }}</p>
+                  <p class="text-sm text-gray-600">{{ membership.member.email }}</p>
                 </div>
               </div>
               <div class="text-right">
                 <span class="text-sm text-gray-500">Mitglied seit</span>
                 <p class="text-sm font-medium text-gray-900">
-                  {{ formatDate(member.created_at) }}
+                  {{ formatDate(membership.member.created_at) }}
                 </p>
               </div>
             </div>
@@ -146,18 +146,6 @@
               <span class="text-gray-600">Monatlicher Umsatz</span>
               <span class="text-lg font-semibold text-green-600">
                 {{ formatMonthlyRevenue() }}
-              </span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-gray-600">Status</span>
-              <span
-                :class="{
-                  'text-green-600': membershipPlan.is_active,
-                  'text-gray-600': !membershipPlan.is_active
-                }"
-                class="font-medium"
-              >
-                {{ membershipPlan.is_active ? 'Aktiv' : 'Inaktiv' }}
               </span>
             </div>
           </div>
@@ -203,7 +191,7 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg max-w-md w-full mx-4 p-6">
         <div class="flex items-center space-x-3 mb-4">
           <div class="bg-red-100 p-2 rounded-full">
@@ -258,13 +246,13 @@ import { Edit, Trash2, Users, AlertTriangle } from 'lucide-vue-next'
 // Props
 const props = defineProps({
   membershipPlan: Object,
-  activeMembers: Array,
+  activeMemberships: Array,
   activeMembersCount: Number
 })
 
 // Reactive data
 const showDeleteModal = ref(false)
-const deleteInfo = ref({ canDelete: true, activeMembersCount: 0, activeMembers: [] })
+const deleteInfo = ref({ canDelete: true, activeMembersCount: 0, activeMemberships: [] })
 
 // Methods
 const formatPrice = (price) => {
@@ -319,7 +307,7 @@ const confirmDelete = async () => {
     showDeleteModal.value = true
   } catch (error) {
     console.error('Error checking deletion:', error)
-    deleteInfo.value = { canDelete: true, activeMembersCount: 0, activeMembers: [] }
+    deleteInfo.value = { canDelete: true, activeMembersCount: 0, activeMemberships: [] }
     showDeleteModal.value = true
   }
 }
@@ -331,6 +319,6 @@ const deletePlan = () => {
 
 const closeDeleteModal = () => {
   showDeleteModal.value = false
-  deleteInfo.value = { canDelete: true, activeMembersCount: 0, activeMembers: [] }
+  deleteInfo.value = { canDelete: true, activeMembersCount: 0, activeMemberships: [] }
 }
 </script>

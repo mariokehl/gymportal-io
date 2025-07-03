@@ -491,16 +491,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 const props = defineProps({
     membershipPlans: {
         type: Array,
-        default: () => [
-            {
-                id: 1,
-                name: 'Dummy-Vertrag',
-                description: 'Ein statischer Beispielvertrag.',
-                price: 40,
-                commitment_months: 12,
-                billing_cycle: 'monthly'
-            }
-        ]
+        default: () => []
     }
 })
 
@@ -548,7 +539,7 @@ const paymentMethods = [
     description: 'Automatischer Bankeinzug (empfohlen)'
   },
   {
-    value: 'credit_card',
+    value: 'creditcard',
     label: 'Kreditkarte',
     description: 'Visa, MasterCard, American Express'
   },

@@ -5,9 +5,14 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\Membership;
+use App\Models\MembershipPlan;
+use App\Models\PaymentMethod;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 
@@ -70,7 +75,18 @@ class MemberController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Members/Create');
+        $user = Auth::user();
+
+        $membershipPlans = MembershipPlan::where('gym_id', $user->current_gym_id)
+            ->withCount(['memberships' => function ($query) {
+                $query->where('status', 'active');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Members/Create', [
+            'membershipPlans' => $membershipPlans
+        ]);
     }
 
     /**
@@ -84,7 +100,7 @@ class MemberController extends Controller
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:members,email'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->whereNull('deleted_at')],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -100,14 +116,48 @@ class MemberController extends Controller
 
         // Next member number
         $lastMember = Member::orderBy('id', 'desc')->first();
-        $nextNumber = $lastMember ? $lastMember->id + 1337 : 100001;
+        $nextNumber = $lastMember ? $lastMember->id + 100000 : 100001;
         $validated['member_number'] = $nextNumber; // TODO: Implement number ranges
 
         // Add gym_id to the validated data
         $validated['gym_id'] = $user->current_gym_id;
         $validated['user_id'] = $user->id;
 
-        Member::create($validated);
+        try {
+            DB::beginTransaction();
+
+            // Create the member
+            $newMember = Member::create($validated);
+
+            // Get membership plan to calculate end date
+            $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
+
+            // Create membership
+            Membership::create([
+                'member_id' => $newMember->id,
+                'membership_plan_id' => $request->membership_plan_id,
+                'start_date' => $validated['joined_date'],
+                'end_date' => Carbon::parse($validated['joined_date'])->addMonths($membershipPlan->commitment_months)
+            ]);
+
+            // Select payment method
+            PaymentMethod::create([
+                'member_id' => $newMember->id,
+                'type' => $request->payment_method
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('dashboard')
+                ->with('success', 'Organisation wurde erfolgreich erstellt!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()
+                ->withErrors(['general' => 'Fehler beim Erstellen der Organisation. Bitte versuchen Sie es erneut.'])
+                ->withInput();
+        }
 
         return redirect()->route('members.index')
             ->with('success', 'Mitglied wurde erfolgreich erstellt.');
@@ -121,11 +171,14 @@ class MemberController extends Controller
         // Ensure the member belongs to the current gym
         //$this->authorize('view', $member);
 
-        $member->load(['user', 'gym', 'checkIns' => function ($query) {
-            $query->latest()->take(10);
-        }, 'memberships' => function ($query) {
-            $query->latest();
-        }]);
+        $member->load([
+            'user',
+            'gym',
+            'memberships.membershipPlan',
+            'checkIns' => function ($query) {
+                $query->latest()->take(10);
+            },
+        ]);
 
         return Inertia::render('Members/Show', [
             'member' => $member
