@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
+    private string $driver = '';
+
     public function up()
     {
-        $driver = DB::connection()->getDriverName();
+        $this->driver = DB::connection()->getDriverName();
 
         Schema::table('payments', function (Blueprint $table) {
             $table->foreignId('gym_id')->after('id')->nullable()->constrained()->onDelete('cascade');
@@ -27,7 +29,7 @@ return new class extends Migration
             $table->timestamp('webhook_processed_at')->after('expired_at')->nullable();
         });
 
-        if ($driver === 'pgsql') {
+        if ($this->driver === 'pgsql') {
             // PostgreSQL: Use separate statements
             DB::statement('ALTER TABLE payments ALTER COLUMN status TYPE VARCHAR(255)');
             DB::statement("ALTER TABLE payments ADD CONSTRAINT payments_status_check CHECK (status IN ('pending', 'paid', 'failed', 'refunded', 'completed', 'canceled', 'expired', 'unknown'))");
@@ -61,18 +63,31 @@ return new class extends Migration
      */
     private function updateExistingPayments()
     {
-        DB::statement('
-            UPDATE payments p
-            INNER JOIN memberships m ON p.membership_id = m.id
-            INNER JOIN members mem ON m.member_id = mem.id
-            SET p.gym_id = mem.gym_id
-            WHERE p.gym_id IS NULL
-        ');
+        if ($this->driver === 'pgsql') {
+            // PostgreSQL Syntax
+            DB::statement('
+                UPDATE payments
+                SET gym_id = mem.gym_id
+                FROM memberships m
+                INNER JOIN members mem ON m.member_id = mem.id
+                WHERE payments.membership_id = m.id
+                AND payments.gym_id IS NULL
+            ');
+        } else {
+            // MySQL Syntax
+            DB::statement('
+                UPDATE payments p
+                INNER JOIN memberships m ON p.membership_id = m.id
+                INNER JOIN members mem ON m.member_id = mem.id
+                SET p.gym_id = mem.gym_id
+                WHERE p.gym_id IS NULL
+            ');
+        }
     }
 
     public function down()
     {
-        $driver = DB::connection()->getDriverName();
+        $this->driver = DB::connection()->getDriverName();
 
         Schema::table('payments', function (Blueprint $table) {
             $table->dropForeign(['gym_id']);
@@ -102,7 +117,7 @@ return new class extends Migration
             ]);
         });
 
-        if ($driver === 'pgsql') {
+        if ($this->driver === 'pgsql') {
             DB::statement('ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check');
             DB::statement('ALTER TABLE payments ALTER COLUMN status TYPE VARCHAR(255)');
         } else {
