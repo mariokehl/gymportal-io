@@ -70,6 +70,9 @@ class AuthController extends Controller
             'email' => $request->email,
         ]);
 
+        // TODO: Set current_gym_id in users table
+        //...
+
         Auth::login($user);
 
         return redirect('/dashboard');
