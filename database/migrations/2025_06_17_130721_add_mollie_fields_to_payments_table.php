@@ -64,14 +64,22 @@ return new class extends Migration
     public function down()
     {
         Schema::table('payments', function (Blueprint $table) {
+            // 1. Zuerst alle Foreign Key Constraints entfernen
+            $table->dropForeign(['gym_id']);
+            $table->dropForeign(['user_id']); // falls vorhanden
+            $table->dropForeign(['member_id']); // falls vorhanden
+            $table->dropForeign(['invoice_id']); // falls vorhanden
+
+            // 2. Dann die Indizes entfernen
             $table->dropIndex(['gym_id', 'status']);
             $table->dropIndex(['gym_id', 'created_at']);
             $table->dropIndex(['mollie_payment_id']);
-
             $table->dropUnique(['mollie_payment_id']);
 
+            // 3. Spaltentyp ändern
             $table->enum('status', ['pending', 'paid', 'failed', 'refunded'])->change();
 
+            // 4. Spalten löschen
             $table->dropColumn([
                 'gym_id',
                 'currency',

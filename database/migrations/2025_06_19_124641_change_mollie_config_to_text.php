@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,6 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        DB::table('gyms')->update(['mollie_config' => null]);
+
         Schema::table('gyms', function (Blueprint $table) {
             $table->longText('mollie_config')->nullable()->change();
         });
@@ -21,8 +24,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        DB::table('gyms')->update(['mollie_config' => null]);
+
         Schema::table('gyms', function (Blueprint $table) {
-            $table->json('mollie_config')->change();
+            $table->json('mollie_config')->nullable()->change();
         });
     }
 };
