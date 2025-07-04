@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up()
     {
+        $driver = DB::connection()->getDriverName();
+
         Schema::table('payments', function (Blueprint $table) {
             $table->foreignId('gym_id')->after('id')->nullable()->constrained()->onDelete('cascade');
             $table->string('currency', 3)->after('amount')->default('EUR');
@@ -25,9 +27,16 @@ return new class extends Migration
             $table->timestamp('webhook_processed_at')->after('expired_at')->nullable();
         });
 
-        Schema::table('payments', function (Blueprint $table) {
-            $table->enum('status', ['pending', 'paid', 'failed', 'refunded', 'completed', 'canceled', 'expired', 'unknown'])->change();
-        });
+        if ($driver === 'pgsql') {
+            // PostgreSQL: Use separate statements
+            DB::statement('ALTER TABLE payments ALTER COLUMN status TYPE VARCHAR(255)');
+            DB::statement("ALTER TABLE payments ADD CONSTRAINT payments_status_check CHECK (status IN ('pending', 'paid', 'failed', 'refunded', 'completed', 'canceled', 'expired', 'unknown'))");
+        } else {
+            // MySQL/other: Use Laravel's enum()
+            Schema::table('payments', function (Blueprint $table) {
+                $table->enum('status', ['pending', 'paid', 'failed', 'refunded', 'completed', 'canceled', 'expired', 'unknown'])->change();
+            });
+        }
 
         Schema::table('payments', function (Blueprint $table) {
             $table->unique('mollie_payment_id');
@@ -63,23 +72,19 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::table('payments', function (Blueprint $table) {
-            // 1. Zuerst alle Foreign Key Constraints entfernen
-            $table->dropForeign(['gym_id']);
-            $table->dropForeign(['user_id']); // falls vorhanden
-            $table->dropForeign(['member_id']); // falls vorhanden
-            $table->dropForeign(['invoice_id']); // falls vorhanden
+        $driver = DB::connection()->getDriverName();
 
-            // 2. Dann die Indizes entfernen
+        Schema::table('payments', function (Blueprint $table) {
+            $table->dropForeign(['gym_id']);
+            $table->dropForeign(['user_id']);
+            $table->dropForeign(['member_id']);
+            $table->dropForeign(['invoice_id']);
+
             $table->dropIndex(['gym_id', 'status']);
             $table->dropIndex(['gym_id', 'created_at']);
             $table->dropIndex(['mollie_payment_id']);
             $table->dropUnique(['mollie_payment_id']);
 
-            // 3. Spaltentyp ändern
-            $table->enum('status', ['pending', 'paid', 'failed', 'refunded'])->change();
-
-            // 4. Spalten löschen
             $table->dropColumn([
                 'gym_id',
                 'currency',
@@ -96,5 +101,14 @@ return new class extends Migration
                 'webhook_processed_at'
             ]);
         });
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check');
+            DB::statement('ALTER TABLE payments ALTER COLUMN status TYPE VARCHAR(255)');
+        } else {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->enum('status', ['pending', 'paid', 'failed'])->change();
+            });
+        }
     }
 };
