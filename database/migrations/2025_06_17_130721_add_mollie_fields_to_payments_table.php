@@ -31,6 +31,7 @@ return new class extends Migration
 
         if ($this->driver === 'pgsql') {
             // PostgreSQL: Use separate statements
+            DB::statement('ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check');
             DB::statement('ALTER TABLE payments ALTER COLUMN status TYPE VARCHAR(255)');
             DB::statement("ALTER TABLE payments ADD CONSTRAINT payments_status_check CHECK (status IN ('pending', 'paid', 'failed', 'refunded', 'completed', 'canceled', 'expired', 'unknown'))");
         } else {
