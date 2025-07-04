@@ -1,61 +1,261 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏋️ GymPortal
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern gym management system built with Laravel and Vue.js, featuring member management, course bookings, payments, and comprehensive admin tools.
 
-## About Laravel
+## 🚀 Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+-   **Backend**: Laravel 12 (PHP 8.2+)
+-   **Frontend**: Vue.js 3 with Inertia.js
+-   **Styling**: Tailwind CSS
+-   **Database**: MySQL (via DDEV)
+-   **Payment Processing**: Mollie API
+-   **Development Environment**: DDEV
+-   **Frontend Build Tool**: Vite
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📋 Prerequisites
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Before you begin, ensure you have the following tools installed on your system:
 
-## Learning Laravel
+### Required Dependencies
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+-   **Node.js & NPM**: [Download from nodejs.org](https://nodejs.org/)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+    ```bash
+    # Verify installation
+    node --version
+    npm --version
+    ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+-   **DDEV**: [Installation Guide](https://ddev.readthedocs.io/en/stable/users/install/)
 
-## Laravel Sponsors
+    ```bash
+    # Verify installation
+    ddev version
+    ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+-   **mkcert**: [Installation Guide](https://github.com/FiloSottile/mkcert)
 
-### Premium Partners
+    ```bash
+    # Verify installation
+    mkcert --version
+    ```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+## 🛠️ Installation
 
-## Contributing
+Follow these steps to set up your development environment:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Clone the Repository
 
-## Code of Conduct
+```bash
+git clone <repository-url>
+cd gymportal-io
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 2. Install Dependencies
 
-## Security Vulnerabilities
+#### Backend Dependencies
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+ddev composer install
+```
 
-## License
+#### Frontend Dependencies
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+npm install
+```
+
+### 3. Configure HTTPS for Local Development
+
+```bash
+mkcert -install
+```
+
+This command installs the local CA certificate, enabling HTTPS on your local development environment.
+
+### 4. Start DDEV Environment
+
+```bash
+ddev start
+```
+
+## 🏃‍♂️ Running the Application
+
+### Frontend Development Server
+
+Start the Vite development server for hot module replacement:
+
+```bash
+npm run dev
+```
+
+### Backend Setup
+
+#### First Time Setup
+
+If this is your first time running the application:
+
+1. **Generate Application Key**
+
+    ```bash
+    ddev php artisan key:generate
+    ```
+
+2. **Seed the Database**
+
+    ```bash
+    ddev php artisan db:seed
+    ```
+
+#### Subsequent Runs
+
+For regular development sessions:
+
+```bash
+ddev launch
+```
+
+This command will open your application in the default browser.
+
+## 🌐 Accessing the Application
+
+### Main Application
+
+Navigate to: **[https://gymportal-io.ddev.site]()**
+
+### First-Time Login Setup
+
+1. **Go to the application URL**: [https://gymportal-io.ddev.site]()
+2. **Click on "Passwort vergessen?" (Forgot Password)**
+3. **Enter the test email**: `max@fitzone.de`
+4. **Check the local mailbox**:
+
+    ```bash
+    ddev launch -m
+    ```
+
+    This opens Mailpit, the local mail testing interface
+5. **Click on the password reset link** in the received email
+6. **Set a new password** of your choice
+7. **Login** with the email and your new password
+
+🎉 **You're all set!** You can now access the GymPortal application.
+
+## 🗄️ Database Management
+
+### Access Database
+
+```bash
+# MySQL CLI
+ddev mysql
+
+# Or use a GUI tool with these credentials:
+# Host: 127.0.0.1
+# Port: (check with `ddev describe`)
+# Username: root
+# Password: root
+# Database: db
+```
+
+### Common Database Commands
+
+```bash
+# Run migrations
+ddev php artisan migrate
+
+# Rollback migrations
+ddev php artisan migrate:rollback
+
+# Seed database
+ddev php artisan db:seed
+
+# Fresh migration with seeding
+ddev php artisan migrate:fresh --seed
+```
+
+## 🛠️ Development Tools
+
+### Artisan Commands
+
+```bash
+# List all available commands
+ddev php artisan list
+
+# Generate models, controllers, etc.
+ddev php artisan make:model ModelName
+ddev php artisan make:controller ControllerName
+ddev php artisan make:migration create_table_name
+```
+
+## 📝 Project Structure
+
+```
+gymportal-io/
+├── app/
+│   ├── Http/Controllers/    # API & Web controllers
+│   ├── Models/             # Eloquent models
+│   ├── Policies/           # Authorization policies
+│   └── Services/           # Business logic services
+├── database/
+│   ├── migrations/         # Database migrations
+│   └── seeders/           # Database seeders
+├── resources/
+│   ├── js/                # Vue.js components
+│   ├── css/               # Stylesheets
+│   └── views/             # Blade templates
+├── routes/
+│   ├── web.php            # Web routes
+│   └── api.php            # API routes
+└── public/                # Public assets
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**DDEV not starting?**
+
+```bash
+ddev restart
+```
+
+**Database connection issues?**
+
+```bash
+ddev restart
+ddev php artisan migrate
+```
+
+**Frontend not updating?**
+
+```bash
+npm run dev
+# Make sure Vite dev server is running
+```
+
+**HTTPS certificate issues?**
+
+```bash
+mkcert -install
+ddev restart
+```
+
+### Getting Help
+
+-   Check DDEV logs: `ddev logs`
+-   Laravel logs: `storage/logs/laravel.log`
+-   Browser developer tools for frontend issues
+
+## 📚 Additional Resources
+
+-   [Laravel Documentation](https://laravel.com/docs)
+-   [Vue.js Documentation](https://vuejs.org/guide/)
+-   [Inertia.js Documentation](https://inertiajs.com/)
+-   [DDEV Documentation](https://ddev.readthedocs.io/)
+-   [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+
+---
+
+**Happy coding! 🚀**
+
+> Need help? Check the troubleshooting section above or reach out to the development team.
