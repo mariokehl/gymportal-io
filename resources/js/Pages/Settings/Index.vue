@@ -150,13 +150,24 @@
                     <div class="px-4 py-5 sm:p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg leading-6 font-medium text-gray-900">
-                                Team-Mitglieder <small class="text-orange-700">Beta – Funktion noch nicht aktiv</small>
+                                Team-Mitglieder
                             </h3>
                             <button @click="showAddUserModal = true"
                                 class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md flex items-center">
                                 <component :is="Plus" class="w-4 h-4 mr-2" />
                                 Benutzer hinzufügen
                             </button>
+                        </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-md p-3 shadow-sm mb-4">
+                            <div class="flex items-center">
+                                <svg class="h-4 w-4 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700">
+                                    Feature noch nicht implementiert - wird in Kürze verfügbar sein
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Team Members Table -->
