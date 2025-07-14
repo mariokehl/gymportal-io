@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Member;
+use App\Models\Payment;
 use App\Policies\MemberPolicy;
+use App\Policies\PaymentPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -15,6 +17,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Member::class => MemberPolicy::class,
+        Payment::class => PaymentPolicy::class,
     ];
 
     /**

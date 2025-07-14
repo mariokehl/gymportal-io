@@ -89,7 +89,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Monatsumsatz',
-                'value' => '€14,250',
+                'value' => '14,250 €',
                 'change' => '+8%',
                 'icon' => 'dollar-sign'
             ],
