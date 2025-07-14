@@ -68,9 +68,9 @@
                                 <select v-model="contractForm.membership"
                                     class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required>
-                                    <option value="Basic">Basic (€29,99/Monat)</option>
-                                    <option value="Standard">Standard (€49,99/Monat)</option>
-                                    <option value="Premium">Premium (€69,99/Monat)</option>
+                                    <option value="Basic">Basic (29,99 €/Monat)</option>
+                                    <option value="Standard">Standard (49,99 €/Monat)</option>
+                                    <option value="Premium">Premium (69,99 €/Monat)</option>
                                 </select>
                             </div>
                             <div>

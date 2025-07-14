@@ -2,11 +2,12 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Web\DashboardController;
-use App\Http\Controllers\Web\FinanceController;
+use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
 use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
+use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\SettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -47,7 +48,10 @@ Route::middleware('auth:web')->group(function () {
         Route::delete('/{membershipPlan}', [MembershipPlanController::class, 'destroy'])->name('destroy');
         Route::get('/{membershipPlan}/check-deletion', [MembershipPlanController::class, 'checkDeletion'])->name('check-deletion');
     });
-    Route::get('/finances', [FinanceController::class, 'index'])->name('finances.index');
+    Route::get('/finances', [FinancesController::class, 'index'])->name('finances.index');
+    Route::post('/finances/export', [FinancesController::class, 'export'])->name('finances.export');
+    Route::patch('/payments/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('payments.mark-paid');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');

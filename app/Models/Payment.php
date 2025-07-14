@@ -41,6 +41,13 @@ class Payment extends Model
         'paid_date' => 'date',
     ];
 
+    protected $appends = ['status_text', 'status_color', 'payment_method_text'];
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class);
+    }
+
     public function membership()
     {
         return $this->belongsTo(Membership::class);
