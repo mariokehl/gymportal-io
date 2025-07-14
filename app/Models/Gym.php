@@ -32,6 +32,19 @@ class Gym extends Model
         'subscription_plan',
         'subscription_ends_at',
         'mollie_config',
+        'api_key',
+        'widget_enabled',
+        'widget_settings',
+    ];
+
+    protected $casts = [
+        'subscription_ends_at' => 'datetime',
+        'widget_settings' => 'array',
+        'widget_enabled' => 'boolean',
+    ];
+
+    protected $hidden = [
+        'api_key',
     ];
 
     protected static function boot()
@@ -39,6 +52,9 @@ class Gym extends Model
         parent::boot();
 
         static::creating(function ($gym) {
+            if (empty($gym->api_key)) {
+                $gym->api_key = $gym->generateApiKey();
+            }
             $gym->generateSlug();
         });
 
@@ -48,10 +64,6 @@ class Gym extends Model
             }
         });
     }
-
-    protected $casts = [
-        'subscription_ends_at' => 'datetime'
-    ];
 
     // Existing relationships
     public function owner()
@@ -212,5 +224,81 @@ class Gym extends Model
         }
 
         $this->slug = $slug;
+    }
+
+    public function generateApiKey(): string
+    {
+        do {
+            $apiKey = 'pk_live_' . Str::random(32);
+        } while (self::where('api_key', $apiKey)->exists());
+
+        return $apiKey;
+    }
+
+    public function regenerateApiKey(): string
+    {
+        $this->api_key = $this->generateApiKey();
+        $this->save();
+
+        return $this->api_key;
+    }
+
+    public function getWidgetSettingsAttribute($value)
+    {
+        $defaults = [
+            'colors' => [
+                'primary' => '#e11d48',
+                'secondary' => '#f9fafb',
+                'text' => '#1f2937',
+            ],
+            'texts' => [
+                'title' => 'Wähle deinen Tarif',
+                'welcome_message' => 'Willkommen bei {gym_name}',
+                'success_message' => 'Vielen Dank für deine Registrierung!',
+            ],
+            'features' => [
+                'show_duration_selector' => true,
+                'show_goals_selection' => true,
+                'require_birth_date' => true,
+                'require_phone' => true,
+            ],
+            'integrations' => [
+                'google_recaptcha' => false,
+                'sepa_mandate' => true,
+            ],
+        ];
+
+        $settings = $value ? json_decode($value, true) : [];
+        return array_merge($defaults, $settings);
+    }
+
+    public function getWidgetUrlAttribute()
+    {
+        return config('app.url') . '/embed/widget/' . $this->id;
+    }
+
+    public function getWidgetEmbedCodeAttribute()
+    {
+        return '<div id="gymportal-widget"></div>
+<script>
+(function() {
+    const script = document.createElement("script");
+    script.src = "' . config('app.url') . '/embed/widget.js";
+    script.onload = function() {
+        GymportalWidget.init({
+            containerId: "gymportal-widget",
+            apiEndpoint: "' . config('app.url') . '",
+            apiKey: "' . $this->api_key . '",
+            studioId: "' . $this->id . '"
+        });
+    };
+    document.head.appendChild(script);
+})();
+</script>';
+    }
+
+    public function scopeWidgetEnabled($query)
+    {
+        return $query->where('widget_enabled', true);
     }
 }

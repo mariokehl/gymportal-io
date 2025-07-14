@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\SettingController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -62,4 +63,123 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/gyms/remove/{gym}', [GymController::class, 'remove'])->name('gyms.remove');
     Route::post('/user/switch-organization', [GymController::class, 'switchOrganization'])->name('user.switch-organization');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
+// Zusätzliche Widget-Admin-Routes für AJAX-Calls
+Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(function() {
+    Route::put('/update', function(Request $request) {
+        $user = auth()->user();
+        $currentGym = $user?->currentGym;
+
+        if (!$currentGym) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kein Fitnessstudio ausgewählt.'
+            ], 400);
+        }
+
+        $request->validate([
+            'widget_enabled' => 'required|boolean',
+            'widget_settings' => 'required|array',
+            'widget_settings.colors' => 'required|array',
+            'widget_settings.colors.primary' => 'required|string',
+            'widget_settings.texts' => 'required|array',
+            'widget_settings.texts.title' => 'required|string|max:255',
+        ]);
+
+        try {
+            $currentGym->update([
+                'widget_enabled' => $request->widget_enabled,
+                'widget_settings' => $request->widget_settings,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Einstellungen erfolgreich gespeichert.',
+                'gym' => [
+                    'id' => $currentGym->id,
+                    'name' => $currentGym->name,
+                    'api_key' => $currentGym->api_key,
+                    'widget_enabled' => $currentGym->widget_enabled,
+                    'widget_settings' => $currentGym->widget_settings,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fehler beim Speichern der Einstellungen: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('update');
+
+    Route::post('/regenerate-api-key', function() {
+        try {
+            return response()->json([
+                'success' => true,
+                'api_key' => auth()->user()->currentGym->regenerateApiKey(),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fehler beim Generieren des API-Keys: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('regenerate-api-key');
+
+    Route::get('/api-keys', function() {
+        try {
+            return response()->json([
+                'success' => true,
+                'public_key' => auth()->user()->currentGym->api_key,
+                'private_key' => 'sk_live_notimplementedyet',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fehler beim Laden der API-Keys: ' . $e->getMessage()
+            ], 500);
+        }
+    })->name('api-keys');
+});
+
+Route::prefix('embed')->name('embed.')->group(function () {
+    Route::get('gymportal-widget.css', function () {
+        $response = response()->file(public_path('css/widget.css'));
+        $response->headers->set('Content-Type', 'text/css');
+        $response->headers->set('Cache-Control', 'public, max-age=3600');
+        return $response;
+    })->name('widget.css');
+
+    Route::get('widget.js', function () {
+        $response = response()->file(public_path('js/widget.js'));
+        $response->headers->set('Content-Type', 'application/javascript');
+        $response->headers->set('Cache-Control', 'public, max-age=3600');
+        return $response;
+    })->name('widget.js');
+});
+
+Route::get('/debug/widget-assets', function () {
+    return [
+        'js_file_exists' => file_exists(public_path('js/widget.js')),
+        'css_file_exists' => file_exists(public_path('css/widget.css')),
+        'js_path' => public_path('js/widget.js'),
+        'css_path' => public_path('css/widget.css'),
+        'js_readable' => is_readable(public_path('js/widget.js')),
+        'css_readable' => is_readable(public_path('css/widget.css')),
+        'js_size' => file_exists(public_path('js/widget.js')) ? filesize(public_path('js/widget.js')) : 0,
+        'css_size' => file_exists(public_path('css/widget.css')) ? filesize(public_path('css/widget.css')) : 0,
+        'public_path' => public_path(),
+        'laravel_version' => app()->version(),
+        'available_routes' => [
+            'embed_widget_js' => route('embed.widget.js'),
+            'embed_widget_css' => route('embed.widget.css'),
+        ]
+    ];
+});
+
+Route::get('/widget-test', function () {
+    return view('widget-test');
 });

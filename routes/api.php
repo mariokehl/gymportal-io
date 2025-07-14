@@ -1,10 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\MollieSetupController;
+use App\Http\Controllers\Api\WidgetController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-
-use Illuminate\Http\Request;
 
 /*
 | API Routes
@@ -38,6 +37,25 @@ Route::prefix('v1')->name('v1.')->group(function () {
     });
     */
 });
+
+
+/*
+| Widget API Routes
+*/
+
+Route::group(['prefix' => 'widget', 'middleware' => ['api', 'widget.auth']], function () {
+    Route::get('/markup/plans', [WidgetController::class, 'getPlansMarkup']);
+    Route::get('/markup/form', [WidgetController::class, 'getFormMarkup']);
+    Route::get('/markup/checkout', [WidgetController::class, 'getCheckoutMarkup']);
+    Route::post('/save-form-data', [WidgetController::class, 'saveFormData']);
+    Route::post('/contracts', [WidgetController::class, 'createContract']);
+    Route::post('/analytics', [WidgetController::class, 'trackAnalytics']);
+});
+
+// Widget-Middleware für Authentifizierung
+//Route::middleware('widget.auth', function () {
+    // Weitere geschützte Routes
+//});
 
 /**
  * Fallback routes, to prevent a rendered HTML page in /api/* routes

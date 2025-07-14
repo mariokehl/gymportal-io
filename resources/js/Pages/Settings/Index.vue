@@ -40,17 +40,13 @@
                         <form @submit.prevent="saveGymSettings" class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-gray-700">Name <span
-                                            class="text-red-500">*</span></label>
-                                    <input v-model="gymForm.name" type="text"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                                        required />
+                                    <label class="block text-sm/6 font-medium text-gray-700">Name <span class="text-red-500">*</span></label>
+                                    <input v-model="gymForm.name" type="text" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" required />
                                 </div>
 
                                 <div class="md:col-span-2">
                                     <label class="block text-sm/6 font-medium text-gray-700">Beschreibung</label>
-                                    <textarea v-model="gymForm.description" rows="3"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"></textarea>
+                                    <textarea v-model="gymForm.description" rows="3" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"></textarea>
                                 </div>
 
                                 <LogoUpload v-model="gymForm.logo_path" :current-gym="currentGym" />
@@ -61,24 +57,18 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-gray-700">Stadt <span
-                                            class="text-red-500">*</span></label>
-                                    <input v-model="gymForm.city" type="text"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <label class="block text-sm/6 font-medium text-gray-700">Stadt <span class="text-red-500">*</span></label>
+                                    <input v-model="gymForm.city" type="text" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-gray-700">Postleitzahl <span
-                                            class="text-red-500">*</span></label>
-                                    <input v-model="gymForm.postal_code" type="text"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <label class="block text-sm/6 font-medium text-gray-700">Postleitzahl <span class="text-red-500">*</span></label>
+                                    <input v-model="gymForm.postal_code" type="text" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Land <span
-                                            class="text-red-500">*</span></label>
-                                    <select v-model="gymForm.country"
-                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Land <span class="text-red-500">*</span></label>
+                                    <select v-model="gymForm.country" class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                         <option value="DE">Deutschland</option>
                                         <option value="AT">Österreich</option>
                                         <option value="CH">Schweiz</option>
@@ -86,23 +76,18 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-gray-700">Telefon <span
-                                            class="text-red-500">*</span></label>
-                                    <input v-model="gymForm.phone" type="tel"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <label class="block text-sm/6 font-medium text-gray-700">Telefon <span class="text-red-500">*</span></label>
+                                    <input v-model="gymForm.phone" type="tel" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-gray-700">E-Mail <span
-                                            class="text-red-500">*</span></label>
-                                    <input v-model="gymForm.email" type="email"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <label class="block text-sm/6 font-medium text-gray-700">E-Mail <span class="text-red-500">*</span></label>
+                                    <input v-model="gymForm.email" type="email" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
 
                                 <div>
                                     <label class="block text-sm/6 font-medium text-gray-700">Website</label>
-                                    <input v-model="gymForm.website" type="url"
-                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <input v-model="gymForm.website" type="url" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
                             </div>
 
@@ -242,6 +227,11 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Contracts -->
+            <div v-if="activeTab === 'contracts'" class="space-y-6">
+                <ContractWidget :current-gym="currentGym" />
+            </div>
         </div>
 
         <!-- Add User Modal -->
@@ -290,10 +280,12 @@
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
-    Building2, Users, Plus, Trash2
+    Building2, Users, Plus, Trash2,
+    Signature
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
+import ContractWidget from '@/Components/ContractWidget.vue'
 
 // Props
 const props = defineProps({
@@ -316,6 +308,7 @@ const gymUsers = ref([...props.gymUsers])
 const tabs = [
     { key: 'gym', label: 'Gym-Einstellungen', icon: Building2 },
     { key: 'team', label: 'Team', icon: Users },
+    { key: 'contracts', label: 'Online-Verträge', icon: Signature },
 ]
 
 const gymForm = ref({

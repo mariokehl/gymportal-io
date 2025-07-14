@@ -14,12 +14,20 @@ class Member extends Model
         'gym_id',
         'user_id',
         'member_number',
+        'salutation',
         'first_name',
         'last_name',
         'email',
         'phone',
         'birth_date',
         'address',
+        'address_addition',
+        'iban',
+        'account_holder',
+        'sepa_mandate_accepted',
+        'sepa_mandate_date',
+        'voucher_code',
+        'fitness_goals',
         'city',
         'postal_code',
         'country',
@@ -29,11 +37,16 @@ class Member extends Model
         'notes',
         'emergency_contact_name',
         'emergency_contact_phone',
+        'registration_source',
+        'widget_data',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
         'joined_date' => 'date',
+        'sepa_mandate_accepted' => 'boolean',
+        'sepa_mandate_date' => 'datetime',
+        'widget_data' => 'array',
     ];
 
     protected $appends = ['initials', 'full_name', 'status_text', 'status_color'];
@@ -73,6 +86,11 @@ class Member extends Model
         return $this->hasMany(CourseBooking::class);
     }
 
+    public function widgetRegistrations()
+    {
+        return $this->hasMany(WidgetRegistration::class);
+    }
+
     public function notificationRecipients()
     {
         return $this->hasMany(NotificationRecipient::class);
@@ -110,7 +128,19 @@ class Member extends Model
 
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        return trim($this->first_name . ' ' . $this->last_name);
+    }
+
+    public function getFullAddressAttribute()
+    {
+        $address = $this->address;
+        if ($this->address_addition) {
+            $address .= ' ' . $this->address_addition;
+        }
+        if ($this->postal_code && $this->city) {
+            $address .= ', ' . $this->postal_code . ' ' . $this->city;
+        }
+        return $address;
     }
 
     public function getAgeAttribute()
@@ -141,5 +171,15 @@ class Member extends Model
     public function scopeOverdue($query)
     {
         return $query->where('status', 'overdue');
+    }
+
+    public function scopeFromWidget($query)
+    {
+        return $query->where('registration_source', 'widget');
+    }
+
+    public function scopeWithSepaMandate($query)
+    {
+        return $query->where('sepa_mandate_accepted', true);
     }
 }

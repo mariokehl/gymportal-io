@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\WidgetAuthMiddleware;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
+            'widget.auth' => WidgetAuthMiddleware::class, // Widget-Middleware-Alias hinzufügen
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

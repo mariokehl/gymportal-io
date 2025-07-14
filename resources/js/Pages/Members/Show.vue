@@ -107,7 +107,7 @@
                   <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Mobilfunknummer</label>
                   <input
                     v-model="form.phone"
                     :disabled="!editMode"

@@ -1,0 +1,33 @@
+<!-- public/embed-test.html -->
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Widget Test</title>
+</head>
+
+<body class="bg-gray-100 p-10">
+    <h1>Testseite für Embed-Widget</h1>
+
+    <!-- gymportal.io Widget Integration -->
+    <div id="gymportal-widget"></div>
+    <script>
+    (function() {
+        const script = document.createElement("script");
+        script.src = "https://gymportal-io.ddev.site/embed/widget.js";
+        script.onload = function() {
+            GymportalWidget.init({
+                containerId: "gymportal-widget",
+                apiEndpoint: "https://gymportal-io.ddev.site",
+                apiKey: "gym_zIYUHDuKkq5ROp7zchjsTeF8iH08FtXY",
+                studioId: "1"
+            });
+        };
+        document.head.appendChild(script);
+    })();
+    </script>
+
+</body>
+
+</html>
