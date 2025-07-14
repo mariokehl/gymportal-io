@@ -228,6 +228,204 @@
                 </div>
             </div>
 
+            <!-- Payment Settings -->
+            <div v-if="activeTab === 'payments'" class="space-y-6">
+                <!-- Übersicht Zahlungsarten -->
+                <div class="bg-white shadow-sm rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                            Zahlungsarten-Übersicht
+                        </h3>
+
+                        <!-- Status Anzeige wenn Mollie aktiv -->
+                        <div v-if="mollieStatus.isActive" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-green-800">Mollie Integration aktiv</h4>
+                                    <div class="mt-1">
+                                        <p class="text-sm text-green-700">
+                                            {{ mollieStatus.methodCount }} Zahlungsmethoden verfügbar
+                                            • {{ mollieStatus.isTestMode ? 'Test-Modus' : 'Live-Modus' }}
+                                        </p>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button @click="editMollieConfig"
+                                            class="text-sm text-green-800 hover:text-green-900 font-medium">
+                                            Konfiguration bearbeiten →
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aktuelle Zahlungsarten -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="method in currentPaymentMethods" :key="method.key"
+                                class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3"
+                                            :class="method.iconBg">
+                                            <component :is="method.icon" :class="method.iconColor" class="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-900">{{ method.name }}</h4>
+                                            <p class="text-xs text-gray-500">{{ method.description }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span :class="method.enabled ? 'text-green-600' : 'text-gray-400'"
+                                            class="text-xs font-medium">
+                                            {{ method.enabled ? 'Aktiv' : 'Inaktiv' }}
+                                        </span>
+                                        <div class="ml-2 w-2 h-2 rounded-full"
+                                            :class="method.enabled ? 'bg-green-400' : 'bg-gray-300'"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Standard Zahlungsarten Konfiguration -->
+                <div class="bg-white shadow-sm rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                            Standard Zahlungsarten
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-6">
+                            Grundlegende Zahlungsarten, die standardmäßig zur Verfügung stehen.
+                        </p>
+
+                        <div class="space-y-4">
+                            <div v-for="method in standardMethods" :key="method.key"
+                                class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3"
+                                        :class="method.iconBg">
+                                        <component :is="method.icon" :class="method.iconColor" class="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-900">{{ method.name }}</h4>
+                                        <p class="text-xs text-gray-500">{{ method.description }}</p>
+                                        <p v-if="method.isOverridden" class="text-xs text-orange-600 mt-1">
+                                            ⚠️ Durch externe Integration überschrieben
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox"
+                                            v-model="method.enabled"
+                                            :disabled="method.isOverridden"
+                                            @change="updateStandardMethod(method)"
+                                            class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Externe Integrationen -->
+                <div class="bg-white shadow-sm rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                    Externe Zahlungsdienstleister
+                                </h3>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    Integrieren Sie externe Zahlungsdienstleister für erweiterte Funktionen.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Mollie Integration -->
+                            <div class="border border-gray-200 rounded-lg p-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                                        <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6s-4.298 9.6-9.6 9.6S2.4 17.302 2.4 12 6.698 2.4 12 2.4z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-900">Mollie</h4>
+                                        <p class="text-xs text-gray-500">Europäischer Zahlungsdienstleister</p>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-2">
+                                        <span>Status:</span>
+                                        <span :class="mollieStatus.isActive ? 'text-green-600' : 'text-gray-500'">
+                                            {{ mollieStatus.isActive ? 'Konfiguriert' : 'Nicht konfiguriert' }}
+                                        </span>
+                                    </div>
+                                    <div v-if="mollieStatus.isActive" class="text-xs text-gray-600 space-y-1">
+                                        <div class="flex justify-between">
+                                            <span>Modus:</span>
+                                            <span>{{ mollieStatus.isTestMode ? 'Test' : 'Live' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Methoden:</span>
+                                            <span>{{ mollieStatus.methodCount }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <button v-if="!mollieStatus.isActive"
+                                        @click="setupMollie"
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md">
+                                        Einrichten
+                                    </button>
+                                    <template v-else>
+                                        <button @click="editMollieConfig"
+                                            class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-md mb-2">
+                                            Konfiguration bearbeiten
+                                        </button>
+                                        <button @click="removeMollieConfig"
+                                            class="w-full bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium py-2 px-4 rounded-md border border-red-200">
+                                            Integration entfernen
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Platzhalter für weitere Integrationen -->
+                            <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                                <div class="flex items-center mb-4">
+                                    <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center mr-4">
+                                        <component :is="Plus" class="w-6 h-6 text-gray-400" />
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-500">Weitere Integrationen</h4>
+                                        <p class="text-xs text-gray-400">Kommen bald</p>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mb-4">
+                                    Weitere Zahlungsdienstleister wie Stripe, PayPal und andere werden in Zukunft verfügbar sein.
+                                </p>
+                                <button disabled
+                                    class="w-full bg-gray-200 text-gray-400 text-sm font-medium py-2 px-4 rounded-md cursor-not-allowed">
+                                    Bald verfügbar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Contracts -->
             <div v-if="activeTab === 'contracts'" class="space-y-6">
                 <ContractWidget :current-gym="currentGym" />
@@ -273,19 +471,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mollie Setup Modal -->
+        <div v-if="showMollieSetup" class="fixed inset-0 overflow-y-auto h-full w-full z-50" @click="closeMollieSetup">
+            <div class="relative top-10 mx-auto max-w-4xl shadow-lg rounded-md bg-white" @click.stop>
+                <MollieSetupWizard
+                    :organization="currentGym"
+                    @setup-completed="onMollieSetupCompleted"
+                    @configuration-saved="onMollieConfigSaved" />
+            </div>
+        </div>
     </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
-    Building2, Users, Plus, Trash2,
-    Signature
+    Building2, Users, Plus, Trash2, Signature, CreditCard,
+    Banknote, Wallet, DollarSign
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
 import ContractWidget from '@/Components/ContractWidget.vue'
+import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
 
 // Props
 const props = defineProps({
@@ -297,6 +506,7 @@ const props = defineProps({
 // Reactive data
 const activeTab = ref('gym')
 const showAddUserModal = ref(false)
+const showMollieSetup = ref(false)
 const isSubmittingGym = ref(false)
 const isSubmittingUser = ref(false)
 const successMessage = ref('')
@@ -305,9 +515,41 @@ const errorMessage = ref('')
 // Make gymUsers reactive for updates
 const gymUsers = ref([...props.gymUsers])
 
+// Payment methods state
+const standardMethods = ref([
+    {
+        key: 'sepa',
+        name: 'SEPA-Lastschrift',
+        description: 'Automatischer Bankeinzug',
+        icon: Banknote,
+        iconBg: 'bg-blue-100',
+        iconColor: 'text-blue-600',
+        enabled: true,
+        isOverridden: false
+    },
+    {
+        key: 'prepayment',
+        name: 'Vorkasse',
+        description: 'Überweisung im Voraus',
+        icon: Wallet,
+        iconBg: 'bg-green-100',
+        iconColor: 'text-green-600',
+        enabled: true,
+        isOverridden: false
+    }
+])
+
+const mollieStatus = ref({
+    isActive: false,
+    isTestMode: false,
+    methodCount: 0,
+    enabledMethods: []
+})
+
 const tabs = [
     { key: 'gym', label: 'Gym-Einstellungen', icon: Building2 },
     { key: 'team', label: 'Team', icon: Users },
+    { key: 'payments', label: 'Zahlungsarten', icon: CreditCard },
     { key: 'contracts', label: 'Online-Verträge', icon: Signature },
 ]
 
@@ -330,6 +572,35 @@ const userForm = ref({
     role: 'staff'
 })
 
+// Computed
+const currentPaymentMethods = computed(() => {
+    const methods = [...standardMethods.value]
+
+    if (mollieStatus.value.isActive) {
+        // Add Mollie methods
+        mollieStatus.value.enabledMethods.forEach(method => {
+            methods.push({
+                key: `mollie_${method.id}`,
+                name: method.description,
+                description: 'Via Mollie',
+                icon: CreditCard,
+                iconBg: 'bg-orange-100',
+                iconColor: 'text-orange-600',
+                enabled: true
+            })
+        })
+
+        // Mark standard methods as overridden if Mollie provides similar functionality
+        methods.forEach(method => {
+            if (method.key === 'sepa' && mollieStatus.value.enabledMethods.some(m => m.id === 'banktransfer' || m.id === 'directdebit')) {
+                method.isOverridden = true
+            }
+        })
+    }
+
+    return methods
+})
+
 // Methods
 const saveGymSettings = async () => {
     isSubmittingGym.value = true
@@ -340,8 +611,12 @@ const saveGymSettings = async () => {
         if (response.data.gym) {
             Object.assign(gymForm.value, response.data.gym)
         }
+
+        successMessage.value = 'Gym-Einstellungen erfolgreich gespeichert!'
+        setTimeout(() => successMessage.value = '', 3000)
     } catch (error) {
-        // Error handling...
+        errorMessage.value = 'Fehler beim Speichern der Gym-Einstellungen'
+        setTimeout(() => errorMessage.value = '', 3000)
     } finally {
         isSubmittingGym.value = false
     }
@@ -357,11 +632,11 @@ const deleteGym = async () => {
     try {
         await router.delete(route('gyms.remove', props.currentGym.id), {}, {
             onSuccess: () => {
-                // Redirect to dashboard after successful deletion
                 router.visit('/dashboard')
             },
             onError: () => {
-                // Error handling...
+                errorMessage.value = 'Fehler beim Löschen der Organisation'
+                setTimeout(() => errorMessage.value = '', 3000)
             },
             onFinish: () => {
                 isSubmittingGym.value = false
@@ -381,31 +656,36 @@ const addUser = async () => {
             gym_id: props.currentGym.id,
             ...userForm.value
         })
-        // ...
+
+        if (response.data.gym_user) {
+            gymUsers.value.push(response.data.gym_user)
+            showAddUserModal.value = false
+            userForm.value = { email: '', role: 'staff' }
+            successMessage.value = 'Benutzer erfolgreich hinzugefügt!'
+            setTimeout(() => successMessage.value = '', 3000)
+        }
     } catch (error) {
-        // Error handling...
+        errorMessage.value = 'Fehler beim Hinzufügen des Benutzers'
+        setTimeout(() => errorMessage.value = '', 3000)
     } finally {
         isSubmittingUser.value = false
     }
 }
 
 const updateUserRole = async (gymUser) => {
-    // Add loading state to the specific user
     gymUser.isUpdating = true
 
     try {
         await axios.put(route('settings.gym-users.update', gymUser.id), {
             role: gymUser.role
         })
+
+        successMessage.value = 'Benutzerrolle erfolgreich aktualisiert!'
+        setTimeout(() => successMessage.value = '', 3000)
     } catch (error) {
         console.error('Fehler beim Aktualisieren der Benutzerrolle:', error)
-
-        // Revert the role change on error
-        // You might want to store the original role to revert to
-
-        if (error.response?.data?.message) {
-            console.error(error.response?.data?.message);
-        }
+        errorMessage.value = 'Fehler beim Aktualisieren der Benutzerrolle'
+        setTimeout(() => errorMessage.value = '', 3000)
     } finally {
         gymUser.isUpdating = false
     }
@@ -421,22 +701,119 @@ const removeUser = async (gymUser) => {
     try {
         await axios.delete(route('settings.gym-users.destroy', gymUser.id))
 
-        // Remove user from local array
         const index = gymUsers.value.findIndex(u => u.id === gymUser.id)
         if (index > -1) {
             gymUsers.value.splice(index, 1)
         }
+
+        successMessage.value = 'Benutzer erfolgreich entfernt!'
+        setTimeout(() => successMessage.value = '', 3000)
     } catch (error) {
         console.error('Fehler beim Entfernen des Benutzers:', error)
-
-        if (error.response?.data?.message) {
-            console.error(error.response?.data?.message)
-        }
+        errorMessage.value = 'Fehler beim Entfernen des Benutzers'
+        setTimeout(() => errorMessage.value = '', 3000)
     } finally {
         gymUser.isRemoving = false
     }
 }
 
+// Payment methods
+const updateStandardMethod = async (method) => {
+    try {
+        await axios.put(route('settings.payment-methods.update'), {
+            method: method.key,
+            enabled: method.enabled
+        })
+
+        successMessage.value = `${method.name} ${method.enabled ? 'aktiviert' : 'deaktiviert'}!`
+        setTimeout(() => successMessage.value = '', 3000)
+    } catch (error) {
+        // Revert change on error
+        method.enabled = !method.enabled
+        errorMessage.value = 'Fehler beim Aktualisieren der Zahlungsmethode'
+        setTimeout(() => errorMessage.value = '', 3000)
+    }
+}
+
+const setupMollie = () => {
+    showMollieSetup.value = true
+}
+
+const editMollieConfig = () => {
+    showMollieSetup.value = true
+}
+
+const closeMollieSetup = () => {
+    showMollieSetup.value = false
+}
+
+const onMollieSetupCompleted = () => {
+    showMollieSetup.value = false
+    loadMollieStatus()
+    successMessage.value = 'Mollie Integration erfolgreich eingerichtet!'
+    setTimeout(() => successMessage.value = '', 3000)
+}
+
+const onMollieConfigSaved = (config) => {
+    mollieStatus.value.isActive = true
+    mollieStatus.value.isTestMode = config.test_mode
+    mollieStatus.value.methodCount = config.enabled_methods?.length || 0
+}
+
+const removeMollieConfig = async () => {
+    if (!confirm('Möchten Sie die Mollie-Integration wirklich entfernen?')) {
+        return
+    }
+
+    try {
+        await axios.delete(route('settings.mollie.remove'))
+
+        mollieStatus.value = {
+            isActive: false,
+            isTestMode: false,
+            methodCount: 0,
+            enabledMethods: []
+        }
+
+        // Reset overridden status
+        standardMethods.value.forEach(method => {
+            method.isOverridden = false
+        })
+
+        successMessage.value = 'Mollie Integration erfolgreich entfernt!'
+        setTimeout(() => successMessage.value = '', 3000)
+    } catch (error) {
+        errorMessage.value = 'Fehler beim Entfernen der Mollie Integration'
+        setTimeout(() => errorMessage.value = '', 3000)
+    }
+}
+
+const loadMollieStatus = async () => {
+    try {
+        const response = await axios.get(route('settings.mollie.status'))
+        const data = response.data
+
+        if (data.isActive) {
+            mollieStatus.value = {
+                isActive: true,
+                isTestMode: data.test_mode || false,
+                methodCount: data.enabled_methods?.length || 0,
+                enabledMethods: data.enabled_methods || []
+            }
+
+            // Update overridden status for standard methods
+            standardMethods.value.forEach(method => {
+                if (method.key === 'sepa' && data.enabled_methods?.some(m => m.id === 'banktransfer' || m.id === 'directdebit')) {
+                    method.isOverridden = true
+                }
+            })
+        }
+    } catch (error) {
+        console.log('Mollie status not available or not configured')
+    }
+}
+
+// Utility methods
 const getUserInitials = (user) => {
     const first = user.first_name?.charAt(0) || ''
     const last = user.last_name?.charAt(0) || ''
@@ -447,4 +824,9 @@ const formatDate = (dateString) => {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleDateString('de-DE')
 }
+
+// Load data on mount
+onMounted(() => {
+    loadMollieStatus()
+})
 </script>

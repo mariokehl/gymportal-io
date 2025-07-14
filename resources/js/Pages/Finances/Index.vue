@@ -3,7 +3,6 @@
         <template #header>
             Finanzen
         </template>
-        <MollieSetupWizard :organization="currentOrganization" />
     </AppLayout>
 </template>
 
@@ -11,7 +10,6 @@
 import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
 
 // Shared data
 const page = usePage()
