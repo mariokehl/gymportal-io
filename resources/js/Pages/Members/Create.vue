@@ -102,7 +102,7 @@
 
             <div>
               <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Telefon <span class="text-red-500">*</span>
+                Mobilfunknummer <span class="text-red-500">*</span>
               </label>
               <input
                 id="phone"
@@ -202,7 +202,7 @@
                 :class="{ 'border-red-500': errors.country }"
                 @blur="validateStep1"
               >
-                <option value="">Land auswählen</option>
+                <option value="" selected>Land auswählen</option>
                 <option value="DE">Deutschland</option>
                 <option value="AT">Österreich</option>
                 <option value="CH">Schweiz</option>
