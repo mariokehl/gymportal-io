@@ -7,13 +7,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index()
     {
+        $this->authorize('viewAny', Member::class);
+
         /** @var User $user */
         $user = Auth::user();
 

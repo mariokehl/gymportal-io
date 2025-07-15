@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\GymUser;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,8 @@ use Inertia\Inertia;
 
 class SettingController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index()
     {
         /** @var User $user */
@@ -40,7 +43,7 @@ class SettingController extends Controller
     public function updateGym(Request $request, Gym $gym)
     {
         // Überprüfen ob der Benutzer berechtigt ist
-        //$this->authorize('update', $gym);
+        $this->authorize('update', $gym);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -163,7 +166,7 @@ class SettingController extends Controller
         }
 
         // Überprüfen ob der Benutzer berechtigt ist, Team-Mitglieder hinzuzufügen
-        //$this->authorize('update', $currentGym);
+        $this->authorize('update', $currentGym);
 
         $validated = $request->validate([
             'email' => 'required|email|exists:users,email',
@@ -200,7 +203,7 @@ class SettingController extends Controller
     public function updateGymUser(Request $request, GymUser $gymUser)
     {
         // Überprüfen ob der Benutzer berechtigt ist
-        //$this->authorize('update', $gymUser->gym);
+        $this->authorize('update', $gymUser->gym);
 
         $validated = $request->validate([
             'role' => 'required|in:admin,staff,trainer'
@@ -223,7 +226,7 @@ class SettingController extends Controller
     public function destroyGymUser(GymUser $gymUser)
     {
         // Überprüfen ob der Benutzer berechtigt ist
-        //$this->authorize('update', $gymUser->gym);
+        $this->authorize('update', $gymUser->gym);
 
         // Verhindern, dass der Besitzer sich selbst entfernt
         if ($gymUser->user_id === Auth::id() && $gymUser->role === 'owner') {

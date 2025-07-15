@@ -10,6 +10,7 @@ use App\Models\MembershipPlan;
 use App\Models\PaymentMethod;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
 
 class MemberController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of the members.
      */
@@ -94,6 +97,8 @@ class MemberController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Member::class);
+
         /** @var User $user */
         $user = Auth::user();
 
@@ -169,7 +174,7 @@ class MemberController extends Controller
     public function show(Member $member)
     {
         // Ensure the member belongs to the current gym
-        //$this->authorize('view', $member);
+        $this->authorize('view', $member);
 
         $member->load([
             'user',
@@ -191,7 +196,7 @@ class MemberController extends Controller
     public function update(Request $request, Member $member)
     {
         // Ensure the member belongs to the current gym
-        //$this->authorize('update', $member);
+        $this->authorize('update', $member);
 
         $validated = $request->validate([
             'member_number' => ['required', 'string', 'max:50',
@@ -226,7 +231,7 @@ class MemberController extends Controller
     public function destroy(Member $member)
     {
         // Ensure the member belongs to the current gym
-        //$this->authorize('delete', $member);
+        $this->authorize('delete', $member);
 
         $memberName = $member->first_name . ' ' . $member->last_name;
 

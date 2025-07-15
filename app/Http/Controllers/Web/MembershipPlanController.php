@@ -4,17 +4,18 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\MembershipPlan;
-use App\Models\Member;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Validation\Rule;
 
 class MembershipPlanController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of the membership plans.
      */
@@ -47,6 +48,8 @@ class MembershipPlanController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('create', MembershipPlan::class);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
@@ -73,7 +76,7 @@ class MembershipPlanController extends Controller
      */
     public function show(MembershipPlan $membershipPlan): Response
     {
-        //$this->authorize('view', $membershipPlan);
+        $this->authorize('view', $membershipPlan);
 
         $activeMemberships = $membershipPlan->memberships()
             ->where('status', 'active')
@@ -92,7 +95,7 @@ class MembershipPlanController extends Controller
      */
     public function edit(MembershipPlan $membershipPlan): Response
     {
-        //$this->authorize('update', $membershipPlan);
+        $this->authorize('update', $membershipPlan);
 
         $activeMembersCount = $membershipPlan->memberships()
             ->where('status', 'active')
@@ -119,7 +122,7 @@ class MembershipPlanController extends Controller
      */
     public function update(Request $request, MembershipPlan $membershipPlan): RedirectResponse
     {
-        //$this->authorize('update', $membershipPlan);
+        $this->authorize('update', $membershipPlan);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -146,7 +149,7 @@ class MembershipPlanController extends Controller
      */
     public function destroy(MembershipPlan $membershipPlan): RedirectResponse
     {
-        //$this->authorize('delete', $membershipPlan);
+        $this->authorize('delete', $membershipPlan);
 
         // Check if there are active members using this plan
         $activeMembersCount = $membershipPlan->memberships()
@@ -183,7 +186,7 @@ class MembershipPlanController extends Controller
      */
     public function checkDeletion(MembershipPlan $membershipPlan)
     {
-        //$this->authorize('delete', $membershipPlan);
+        $this->authorize('delete', $membershipPlan);
 
         $activeMembersCount = $membershipPlan->memberships()
             ->where('status', 'active')
