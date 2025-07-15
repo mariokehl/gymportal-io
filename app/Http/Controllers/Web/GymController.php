@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Models\Gym;
 use App\Models\User;
 use App\Http\Controllers\Controller;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,8 @@ use Inertia\Inertia;
 
 class GymController extends Controller
 {
+    use AuthorizesRequests;
+
     public function create()
     {
         return Inertia::render('Organization/Create');
@@ -19,6 +22,8 @@ class GymController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Gym::class);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -62,16 +67,13 @@ class GymController extends Controller
 
     public function remove(Gym $gym)
     {
+        $this->authorize('delete', $gym);
+
         /** @var User $user */
         $user = Auth::user();
 
         /** @var Gym|null $gym */
         $gym = $user->ownedGyms()->find($gym->id);
-
-        // Check if the user has access to the gym
-        if (!$gym) {
-            abort(403, 'Unauthorized');
-        }
 
         // Set next possible gym in user
         $nextGym = $user->ownedGyms()->first();
@@ -88,17 +90,14 @@ class GymController extends Controller
 
     public function switchOrganization(Request $request)
     {
-        $request->validate([
-            'gym_id' => 'required|exists:gyms,id'
-        ]);
-
         /** @var User $user */
         $user = Auth::user();
 
-        // Check if the user has access to the gym
-        if (!$user->ownedGyms()->find($request->gym_id)) {
-            abort(403, 'Unauthorized');
-        }
+        $this->authorize('view', $user->ownedGyms()->find($request->gym_id));
+
+        $request->validate([
+            'gym_id' => 'required|exists:gyms,id'
+        ]);
 
         // Set current gym in user
         $user->update(['current_gym_id' => $request->gym_id]);
