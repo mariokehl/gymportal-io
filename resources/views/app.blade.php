@@ -9,6 +9,14 @@
     @routes
     @vite(['resources/js/app.js', 'resources/css/app.css'])
     @inertiaHead
+
+    <!-- Laravel Config für Frontend -->
+    <script>
+        window.Laravel = {
+            user: @json(auth()->user()),
+            csrfToken: '{{ csrf_token() }}'
+        };
+    </script>
 </head>
 <body class="font-sans antialiased">
     @inertia
