@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\WidgetController;
+use App\Http\Controllers\Web\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -13,7 +14,11 @@ Route::prefix('v1')->name('v1.')->group(function () {
     Route::middleware([
         'auth:sanctum',
     ])->group(static function (): void {
-        // Mollie payment routes
+        Route::name('notifications.')->group(static function (): void {
+            Route::get('/notifications/unread', [NotificationController::class, 'unread'])->name('unread');
+            Route::post('/notifications/{recipient}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        });
         Route::name('mollie.')->group(static function (): void {
             Route::post('/mollie/validate-credentials', [MollieSetupController::class, 'validateCredentials'])->name('validate-credentials');
             Route::post('/mollie/save-config', [MollieSetupController::class, 'saveConfiguration'])->name('save-config');

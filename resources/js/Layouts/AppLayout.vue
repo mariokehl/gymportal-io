@@ -1,6 +1,5 @@
 <template>
   <div class="flex h-screen bg-gray-100">
-
     <Head :title="pageTitle || 'gymportal.io'" />
 
     <!-- Sidebar -->
@@ -67,14 +66,14 @@
         </h1>
 
         <div class="flex items-center space-x-4">
-          <div class="relative">
-            <component :is="Bell" class="w-5 h-5 text-gray-500 cursor-pointer" />
-            <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-              {{ notifications.length }}
-            </span>
-          </div>
+          <!-- Notification Popup Component -->
+          <NotificationPopup ref="notificationPopup" />
+
+          <!-- User Profile -->
           <div class="flex items-center">
-            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">{{ userInitials }}</div>
+            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
+              {{ userInitials }}
+            </div>
             <span class="ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
           </div>
         </div>
@@ -98,19 +97,17 @@ import {
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
+import NotificationPopup from '@/Components/NotificationPopup.vue'
 
 // Shared data
 const page = usePage()
+const notificationPopup = ref(null)
 
 // Props
 const props = defineProps({
   title: {
     type: String,
     default: null
-  },
-  notifications: {
-    type: Array,
-    default: () => []
   }
 })
 
@@ -133,4 +130,12 @@ const handleLogout = () => {
     router.post('/logout')
   }
 }
+
+// Make user data available globally for WebSocket
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.Laravel = window.Laravel || {}
+    window.Laravel.user = user.value
+  }
+})
 </script>
