@@ -7,8 +7,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/reverb": "^1.5",
+        "laravel/sanctum": "^4.1",
+        "laravel/tinker": "^2.10.1",
+        "mollie/mollie-api-php": "^3.1",
+        "tightenco/ziggy": "^2.5"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -36,8 +41,12 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
+        "post-install-cmd": [
+            "@php artisan storage:link"
+        ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan storage:link"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
