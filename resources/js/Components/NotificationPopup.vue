@@ -122,7 +122,7 @@ const closePopup = () => {
 const loadNotifications = async () => {
   loading.value = true
   try {
-    const response = await axios.get(route('v1.notifications.unread'))
+    const response = await axios.get(route('api.notifications.unread'))
     notifications.value = response.data
   } catch (error) {
     console.error('Fehler beim Laden der Benachrichtigungen:', error)
@@ -133,7 +133,7 @@ const loadNotifications = async () => {
 
 const markAllAsRead = async () => {
   try {
-    await axios.post(route('v1.notifications.mark-all-read'))
+    await axios.post(route('api.notifications.mark-all-read'))
     notifications.value.forEach(notification => {
       notification.is_read = true
     })
@@ -146,7 +146,7 @@ const handleNotificationClick = async (notification) => {
   // Markiere als gelesen
   if (!notification.is_read) {
     try {
-      await axios.post(route('v1.notifications.mark-read', { recipient: notification.id }))
+      await axios.post(route('api.notifications.mark-read', { recipient: notification.id }))
       notification.is_read = true
     } catch (error) {
       console.error('Fehler beim Markieren als gelesen:', error)
@@ -169,8 +169,8 @@ const handleClickOutside = (event) => {
 }
 
 onMounted(() => {
-  // Setup WebSocket connection mit Error Handling
-  if (window.Echo && window.Laravel && window.Laravel.user) {
+  // WebSocket ist für Deployment deaktiviert
+  if (import.meta.env.DEV && window.Echo && window.Laravel && window.Laravel.user) {
     try {
       echo = window.Echo.private(`notifications.${window.Laravel.user.id}`)
         .listen('NewNotificationEvent', (e) => {
@@ -185,9 +185,7 @@ onMounted(() => {
       console.error('WebSocket connection failed:', error)
     }
   } else {
-    console.warn('Echo or Laravel config not available - WebSocket features disabled')
-    console.log('Echo available:', !!window.Echo)
-    console.log('Laravel config:', window.Laravel)
+    console.log('WebSocket disabled for production deployment')
   }
 
   // Add click outside listener
