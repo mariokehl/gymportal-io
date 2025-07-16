@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
@@ -34,8 +35,19 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// Billing-Routen
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Billing Management
+    Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
+    Route::post('/billing/subscribe', [BillingController::class, 'subscribeToProfessional'])->name('billing.subscribe');
+    Route::post('/billing/cancel', [BillingController::class, 'cancelSubscription'])->name('billing.cancel');
+});
+
+// Paddle Webhook (ohne Auth-Middleware)
+Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook'])->name('billing.webhook');
+
 // Protected routes
-Route::middleware('auth:web')->group(function () {
+Route::middleware(['auth:web', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
     Route::prefix('contracts')->name('contracts.')->group(function () {

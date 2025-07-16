@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\WidgetAuthMiddleware;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
@@ -27,7 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
-            'widget.auth' => WidgetAuthMiddleware::class, // Widget-Middleware-Alias hinzufügen
+            'widget.auth' => WidgetAuthMiddleware::class,
+            'subscription' => CheckSubscription::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

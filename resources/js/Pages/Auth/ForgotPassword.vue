@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Auth/ForgotPassword.vue -->
 <template>
-  <AuthLayout>
+  <AuthLayout title="Passwort vergessen">
     <template #title>Passwort zurücksetzen</template>
 
     <div class="mb-4 text-sm text-gray-600">

@@ -42,7 +42,8 @@
             "@php artisan package:discover --ansi"
         ],
         "post-install-cmd": [
-            "@php artisan storage:link"
+            "@php artisan storage:link",
+            "@php artisan db:seed --class=RoleSeeder --force --ansi"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force",

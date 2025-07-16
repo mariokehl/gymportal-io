@@ -21,24 +21,29 @@
           label="Mitglieder"
           :active="route().current('members.index')"
           :href="route('members.index')"
+          :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
           :icon="FilePlus"
           label="Verträge"
           :active="route().current('contracts.index')"
           :href="route('contracts.index')"
+          :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
           :icon="DollarSign"
           label="Finanzen"
           :active="route().current('finances.index')"
           :href="route('finances.index')"
+          :disabled="!canAccessPremiumFeatures"
         />
+
         <SidebarItem
           :icon="Bell"
           label="Benachrichtigungen"
           :active="route().current('notifications.index')"
           :href="route('notifications.index')"
+          :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
           :icon="Settings"
@@ -55,6 +60,47 @@
       </nav>
 
       <OrganizationSwitcher />
+
+      <!-- Trial/Subscription Status -->
+      <div v-if="subscriptionStatus" class="p-4 border-t border-gray-200">
+        <div v-if="subscriptionStatus.trial.is_active" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="flex items-center">
+            <svg class="h-4 w-4 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p class="text-xs font-medium text-blue-800">Testphase</p>
+              <p class="text-xs text-blue-600">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</p>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="subscriptionStatus.subscription.is_active" class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div class="flex items-center">
+            <svg class="h-4 w-4 text-green-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+              <p class="text-xs font-medium text-green-800">SaaS Hosted</p>
+              <p class="text-xs text-green-600">Aktiv</p>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div class="flex items-center">
+            <svg class="h-4 w-4 text-red-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.084 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <p class="text-xs font-medium text-red-800">Testphase abgelaufen</p>
+              <Link :href="route('billing.index')" class="text-xs text-red-600 underline">
+                Jetzt upgraden
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -122,6 +168,17 @@ const userInitials = computed(() => {
   const first = page.props.auth.user.first_name?.charAt(0) || ''
   const last = page.props.auth.user.last_name?.charAt(0) || ''
   return (first + last).toUpperCase()
+})
+
+const subscriptionStatus = computed(() => {
+  return page.props.subscription_status || null
+})
+
+const canAccessPremiumFeatures = computed(() => {
+  if (!subscriptionStatus.value) return true
+
+  return subscriptionStatus.value.trial.is_active ||
+         subscriptionStatus.value.subscription.is_active
 })
 
 // Methods

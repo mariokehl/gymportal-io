@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Auth/Login.vue -->
 <template>
-  <AuthLayout>
+  <AuthLayout title="Login">
     <template #title>Bei Ihrem Konto anmelden</template>
 
     <form @submit.prevent="submit" class="space-y-6">

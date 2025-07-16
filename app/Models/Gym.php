@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class Gym extends Model
 {
@@ -35,10 +36,12 @@ class Gym extends Model
         'api_key',
         'widget_enabled',
         'widget_settings',
+        'trial_ends_at', // Neues Feld für explizite Testphase
     ];
 
     protected $casts = [
         'subscription_ends_at' => 'datetime',
+        'trial_ends_at' => 'datetime',
         'widget_settings' => 'array',
         'widget_enabled' => 'boolean',
     ];
@@ -55,6 +58,12 @@ class Gym extends Model
             if (empty($gym->api_key)) {
                 $gym->api_key = $gym->generateApiKey();
             }
+
+            // Setze Testphase auf 30 Tage ab Erstellung
+            if (empty($gym->trial_ends_at)) {
+                $gym->trial_ends_at = now()->addDays(30);
+            }
+
             $gym->generateSlug();
         });
 
@@ -122,6 +131,53 @@ class Gym extends Model
         //return $this->hasMany(Invoice::class);
     }
 
+    // Subscription & Trial Methods
+    public function isInTrial(): bool
+    {
+        return $this->trial_ends_at && now()->lt($this->trial_ends_at);
+    }
+
+    public function trialDaysLeft(): int
+    {
+        if (!$this->isInTrial()) {
+            return 0;
+        }
+
+        return now()->diffInDays($this->trial_ends_at);
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscription_status === 'active' &&
+               $this->subscription_ends_at &&
+               $this->subscription_ends_at->gt(now());
+    }
+
+    public function canAccessPremiumFeatures(): bool
+    {
+        return $this->isInTrial() || $this->hasActiveSubscription();
+    }
+
+    public function getSubscriptionStatusLabel(): string
+    {
+        if ($this->hasActiveSubscription()) {
+            return 'Aktiv';
+        }
+
+        if ($this->isInTrial()) {
+            return 'Testphase';
+        }
+
+        return 'Abgelaufen';
+    }
+
+    public function extendTrial(int $days = 30): void
+    {
+        $this->update([
+            'trial_ends_at' => now()->addDays($days)
+        ]);
+    }
+
     // Existing methods
     public function getActiveMembersCount()
     {
@@ -135,7 +191,7 @@ class Gym extends Model
 
     public function getSubscriptionIsActive()
     {
-        return $this->subscription_status === 'active';
+        return $this->hasActiveSubscription();
     }
 
     // New Mollie-related methods

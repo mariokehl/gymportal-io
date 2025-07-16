@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -22,8 +23,10 @@ class GymSeeder extends Seeder
             'email' => 'info@fitzone.de',
             'website' => 'https://fitzone.de',
             'owner_id' => 2, // Max Mustermann
-            'subscription_plan' => 'premium',
+            'subscription_plan' => 'SaaS Hosted',
             'subscription_status' => 'active',
+            'subscription_ends_at' => Carbon::now()->addMonths(1),
+            'trial_ends_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -41,8 +44,10 @@ class GymSeeder extends Seeder
             'email' => 'info@powerfit.de',
             'website' => 'https://powerfit.de',
             'owner_id' => 3, // Anna Schmidt
-            'subscription_plan' => 'basic',
+            'subscription_plan' => 'SaaS Hosted',
             'subscription_status' => 'active',
+            'subscription_ends_at' => Carbon::now()->addMonths(1),
+            'trial_ends_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

@@ -28,7 +28,7 @@ class GymPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->current_gym_id > 0;
     }
 
     /**
@@ -36,7 +36,7 @@ class GymPolicy
      */
     public function update(User $user, Gym $gym): bool
     {
-        return false;
+        return $user->current_gym_id === $gym->id;
     }
 
     /**
@@ -44,7 +44,7 @@ class GymPolicy
      */
     public function delete(User $user, Gym $gym): bool
     {
-        return false;
+        return $user->current_gym_id === $gym->id;
     }
 
     /**

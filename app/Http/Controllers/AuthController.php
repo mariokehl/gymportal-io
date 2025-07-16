@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Gym;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -52,30 +55,46 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        DB::beginTransaction();
 
-        Gym::create([
-            'name' => Gym::DEFAULT_ORGANIZATION_NAME,
-            'owner_id' => $user->id,
-            'address' => 'Mustergasse 1a',
-            'city' => 'Hamburg',
-            'postal_code' => '22761',
-            'country' => 'DE',
-            'phone' => '+4930123456789',
-            'email' => $request->email,
-        ]);
+        try {
+            $user = User::create([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        // TODO: Set current_gym_id in users table
-        //...
+            $gym = Gym::create([
+                'name' => Gym::DEFAULT_ORGANIZATION_NAME,
+                'owner_id' => $user->id,
+                'address' => 'Mustergasse 1a',
+                'city' => 'Hamburg',
+                'postal_code' => '22761',
+                'country' => 'DE',
+                'phone' => '+4930123456789',
+                'email' => $request->email,
+            ]);
 
-        Auth::login($user);
+            // Set current_gym_id in users table
+            $user->update(['current_gym_id' => $gym->id]);
 
-        return redirect('/dashboard');
+            DB::commit();
+
+            Auth::login($user);
+            return redirect('/dashboard');
+
+        } catch (Exception $e) {
+            DB::rollback();
+
+            // Log the error for debugging
+            Log::error('Registration failed: ' . $e->getMessage());
+
+            // Return back with error message
+            return back()->withInput()->withErrors([
+                'registration' => 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.'
+            ]);
+        }
     }
 
     public function showForgotPassword()
