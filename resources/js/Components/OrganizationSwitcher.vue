@@ -30,11 +30,12 @@
                 <component :is="Settings" class="w-4 h-4 mr-2 text-gray-400" />
                 Einstellungen
                 </Link>
-                <button
-                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center">
+                <Link :href="route('billing.index')"
+                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
+                    @click="showOrgPopover = false">
                     <component :is="DollarSign" class="w-4 h-4 mr-2 text-gray-400" />
                     Abrechnung
-                </button>
+                </Link>
                 <Link :href="route('gyms.create')"
                     class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
                     @click="showOrgPopover = false">
@@ -141,4 +142,5 @@ onMounted(() => {
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside)
-})</script>
+})
+</script>

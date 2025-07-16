@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Auth/Register.vue -->
 <template>
-  <AuthLayout>
+  <AuthLayout title="Registrieren">
     <template #title>Konto erstellen</template>
 
     <form @submit.prevent="submit" class="space-y-6">

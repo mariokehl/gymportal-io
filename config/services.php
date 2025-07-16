@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'paddle' => [
+        'token' => env('PADDLE_TOKEN'),
+        'price_id' => env('PADDLE_PRICE_ID'),
+        'environment' => env('PADDLE_ENVIRONMENT', 'sandbox'), // sandbox oder production
+    ],
+
 ];

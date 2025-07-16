@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Auth/ResetPassword.vue -->
 <template>
-  <AuthLayout>
+  <AuthLayout title="Neues Passwort setzen">
     <template #title>Neues Passwort setzen</template>
 
     <form @submit.prevent="submit" class="space-y-6">

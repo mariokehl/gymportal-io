@@ -37,7 +37,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return array_merge(parent::share($request), [
+        $shared = array_merge(parent::share($request), [
             'auth' => [
                 'user' => function () use ($request): array {
                     /** @var User|null $user */
@@ -70,5 +70,37 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
         ]);
+
+        // Subscription Status für alle authentifizierten Benutzer
+        if ($request->user()) {
+            $gym = $request->user()->currentGym;
+
+            if ($gym) {
+                $trialEndsAt = $gym->trial_ends_at ?: $gym->created_at->addDays(30);
+                $isInTrial = now()->lt($trialEndsAt);
+                $trialDaysLeft = $isInTrial ? now()->diffInDays($trialEndsAt) : 0;
+
+                $hasActiveSubscription = $gym->subscription_status === 'active' &&
+                                        $gym->subscription_ends_at &&
+                                        $gym->subscription_ends_at->gt(now());
+
+                $shared['subscription_status'] = [
+                    'trial' => [
+                        'is_active' => $isInTrial,
+                        'ends_at' => $trialEndsAt->format('d.m.Y'),
+                        'days_left' => round($trialDaysLeft),
+                    ],
+                    'subscription' => [
+                        'is_active' => $hasActiveSubscription,
+                        'plan' => $gym->subscription_plan ?? 'SaaS Hosted',
+                        'status' => $gym->subscription_status,
+                        'ends_at' => $gym->subscription_ends_at?->format('d.m.Y'),
+                    ],
+                    'can_access_premium' => $isInTrial || $hasActiveSubscription,
+                ];
+            }
+        }
+
+        return $shared;
     }
 }
