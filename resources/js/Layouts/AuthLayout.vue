@@ -44,6 +44,6 @@ return page.props.app?.name || 'gymportal.io'
 
 // Computed properties
 const pageTitle = computed(() => {
-return props.title ? `${props.title} - ${appName.value}` : appName.value
+  return props.title ? `${props.title}` : 'Unbekannt'
 })
 </script>
