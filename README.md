@@ -1,4 +1,4 @@
-# 🏋️ GymPortal
+# 🏋️ gymportal.io
 
 A modern gym management system built with Laravel and Vue.js, featuring member management, course bookings, payments, and comprehensive admin tools.
 
@@ -139,7 +139,7 @@ Navigate to: **[https://gymportal-io.ddev.site]()**
 6. **Set a new password** of your choice
 7. **Login** with the email and your new password
 
-🎉 **You're all set!** You can now access the GymPortal application.
+🎉 **You're all set!** You can now access the gymportal.io application.
 
 ## 🗄️ Database Management
 
