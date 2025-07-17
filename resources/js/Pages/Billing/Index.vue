@@ -29,16 +29,16 @@
     <main class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div class="space-y-8">
         <!-- Trial Banner -->
-        <div v-if="trial.is_active" class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div v-if="trial.is_active" class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <svg class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-blue-800">Testphase aktiv</h3>
-              <div class="mt-2 text-sm text-blue-700">
+              <h3 class="text-sm font-medium text-indigo-800">Testphase aktiv</h3>
+              <div class="mt-2 text-sm text-indigo-700">
                 <p>Ihre Testphase endet am {{ trial.ends_at }}. Sie haben noch {{ roundedTrialDaysLeft }} {{ roundedTrialDaysLeft === 1 ? 'Tag' : 'Tage' }} Zeit.</p>
               </div>
             </div>
@@ -84,7 +84,7 @@
                 <span v-if="subscription.is_active" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   Aktiv
                 </span>
-                <span v-else-if="trial.is_active" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span v-else-if="trial.is_active" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                   Testphase
                 </span>
                 <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -141,7 +141,7 @@
                 v-if="!subscription.is_active"
                 @click="subscribeToProfessional"
                 :disabled="isProcessing"
-                class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
               >
                 {{ isProcessing ? 'Wird verarbeitet...' : 'Jetzt abonnieren' }}
               </button>

@@ -11,7 +11,7 @@
                     <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key" :class="[
                         'py-2 px-1 border-b-2 font-medium text-sm',
                         activeTab === tab.key
-                            ? 'border-blue-500 text-blue-600'
+                            ? 'border-indigo-500 text-indigo-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     ]">
                         <component :is="tab.icon" class="w-4 h-4 mr-2 inline" />
@@ -68,7 +68,7 @@
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Land <span class="text-red-500">*</span></label>
-                                    <select v-model="gymForm.country" class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <select v-model="gymForm.country" class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                         <option value="DE">Deutschland</option>
                                         <option value="AT">Österreich</option>
                                         <option value="CH">Schweiz</option>
@@ -95,7 +95,7 @@
                                 <button
                                     type="submit"
                                     :disabled="isSubmittingGym"
-                                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50">
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50">
                                     Speichern
                                 </button>
                             </div>
@@ -138,7 +138,7 @@
                                 Team-Mitglieder
                             </h3>
                             <button @click="showAddUserModal = true"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md flex items-center">
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md flex items-center">
                                 <component :is="Plus" class="w-4 h-4 mr-2" />
                                 Benutzer hinzufügen
                             </button>
@@ -183,8 +183,8 @@
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
                                                 <div
-                                                    class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                    <span class="text-blue-600 font-medium text-sm">
+                                                    class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                    <span class="text-indigo-600 font-medium text-sm">
                                                         {{ getUserInitials(gymUser.user) }}
                                                     </span>
                                                 </div>
@@ -201,7 +201,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <select v-model="gymUser.role" @change="updateUserRole(gymUser)"
                                                 :disabled="gymUser.user.id === user.id || gymUser.isUpdating"
-                                                class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100">
+                                                class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
                                                 <option value="admin">Admin</option>
                                                 <option value="staff">Mitarbeiter</option>
                                                 <option value="trainer">Trainer</option>
@@ -327,7 +327,7 @@
                                             :disabled="method.isOverridden"
                                             @change="updateStandardMethod(method)"
                                             class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
                                     </label>
                                 </div>
                             </div>
@@ -386,7 +386,7 @@
                                 <div class="space-y-2">
                                     <button v-if="!mollieStatus.isActive"
                                         @click="setupMollie"
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md">
+                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-4 rounded-md">
                                         Einrichten
                                     </button>
                                     <template v-else>
@@ -449,7 +449,7 @@
                         <div>
                             <label class="block text-sm/6 font-medium text-gray-700">Rolle</label>
                             <select v-model="userForm.role"
-                                class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 required>
                                 <option value="admin">Admin</option>
                                 <option value="staff">Mitarbeiter</option>
@@ -463,7 +463,7 @@
                                 Abbrechen
                             </button>
                             <button type="submit" :disabled="isSubmittingUser"
-                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50">
                                 Hinzufügen
                             </button>
                         </div>
@@ -522,8 +522,8 @@ const standardMethods = ref([
         name: 'SEPA-Lastschrift',
         description: 'Automatischer Bankeinzug',
         icon: Banknote,
-        iconBg: 'bg-blue-100',
-        iconColor: 'text-blue-600',
+        iconBg: 'bg-indigo-100',
+        iconColor: 'text-indigo-600',
         enabled: true,
         isOverridden: false
     },

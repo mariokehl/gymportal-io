@@ -6,7 +6,7 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-blue-600 hover:text-blue-800">
+      <Link :href="route('contracts.index')" class="text-indigo-600 hover:text-indigo-800">
         Verträge
       </Link>
       <span class="text-gray-500 mx-2">/</span>
@@ -39,7 +39,7 @@
             <div class="flex space-x-2">
               <Link
                 :href="route('contracts.edit', membershipPlan.id)"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
               >
                 <Edit class="w-4 h-4" />
                 <span>Bearbeiten</span>
@@ -94,7 +94,7 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold text-gray-900">Aktive Mitgliedschaften</h2>
-            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+            <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">
               {{ activeMembersCount }} {{ activeMembersCount === 1 ? 'Mitglied' : 'Mitglieder' }}
             </span>
           </div>
@@ -106,7 +106,7 @@
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-sm font-semibold">
+                <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-sm font-semibold">
                   {{ getUserInitials(membership.member) }}
                 </div>
                 <div>
@@ -140,7 +140,7 @@
           <div class="space-y-4">
             <div class="flex justify-between items-center">
               <span class="text-gray-600">Aktive Mitglieder</span>
-              <span class="text-2xl font-bold text-blue-600">{{ activeMembersCount }}</span>
+              <span class="text-2xl font-bold text-indigo-600">{{ activeMembersCount }}</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-gray-600">Monatlicher Umsatz</span>
@@ -157,7 +157,7 @@
           <div class="space-y-3">
             <Link
               :href="route('contracts.edit', membershipPlan.id)"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
             >
               <Edit class="w-4 h-4" />
               <span>Bearbeiten</span>

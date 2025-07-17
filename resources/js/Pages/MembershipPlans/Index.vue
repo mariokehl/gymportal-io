@@ -10,7 +10,7 @@
         :class="{
           'bg-green-50 border-green-200 text-green-800': flash.type === 'success',
           'bg-red-50 border-red-200 text-red-800': flash.type === 'error',
-          'bg-blue-50 border-blue-200 text-blue-800': flash.type === 'info'
+          'bg-indigo-50 border-indigo-200 text-indigo-800': flash.type === 'info'
         }"
         class="border rounded-lg p-4"
       >
@@ -26,7 +26,7 @@
       </div>
       <Link
         :href="route('contracts.create')"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
       >
         <Plus class="w-4 h-4" />
         <span>Neuer Vertrag</span>
@@ -78,7 +78,7 @@
 
           <div class="flex justify-between">
             <span class="text-gray-600 text-sm">Aktive Mitglieder:</span>
-            <span class="font-medium text-blue-600">{{ plan.member_count || 0 }}</span>
+            <span class="font-medium text-indigo-600">{{ plan.member_count || 0 }}</span>
           </div>
         </div>
 
@@ -92,7 +92,7 @@
           </Link>
           <Link
             :href="route('contracts.edit', plan.id)"
-            class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
+            class="flex-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
           >
             Bearbeiten
           </Link>
@@ -113,7 +113,7 @@
       <p class="text-gray-600 mb-6">Erstellen Sie Ihren ersten Mitgliedschaftsplan für Ihr Fitnessstudio.</p>
       <Link
         :href="route('contracts.create')"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
       >
         <Plus class="w-5 h-5" />
         <span>Ersten Vertrag erstellen</span>

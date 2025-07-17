@@ -44,7 +44,7 @@
               class="relative inline-flex items-center px-4 py-2 border text-sm font-medium hover:bg-gray-50 transition-colors"
               :class="[
                 link.active
-                  ? 'bg-blue-50 border-blue-500 text-blue-600 z-10'
+                  ? 'bg-indigo-50 border-indigo-500 text-indigo-600 z-10'
                   : 'bg-white border-gray-300 text-gray-700',
                 index === 0 ? 'rounded-l-md' : '',
                 index === links.length - 1 ? 'rounded-r-md' : ''

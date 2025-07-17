@@ -5,7 +5,7 @@
             class="w-full flex items-center justify-between p-3 hover:bg-gray-100 transition-colors">
             <div class="flex items-center flex-1 min-w-0">
                 <div
-                    class="w-8 h-8 flex-shrink-0 bg-blue-500 rounded-lg flex items-center justify-center text-white text-sm font-semibold leading-none">
+                    class="w-8 h-8 flex-shrink-0 bg-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-semibold leading-none">
                     {{ currentOrgName.charAt(0) }}
                 </div>
                 <div class="ml-3 text-left min-w-0">

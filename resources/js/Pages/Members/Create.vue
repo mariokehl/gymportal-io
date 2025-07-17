@@ -26,7 +26,7 @@
                 <span v-else>{{ step.id }}</span>
               </div>
               <div class="ml-3">
-                <p class="text-sm font-medium" :class="index <= currentStep ? 'text-blue-600' : 'text-gray-500'">
+                <p class="text-sm font-medium" :class="index <= currentStep ? 'text-indigo-600' : 'text-gray-500'">
                   {{ step.name }}
                 </p>
               </div>
@@ -35,7 +35,7 @@
             <div v-if="index < steps.length - 1" class="flex-1 ml-6">
               <div
                 class="h-0.5 w-full transition-colors"
-                :class="index < currentStep ? 'bg-blue-600' : 'bg-gray-300'"
+                :class="index < currentStep ? 'bg-indigo-600' : 'bg-gray-300'"
               ></div>
             </div>
           </div>
@@ -57,7 +57,7 @@
                 id="first_name"
                 v-model="form.first_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.first_name }"
                 @blur="validateStep1"
               />
@@ -74,7 +74,7 @@
                 id="last_name"
                 v-model="form.last_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.last_name }"
                 @blur="validateStep1"
               />
@@ -91,7 +91,7 @@
                 id="email"
                 v-model="form.email"
                 type="email"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.email }"
                 @blur="validateStep1"
               />
@@ -108,7 +108,7 @@
                 id="phone"
                 v-model="form.phone"
                 type="tel"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.phone }"
                 @blur="validateStep1"
               />
@@ -125,7 +125,7 @@
                 id="birth_date"
                 v-model="form.birth_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.birth_date }"
                 @blur="validateStep1"
               />
@@ -146,7 +146,7 @@
                 id="address"
                 v-model="form.address"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.address }"
                 @blur="validateStep1"
               />
@@ -164,7 +164,7 @@
                   id="postal_code"
                   v-model="form.postal_code"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   :class="{ 'border-red-500': errors.postal_code }"
                   @blur="validateStep1"
                 />
@@ -181,7 +181,7 @@
                   id="city"
                   v-model="form.city"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   :class="{ 'border-red-500': errors.city }"
                   @blur="validateStep1"
                 />
@@ -198,7 +198,7 @@
               <select
                 id="country"
                 v-model="form.country"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.country }"
                 @blur="validateStep1"
               >
@@ -224,7 +224,7 @@
                 id="emergency_contact_name"
                 v-model="form.emergency_contact_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_name }"
                 @blur="validateStep1"
               />
@@ -241,7 +241,7 @@
                 id="emergency_contact_phone"
                 v-model="form.emergency_contact_phone"
                 type="tel"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_phone }"
                 @blur="validateStep1"
               />
@@ -259,7 +259,7 @@
               id="notes"
               v-model="form.notes"
               rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Besondere Hinweise, medizinische Informationen, etc..."
             ></textarea>
           </div>
@@ -274,7 +274,7 @@
               v-for="plan in membershipPlans"
               :key="plan.id"
               class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-              :class="form.membership_plan_id === plan.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300'"
+              :class="form.membership_plan_id === plan.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
               @click="selectMembershipPlan(plan.id)"
             >
               <div class="flex items-center mb-3">
@@ -283,7 +283,7 @@
                   :id="`plan_${plan.id}`"
                   :value="plan.id"
                   v-model="form.membership_plan_id"
-                  class="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                 />
                 <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-gray-900">
                   {{ plan.name }}
@@ -291,7 +291,7 @@
               </div>
               <p class="text-sm text-gray-600 mb-3">{{ plan.description }}</p>
               <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-blue-600">
+                <span class="text-lg font-bold text-indigo-600">
                   {{ formatCurrency(plan.price) }}
                 </span>
                 <span class="text-sm text-gray-500">
@@ -316,7 +316,7 @@
                 id="joined_date"
                 v-model="form.joined_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.joined_date }"
                 :min="today"
                 @blur="validateStep2"
@@ -350,7 +350,7 @@
               v-for="method in paymentMethods"
               :key="method.value"
               class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-              :class="form.payment_method === method.value ? 'border-blue-500 bg-blue-50' : 'border-gray-300'"
+              :class="form.payment_method === method.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
               @click="form.payment_method = method.value"
             >
               <div class="flex items-center">
@@ -359,7 +359,7 @@
                   :id="`payment_${method.value}`"
                   :value="method.value"
                   v-model="form.payment_method"
-                  class="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                 />
                 <div class="ml-3">
                   <label :for="`payment_${method.value}`" class="font-medium text-gray-900">
@@ -376,9 +376,9 @@
           </p>
 
           <!-- Zusätzliche Informationen für SEPA -->
-          <div v-if="form.payment_method === 'sepa'" class="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 class="font-medium text-blue-900 mb-2">SEPA-Lastschrift</h4>
-            <p class="text-sm text-blue-800">
+          <div v-if="form.payment_method === 'sepa'" class="mt-6 p-4 bg-indigo-50 rounded-lg">
+            <h4 class="font-medium text-indigo-900 mb-2">SEPA-Lastschrift</h4>
+            <p class="text-sm text-indigo-800">
               Die Kontodaten können nach der Registrierung im Mitgliederbereich hinterlegt werden.
               Der erste Beitrag wird 7 Tage nach Vertragsstart eingezogen.
             </p>
@@ -429,11 +429,11 @@
                 id="accept_terms"
                 v-model="form.accept_terms"
                 type="checkbox"
-                class="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                class="mt-1 w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
               />
               <label for="accept_terms" class="ml-2 text-sm text-gray-700">
-                Ich akzeptiere die <a href="#" class="text-blue-600 hover:underline">Allgemeinen Geschäftsbedingungen</a>
-                und die <a href="#" class="text-blue-600 hover:underline">Datenschutzerklärung</a>. <span class="text-red-500">*</span>
+                Ich akzeptiere die <a href="#" class="text-indigo-600 hover:underline">Allgemeinen Geschäftsbedingungen</a>
+                und die <a href="#" class="text-indigo-600 hover:underline">Datenschutzerklärung</a>. <span class="text-red-500">*</span>
               </label>
             </div>
             <p v-if="errors.accept_terms" class="mt-2 text-sm text-red-600">
@@ -450,7 +450,7 @@
             type="button"
             @click="previousStep"
             v-show="currentStep > 0"
-            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             Zurück
           </button>
@@ -460,7 +460,7 @@
               type="button"
               @click="nextStep"
               v-show="currentStep < steps.length - 1"
-              class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               :disabled="!isCurrentStepValid()"
             >
               Weiter
@@ -599,9 +599,9 @@ const isFormValid = () => {
 
 const getStepClasses = (index) => {
   if (index < currentStep.value) {
-    return 'bg-blue-600 border-blue-600 text-white'
+    return 'bg-indigo-600 border-indigo-600 text-white'
   } else if (index === currentStep.value) {
-    return 'bg-blue-100 border-blue-600 text-blue-600'
+    return 'bg-indigo-100 border-indigo-600 text-indigo-600'
   } else {
     return 'bg-white border-gray-300 text-gray-500'
   }

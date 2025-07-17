@@ -5,7 +5,7 @@
 <div class="sm:mx-auto sm:w-full sm:max-w-md">
   <!-- App Name Header -->
   <div class="text-center">
-    <h1 class="text-4xl font-bold text-blue-600 mb-2">
+    <h1 class="text-4xl font-bold text-indigo-600 mb-2">
       {{ appName }}
     </h1>
     <p class="text-sm text-gray-600 mb-6">Gym Management System</p>

@@ -6,7 +6,7 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-blue-600 hover:text-blue-800">
+      <Link :href="route('contracts.index')" class="text-indigo-600 hover:text-indigo-800">
         Verträge
       </Link>
       <span class="text-gray-500 mx-2">/</span>
@@ -25,7 +25,7 @@
               id="name"
               v-model="form.name"
               type="text"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.name }"
               placeholder="z.B. Standard Mitgliedschaft"
               required
@@ -42,7 +42,7 @@
               id="description"
               v-model="form.description"
               rows="3"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.description }"
               placeholder="Optionale Beschreibung des Vertrags..."
             ></textarea>
@@ -62,7 +62,7 @@
                 step="0.01"
                 min="0"
                 max="9999.99"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 :class="{ 'border-red-500': errors.price }"
                 placeholder="0.00"
                 required
@@ -77,7 +77,7 @@
               <select
                 id="billing_cycle"
                 v-model="form.billing_cycle"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 :class="{ 'border-red-500': errors.billing_cycle }"
                 required
               >
@@ -102,7 +102,7 @@
                 type="number"
                 min="0"
                 max="36"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 :class="{ 'border-red-500': errors.commitment_months }"
                 placeholder="0 = keine Mindestlaufzeit"
               />
@@ -120,7 +120,7 @@
                 type="number"
                 min="0"
                 max="365"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 :class="{ 'border-red-500': errors.cancellation_period_days }"
                 placeholder="30"
                 required
@@ -136,7 +136,7 @@
                 id="is_active"
                 v-model="form.is_active"
                 type="checkbox"
-                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
               />
               <label for="is_active" class="ml-2 text-sm font-medium text-gray-700">
                 Vertrag ist aktiv und kann von Mitgliedern gewählt werden
@@ -152,7 +152,7 @@
             <button
               type="submit"
               :disabled="processing"
-              class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+              class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
             >
               <Save class="w-4 h-4" />
               <span>{{ processing ? 'Speichern...' : 'Vertrag erstellen' }}</span>
