@@ -53,6 +53,10 @@ class AuthController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'terms_accepted' => ['required', 'accepted'], // Wichtig für die Validierung
+        ], [
+            'terms_accepted.required' => 'Sie müssen den Allgemeinen Geschäftsbedingungen und der Datenschutzerklärung zustimmen.',
+            'terms_accepted.accepted' => 'Sie müssen den Allgemeinen Geschäftsbedingungen und der Datenschutzerklärung zustimmen.',
         ]);
 
         DB::beginTransaction();
