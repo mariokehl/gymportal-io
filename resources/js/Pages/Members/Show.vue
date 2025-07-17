@@ -17,7 +17,7 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <div class="h-16 w-16 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl font-bold">
+            <div class="h-16 w-16 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xl font-bold">
               {{ getInitials(member.first_name, member.last_name) }}
             </div>
             <div>
@@ -33,7 +33,7 @@
           <div class="flex items-center space-x-3">
             <Link
               :href="route('members.create')"
-              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
             >
               <Plus class="w-4 h-4" />
               Neues Mitglied
@@ -59,7 +59,7 @@
               @click="activeTab = tab.id"
               :class="[
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
               ]"
@@ -82,7 +82,7 @@
                     v-model="form.first_name"
                     :disabled="!editMode"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                   <div v-if="form.errors.first_name" class="text-red-500 text-sm mt-1">{{ form.errors.first_name }}</div>
                 </div>
@@ -92,7 +92,7 @@
                     v-model="form.last_name"
                     :disabled="!editMode"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                   <div v-if="form.errors.last_name" class="text-red-500 text-sm mt-1">{{ form.errors.last_name }}</div>
                 </div>
@@ -102,7 +102,7 @@
                     v-model="form.email"
                     :disabled="!editMode"
                     type="email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                   <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
                 </div>
@@ -112,7 +112,7 @@
                     v-model="form.phone"
                     :disabled="!editMode"
                     type="tel"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div>
@@ -121,7 +121,7 @@
                     v-model="form.birth_date"
                     :disabled="!editMode"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div>
@@ -130,7 +130,7 @@
                     v-model="form.joined_date"
                     :disabled="!editMode"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div class="md:col-span-2">
@@ -139,7 +139,7 @@
                     v-model="form.address"
                     :disabled="!editMode"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div>
@@ -148,7 +148,7 @@
                     v-model="form.postal_code"
                     :disabled="!editMode"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div>
@@ -157,7 +157,7 @@
                     v-model="form.city"
                     :disabled="!editMode"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div>
@@ -166,7 +166,7 @@
                     id="country"
                     v-model="form.country"
                     :disabled="!editMode"
-                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   >
                     <option value="DE">Deutschland</option>
                     <option value="AT">Österreich</option>
@@ -179,7 +179,7 @@
                     v-model="form.emergency_contact_name"
                     :disabled="!editMode"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div>
@@ -188,7 +188,7 @@
                     v-model="form.emergency_contact_phone"
                     :disabled="!editMode"
                     type="tel"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
                 <div class="md:col-span-2">
@@ -197,7 +197,7 @@
                     v-model="form.notes"
                     :disabled="!editMode"
                     rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   ></textarea>
                 </div>
               </div>
@@ -212,7 +212,7 @@
                 <button
                   type="submit"
                   :disabled="form.processing"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {{ form.processing ? 'Speichern...' : 'Speichern' }}
                 </button>
@@ -238,7 +238,7 @@
                     </div>
                   </div>
                   <div class="text-right">
-                    <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
+                    <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
                     <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
                   </div>
                 </div>

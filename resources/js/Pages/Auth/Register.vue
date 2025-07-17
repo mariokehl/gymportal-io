@@ -102,11 +102,47 @@
         </div>
       </div>
 
+      <!-- Terms and Privacy Policy Checkbox -->
+      <div>
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <input
+              id="terms_accepted"
+              v-model="form.terms_accepted"
+              type="checkbox"
+              required
+              class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+              :class="{ 'border-red-300': errors.terms_accepted }"
+            />
+          </div>
+          <div class="ml-3 text-sm">
+            <label for="terms_accepted" class="text-gray-700">
+              Ich stimme den
+              <a
+                href="https://gymportal.io/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-indigo-600 hover:text-indigo-500 underline">AGB</a>
+              und dem
+              <a
+                href="https://gymportal.io/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-indigo-600 hover:text-indigo-500 underline">Datenschutz</a>
+              zu
+            </label>
+          </div>
+        </div>
+        <p v-if="errors.terms_accepted" class="mt-2 text-sm text-red-600">
+          {{ errors.terms_accepted }}
+        </p>
+      </div>
+
       <div>
         <button
           type="submit"
-          :disabled="processing"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          :disabled="processing || !form.terms_accepted"
+          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="processing">Wird registriert...</span>
           <span v-else>Registrieren</span>
@@ -138,6 +174,7 @@ const form = useForm({
   email: '',
   password: '',
   password_confirmation: '',
+  terms_accepted: false,
 })
 
 const submit = () => {

@@ -5,7 +5,7 @@
     <!-- Sidebar -->
     <div class="w-64 bg-white shadow-md flex flex-col">
       <div class="p-4 border-b border-gray-200">
-        <h2 class="text-xl font-bold text-blue-600">gymportal.io</h2>
+        <h2 class="text-xl font-bold text-indigo-600">gymportal.io</h2>
         <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
       </div>
 
@@ -63,14 +63,14 @@
 
       <!-- Trial/Subscription Status -->
       <div v-if="subscriptionStatus" class="p-4 border-t border-gray-200">
-        <div v-if="subscriptionStatus.trial.is_active" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div v-if="subscriptionStatus.trial.is_active" class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
           <div class="flex items-center">
-            <svg class="h-4 w-4 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="h-4 w-4 text-indigo-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p class="text-xs font-medium text-blue-800">Testphase</p>
-              <p class="text-xs text-blue-600">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</p>
+              <p class="text-xs font-medium text-indigo-800">Testphase</p>
+              <p class="text-xs text-indigo-600">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</p>
             </div>
           </div>
         </div>
@@ -117,7 +117,7 @@
 
           <!-- User Profile -->
           <div class="flex items-center">
-            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
+            <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
               {{ userInitials }}
             </div>
             <span class="ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>

@@ -13,8 +13,8 @@
               <p class="text-sm font-medium text-gray-600">Gesamtumsatz</p>
               <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(statistics.total_amount) }}</p>
             </div>
-            <div class="p-3 bg-blue-100 rounded-full">
-              <DollarSign class="w-6 h-6 text-blue-600" />
+            <div class="p-3 bg-indigo-100 rounded-full">
+              <DollarSign class="w-6 h-6 text-indigo-600" />
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@
                 v-model="localFilters.search"
                 type="text"
                 placeholder="Nach Mitglied, Beschreibung oder Transaktions-ID suchen..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 @input="debouncedFilter"
               />
             </div>
@@ -80,7 +80,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
               v-model="localFilters.status"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               @change="applyFilters"
             >
               <option value="">Alle Status</option>
@@ -94,7 +94,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Zahlungsart</label>
             <select
               v-model="localFilters.payment_method"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               @change="applyFilters"
             >
               <option value="">Alle Zahlungsarten</option>
@@ -106,7 +106,7 @@
 
           <button
             @click="showAdvancedFilters = !showAdvancedFilters"
-            class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <Filter class="w-4 h-4 mr-2" />
             Erweiterte Filter
@@ -122,7 +122,7 @@
               <input
                 v-model="localFilters.date_from"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 @change="applyFilters"
               />
             </div>
@@ -132,7 +132,7 @@
               <input
                 v-model="localFilters.date_to"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 @change="applyFilters"
               />
             </div>
@@ -144,7 +144,7 @@
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 @change="applyFilters"
               />
             </div>
@@ -156,7 +156,7 @@
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 @change="applyFilters"
               />
             </div>
@@ -165,7 +165,7 @@
           <div class="mt-4 flex gap-2">
             <button
               @click="clearFilters"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               Filter zurücksetzen
             </button>
@@ -183,7 +183,7 @@
                 type="checkbox"
                 :checked="isAllSelected"
                 @change="toggleSelectAll"
-                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
               />
               <label for="select-all" class="ml-2 text-sm font-medium text-gray-700">
                 Alle auswählen
@@ -199,7 +199,7 @@
             <button
               v-if="selectedPayments.length > 0"
               @click="exportPayments('csv')"
-              class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <Download class="w-4 h-4 mr-2" />
               CSV Export
@@ -208,7 +208,7 @@
             <button
               v-if="selectedSepaPayments.length > 0"
               @click="exportPayments('pain008')"
-              class="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <Download class="w-4 h-4 mr-2" />
               PAIN.008 Export ({{ selectedSepaPayments.length }})
@@ -228,7 +228,7 @@
                     type="checkbox"
                     :checked="isAllSelected"
                     @change="toggleSelectAll"
-                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                   />
                 </th>
                 <th
@@ -289,7 +289,7 @@
                     type="checkbox"
                     :value="payment.id"
                     v-model="selectedPayments"
-                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                   />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -300,7 +300,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
+                    <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
                       {{ getMemberInitials(payment.membership?.member) }}
                     </div>
                     <div>
@@ -341,7 +341,7 @@
                   <div class="flex items-center justify-end space-x-2">
                     <button
                       @click="viewPayment(payment)"
-                      class="text-blue-600 hover:text-blue-900"
+                      class="text-gray-700 hover:text-gray-900"
                       title="Details anzeigen"
                     >
                       <Eye class="w-4 h-4" />
@@ -409,7 +409,7 @@
                     :class="[
                       'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
                       link.active
-                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
                         : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                     ]"
                     v-html="link.label"
@@ -487,7 +487,7 @@
           <div v-if="selectedPayment.membership?.member">
             <label class="block text-sm font-medium text-gray-700">Mitglied</label>
             <div class="mt-1 flex items-center">
-              <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
+              <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
                 {{ getMemberInitials(selectedPayment.membership.member) }}
               </div>
               <div>
@@ -685,7 +685,7 @@ const getStatusClasses = (color) => {
     green: 'bg-green-100 text-green-800',
     yellow: 'bg-yellow-100 text-yellow-800',
     red: 'bg-red-100 text-red-800',
-    blue: 'bg-blue-100 text-blue-800',
+    blue: 'bg-indigo-100 text-indigo-800',
     gray: 'bg-gray-100 text-gray-800'
   }
   return classes[color] || classes.gray

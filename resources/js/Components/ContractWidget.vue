@@ -26,7 +26,7 @@
         <div class="bg-white rounded-lg shadow p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
-                    <component :is="Settings" class="w-6 h-6 text-blue-600 mr-3" />
+                    <component :is="Settings" class="w-6 h-6 text-indigo-600 mr-3" />
                     <h3 class="text-xl font-semibold text-gray-900">Widget-Einstellungen</h3>
                 </div>
             </div>
@@ -39,8 +39,8 @@
                         <p class="text-sm text-gray-500">Macht das Widget auf deiner Website verfügbar</p>
                     </div>
                     <div class="relative inline-block w-11 h-5">
-                        <input v-model="settings.widget_enabled" id="switch-component-blue" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-blue-600 cursor-pointer transition-colors duration-300" />
-                        <label for="switch-component-blue" class="absolute top-0 left-0 w-5 h-5 bg-white rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-blue-600 cursor-pointer"></label>
+                        <input v-model="settings.widget_enabled" id="switch-component-blue" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-indigo-600 cursor-pointer transition-colors duration-300" />
+                        <label for="switch-component-blue" class="absolute top-0 left-0 w-5 h-5 bg-white rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-indigo-600 cursor-pointer"></label>
                     </div>
                 </div>
 
@@ -96,7 +96,7 @@
                             <input
                                 type="text"
                                 v-model="settings.texts.title"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="z.B. Wähle deinen Tarif"
                             >
                         </div>
@@ -105,7 +105,7 @@
                             <textarea
                                 v-model="settings.texts.welcome_message"
                                 rows="3"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="z.B. Willkommen bei unserem Fitnessstudio..."
                             ></textarea>
                         </div>
@@ -127,7 +127,7 @@
                             <input
                                 type="checkbox"
                                 v-model="settings.features.show_duration_selector"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
@@ -138,7 +138,7 @@
                             <input
                                 type="checkbox"
                                 v-model="settings.features.show_goals_selection"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
@@ -149,7 +149,7 @@
                             <input
                                 type="checkbox"
                                 v-model="settings.features.require_birth_date"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             >
                         </label>
                     </div>
@@ -159,7 +159,7 @@
                     <button
                         type="submit"
                         :disabled="isSaving"
-                        class="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        class="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         <component :is="Save" class="w-4 h-4 mr-2" />
                         {{ isSaving ? 'Speichern...' : 'Einstellungen speichern' }}
@@ -171,7 +171,7 @@
         <!-- Integration Methods -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
             <div class="flex items-center mb-4">
-                <component :is="ToyBrick" class="w-6 h-6 text-blue-600 mr-3" />
+                <component :is="ToyBrick" class="w-6 h-6 text-indigo-600 mr-3" />
                 <h3 class="text-xl font-semibold text-gray-900">Integration-Methoden</h3>
             </div>
 
@@ -183,7 +183,7 @@
                             :class="[
                                 'py-2 px-1 border-b-2 font-medium text-sm',
                                 activeMethod === method.key
-                                    ? 'border-blue-500 text-blue-600'
+                                    ? 'border-indigo-500 text-indigo-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             ]">
                         <component :is="method.icon" class="w-4 h-4 mr-2 inline" />
@@ -194,9 +194,9 @@
 
             <!-- Script Integration -->
             <div v-if="activeMethod === 'script'" class="space-y-4">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 class="font-medium text-blue-900 mb-2">Script Integration (Empfohlen)</h4>
-                    <p class="text-blue-800 text-sm">Einfachste Integration - fügen Sie nur den Code in Ihre Website ein.</p>
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                    <h4 class="font-medium text-indigo-900 mb-2">Script Integration (Empfohlen)</h4>
+                    <p class="text-indigo-800 text-sm">Einfachste Integration - fügen Sie nur den Code in Ihre Website ein.</p>
                 </div>
 
                 <div>
@@ -328,13 +328,13 @@
         <!-- API Keys -->
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center mb-4">
-                <component :is="Key" class="w-6 h-6 text-blue-600 mr-3" />
+                <component :is="Key" class="w-6 h-6 text-indigo-600 mr-3" />
                 <h3 class="text-xl font-semibold text-gray-900">API-Schlüssel</h3>
             </div>
 
             <!-- Loading State -->
             <div v-if="apiKeys.loading" class="text-center py-4">
-                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
                 <p class="mt-2 text-sm text-gray-600">API-Schlüssel werden geladen...</p>
             </div>
 
@@ -573,7 +573,6 @@ const regenerateApiKeys = async () => {
     if (confirm('Möchten Sie wirklich neue API-Schlüssel generieren? Die alten Schlüssel werden dadurch ungültig!')) {
         try {
             const response = await axios.post(route('admin.widget.regenerate-api-key'))
-            console.log(response.data.api_key)
             apiKeys.value.public = response.data.api_key
             page.props.flash.message = 'API-Keys erfolgreich neu generiert!'
         } catch (error) {

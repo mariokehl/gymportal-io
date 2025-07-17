@@ -7,7 +7,7 @@
     :class="[
       'w-full flex items-center px-4 py-3 text-sm font-medium text-left transition-colors',
       {
-        'bg-blue-50 text-blue-600 border-r-2 border-blue-600': active && !disabled,
+        'bg-indigo-50 text-indigo-600 border-r-2 border-indigo-600': active && !disabled,
         'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !active && !disabled,
         'text-gray-400 cursor-not-allowed opacity-50': disabled,
       }
@@ -18,7 +18,7 @@
       :class="[
         'w-5 h-5 mr-3',
         {
-          'text-blue-600': active && !disabled,
+          'text-indigo-600': active && !disabled,
           'text-gray-600': !active && !disabled,
           'text-gray-300': disabled,
         }

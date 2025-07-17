@@ -9,7 +9,7 @@
       <div class="flex justify-between items-center mb-6">
         <div class="flex items-center space-x-4">
           <h2 class="text-2xl font-bold text-gray-900">Alle Benachrichtigungen</h2>
-          <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+          <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">
             {{ unreadCount }} ungelesen
           </span>
         </div>
@@ -17,7 +17,7 @@
         <button
           v-if="unreadCount > 0"
           @click="markAllAsRead"
-          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
         >
           Alle als gelesen markieren
         </button>
@@ -37,7 +37,7 @@
             :key="recipient.id"
             class="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
             :class="[
-              !recipient.is_read ? 'bg-blue-50 border-l-4 border-blue-500' : '',
+              !recipient.is_read ? 'bg-indigo-50 border-l-4 border-indigo-500' : '',
               index !== notifications.data.length - 1 ? 'border-b border-gray-200' : ''
             ]"
             @click="handleNotificationClick(recipient)"
@@ -54,7 +54,7 @@
               <div class="flex-shrink-0 mt-1">
                 <div
                   class="w-3 h-3 rounded-full"
-                  :class="recipient.is_read ? 'bg-gray-300' : 'bg-blue-500'"
+                  :class="recipient.is_read ? 'bg-gray-300' : 'bg-indigo-500'"
                 ></div>
               </div>
 
@@ -89,7 +89,7 @@
                 <button
                   v-if="!recipient.is_read"
                   @click.stop="markAsRead(recipient)"
-                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                 >
                   Als gelesen markieren
                 </button>
@@ -252,7 +252,7 @@ const getTypeBadgeClass = (type) => {
     'member_registered': 'bg-green-100 text-green-800',
     'contract_expiring': 'bg-yellow-100 text-yellow-800',
     'payment_reminder': 'bg-red-100 text-red-800',
-    'announcement': 'bg-blue-100 text-blue-800',
+    'announcement': 'bg-indigo-100 text-indigo-800',
     'promotion': 'bg-purple-100 text-purple-800',
     'system': 'bg-gray-100 text-gray-800',
     'reminder': 'bg-orange-100 text-orange-800'

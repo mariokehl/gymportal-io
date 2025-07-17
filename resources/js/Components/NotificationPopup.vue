@@ -26,7 +26,7 @@
         <button
           v-if="unreadCount > 0"
           @click="markAllAsRead"
-          class="text-sm text-blue-600 hover:text-blue-800"
+          class="text-sm text-indigo-600 hover:text-indigo-800"
         >
           Alle als gelesen markieren
         </button>
@@ -34,7 +34,7 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="p-4 text-center">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
         <p class="mt-2 text-sm text-gray-500">Lade Benachrichtigungen...</p>
       </div>
 
@@ -45,13 +45,13 @@
           :key="notification.id"
           class="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
           @click="handleNotificationClick(notification)"
-          :class="{ 'bg-blue-50': !notification.is_read }"
+          :class="{ 'bg-indigo-50': !notification.is_read }"
         >
           <div class="flex items-start space-x-3">
             <div class="flex-shrink-0">
               <div
                 class="w-2 h-2 rounded-full mt-2"
-                :class="notification.is_read ? 'bg-gray-300' : 'bg-blue-500'"
+                :class="notification.is_read ? 'bg-gray-300' : 'bg-indigo-500'"
               ></div>
             </div>
             <div class="flex-1 min-w-0">
@@ -79,7 +79,7 @@
       <div class="p-4 border-t border-gray-200">
         <Link
           :href="route('notifications.index')"
-          class="block w-full text-center text-sm text-blue-600 hover:text-blue-800"
+          class="block w-full text-center text-sm text-indigo-600 hover:text-indigo-800"
           @click="closePopup"
         >
           Alle Benachrichtigungen anzeigen
@@ -122,7 +122,7 @@ const closePopup = () => {
 const loadNotifications = async () => {
   loading.value = true
   try {
-    const response = await axios.get(route('api.notifications.unread'))
+    const response = await axios.get(route('v1.notifications.unread'))
     notifications.value = response.data
   } catch (error) {
     console.error('Fehler beim Laden der Benachrichtigungen:', error)
@@ -133,7 +133,7 @@ const loadNotifications = async () => {
 
 const markAllAsRead = async () => {
   try {
-    await axios.post(route('api.notifications.mark-all-read'))
+    await axios.post(route('v1.notifications.mark-all-read'))
     notifications.value.forEach(notification => {
       notification.is_read = true
     })
@@ -146,7 +146,7 @@ const handleNotificationClick = async (notification) => {
   // Markiere als gelesen
   if (!notification.is_read) {
     try {
-      await axios.post(route('api.notifications.mark-read', { recipient: notification.id }))
+      await axios.post(route('v1.notifications.mark-read', { recipient: notification.id }))
       notification.is_read = true
     } catch (error) {
       console.error('Fehler beim Markieren als gelesen:', error)

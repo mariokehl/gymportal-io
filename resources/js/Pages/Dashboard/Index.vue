@@ -18,8 +18,8 @@
                             {{ stat.change }} gegenüber letztem Monat
                         </span>
                     </div>
-                    <div class="p-2 bg-blue-50 rounded-lg">
-                        <component :is="getIcon(stat.icon)" class="w-6 h-6 text-blue-500" />
+                    <div class="p-2 bg-indigo-50 rounded-lg">
+                        <component :is="getIcon(stat.icon)" class="w-6 h-6 text-indigo-500" />
                     </div>
                 </div>
             </div>
@@ -31,7 +31,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-semibold">Mitgliederübersicht</h2>
                     <button
-                        class="bg-blue-500 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-blue-600 transition-colors"
+                        class="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-indigo-600 transition-colors"
                         @click="showNewContract = !showNewContract">
                         <component :is="Plus" class="w-4 h-4 mr-1" />
                         Neuer Vertrag
@@ -39,7 +39,7 @@
                 </div>
 
                 <!-- New Contract Form -->
-                <div v-if="showNewContract" class="mb-6 bg-blue-50 p-4 rounded-lg">
+                <div v-if="showNewContract" class="mb-6 bg-indigo-50 p-4 rounded-lg">
                     <h3 class="font-medium mb-3">Neuen Online-Vertrag erstellen</h3>
                     <form @submit.prevent="submitContract">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -47,26 +47,26 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
                                     <input v-model="contractForm.first_name" type="text"
-                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                         placeholder="Max" required />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
                                     <input v-model="contractForm.last_name" type="text"
-                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                         placeholder="Mustermann" required />
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
                                 <input v-model="contractForm.email" type="email"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="max@example.com" required />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Mitgliedschaft</label>
                                 <select v-model="contractForm.membership"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     required>
                                     <option value="Basic">Basic (29,99 €/Monat)</option>
                                     <option value="Standard">Standard (49,99 €/Monat)</option>
@@ -76,7 +76,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Vertragsdauer</label>
                                 <select v-model="contractForm.duration"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     required>
                                     <option value="12 Monate">12 Monate</option>
                                     <option value="24 Monate">24 Monate</option>
@@ -91,7 +91,7 @@
                                 Abbrechen
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                class="px-4 py-2 text-sm bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
                                 :disabled="isSubmitting">
                                 {{ isSubmitting ? 'Wird erstellt...' : 'Vertrag erstellen' }}
                             </button>
@@ -105,7 +105,7 @@
                         <component :is="Search"
                             class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input v-model="searchTerm" type="text" placeholder="Mitglied suchen..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
                     <button
                         class="p-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors">
@@ -137,7 +137,7 @@
                                 <td class="py-3 px-4">
                                     <div class="flex items-center">
                                         <div
-                                            class="w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center font-medium">
+                                            class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center font-medium">
                                             {{ member.initials }}
                                         </div>
                                         <div class="ml-3">
@@ -160,7 +160,7 @@
                                     <div class="flex items-center justify-end space-x-2">
                                         <Link
                                             :href="route('members.show', member.id)"
-                                            class="text-blue-600 hover:text-blue-900 p-1 rounded"
+                                            class="text-gray-700 hover:text-gray-900 p-1 rounded"
                                             title="Anzeigen">
                                             <Eye class="w-4 h-4" />
                                         </Link>
@@ -185,7 +185,7 @@
                             <component :is="ChevronRight" class="w-4 h-4 text-gray-500 transform rotate-180" />
                         </button>
                         <button
-                            class="w-8 h-8 bg-blue-500 text-white rounded-md flex items-center justify-center">1</button>
+                            class="w-8 h-8 bg-indigo-500 text-white rounded-md flex items-center justify-center">1</button>
                         <button
                             class="w-8 h-8 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 transition-colors">2</button>
                         <button
@@ -211,7 +211,7 @@
                 </div>
 
                 <button
-                    class="mt-4 text-blue-500 text-sm font-medium flex items-center hover:text-blue-600 transition-colors">
+                    class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors">
                     Alle anzeigen
                     <component :is="ChevronRight" class="w-4 h-4 ml-1" />
                 </button>
