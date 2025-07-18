@@ -157,7 +157,9 @@
                       29,00 € (exkl. MwSt.) / Monat / Fitnessstudio
                     </p>
                     <p class="text-sm text-gray-500 mt-2">
-                      Für kleine und mittlere Fitnessstudios, die das Beste aus gymportal.io herausholen und die Weiterentwicklung unterstützen möchten.
+                        Unsere Plattform ist Open Source und kostenlos nutzbar – doch mit einem Abo profitierst du von exklusiven Features,
+                        regelmäßigen Updates und persönlichem Support. So unterstützt du nicht nur die Weiterentwicklung, sondern sicherst
+                        dir auch einen echten Vorsprung für dein Studio.
                     </p>
                   </div>
                   <div v-if="!trial.is_active" class="text-right">
