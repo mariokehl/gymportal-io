@@ -33,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription' => CheckSubscription::class,
             'paddleIp' => PaddleIpMiddleware::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'api/widget/*',
+            'billing/webhook/paddle',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
