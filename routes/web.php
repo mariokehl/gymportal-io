@@ -43,8 +43,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/billing/cancel', [BillingController::class, 'cancelSubscription'])->name('billing.cancel');
 });
 
-// Paddle Webhook (ohne Auth-Middleware)
-Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook'])->name('billing.webhook');
+// Paddle Webhook (ohne Auth-Middleware, aber mit IP-Adresse)
+Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook'])->name('billing.webhook')->middleware('paddleIp');
 
 // Protected routes
 Route::middleware(['auth:web', 'subscription'])->group(function () {

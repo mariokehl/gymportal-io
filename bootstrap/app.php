@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\PaddleIpMiddleware;
 use App\Http\Middleware\WidgetAuthMiddleware;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => EnsureEmailIsVerified::class,
             'widget.auth' => WidgetAuthMiddleware::class,
             'subscription' => CheckSubscription::class,
+            'paddleIp' => PaddleIpMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
