@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\SettingController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -178,6 +179,9 @@ Route::prefix('embed')->name('embed.')->group(function () {
 });
 
 Route::get('/debug/widget-assets', function () {
+    $isProduction = App::environment('production');
+    $isDebug = config('app.debug');
+
     return [
         'js_file_exists' => file_exists(public_path('js/widget.js')),
         'css_file_exists' => file_exists(public_path('css/widget.css')),
@@ -188,7 +192,7 @@ Route::get('/debug/widget-assets', function () {
         'js_size' => file_exists(public_path('js/widget.js')) ? filesize(public_path('js/widget.js')) : 0,
         'css_size' => file_exists(public_path('css/widget.css')) ? filesize(public_path('css/widget.css')) : 0,
         'public_path' => public_path(),
-        'laravel_version' => app()->version(),
+        'laravel_version' => (!$isProduction || $isDebug) ? app()->version() : 'hidden',
         'available_routes' => [
             'embed_widget_js' => route('embed.widget.js'),
             'embed_widget_css' => route('embed.widget.css'),
