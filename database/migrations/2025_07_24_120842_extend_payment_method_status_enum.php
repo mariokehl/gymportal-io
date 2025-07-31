@@ -45,12 +45,8 @@ return new class extends Migration
                 break;
 
             case 'pgsql':
-                // Prüfen ob der Wert bereits existiert
-                $exists = DB::select("SELECT 1 FROM pg_enum WHERE enumlabel = 'pending' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'payment_method_status')");
-
-                if (empty($exists)) {
-                    DB::statement("ALTER TYPE payment_method_status ADD VALUE 'pending'");
-                }
+                DB::statement('ALTER TABLE payment_methods DROP CONSTRAINT IF EXISTS payment_methods_status_check');
+                DB::statement("ALTER TABLE payment_methods ADD CONSTRAINT payment_methods_status_check CHECK (status IN ('active', 'expired', 'failed', 'pending'))");
                 break;
 
             case 'sqlite':
