@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Models\Gym;
+use App\Models\Member;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Mollie\Api\MollieApiClient;
+use Mollie\Api\Resources\Customer;
+use Mollie\Api\Resources\Mandate;
 use Mollie\Api\Resources\Payment as MolliePayment;
 use Mollie\Api\Resources\MethodCollection;
 
@@ -66,8 +70,8 @@ class MollieService
     {
         $requiredPermissions = [
             'payment-links.read',
-            'webhooks-subscriptions.read',
-            'webhooks-subscriptions.write',
+            'webhooks.read',
+            'webhooks.write',
         ];
 
         try {
@@ -115,6 +119,32 @@ class MollieService
     }
 
     /**
+     * Create a new customer
+     */
+    public function createCustomer(Gym $gym, string $name, string $email): Customer
+    {
+        $client = $this->initializeClient($gym);
+
+        $customer = $client->customers->create([
+            'name' => $name,
+            'email' => $email,
+        ]);
+
+        return $customer;
+    }
+
+    /**
+     * Create a new first payment
+     */
+    public function createFirstPayment(Gym $gym, string $customerId, array $paymentData): MolliePayment
+    {
+        $paymentData['sequenceType'] = 'first';
+        $paymentData['customerId'] = $customerId;
+
+        return $this->createPayment($gym, $paymentData);
+    }
+
+    /**
      * Create a new payment
      */
     public function createPayment(Gym $gym, array $paymentData): MolliePayment
@@ -125,24 +155,32 @@ class MollieService
         // Validate payment details
         $this->validatePaymentData($paymentData);
 
-        // Create Mollie payment
-        $molliePayment = $client->payments->create([
+        // Basis-Parameter für Mollie Payment
+        $mollieParams = [
             'amount' => [
                 'currency' => $paymentData['currency'] ?? 'EUR',
                 'value' => number_format($paymentData['amount'], 2, '.', '')
             ],
             'description' => $this->formatDescription($config, $paymentData['description']),
-            'redirectUrl' => $paymentData['redirect_url'] ?? $config['redirect_url'],
+            'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
             'webhookUrl' => $config['webhook_url'],
-            'method' => $paymentData['method'] ?? null,
-            'metadata' => [
-                'gym_id' => $gym->id,
-                'user_id' => $paymentData['user_id'] ?? null,
-                'member_id' => $paymentData['member_id'] ?? null,
-                'invoice_id' => $paymentData['invoice_id'] ?? null,
-                'custom_data' => $paymentData['custom_data'] ?? null
-            ]
-        ]);
+            'method' => str_starts_with($paymentData['method'], 'mollie_')
+                ? substr($paymentData['method'], 7)
+                : $paymentData['method'],
+            'metadata' => $paymentData['metadata'] ?? []
+        ];
+
+        // Optionale Parameter hinzufügen (für wiederkehrende Zahlungen)
+        if (isset($paymentData['customerId'])) {
+            $mollieParams['customerId'] = $paymentData['customerId'];
+        }
+
+        if (isset($paymentData['sequenceType'])) {
+            $mollieParams['sequenceType'] = $paymentData['sequenceType'];
+        }
+
+        // Create Mollie payment
+        $molliePayment = $client->payments->create($mollieParams);
 
         // Save payment in local database
         $this->storePayment($gym, $molliePayment, $paymentData);
@@ -161,7 +199,26 @@ class MollieService
     }
 
     /**
+     * Get a mandate from Mollie
+     *
+     * @param Gym $gym
+     * @param string $customerId
+     * @return Mandate|null
+     */
+    public function getMandate(Gym $gym, string $customerId): ?Mandate
+    {
+        $client = $this->initializeClient($gym);
+
+        $mandates = $client->customers->get($customerId)->mandates();
+        $mandate = collect($mandates)->firstWhere('status', 'valid');
+
+        return $mandate;
+    }
+
+    /**
      * Process webhook callback
+     *
+     * @deprecated Diese Funktion wird aktuell nicht verwendet.
      */
     public function handleWebhook(Gym $gym, string $paymentId)
     {
@@ -180,7 +237,7 @@ class MollieService
             $localPayment->update([
                 'status' => $this->mapMollieStatus($molliePayment->status),
                 'mollie_status' => $molliePayment->status,
-                'paid_at' => $molliePayment->isPaid() ? now() : null,
+                'paid_date' => $molliePayment->isPaid() ? now() : null,
                 'failed_at' => $molliePayment->isFailed() ? now() : null,
                 'canceled_at' => $molliePayment->isCanceled() ? now() : null,
                 'expired_at' => $molliePayment->isExpired() ? now() : null,
@@ -255,7 +312,7 @@ class MollieService
     {
         return Payment::create([
             'gym_id' => $gym->id,
-            'membership_id' => null,
+            'membership_id' => $paymentData['metadata']['membership_id'] ?? null,
             'mollie_payment_id' => $molliePayment->id,
             'amount' => $paymentData['amount'],
             'currency' => $paymentData['currency'] ?? 'EUR',
@@ -264,13 +321,50 @@ class MollieService
             'mollie_status' => $molliePayment->status,
             'payment_method' => $molliePayment->method,
             'checkout_url' => $molliePayment->getCheckoutUrl(),
-            'user_id' => $paymentData['user_id'] ?? null,
-            'member_id' => $paymentData['member_id'] ?? null,
-            'invoice_id' => $paymentData['invoice_id'] ?? null,
-            'metadata' => $paymentData['custom_data'] ?? null,
+            'user_id' => $paymentData['metadata']['user_id'] ?? null,
+            'member_id' => $paymentData['metadata']['member_id'] ?? null,
+            'invoice_id' => $paymentData['metadata']['invoice_id'] ?? null,
+            'metadata' => $paymentData['metdata'] ?? null,
             'due_date' => Carbon::now()->format('Y-m-d'),
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * Store mollie payment method in local database as pending
+     */
+    public function storeMolliePaymentMethod(Member $member, string $type, string $customerId, ?Mandate $mollieMandate): PaymentMethod
+    {
+        return PaymentMethod::create([
+            'member_id' => $member->id,
+            'mollie_customer_id' => $customerId,
+            'mollie_mandate_id' => $mollieMandate->id ?? null,
+            'type' => 'mollie_' . str_replace('mollie_', '', $type),
+            'status' => 'pending',
+            'is_default' => true,
+        ]);
+    }
+
+    /**
+     * Start mollie payment method in local database
+     */
+    public function activateMolliePaymentMethod(Gym $gym, string $memberId, string $type)
+    {
+        $paymentMethod = PaymentMethod::where('member_id', $memberId)
+            ->where('type', 'mollie_' . str_replace('mollie_', '', $type))
+            ->first();
+
+        // Aktuelles Mandat von Mollie abrufen
+        $mollieMandate = null;
+        if ($paymentMethod->mollie_customer_id) {
+            $mollieMandate = $this->getMandate($gym, $paymentMethod->mollie_customer_id);
+        }
+
+        PaymentMethod::where('id', $paymentMethod->id)
+            ->update([
+                'mollie_mandate_id' => $mollieMandate->id ?? null,
+                'status' => 'active',
+            ]);
     }
 
     /**
@@ -322,7 +416,7 @@ class MollieService
             if ($invoice && $invoice->status !== 'paid') {
                 $invoice->update([
                     'status' => 'paid',
-                    'paid_at' => now()
+                    'paid_date' => now()
                 ]);
             }
         }

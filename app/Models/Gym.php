@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class Gym extends Model
 {
@@ -33,16 +32,18 @@ class Gym extends Model
         'subscription_plan',
         'subscription_ends_at',
         'mollie_config',
+        'payment_methods_config',
         'api_key',
         'widget_enabled',
         'widget_settings',
-        'trial_ends_at', // Neues Feld für explizite Testphase
+        'trial_ends_at',
     ];
 
     protected $casts = [
         'subscription_ends_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'widget_settings' => 'array',
+        'payment_methods_config' => 'array',
         'widget_enabled' => 'boolean',
     ];
 
@@ -59,9 +60,12 @@ class Gym extends Model
                 $gym->api_key = $gym->generateApiKey();
             }
 
-            // Setze Testphase auf 30 Tage ab Erstellung
             if (empty($gym->trial_ends_at)) {
                 $gym->trial_ends_at = now()->addDays(30);
+            }
+
+            if (empty($gym->payment_methods_config)) {
+                $gym->payment_methods_config = $gym->getDefaultPaymentMethodsConfig();
             }
 
             $gym->generateSlug();
@@ -74,7 +78,6 @@ class Gym extends Model
         });
     }
 
-    // Existing relationships
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -120,7 +123,6 @@ class Gym extends Model
         return $this->hasMany(Notification::class);
     }
 
-    // New Mollie-related relationships
     public function payments()
     {
         return $this->hasMany(Payment::class);
@@ -131,7 +133,217 @@ class Gym extends Model
         //return $this->hasMany(Invoice::class);
     }
 
-    // Subscription & Trial Methods
+    protected function getDefaultPaymentMethodsConfig(): array
+    {
+        return [
+            'banktransfer' => [
+                'enabled' => false,
+                'name' => 'Manuelle Überweisung (Vorkasse)',
+                'description' => 'Mitglied überweist selbst per IBAN',
+                'icon' => 'Wallet',
+            ],
+            'cash' => [
+                'enabled' => false,
+                'name' => 'Barzahlung',
+                'description' => 'Zahlung erfolgt vor Ort in bar',
+                'icon' => 'HandCoins',
+            ],
+            'invoice' => [
+                'enabled' => false,
+                'name' => 'Zahlung auf Rechnung',
+                'description' => 'Mitglied erhält eine Rechnung zur Überweisung',
+                'icon' => 'FileText',
+            ],
+            'standingorder' => [
+                'enabled' => false,
+                'name' => 'Dauerauftrag',
+                'description' => 'Wiederkehrende Überweisung durch Mitglied',
+                'icon' => 'DollarSign',
+            ],
+            'sepa_direct_debit' => [
+                'enabled' => false,
+                'name' => 'SEPA-Lastschrift',
+                'description' => 'Automatischer Einzug vom Bankkonto',
+                'icon' => 'CreditCard',
+                'requires_mandate' => true,
+            ],
+        ];
+    }
+
+    public function getStandardPaymentMethods(): array
+    {
+        $config = $this->payment_methods_config ?? $this->getDefaultPaymentMethodsConfig();
+        $methods = [];
+
+        foreach ($config as $key => $method) {
+            $methods[] = array_merge($method, [
+                'key' => $key,
+                'type' => 'standard',
+                'is_overridden' => $this->isPaymentMethodOverriddenByIntegration($key),
+            ]);
+        }
+
+        return $methods;
+    }
+
+    public function getEnabledStandardPaymentMethods(): array
+    {
+        return array_filter($this->getStandardPaymentMethods(), function ($method) {
+            return $method['enabled'] && !$method['is_overridden'];
+        });
+    }
+
+    public function getMolliePaymentMethods(): array
+    {
+        if (!$this->hasMollieConfigured()) {
+            return [];
+        }
+
+        $methods = [];
+        $enabledMethods = $this->getMollieEnabledMethods();
+
+        foreach ($enabledMethods as $methodId) {
+            $methods[] = [
+                'key' => 'mollie_' . $methodId,
+                'name' => $this->getMollieMethodDisplayName($methodId, ''),
+                'description' => 'Via Mollie' . ($this->isInTestMode() ? ' (Test-Modus)' : ''),
+                'icon' => 'CreditCard',
+                'type' => 'mollie',
+                'enabled' => true,
+                'mollie_method_id' => $methodId,
+            ];
+        }
+
+        return $methods;
+    }
+
+    protected function getMollieMethodDisplayName(string $methodId, string $fallbackDescription): string
+    {
+        $displayNames = [
+            'alma' => 'Alma (Buy Now, Pay Later)',
+            'applepay' => 'Apple Pay',
+            'bacs' => 'BACS Direct Debit (UK)',
+            'bancomatpay' => 'Bancomat Pay',
+            'bancontact' => 'Bancontact',
+            'banktransfer' => 'Banküberweisung (Mollie)',
+            'belfius' => 'Belfius Pay Button',
+            'billie' => 'Billie (Rechnungskauf)',
+            'blik' => 'BLIK',
+            'creditcard' => 'Kreditkarte',
+            'directdebit' => 'SEPA-Lastschrift (Mollie)',
+            'eps' => 'EPS',
+            'giftcard' => 'Geschenkkarte',
+            'ideal' => 'iDEAL',
+            'in3' => 'in3 (Buy Now, Pay Later)',
+            'kbc' => 'KBC/CBC Payment Button',
+            'klarna' => 'Klarna',
+            'mbway' => 'MB WAY',
+            'multibanco' => 'Multibanco',
+            'mybank' => 'MyBank',
+            'payconiq' => 'Payconiq',
+            'paypal' => 'PayPal',
+            'paysafecard' => 'paysafecard',
+            'pointofsale' => 'Point of Sale (Terminal)',
+            'przelewy24' => 'Przelewy24',
+            'riverty' => 'Riverty (ehemals AfterPay)',
+            'satispay' => 'Satispay',
+            'swish' => 'Swish',
+            'trustly' => 'Trustly',
+            'twint' => 'TWINT',
+            'voucher' => 'Voucher',
+        ];
+
+        return $displayNames[$methodId] ?? $fallbackDescription;
+    }
+
+    public function getAllPaymentMethods(): array
+    {
+        $methods = [];
+        $methods = array_merge($methods, $this->getStandardPaymentMethods());
+        $methods = array_merge($methods, $this->getMolliePaymentMethods());
+
+        return $methods;
+    }
+
+    public function getEnabledPaymentMethods(): array
+    {
+        return array_filter($this->getAllPaymentMethods(), function ($method) {
+            return $method['enabled'];
+        });
+    }
+
+    protected function isPaymentMethodOverriddenByIntegration(string $methodKey): bool
+    {
+        if ($this->hasMollieConfigured()) {
+            $mollieMethodIds = $this->getMollieEnabledMethods();
+
+            switch ($methodKey) {
+                case 'banktransfer':
+                    // Mollie banktransfer, ideal, mybank, trustly overwrite manuelle Überweisung
+                    return !empty(array_intersect($mollieMethodIds, ['banktransfer', 'ideal', 'mybank', 'trustly']));
+
+                case 'sepa_direct_debit':
+                    // Mollie directdebit overwrites SEPA-Lastschrift
+                    return in_array('directdebit', $mollieMethodIds);
+
+                case 'cash':
+                    // Mollie pointofsale overwrites Barzahlung
+                    return in_array('pointofsale', $mollieMethodIds);
+
+                case 'invoice':
+                    // Mollie billie, klarna, riverty, in3 overwrite Rechnung
+                    return !empty(array_intersect($mollieMethodIds, ['billie', 'klarna', 'riverty', 'in3']));
+
+                case 'standingorder':
+                    // Mollie directdebit can replace Dauerauftrag
+                    return in_array('directdebit', $mollieMethodIds);
+            }
+        }
+
+        return false;
+    }
+
+    public function updateStandardPaymentMethod(string $methodKey, bool $enabled): bool
+    {
+        $config = $this->payment_methods_config ?? $this->getDefaultPaymentMethodsConfig();
+
+        if (!isset($config[$methodKey])) {
+            return false;
+        }
+
+        $config[$methodKey]['enabled'] = $enabled;
+        $this->payment_methods_config = $config;
+        $this->save();
+
+        return true;
+    }
+
+    public function hasPaymentMethodForType(string $type): bool
+    {
+        $enabledMethods = $this->getEnabledPaymentMethods();
+
+        foreach ($enabledMethods as $method) {
+            if ($method['type'] === $type) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function requiresSepaMandate(): bool
+    {
+        $enabledMethods = $this->getEnabledPaymentMethods();
+
+        foreach ($enabledMethods as $method) {
+            if (isset($method['requires_mandate']) && $method['requires_mandate']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function isInTrial(): bool
     {
         return $this->trial_ends_at && now()->lt($this->trial_ends_at);
@@ -178,7 +390,6 @@ class Gym extends Model
         ]);
     }
 
-    // Existing methods
     public function getActiveMembersCount()
     {
         return $this->members()->where('status', 'active')->count();
@@ -194,10 +405,8 @@ class Gym extends Model
         return $this->hasActiveSubscription();
     }
 
-    // New Mollie-related methods
     public function setMollieConfigAttribute($value)
     {
-        // If $value is an array, convert to JSON
         if (is_array($value)) {
             $value = json_encode($value);
         }
@@ -207,11 +416,9 @@ class Gym extends Model
 
     public function getMollieConfigAttribute($value)
     {
-        // Try to decrypt → JSON → Array
         try {
             return json_decode(Crypt::decryptString($value), true);
         } catch (\Exception $e) {
-            // Fallback if decryption fails (e.g. old data)
             return null;
         }
     }
@@ -320,7 +527,6 @@ class Gym extends Model
             ],
             'integrations' => [
                 'google_recaptcha' => false,
-                'sepa_mandate' => true,
             ],
         ];
 

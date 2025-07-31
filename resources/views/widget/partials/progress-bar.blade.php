@@ -1,4 +1,3 @@
-{{-- Fortschrittsbalken --}}
 <div class="progress-bar">
     @php
         $steps = [
@@ -16,13 +15,23 @@
             } elseif ($currentStep == $stepNumber) {
                 $stepClass = 'active';
             }
+
+            // Nur den direkt vorherigen Schritt mit zusätzlicher Klasse
+            if ($stepNumber == $currentStep - 1) {
+                $stepClass .= ' back-btn';
+            }
         @endphp
 
         <div class="step {{ $stepClass }}">
             <span class="step-number">
                 @if($currentStep > $stepNumber)
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.5 4.5L6 12L2.5 8.5"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"/>
                     </svg>
                 @else
                     {{ $stepNumber }}

@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gray-50 py-8">
+    <div class="bg-gray-50 py-8">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Header -->
             <div class="text-center mb-8">
@@ -198,8 +198,8 @@
                                     </p>
                                     <ul class="text-sm text-indigo-700 mt-1 list-disc list-inside">
                                         <li>payment-links.read</li>
-                                        <li>webhooks-subscriptions.read</li>
-                                        <li>webhooks-subscriptions.write</li>
+                                        <li>webhooks.read</li>
+                                        <li>webhooks.write</li>
                                     </ul>
                                 </div>
                             </div>
@@ -323,8 +323,7 @@
                                 class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 :placeholder="organization.name">
                             <p class="text-xs text-gray-500 mt-1">
-                                Wird bei jeder Zahlung als Präfix verwendet (z.B. "{{ form.description_prefix ||
-                                organization.name }} - Mitgliedsbeitrag")
+                                Wird bei jeder Zahlung als Präfix verwendet (z.B. "{{ form.description_prefix || organization.name }} - Mitgliedsbeitrag")
                             </p>
                         </div>
 
@@ -556,18 +555,15 @@
             </div>
 
             <!-- Success Modal -->
-            <div v-if="showSuccessModal" class="fixed inset-0 overflow-y-auto h-full w-full z-50"
-                @click="closeSuccessModal">
-                <div class="relative top-20 mx-auto p-5 w-96 shadow-lg rounded-md bg-white" @click.stop>
+            <div v-if="showSuccessModal" class="fixed inset-0 overflow-y-auto h-full w-full z-50" @click="closeSuccessModal">
+                <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white" @click.stop>
                     <div class="mt-3 text-center">
                         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
                             <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Setup erfolgreich abgeschlossen!
-                        </h3>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Setup erfolgreich abgeschlossen!</h3>
                         <div class="mt-2 px-7 py-3">
                             <p class="text-sm text-gray-500">
                                 Mollie wurde erfolgreich konfiguriert. Sie können jetzt Online-Zahlungen von Ihren
@@ -654,7 +650,7 @@ export default {
         },
 
         webhookUrl() {
-            return `${window.location.origin}/api/v1/public/webhooks/mollie/${this.organization.id}`;
+            return `${window.location.origin}/api/v1/public/mollie/webhook`;
         },
 
         canProceed() {

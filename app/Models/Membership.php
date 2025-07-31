@@ -53,6 +53,7 @@ class Membership extends Model
             'paused' => 'Pausiert',
             'cancelled' => 'Gekündigt',
             'expired' => 'Abgelaufen',
+            'pending' => 'Ausstehend', // Neu hinzugefügt
         ][$this->status] ?? $this->status;
     }
 
@@ -63,6 +64,7 @@ class Membership extends Model
             'paused' => 'yellow',
             'cancelled' => 'red',
             'expired' => 'gray',
+            'pending' => 'orange', // Neu hinzugefügt
         ][$this->status] ?? 'gray';
     }
 
@@ -90,6 +92,20 @@ class Membership extends Model
         return $this->status === 'cancelled';
     }
 
+    public function getIsPendingAttribute()
+    {
+        return $this->status === 'pending';
+    }
+
+    public function activateMembership(): bool
+    {
+        if ($this->status !== 'pending') {
+            return false;
+        }
+
+        return $this->update(['status' => 'active']);
+    }
+
     public function getNextPaymentAttribute()
     {
         return $this->payments()->where('status', 'pending')->orderBy('due_date')->first();
@@ -113,5 +129,10 @@ class Membership extends Model
     public function scopeExpired($query)
     {
         return $query->where('status', 'expired');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
     }
 }

@@ -18,6 +18,7 @@
             this.selectedPlan = null;
             this.formData = {};
             this.sessionId = this.generateSessionId();
+            this.mollieWindow = null; // Referenz zum Mollie-Fenster
 
             this.config.cssUrl = this.config.cssUrl || `${this.config.apiEndpoint}/embed/gymportal-widget.css`;
             this.log('Widget initialized with config:', this.config);
@@ -318,6 +319,9 @@
                 });
             }
 
+            // Zahlungsmethoden-Handler
+            this.setupPaymentMethodHandlers();
+
             // Echtzeit-Validierung
             const inputs = form.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
@@ -331,17 +335,6 @@
                 emailConfirm.addEventListener('blur', () => this.validateEmailConfirmation());
             }
 
-            // IBAN-Validierung und Formatierung
-            const ibanInput = this.shadowRoot.getElementById('iban');
-            if (ibanInput) {
-                ibanInput.addEventListener('input', (e) => {
-                    let value = e.target.value.replace(/\s/g, '').toUpperCase();
-                    let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
-                    e.target.value = formatted;
-                });
-                ibanInput.addEventListener('blur', () => this.validateIban());
-            }
-
             // Fitness-Ziele Button-Events
             const goalButtons = this.shadowRoot.querySelectorAll('.goal-btn');
             goalButtons.forEach(btn => {
@@ -351,11 +344,158 @@
                 });
             });
 
-            // Formular-Submit - NUR Daten sammeln und validieren, NICHT an API senden
+            // Formular-Submit
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 await this.processFormData();
             });
+        }
+
+        // Neue Methode für Zahlungsmethoden-Handler
+        setupPaymentMethodHandlers() {
+            const paymentRadios = this.shadowRoot.querySelectorAll('input[name="payment_method"]');
+            const infoContainer = this.shadowRoot.getElementById('payment-method-info');
+            const infoText = infoContainer?.querySelector('.info-text');
+            const sepaMandateSection = this.shadowRoot.getElementById('sepa-mandate-section');
+            const sepaMandateCheckbox = this.shadowRoot.getElementById('sepa_mandate_acknowledged');
+
+            if (!paymentRadios.length) {
+                this.log('No payment method radios found');
+                return;
+            }
+
+            const updatePaymentInfo = (selectedMethod) => {
+                const selectedRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${selectedMethod}"]`);
+                const methodType = selectedRadio?.getAttribute('data-method-type');
+                const requiresMandate = selectedRadio?.getAttribute('data-requires-mandate') === 'true';
+
+                // Radio-Label Styling aktualisieren
+                this.updateRadioLabelStyling(selectedMethod);
+
+                // SEPA-Mandat-Bereich ein-/ausblenden
+                if (sepaMandateSection) {
+                    if (requiresMandate) {
+                        sepaMandateSection.classList.add('show');
+                        if (sepaMandateCheckbox) {
+                            sepaMandateCheckbox.required = true;
+                        }
+                    } else {
+                        sepaMandateSection.classList.remove('show');
+                        if (sepaMandateCheckbox) {
+                            sepaMandateCheckbox.required = false;
+                            sepaMandateCheckbox.checked = false;
+                        }
+                    }
+                }
+
+                if (!infoContainer || !infoText) return;
+
+                if (methodType === 'mollie') {
+                    infoText.textContent = 'Nach der Registrierung werden Sie zur sicheren Zahlungsabwicklung weitergeleitet, um Ihre Zahlungsdaten einzugeben.';
+                    infoContainer.style.display = 'block';
+                    infoContainer.className = 'payment-info mollie-info';
+
+                    this.trackEvent('payment_method_info_shown', 'form', {
+                        method: selectedMethod,
+                        type: 'mollie'
+                    });
+                } else if (methodType === 'standard') {
+                    const message = this.getStandardPaymentMethodMessage(selectedMethod);
+                    infoText.textContent = message;
+                    infoContainer.style.display = 'block';
+
+                    // Spezielle Styling für SEPA-Lastschrift
+                    if (selectedMethod === 'sepa_direct_debit') {
+                        infoContainer.className = 'payment-info sepa-info';
+                    } else {
+                        infoContainer.className = 'payment-info standard-info';
+                    }
+
+                    this.trackEvent('payment_method_info_shown', 'form', {
+                        method: selectedMethod,
+                        type: 'standard',
+                        requires_mandate: requiresMandate
+                    });
+                } else {
+                    infoContainer.style.display = 'none';
+                }
+            };
+
+            // Event-Listener für Zahlungsmethoden-Auswahl
+            paymentRadios.forEach(radio => {
+                const label = radio.closest('.radio-label');
+
+                // Click-Handler für das Label
+                if (label) {
+                    label.addEventListener('click', (e) => {
+                        if (e.target === radio) return;
+
+                        radio.checked = true;
+                        updatePaymentInfo(radio.value);
+
+                        this.trackEvent('payment_method_selected', 'form', {
+                            method: radio.value,
+                            type: radio.getAttribute('data-method-type'),
+                            requires_mandate: radio.getAttribute('data-requires-mandate') === 'true'
+                        });
+                    });
+                }
+
+                radio.addEventListener('change', () => {
+                    if (radio.checked) {
+                        updatePaymentInfo(radio.value);
+
+                        this.trackEvent('payment_method_selected', 'form', {
+                            method: radio.value,
+                            type: radio.getAttribute('data-method-type'),
+                            requires_mandate: radio.getAttribute('data-requires-mandate') === 'true'
+                        });
+                    }
+                });
+
+                if (radio.checked) {
+                    updatePaymentInfo(radio.value);
+                }
+            });
+
+            // SEPA-Mandat Checkbox Event-Handler
+            if (sepaMandateCheckbox) {
+                sepaMandateCheckbox.addEventListener('change', () => {
+                    this.trackEvent('sepa_mandate_acknowledged', 'form', {
+                        acknowledged: sepaMandateCheckbox.checked
+                    });
+                });
+            }
+        }
+
+        // Hilfsmethode für Standard-Zahlungsmethoden-Nachrichten
+        getStandardPaymentMethodMessage(methodKey) {
+            const messages = {
+                'banktransfer': 'Sie erhalten nach der Registrierung die Bankverbindung für die Überweisung.',
+                'cash': 'Die Zahlung erfolgt direkt vor Ort im Studio.',
+                'invoice': 'Sie erhalten eine Rechnung, die Sie per Überweisung begleichen können.',
+                'standingorder': 'Bitte richten Sie einen Dauerauftrag mit den Ihnen mitgeteilten Daten ein.',
+                'sepa_direct_debit': 'Das SEPA-Lastschriftmandat wird Ihnen nach der Registrierung zur Unterschrift vorgelegt.'
+            };
+
+            return messages[methodKey] || 'Weitere Informationen zur Zahlungsabwicklung erhalten Sie nach der Registrierung.';
+        }
+
+        // Neue Hilfsmethode für Radio-Label Styling
+        updateRadioLabelStyling(selectedValue) {
+            const allLabels = this.shadowRoot.querySelectorAll('.radio-label');
+            const selectedRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${selectedValue}"]`);
+            const selectedLabel = selectedRadio?.closest('.radio-label');
+
+            // Alle Labels zurücksetzen
+            allLabels.forEach(label => {
+                label.classList.remove('selected');
+            });
+
+            // Ausgewähltes Label markieren
+            if (selectedLabel) {
+                selectedLabel.classList.add('selected');
+            }
         }
 
         setupCheckout() {
@@ -374,10 +514,10 @@
                 });
             }
 
-            // JETZT KAUFEN Button - hier passiert die Vertragserstellung
+            // JETZT KAUFEN Button - Mollie-Fenster wird SOFORT geöffnet
             if (purchaseBtn) {
                 purchaseBtn.addEventListener("click", async () => {
-                    await this.createContract();
+                    await this.initiatePaymentProcess();
                 });
             } else {
                 this.log('Purchase button not found in checkout step');
@@ -405,6 +545,598 @@
             await this.render();
         }
 
+        // NEUE METHODE: Zahlungsprozess initiieren - Fenster wird SOFORT geöffnet
+        async initiatePaymentProcess() {
+            const purchaseBtn = this.shadowRoot.getElementById("purchase-button") ||
+                            this.shadowRoot.querySelector('[id*="purchase"]') ||
+                            this.shadowRoot.querySelector('[id*="kaufen"]') ||
+                            this.shadowRoot.querySelector('.purchase-btn');
+
+            try {
+                if (purchaseBtn) {
+                    purchaseBtn.disabled = true;
+                    purchaseBtn.textContent = "Wird verarbeitet...";
+                }
+
+                this.trackEvent('payment_initiation_started', 'checkout', {
+                    plan_id: this.selectedPlan
+                });
+
+                if (!this.formData || !this.selectedPlan) {
+                    throw new Error('Formulardaten oder Plan fehlen');
+                }
+
+                // Prüfen ob Mollie-Zahlungsmethode gewählt wurde
+                const selectedPaymentRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${this.formData.payment_method}"]`);
+                const methodType = selectedPaymentRadio?.getAttribute('data-method-type');
+
+                if (methodType === 'mollie') {
+                    // SOFORT Mollie-Fenster öffnen mit Platzhalter-URL
+                    this.mollieWindow = this.openMollieWindow('about:blank');
+
+                    if (!this.mollieWindow) {
+                        // Fallback: Zeige Popup-Blocker Warnung
+                        this.showPopupBlockerWarning();
+                        return;
+                    }
+
+                    // Zeige "Laden..." UI im Mollie-Fenster
+                    this.showMollieLoading();
+                }
+
+                // API-Aufruf für Vertragserstellung
+                const response = await this.apiRequest("/widget/contracts", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        ...this.formData,
+                        plan_id: this.selectedPlan,
+                        session_id: this.sessionId
+                    }),
+                });
+
+                if (response && response.success) {
+                    // MOLLIE CHECKOUT ERFORDERLICH
+                    if (response.requires_payment && response.payment_provider === 'mollie' && response.checkout_url) {
+                        this.handleMollieCheckout(response);
+                    } else {
+                        // Mollie-Fenster schließen falls offen
+                        if (this.mollieWindow && !this.mollieWindow.closed) {
+                            this.mollieWindow.close();
+                            this.mollieWindow = null;
+                        }
+
+                        // Direkte Registrierung ohne Payment
+                        this.showContractSuccess(response);
+                    }
+                } else {
+                    throw new Error(response?.message || 'Vertragserstellung fehlgeschlagen');
+                }
+
+            } catch (error) {
+                // Mollie-Fenster schließen bei Fehler
+                if (this.mollieWindow && !this.mollieWindow.closed) {
+                    this.mollieWindow.close();
+                    this.mollieWindow = null;
+                }
+
+                this.handleError('Payment initiation failed', error);
+                this.trackEvent('payment_initiation_failed', 'checkout', {
+                    error: error.message,
+                    plan_id: this.selectedPlan
+                });
+
+                if (purchaseBtn) {
+                    purchaseBtn.disabled = false;
+                    purchaseBtn.textContent = "Zahlungspflichtig bestellen";
+                }
+            }
+        }
+
+        // GEÄNDERTE Mollie Checkout Handler - verwendet bereits geöffnetes Fenster
+        handleMollieCheckout(contractResponse) {
+            this.log('Continuing Mollie checkout process with existing window', contractResponse);
+
+            if (!this.mollieWindow || this.mollieWindow.closed) {
+                // Fallback: Neues Fenster öffnen falls das ursprüngliche geschlossen wurde
+                this.log('Original Mollie window was closed, opening new one');
+                this.mollieWindow = this.openMollieWindow(contractResponse.checkout_url);
+
+                if (!this.mollieWindow) {
+                    this.showRedirectFallback(contractResponse.checkout_url);
+                    return;
+                }
+            } else {
+                // Bestehende Mollie-Fenster zur echten Checkout-URL weiterleiten
+                this.mollieWindow.location.href = contractResponse.checkout_url;
+            }
+
+            // Payment Status überwachen
+            this.monitorPaymentStatus(this.mollieWindow, contractResponse);
+
+            // UI für "Zahlung läuft" anzeigen
+            this.showPaymentInProgress();
+        }
+
+        // Mollie Fenster öffnen (TAB, NICHT iFrame)
+        openMollieWindow(checkoutUrl) {
+            // Öffne neuen Tab
+            const newTab = window.open(
+                checkoutUrl,
+                '_blank'
+            );
+
+            if (!newTab || newTab.closed) {
+                this.log('Failed to open Mollie window - popup blocked?');
+                return null;
+            }
+
+            // Fokus auf neuen Tab setzen
+            newTab.focus();
+
+            return newTab;
+        }
+
+        // Zeige Laden-Screen im Mollie-Fenster
+        showMollieLoading() {
+            if (!this.mollieWindow || this.mollieWindow.closed) return;
+
+            try {
+                this.mollieWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Zahlung wird vorbereitet...</title>
+                        <style>
+                            body {
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                                text-align: center;
+                                padding: 50px;
+                                background: #f8fafc;
+                                margin: 0;
+                            }
+                            .spinner {
+                                display: inline-block;
+                                width: 40px;
+                                height: 40px;
+                                border: 4px solid #e2e8f0;
+                                border-top: 4px solid #3b82f6;
+                                border-radius: 50%;
+                                animation: spin 1s linear infinite;
+                            }
+                            @keyframes spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            h2 { color: #1f2937; margin-bottom: 20px; }
+                            p { color: #6b7280; }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>Zahlung wird vorbereitet</h2>
+                        <div class="spinner"></div>
+                        <p>Sie werden in Kürze zur sicheren Zahlungsabwicklung weitergeleitet...</p>
+                    </body>
+                    </html>
+                `);
+                this.mollieWindow.document.close();
+            } catch (error) {
+                this.log('Could not write to Mollie window:', error);
+            }
+        }
+
+        // Popup-Blocker Warnung
+        showPopupBlockerWarning() {
+            const container = this.shadowRoot.querySelector('.widget-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="popup-blocker-warning" style="text-align: center; padding: 40px;">
+                    <div style="color: #f59e0b; font-size: 48px; margin-bottom: 16px;">🚫</div>
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">Popup-Blocker erkannt</h2>
+                    <p style="color: #6b7280; margin-bottom: 24px;">
+                        Ihr Browser blockiert das Zahlungsfenster. Bitte erlauben Sie Popups für diese Website
+                        und versuchen Sie es erneut.
+                    </p>
+                    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <p style="font-size: 14px; color: #6b7280; margin: 0;">
+                            💡 <strong>Tipp:</strong> Klicken Sie auf das Popup-Symbol in Ihrer Adressleiste
+                            und erlauben Sie Popups für diese Website.
+                        </p>
+                    </div>
+                    <div style="margin: 20px 0;">
+                        <button id="retry-popup-btn" class="btn-primary" style="margin-right: 10px;">
+                            Erneut versuchen
+                        </button>
+                        <button id="redirect-alternative-btn" class="btn-secondary">
+                            Alternative: Weiterleitung nutzen
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const retryBtn = this.shadowRoot.getElementById('retry-popup-btn');
+            const redirectBtn = this.shadowRoot.getElementById('redirect-alternative-btn');
+
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    this.initiatePaymentProcess();
+                });
+            }
+
+            if (redirectBtn) {
+                redirectBtn.addEventListener('click', async () => {
+                    // API-Aufruf um Checkout-URL zu bekommen und dann direkt weiterleiten
+                    try {
+                        const response = await this.apiRequest("/widget/contracts", {
+                            method: "POST",
+                            body: JSON.stringify({
+                                ...this.formData,
+                                plan_id: this.selectedPlan,
+                                session_id: this.sessionId
+                            }),
+                        });
+
+                        if (response?.checkout_url) {
+                            window.location.href = response.checkout_url;
+                        } else {
+                            throw new Error('Keine Checkout-URL erhalten');
+                        }
+                    } catch (error) {
+                        this.handleError('Redirect fallback failed', error);
+                    }
+                });
+            }
+        }
+
+        // Payment Status überwachen
+        monitorPaymentStatus(tab, contractResponse) {
+            // PostMessage Listener für Redirect-Seite
+            const messageHandler = (event) => {
+                // Sicherheitscheck: Nur Messages von eigener Domain
+                const allowedOrigins = [
+                    window.location.origin,
+                    this.config.apiEndpoint
+                ];
+
+                if (!allowedOrigins.includes(event.origin)) {
+                    this.log('Ignored message from unauthorized origin:', event.origin);
+                    return;
+                }
+
+                this.log('Received payment message:', event.data);
+
+                if (event.data.type === 'MOLLIE_PAYMENT_RESULT') {
+                    window.removeEventListener('message', messageHandler);
+
+                    if (tab && !tab.closed) {
+                        tab.close();
+                    }
+
+                    this.handlePaymentResult(event.data, contractResponse);
+                }
+            };
+
+            window.addEventListener('message', messageHandler);
+
+            // Fallback: Tab Polling + API Status Check
+            let pollCount = 0;
+            const maxPolls = 180; // 15 Minuten (alle 5 Sekunden)
+
+            const pollStatus = setInterval(async () => {
+                pollCount++;
+
+                // Tab geschlossen oder Max-Polls erreicht
+                if (!tab || tab.closed || pollCount >= maxPolls) {
+                    clearInterval(pollStatus);
+                    window.removeEventListener('message', messageHandler);
+
+                    if (pollCount >= maxPolls) {
+                        this.handlePaymentTimeout(contractResponse);
+                    } else {
+                        // Tab wurde geschlossen - finalen Status prüfen
+                        await this.checkFinalPaymentStatus(contractResponse);
+                    }
+                    return;
+                }
+
+                // Alle 20 Sekunden Status via API prüfen
+                if (pollCount % 4 === 0) {
+                    try {
+                        const statusResponse = await this.apiRequest("/widget/mollie/check-status", {
+                            method: "POST",
+                            body: JSON.stringify({
+                                ...this.formData,
+                                payment_id: contractResponse.payment_id,
+                            }),
+                        });
+
+                        if (statusResponse.status === 'paid') {
+                            clearInterval(pollStatus);
+                            window.removeEventListener('message', messageHandler);
+
+                            if (tab && !tab.closed) {
+                                tab.close();
+                            }
+
+                            this.handlePaymentSuccess(contractResponse);
+                        } else if (statusResponse.status === 'failed' || statusResponse.status === 'canceled') {
+                            clearInterval(pollStatus);
+                            window.removeEventListener('message', messageHandler);
+
+                            if (tab && !tab.closed) {
+                                tab.close();
+                            }
+
+                            this.handlePaymentFailure(statusResponse, contractResponse);
+                        }
+                    } catch (error) {
+                        this.log('Payment status check failed:', error);
+                    }
+                }
+            }, 5000);
+        }
+
+        // Redirect Fallback (wenn Tab blockiert)
+        showRedirectFallback(checkoutUrl) {
+            const container = this.shadowRoot.querySelector('.widget-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="redirect-fallback-section" style="text-align: center; padding: 40px;">
+                    <div style="color: #f59e0b; font-size: 48px; margin-bottom: 16px;">🔄</div>
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">Weiterleitung zur Zahlung</h2>
+                    <p style="color: #6b7280; margin-bottom: 24px;">
+                        Sie werden zur sicheren Zahlungsabwicklung weitergeleitet.
+                    </p>
+                    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <p style="font-size: 14px; color: #6b7280; margin: 0;">
+                            ⚠️ <strong>Wichtig:</strong> Verwenden Sie die "Zurück"-Taste Ihres Browsers,
+                            um nach der Zahlung zu diesem Fenster zurückzukehren.
+                        </p>
+                    </div>
+                    <button id="redirect-to-payment" class="btn-primary" style="margin-right: 10px;">
+                        Zur Zahlung
+                    </button>
+                    <button id="cancel-payment" class="btn-secondary">
+                        Abbrechen
+                    </button>
+                </div>
+            `;
+
+            // Event-Listener
+            const redirectBtn = this.shadowRoot.getElementById('redirect-to-payment');
+            const cancelBtn = this.shadowRoot.getElementById('cancel-payment');
+
+            if (redirectBtn) {
+                redirectBtn.addEventListener('click', () => {
+                    window.location.href = checkoutUrl;
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', async () => {
+                    await this.goToStep('checkout');
+                });
+            }
+        }
+
+        // Payment Result Handler
+        handlePaymentResult(paymentData, contractResponse) {
+            this.log('Processing payment result:', paymentData);
+
+            if (paymentData.status === 'paid') {
+                this.handlePaymentSuccess(contractResponse);
+            } else if (paymentData.status === 'failed' || paymentData.status === 'canceled') {
+                this.handlePaymentFailure(paymentData, contractResponse);
+            } else {
+                // Unbekannter Status - API-Check durchführen
+                this.checkFinalPaymentStatus(contractResponse);
+            }
+        }
+
+        // Payment Success Handler
+        handlePaymentSuccess(contractResponse) {
+            this.trackEvent('payment_completed', 'payment', {
+                session_id: contractResponse.session_id,
+                member_id: contractResponse.member_id
+            });
+
+            // Erfolgreiche Registrierung anzeigen
+            this.showContractSuccess({
+                ...contractResponse,
+                payment_completed: true
+            });
+        }
+
+        // Payment Failure Handler
+        handlePaymentFailure(paymentData, contractResponse) {
+            this.trackEvent('payment_failed', 'payment', {
+                session_id: contractResponse.session_id,
+                error: paymentData.error || 'Payment failed'
+            });
+
+            this.showPaymentError(paymentData);
+        }
+
+        // Payment Timeout Handler
+        handlePaymentTimeout(contractResponse) {
+            this.trackEvent('payment_timeout', 'payment', {
+                session_id: contractResponse.session_id
+            });
+
+            this.showPaymentTimeout(contractResponse);
+        }
+
+        // Finalen Payment Status prüfen
+        async checkFinalPaymentStatus(contractResponse) {
+            try {
+                const statusResponse = await this.apiRequest("/widget/mollie/check-status", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        ...this.formData,
+                        payment_id: contractResponse.payment_id,
+                    }),
+                });
+
+                if (statusResponse.status === 'paid') {
+                    this.handlePaymentSuccess(contractResponse);
+                } else if (statusResponse.status === 'failed' || statusResponse.status === 'canceled') {
+                    this.handlePaymentFailure(statusResponse, contractResponse);
+                } else {
+                    this.showPaymentPending(contractResponse);
+                }
+            } catch (error) {
+                this.log('Final payment status check failed:', error);
+                this.showPaymentPending(contractResponse);
+            }
+        }
+
+        // Payment in Progress UI
+        showPaymentInProgress() {
+            const container = this.shadowRoot.querySelector('.widget-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="payment-progress-section" style="text-align: center; padding: 40px;">
+                    <div style="color: #3b82f6; font-size: 48px; margin-bottom: 16px;">💳</div>
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">Zahlung wird verarbeitet</h2>
+                    <p style="color: #6b7280; margin-bottom: 24px;">
+                        Bitte schließen Sie das Zahlungsfenster nicht, bis der Vorgang abgeschlossen ist.
+                    </p>
+                    <div style="display: inline-block; width: 32px; height: 32px; border: 3px solid #f3f4f6; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <style>
+                        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    </style>
+                    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <p style="font-size: 14px; color: #6b7280; margin: 0;">
+                            💡 <strong>Tipp:</strong> Das Zahlungsfenster wurde bereits geöffnet.
+                            Falls Sie es nicht sehen, prüfen Sie Ihre Popup-Blocker-Einstellungen.
+                        </p>
+                    </div>
+                    <button id="check-payment-status" class="btn-secondary">
+                        Status prüfen
+                    </button>
+                </div>
+            `;
+
+            const checkBtn = this.shadowRoot.getElementById('check-payment-status');
+            if (checkBtn) {
+                checkBtn.addEventListener('click', async () => {
+                    await this.checkFinalPaymentStatus(this.lastContractResponse);
+                });
+            }
+        }
+
+        // Payment Error UI
+        showPaymentError(paymentData) {
+            const container = this.shadowRoot.querySelector('.widget-container');
+            if (!container) return;
+
+            const errorMessage = paymentData.error || 'Die Zahlung konnte nicht verarbeitet werden.';
+
+            container.innerHTML = `
+                <div class="payment-error-section" style="text-align: center; padding: 40px;">
+                    <div style="color: #ef4444; font-size: 48px; margin-bottom: 16px;">❌</div>
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">Zahlung fehlgeschlagen</h2>
+                    <p style="color: #6b7280; margin-bottom: 24px;">${errorMessage}</p>
+                    <div style="margin: 20px 0;">
+                        <button id="retry-payment-btn" class="btn-primary" style="margin-right: 10px;">
+                            Zahlung wiederholen
+                        </button>
+                        <button id="back-to-checkout-btn" class="btn-secondary">
+                            Zurück zum Checkout
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const retryBtn = this.shadowRoot.getElementById('retry-payment-btn');
+            const backBtn = this.shadowRoot.getElementById('back-to-checkout-btn');
+
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    this.initiatePaymentProcess();
+                });
+            }
+
+            if (backBtn) {
+                backBtn.addEventListener('click', async () => {
+                    await this.goToStep('checkout');
+                });
+            }
+        }
+
+        // Payment Timeout UI
+        showPaymentTimeout(contractResponse) {
+            const container = this.shadowRoot.querySelector('.widget-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="payment-timeout-section" style="text-align: center; padding: 40px;">
+                    <div style="color: #f59e0b; font-size: 48px; margin-bottom: 16px;">⏰</div>
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">Zeitüberschreitung</h2>
+                    <p style="color: #6b7280; margin-bottom: 24px;">
+                        Die Zahlungsüberwachung wurde beendet. Bitte prüfen Sie den aktuellen Status.
+                    </p>
+                    <div style="margin: 20px 0;">
+                        <button id="check-final-status-btn" class="btn-primary" style="margin-right: 10px;">
+                            Status prüfen
+                        </button>
+                        <button id="restart-payment-btn" class="btn-secondary">
+                            Neue Zahlung starten
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const checkBtn = this.shadowRoot.getElementById('check-final-status-btn');
+            const restartBtn = this.shadowRoot.getElementById('restart-payment-btn');
+
+            if (checkBtn) {
+                checkBtn.addEventListener('click', async () => {
+                    await this.checkFinalPaymentStatus(contractResponse);
+                });
+            }
+
+            if (restartBtn) {
+                restartBtn.addEventListener('click', async () => {
+                    await this.goToStep('checkout');
+                });
+            }
+        }
+
+        // Payment Pending UI
+        showPaymentPending(contractResponse) {
+            const container = this.shadowRoot.querySelector('.widget-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="payment-pending-section" style="text-align: center; padding: 40px;">
+                    <div style="color: #f59e0b; font-size: 48px; margin-bottom: 16px;">⏳</div>
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">Zahlung wird verarbeitet</h2>
+                    <p style="color: #6b7280; margin-bottom: 24px;">
+                        Ihre Zahlung wird noch verarbeitet. Sie erhalten eine E-Mail-Bestätigung,
+                        sobald die Zahlung eingegangen ist.
+                    </p>
+                    <div class="checkout-summary">
+                        <h3>Ihre Registrierung:</h3>
+                        <p><strong>Session:</strong> ${contractResponse.session_id}</p>
+                        <p><strong>Status:</strong> Wartet auf Zahlungsbestätigung</p>
+                    </div>
+                    <button id="refresh-status-btn" class="btn-primary" style="margin-top: 20px;">
+                        Status aktualisieren
+                    </button>
+                </div>
+            `;
+
+            const refreshBtn = this.shadowRoot.getElementById('refresh-status-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', async () => {
+                    await this.checkFinalPaymentStatus(contractResponse);
+                });
+            }
+        }
+
         // Neue Methode: Aktuelle Formulardaten sammeln und zwischenspeichern
         saveCurrentFormData() {
             const form = this.shadowRoot.getElementById("member-form");
@@ -417,10 +1149,29 @@
                 this.formData[key] = value;
             }
 
-            // Checkboxen separat behandeln (da sie nur bei checked in FormData erscheinen)
+            // Checkboxen separat behandeln (nur boolean-Werte)
             const checkboxes = form.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
                 this.formData[checkbox.name] = checkbox.checked;
+            });
+
+            // Radio-Buttons: Nur den Wert des ausgewählten Buttons speichern
+            const radioGroups = {};
+            const radios = form.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                if (!radioGroups[radio.name]) {
+                    radioGroups[radio.name] = [];
+                }
+                radioGroups[radio.name].push(radio);
+            });
+
+            // Für jede Radio-Button-Gruppe den ausgewählten Wert finden
+            Object.keys(radioGroups).forEach(groupName => {
+                const selectedRadio = radioGroups[groupName].find(radio => radio.checked);
+                if (selectedRadio) {
+                    this.formData[groupName] = selectedRadio.value;
+                }
+                // Wenn kein Radio-Button ausgewählt ist, wird der Schlüssel nicht gesetzt
             });
 
             // Fitness-Ziele sammeln
@@ -444,16 +1195,67 @@
             // Standard-Eingabefelder wiederherstellen
             Object.keys(this.formData).forEach(key => {
                 const field = this.shadowRoot.getElementById(key) ||
-                             this.shadowRoot.querySelector(`[name="${key}"]`);
+                            this.shadowRoot.querySelector(`[name="${key}"]`);
 
                 if (field) {
                     if (field.type === 'checkbox') {
                         field.checked = this.formData[key] === true || this.formData[key] === 'true';
+                    } else if (field.type === 'radio') {
+                        const radioButton = this.shadowRoot.querySelector(`input[name="${key}"][value="${this.formData[key]}"]`);
+                        if (radioButton) {
+                            radioButton.checked = true;
+                            this.updateRadioLabelStyling(this.formData[key]);
+                        }
                     } else {
                         field.value = this.formData[key];
                     }
                 }
             });
+
+            // Zahlungsmethoden-Wiederherstellung mit SEPA-Handling
+            if (this.formData.payment_method) {
+                const paymentRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${this.formData.payment_method}"]`);
+                if (paymentRadio) {
+                    paymentRadio.checked = true;
+                    this.updateRadioLabelStyling(this.formData.payment_method);
+
+                    // SEPA-Mandat-Bereich anzeigen falls nötig
+                    const requiresMandate = paymentRadio.getAttribute('data-requires-mandate') === 'true';
+                    const sepaMandateSection = this.shadowRoot.getElementById('sepa-mandate-section');
+                    const sepaMandateCheckbox = this.shadowRoot.getElementById('sepa_mandate_acknowledged');
+
+                    if (requiresMandate && sepaMandateSection) {
+                        sepaMandateSection.classList.add('show');
+                        if (sepaMandateCheckbox) {
+                            sepaMandateCheckbox.required = true;
+                            sepaMandateCheckbox.checked = this.formData.sepa_mandate_acknowledged || false;
+                        }
+                    }
+
+                    // Payment Info aktualisieren
+                    const methodType = paymentRadio.getAttribute('data-method-type');
+                    const infoContainer = this.shadowRoot.getElementById('payment-method-info');
+                    const infoText = infoContainer?.querySelector('.info-text');
+
+                    if (infoContainer && infoText) {
+                        if (methodType === 'mollie') {
+                            infoText.textContent = 'Nach der Registrierung werden Sie zur sicheren Zahlungsabwicklung weitergeleitet, um Ihre Zahlungsdaten einzugeben.';
+                            infoContainer.style.display = 'block';
+                            infoContainer.className = 'payment-info mollie-info';
+                        } else if (methodType === 'standard') {
+                            const message = this.getStandardPaymentMethodMessage(this.formData.payment_method);
+                            infoText.textContent = message;
+                            infoContainer.style.display = 'block';
+
+                            if (this.formData.payment_method === 'sepa_direct_debit') {
+                                infoContainer.className = 'payment-info sepa-info';
+                            } else {
+                                infoContainer.className = 'payment-info standard-info';
+                            }
+                        }
+                    }
+                }
+            }
 
             // Fitness-Ziele wiederherstellen
             if (this.formData.fitness_goals) {
@@ -464,14 +1266,6 @@
                         goalBtn.classList.add('active');
                     }
                 });
-            }
-
-            // IBAN formatieren, falls vorhanden
-            const ibanField = this.shadowRoot.getElementById('iban');
-            if (ibanField && this.formData.iban) {
-                const iban = this.formData.iban.replace(/\s/g, '').toUpperCase();
-                const formatted = iban.match(/.{1,4}/g)?.join(' ') || iban;
-                ibanField.value = formatted;
             }
 
             this.log('Form data restored successfully');
@@ -531,66 +1325,6 @@
             }
         }
 
-        // Vertrag erstellen (nur beim "Jetzt kaufen" Button)
-        async createContract() {
-            const purchaseBtn = this.shadowRoot.getElementById("purchase-button") ||
-                              this.shadowRoot.querySelector('[id*="purchase"]') ||
-                              this.shadowRoot.querySelector('[id*="kaufen"]') ||
-                              this.shadowRoot.querySelector('.purchase-btn');
-
-            try {
-                if (purchaseBtn) {
-                    purchaseBtn.disabled = true;
-                    purchaseBtn.textContent = "Wird verarbeitet...";
-                }
-
-                this.trackEvent('purchase_initiated', 'checkout', {
-                    plan_id: this.selectedPlan
-                });
-
-                // Finale Validierung
-                if (!this.formData || !this.selectedPlan) {
-                    throw new Error('Formulardaten oder Plan fehlen');
-                }
-
-                // API-Aufruf für Vertragserstellung
-                const response = await this.apiRequest("/widget/contracts", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        ...this.formData,
-                        plan_id: this.selectedPlan,
-                        session_id: this.sessionId
-                    }),
-                });
-
-                if (response && response.success) {
-                    this.trackEvent('registration_completed', 'checkout', {
-                        member_id: response.member_id,
-                        membership_id: response.membership_id,
-                        plan_id: this.selectedPlan
-                    });
-
-                    // Erfolgs-UI anzeigen
-                    this.showContractSuccess(response);
-                } else {
-                    throw new Error(response?.message || 'Vertragserstellung fehlgeschlagen');
-                }
-
-            } catch (error) {
-                this.handleError('Contract creation failed', error);
-                this.trackEvent('registration_failed', 'checkout', {
-                    error: error.message,
-                    plan_id: this.selectedPlan
-                });
-
-                // Button wieder aktivieren
-                if (purchaseBtn) {
-                    purchaseBtn.disabled = false;
-                    purchaseBtn.textContent = "Zahlungspflichtig bestellen";
-                }
-            }
-        }
-
         // Erfolgreiche Vertragserstellung anzeigen
         showContractSuccess(response) {
             const container = this.shadowRoot.querySelector('.widget-container');
@@ -630,6 +1364,7 @@
                 restartBtn.addEventListener("click", async () => {
                     this.selectedPlan = null;
                     this.formData = {};
+                    this.mollieWindow = null;
                     await this.goToStep('plans');
                 });
             }
@@ -642,6 +1377,7 @@
             const formData = new FormData(form);
             const data = {};
 
+            // Standard-Formularfelder
             for (let [key, value] of formData.entries()) {
                 data[key] = value;
             }
@@ -658,9 +1394,12 @@
                 data.fitness_goals = Array.from(selectedGoals).map(btn => btn.dataset.goal).join(',');
             }
 
-            // Adresse zusammensetzen
-            if (data.address && data.address_addition) {
-                data.full_address = `${data.address} ${data.address_addition}`;
+            // Zahlungsmethoden-Informationen
+            const selectedPaymentMethod = this.shadowRoot.querySelector('input[name="payment_method"]:checked');
+            if (selectedPaymentMethod) {
+                data.payment_method = selectedPaymentMethod.value;
+                data.payment_method_type = selectedPaymentMethod.getAttribute('data-method-type');
+                data.requires_mandate = selectedPaymentMethod.getAttribute('data-requires-mandate') === 'true';
             }
 
             return data;
@@ -684,8 +1423,17 @@
                 errors.push('E-Mail-Adressen stimmen nicht überein');
             }
 
-            if (data.iban && !this.isValidIban(data.iban)) {
-                errors.push('Bitte gib eine gültige IBAN ein');
+            // Zahlungsmethoden-Validierung
+            if (!data.payment_method) {
+                errors.push('Bitte wählen Sie eine Zahlungsmethode aus');
+            }
+
+            // SEPA-Mandat Validierung
+            const selectedPaymentRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${data.payment_method}"]`);
+            const requiresMandate = selectedPaymentRadio?.getAttribute('data-requires-mandate') === 'true';
+
+            if (requiresMandate && !data.sepa_mandate_acknowledged) {
+                errors.push('Bitte bestätigen Sie, dass Sie die SEPA-Lastschriftmandat-Informationen gelesen haben');
             }
 
             return {
@@ -704,7 +1452,6 @@
                 address: 'Adresse',
                 city: 'Stadt',
                 postal_code: 'Postleitzahl',
-                account_holder: 'Kontoinhaber'
             };
             return labels[field] || field;
         }
@@ -933,8 +1680,8 @@
             const userMessage = this.getUserErrorMessage(error);
             this.showError(userMessage);
 
-            if (context.includes('Contract creation')) {
-                // Bei Vertragserstellung-Fehlern nicht fallback UI zeigen
+            if (context.includes('Payment initiation')) {
+                // Bei Payment-Initialisierungs-Fehlern nicht fallback UI zeigen
                 return;
             }
 

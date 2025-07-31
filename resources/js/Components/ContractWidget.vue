@@ -432,8 +432,7 @@ const settings = ref({
         require_phone: true
     },
     integrations: {
-        google_recaptcha: false,
-        sepa_mandate: true
+        google_recaptcha: false
     },
     ...(props.currentGym.widget_settings || {})
 })

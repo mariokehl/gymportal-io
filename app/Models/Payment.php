@@ -23,7 +23,6 @@ class Payment extends Model
         'member_id',
         'invoice_id',
         'metadata',
-        'paid_at',
         'failed_at',
         'canceled_at',
         'expired_at',
@@ -39,6 +38,7 @@ class Payment extends Model
         'amount' => 'decimal:2',
         'due_date' => 'date',
         'paid_date' => 'date',
+        'metadata' => 'array',
     ];
 
     protected $appends = ['status_text', 'status_color', 'payment_method_text'];
@@ -53,6 +53,11 @@ class Payment extends Model
         return $this->belongsTo(Membership::class);
     }
 
+    public function member()
+    {
+        return $this->belongsTo(Member::class);
+    }
+
     public function getStatusTextAttribute()
     {
         return [
@@ -60,6 +65,7 @@ class Payment extends Model
             'paid' => 'Bezahlt',
             'failed' => 'Fehlgeschlagen',
             'refunded' => 'Erstattet',
+            'expired' => 'Abgelaufen',
         ][$this->status] ?? $this->status;
     }
 
@@ -70,6 +76,7 @@ class Payment extends Model
             'paid' => 'green',
             'failed' => 'red',
             'refunded' => 'blue',
+            'expired' => 'gray',
         ][$this->status] ?? 'gray';
     }
 
@@ -82,7 +89,11 @@ class Payment extends Model
     {
         return [
             'sepa' => 'SEPA-Lastschrift',
+            'sepa_direct_debit' => 'SEPA-Lastschrift',
             'creditcard' => 'Kreditkarte',
+            'banktransfer' => 'Banküberweisung',
+            'cash' => 'Barzahlung',
+            'invoice' => 'Rechnung',
         ][$this->payment_method] ?? $this->payment_method;
     }
 

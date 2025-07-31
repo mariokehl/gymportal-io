@@ -16,10 +16,6 @@
         ];
     @endphp
 
-    <div class="checkout-header">
-        <button class="back-btn"></button>
-    </div>
-
     <div class="checkout-content">
         <div class="membership-details">
             <h2>Vertrag im Überblick</h2>
