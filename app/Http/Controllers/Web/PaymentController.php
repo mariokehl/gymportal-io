@@ -36,7 +36,6 @@ class PaymentController extends Controller
         $payment->update([
             'status' => 'paid',
             'paid_date' => now(),
-            'paid_at' => now(),
         ]);
 
         return redirect()->back()->with('success', 'Zahlung wurde als bezahlt markiert.');

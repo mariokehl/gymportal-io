@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\PaymentMethod;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class GymSeeder extends Seeder
             'email' => 'info@fitzone.de',
             'website' => 'https://fitzone.de',
             'owner_id' => 2, // Max Mustermann
+            'payment_methods_config' => json_encode(PaymentMethod::getDefaultConfig()),
             'subscription_plan' => 'SaaS Hosted',
             'subscription_status' => 'active',
             'subscription_ends_at' => Carbon::now()->addMonths(1),
@@ -44,6 +46,7 @@ class GymSeeder extends Seeder
             'email' => 'info@powerfit.de',
             'website' => 'https://powerfit.de',
             'owner_id' => 3, // Anna Schmidt
+            'payment_methods_config' => json_encode(PaymentMethod::getDefaultConfig()),
             'subscription_plan' => 'SaaS Hosted',
             'subscription_status' => 'active',
             'subscription_ends_at' => Carbon::now()->addMonths(1),

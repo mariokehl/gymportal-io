@@ -180,6 +180,8 @@ class MemberController extends Controller
             'user',
             'gym',
             'memberships.membershipPlan',
+            'paymentMethods',
+            'payments',
             'checkIns' => function ($query) {
                 $query->latest()->take(10);
             },

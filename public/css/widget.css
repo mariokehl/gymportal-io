@@ -273,36 +273,7 @@
 }
 
 .back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border: 1px solid #ddd;
-    background: white;
-    border-radius: 4px;
     cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.back-btn::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;charset=utf-8,<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    flex-shrink: 0;
-}
-
-.back-btn:hover {
-    background-color: #f8f9fa;
-    border-color: #bbb;
-}
-
-.back-btn:hover::before {
-    transform: translateX(-2px);
 }
 
 .form-section {
@@ -334,14 +305,13 @@
 }
 
 .form-group label {
-    display: block;
     margin-bottom: 8px;
     font-weight: 500;
     color: #374151;
     font-size: 14px;
 }
 
-.form-group input,
+.form-group input:not([type="radio"]),
 .form-group select {
     width: 100%;
     padding: 12px;
@@ -353,11 +323,18 @@
     box-sizing: border-box;
 }
 
-.form-group input:focus,
+.form-group input:not([type="radio"]):focus,
 .form-group select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 10%, transparent 90%);
+}
+
+.form-group input[type="radio"] {
+    width: auto;
+    margin-right: 8px;
+    transform: scale(1.2);
+    accent-color: var(--primary-color, #3b82f6);
 }
 
 .checkbox-label {
@@ -372,6 +349,170 @@
 .checkbox-label input[type="checkbox"] {
     width: auto;
     margin: 0;
+}
+
+/* Radio Label Container */
+.radio-label {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #fff;
+}
+
+.radio-label:hover {
+    border-color: #d1d5db;
+    background-color: #f9fafb;
+}
+
+.radio-label:has(input:checked),
+.radio-label.selected {
+    border-color: var(--primary-color, #3b82f6);
+    background-color: color-mix(in srgb, var(--primary-color) 5%, transparent 95%);
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 12px;
+    margin-top: 2px; /* Slight adjustment to align with first line of text */
+    transform: scale(1.2);
+    accent-color: var(--primary-color, #3b82f6);
+    flex-shrink: 0; /* Prevent radio button from shrinking */
+}
+
+.payment-method-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.payment-method-name {
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+
+.payment-method-description {
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+/* SEPA Mandate Styling */
+.sepa-mandate-section {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    display: none; /* Initially hidden */
+}
+
+.sepa-mandate-section.show {
+    display: block;
+}
+
+.sepa-mandate-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.sepa-mandate-info {
+    background-color: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.sepa-mandate-info h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.sepa-mandate-info p {
+    margin: 8px 0;
+}
+
+.sepa-mandate-info .highlight {
+    background-color: #fef3c7;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+.sepa-acknowledgment {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.sepa-acknowledgment input[type="checkbox"] {
+    margin-top: 2px;
+    transform: scale(1.1);
+    accent-color: var(--primary-color, #3b82f6);
+    flex-shrink: 0;
+}
+
+.sepa-acknowledgment label {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.sepa-acknowledgment .mandatory {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* Fokus-Stil für Radio Buttons */
+.radio-label input[type="radio"]:focus {
+    outline: 2px solid var(--primary-color, #3b82f6);
+    outline-offset: 2px;
+}
+
+/* Payment Info Container */
+.payment-info {
+    margin: 16px 0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.payment-info.mollie-info {
+    background-color: #eff6ff;
+    border-left-color: #3b82f6;
+}
+
+.payment-info.standard-info {
+    background-color: #f0fdf4;
+    border-left-color: #22c55e;
+}
+
+.payment-info.sepa-info {
+    background-color: #fef3c7;
+    border-left-color: #f59e0b;
+}
+
+.payment-info .info-text {
+    color: #374151;
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.5;
 }
 
 .goals-buttons {

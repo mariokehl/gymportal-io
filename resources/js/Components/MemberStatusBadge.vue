@@ -20,6 +20,7 @@ const statusColorMap = {
   inactive: 'gray',
   paused: 'yellow',
   overdue: 'red',
+  pending: 'orange'
 }
 
 const textMap = {
@@ -27,6 +28,7 @@ const textMap = {
   inactive: 'Inaktiv',
   paused: 'Pausiert',
   overdue: 'Überfällig',
+  pending: 'Ausstehend'
 }
 
 const color = statusColorMap[props.status] ?? 'gray'
