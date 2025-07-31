@@ -121,8 +121,8 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg max-w-md w-full mx-4 p-6">
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
         <div class="flex items-center space-x-3 mb-4">
           <div class="bg-red-100 p-2 rounded-full">
             <AlertTriangle class="w-6 h-6 text-red-600" />

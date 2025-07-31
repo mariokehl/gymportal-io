@@ -265,19 +265,23 @@
                             </div>
                         </div>
 
-                        <!-- Aktuelle Zahlungsarten -->
+                        <!-- Current payment methods from Model -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div v-for="method in currentPaymentMethods" :key="method.key"
                                 class="border border-gray-200 rounded-lg p-4">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
                                         <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3"
-                                            :class="method.iconBg">
-                                            <component :is="method.icon" :class="method.iconColor" class="w-5 h-5" />
+                                            :class="getMethodIconBg(method.icon)">
+                                            <component :is="getIconComponent(method.icon)"
+                                                :class="getMethodIconColor(method.icon)" class="w-5 h-5" />
                                         </div>
                                         <div>
                                             <h4 class="text-sm font-medium text-gray-900">{{ method.name }}</h4>
                                             <p class="text-xs text-gray-500">{{ method.description }}</p>
+                                            <p v-if="method.is_overridden" class="text-xs text-orange-600 mt-1">
+                                                ⚠️ Durch externe Integration überschrieben
+                                            </p>
                                         </div>
                                     </div>
                                     <div class="flex items-center">
@@ -294,7 +298,7 @@
                     </div>
                 </div>
 
-                <!-- Standard Zahlungsarten Konfiguration -->
+                <!-- Default Payment Methods config -->
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -309,13 +313,19 @@
                                 class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                                 <div class="flex items-center">
                                     <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3"
-                                        :class="method.iconBg">
-                                        <component :is="method.icon" :class="method.iconColor" class="w-5 h-5" />
+                                        :class="getMethodIconBg(method.icon)">
+                                        <component :is="getIconComponent(method.icon)"
+                                            :class="getMethodIconColor(method.icon)" class="w-5 h-5" />
                                     </div>
                                     <div>
                                         <h4 class="text-sm font-medium text-gray-900">{{ method.name }}</h4>
                                         <p class="text-xs text-gray-500">{{ method.description }}</p>
-                                        <p v-if="method.isOverridden" class="text-xs text-orange-600 mt-1">
+                                        <div class="flex items-center space-x-3 mt-1">
+                                            <span v-if="method.requires_mandate" class="text-xs text-orange-600">
+                                                📝 SEPA-Mandat erforderlich
+                                            </span>
+                                        </div>
+                                        <p v-if="method.is_overridden" class="text-xs text-orange-600 mt-1">
                                             ⚠️ Durch externe Integration überschrieben
                                         </p>
                                     </div>
@@ -324,7 +334,7 @@
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox"
                                             v-model="method.enabled"
-                                            :disabled="method.isOverridden"
+                                            :disabled="method.is_overridden"
                                             @change="updateStandardMethod(method)"
                                             class="sr-only peer">
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"></div>
@@ -335,7 +345,7 @@
                     </div>
                 </div>
 
-                <!-- Externe Integrationen -->
+                <!-- External Integrations -->
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -402,7 +412,7 @@
                                 </div>
                             </div>
 
-                            <!-- Platzhalter für weitere Integrationen -->
+                            <!-- Placeholder for more Integrations -->
                             <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
                                 <div class="flex items-center mb-4">
                                     <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center mr-4">
@@ -433,8 +443,8 @@
         </div>
 
         <!-- Add User Modal -->
-        <div v-if="showAddUserModal" class="fixed inset-0 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 w-96 shadow-lg rounded-md bg-white">
+        <div v-if="showAddUserModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
                 <div class="mt-3">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Benutzer hinzufügen</h3>
 
@@ -473,8 +483,8 @@
         </div>
 
         <!-- Mollie Setup Modal -->
-        <div v-if="showMollieSetup" class="fixed inset-0 overflow-y-auto h-full w-full z-50" @click="closeMollieSetup">
-            <div class="relative top-10 mx-auto max-w-4xl shadow-lg rounded-md bg-white" @click.stop>
+        <div v-if="showMollieSetup" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeMollieSetup">
+            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white" @click.stop>
                 <MollieSetupWizard
                     :organization="currentGym"
                     @setup-completed="onMollieSetupCompleted"
@@ -489,7 +499,7 @@ import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
     Building2, Users, Plus, Trash2, Signature, CreditCard,
-    Banknote, Wallet, DollarSign
+    Wallet, DollarSign, FileText, HandCoins
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
@@ -515,29 +525,9 @@ const errorMessage = ref('')
 // Make gymUsers reactive for updates
 const gymUsers = ref([...props.gymUsers])
 
-// Payment methods state
-const standardMethods = ref([
-    {
-        key: 'sepa',
-        name: 'SEPA-Lastschrift',
-        description: 'Automatischer Bankeinzug',
-        icon: Banknote,
-        iconBg: 'bg-indigo-100',
-        iconColor: 'text-indigo-600',
-        enabled: true,
-        isOverridden: false
-    },
-    {
-        key: 'prepayment',
-        name: 'Vorkasse',
-        description: 'Überweisung im Voraus',
-        icon: Wallet,
-        iconBg: 'bg-green-100',
-        iconColor: 'text-green-600',
-        enabled: true,
-        isOverridden: false
-    }
-])
+// Payment methods state - will be loaded by the Model
+const standardMethods = ref([])
+const currentPaymentMethods = ref([])
 
 const mollieStatus = ref({
     isActive: false,
@@ -572,36 +562,42 @@ const userForm = ref({
     role: 'staff'
 })
 
-// Computed
-const currentPaymentMethods = computed(() => {
-    const methods = [...standardMethods.value]
-
-    if (mollieStatus.value.isActive) {
-        // Add Mollie methods
-        mollieStatus.value.enabledMethods.forEach(method => {
-            methods.push({
-                key: `mollie_${method.id}`,
-                name: method.description,
-                description: 'Via Mollie',
-                icon: CreditCard,
-                iconBg: 'bg-orange-100',
-                iconColor: 'text-orange-600',
-                enabled: true
-            })
-        })
-
-        // Mark standard methods as overridden if Mollie provides similar functionality
-        methods.forEach(method => {
-            if (method.key === 'sepa' && mollieStatus.value.enabledMethods.some(m => m.id === 'banktransfer' || m.id === 'directdebit')) {
-                method.isOverridden = true
-            }
-        })
-    }
-
-    return methods
-})
+// Icon mapping for Payment Methods
+const iconComponents = {
+    Wallet,
+    HandCoins,
+    FileText,
+    DollarSign,
+    CreditCard
+}
 
 // Methods
+const getIconComponent = (iconName) => {
+    return iconComponents[iconName] || CreditCard
+}
+
+const getMethodIconBg = (iconName) => {
+    const iconBgMap = {
+        'Wallet': 'bg-green-100',
+        'HandCoins': 'bg-yellow-100',
+        'FileText': 'bg-blue-100',
+        'DollarSign': 'bg-purple-100',
+        'CreditCard': 'bg-orange-100'
+    }
+    return iconBgMap[iconName] || 'bg-gray-100'
+}
+
+const getMethodIconColor = (iconName) => {
+    const iconColorMap = {
+        'Wallet': 'text-green-600',
+        'HandCoins': 'text-yellow-600',
+        'FileText': 'text-blue-600',
+        'DollarSign': 'text-purple-600',
+        'CreditCard': 'text-orange-600'
+    }
+    return iconColorMap[iconName] || 'text-gray-600'
+}
+
 const saveGymSettings = async () => {
     isSubmittingGym.value = true
 
@@ -717,7 +713,28 @@ const removeUser = async (gymUser) => {
     }
 }
 
-// Payment methods
+// Payment methods - New: Load from Model
+const loadPaymentMethods = async () => {
+    try {
+        const response = await axios.get(route('settings.payment-methods.overview'))
+        const data = response.data
+
+        standardMethods.value = data.methods.standard || []
+        currentPaymentMethods.value = data.methods.enabled || []
+
+        // Mollie Status update
+        mollieStatus.value = {
+            isActive: data.mollie_status.is_active || false,
+            isTestMode: data.mollie_status.is_test_mode || false,
+            methodCount: data.mollie_status.method_count || 0,
+            enabledMethods: data.methods.mollie || []
+        }
+
+    } catch (error) {
+        console.error('Fehler beim Laden der Zahlungsmethoden:', error)
+    }
+}
+
 const updateStandardMethod = async (method) => {
     try {
         await axios.put(route('settings.payment-methods.update'), {
@@ -727,6 +744,9 @@ const updateStandardMethod = async (method) => {
 
         successMessage.value = `${method.name} ${method.enabled ? 'aktiviert' : 'deaktiviert'}!`
         setTimeout(() => successMessage.value = '', 3000)
+
+        // Payment methods refresh
+        await loadPaymentMethods()
     } catch (error) {
         // Revert change on error
         method.enabled = !method.enabled
@@ -747,17 +767,17 @@ const closeMollieSetup = () => {
     showMollieSetup.value = false
 }
 
-const onMollieSetupCompleted = () => {
-    showMollieSetup.value = false
-    loadMollieStatus()
+const onMollieSetupCompleted = async () => {
+    await loadPaymentMethods()
     successMessage.value = 'Mollie Integration erfolgreich eingerichtet!'
     setTimeout(() => successMessage.value = '', 3000)
 }
 
-const onMollieConfigSaved = (config) => {
+const onMollieConfigSaved = async (config) => {
     mollieStatus.value.isActive = true
     mollieStatus.value.isTestMode = config.test_mode
     mollieStatus.value.methodCount = config.enabled_methods?.length || 0
+    await loadPaymentMethods()
 }
 
 const removeMollieConfig = async () => {
@@ -775,41 +795,12 @@ const removeMollieConfig = async () => {
             enabledMethods: []
         }
 
-        // Reset overridden status
-        standardMethods.value.forEach(method => {
-            method.isOverridden = false
-        })
-
+        await loadPaymentMethods()
         successMessage.value = 'Mollie Integration erfolgreich entfernt!'
         setTimeout(() => successMessage.value = '', 3000)
     } catch (error) {
         errorMessage.value = 'Fehler beim Entfernen der Mollie Integration'
         setTimeout(() => errorMessage.value = '', 3000)
-    }
-}
-
-const loadMollieStatus = async () => {
-    try {
-        const response = await axios.get(route('settings.mollie.status'))
-        const data = response.data
-
-        if (data.isActive) {
-            mollieStatus.value = {
-                isActive: true,
-                isTestMode: data.test_mode || false,
-                methodCount: data.enabled_methods?.length || 0,
-                enabledMethods: data.enabled_methods || []
-            }
-
-            // Update overridden status for standard methods
-            standardMethods.value.forEach(method => {
-                if (method.key === 'sepa' && data.enabled_methods?.some(m => m.id === 'banktransfer' || m.id === 'directdebit')) {
-                    method.isOverridden = true
-                }
-            })
-        }
-    } catch (error) {
-        console.log('Mollie status not available or not configured')
     }
 }
 
@@ -827,6 +818,6 @@ const formatDate = (dateString) => {
 
 // Load data on mount
 onMounted(() => {
-    loadMollieStatus()
+    loadPaymentMethods()
 })
 </script>

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
-use App\Models\Member;
 use App\Models\MembershipPlan;
+use App\Models\Payment;
 use App\Models\WidgetAnalytics;
+use App\Models\WidgetRegistration;
 use App\Services\WidgetService;
+use App\Services\MollieService;
 use App\Util\MembershipPriceCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class WidgetController extends Controller
 {
@@ -64,10 +67,15 @@ class WidgetController extends Controller
 
         // Gym-Daten
         $gym = Gym::findOrFail($gymId);
+
+        // Zahlungsmethoden aus dem Gym Model laden
+        $paymentMethods = $this->getAvailablePaymentMethods($gym);
+
         $gymData = [
             'id' => $gym->id,
             'name' => $gym->name,
             'widget_settings' => $gym->widget_settings,
+            'payment_methods' => $paymentMethods
         ];
 
         // Gespeicherte Formulardaten abrufen
@@ -88,8 +96,46 @@ class WidgetController extends Controller
         return response()->json([
             'html' => $html,
             'success' => true,
-            'has_saved_data' => !empty($savedFormData)
+            'has_saved_data' => !empty($savedFormData),
+            'payment_methods_count' => count($paymentMethods)
         ]);
+    }
+
+    /**
+     * Verfügbare Zahlungsmethoden für das Widget abrufen
+     */
+    private function getAvailablePaymentMethods(Gym $gym): array
+    {
+        $methods = [];
+
+        // Standard-Zahlungsmethoden (nur aktivierte)
+        $standardMethods = $gym->getEnabledStandardPaymentMethods();
+        foreach ($standardMethods as $method) {
+            $methods[] = [
+                'key' => $method['key'],
+                'name' => $method['name'],
+                'description' => $method['description'],
+                'type' => 'standard',
+                'icon' => $method['icon'],
+                'requires_mandate' => $method['requires_mandate'] ?? false,
+            ];
+        }
+
+        // Mollie-Zahlungsmethoden
+        if ($gym->hasMollieConfigured()) {
+            $mollieMethods = $gym->getMolliePaymentMethods();
+            foreach ($mollieMethods as $method) {
+                $methods[] = [
+                    'key' => $method['key'],
+                    'name' => $method['name'],
+                    'description' => $method['description'],
+                    'type' => 'mollie',
+                    'mollie_method_id' => $method['mollie_method_id'],
+                ];
+            }
+        }
+
+        return $methods;
     }
 
     /**
@@ -168,7 +214,7 @@ class WidgetController extends Controller
     }
 
     /**
-     * Mitgliedschaft erstellen
+     * Mitgliedschaft erstellen - erweitert um Mollie-Support
      */
     public function createContract(Request $request)
     {
@@ -186,7 +232,7 @@ class WidgetController extends Controller
         // Markiere Submission als in Bearbeitung
         $this->markSubmissionInProgress($sessionId);
 
-        // Validierung
+        // Erweiterte Validierung
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -197,11 +243,19 @@ class WidgetController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'plan_id' => 'required|exists:membership_plans,id',
-            'iban' => 'nullable|string|max:34',
-            'account_holder' => 'nullable|string|max:255',
+            'payment_method' => 'required|string',
+            'sepa_mandate_acknowledged' => 'sometimes|boolean',
         ]);
 
+        // Spezielle SEPA-Validierung
+        if ($request->payment_method === 'sepa_direct_debit') {
+            $validator->sometimes('sepa_mandate_acknowledged', 'required|accepted', function ($input) {
+                return $input->payment_method === 'sepa_direct_debit';
+            });
+        }
+
         if ($validator->fails()) {
+            $this->clearSubmissionLock($sessionId);
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
@@ -209,22 +263,6 @@ class WidgetController extends Controller
         }
 
         try {
-            // Validierung
-            $validator = Validator::make($request->all(), [
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
-                'phone' => 'nullable|string|max:20',
-                'plan_id' => 'required|exists:membership_plans,id',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             // Gym laden
             $gym = Gym::findOrFail($gymId);
 
@@ -235,11 +273,10 @@ class WidgetController extends Controller
                 ->firstOrFail();
 
             // Doppelte E-Mail-Registrierung prüfen
-            $existingMember = Member::where('gym_id', $gymId)
-                ->where('email', $request->email)
-                ->first();
+            $existingMember = $this->widgetService->validateEmail($gym, $request->email);
 
-            if ($existingMember) {
+            if (!$existingMember['valid']) {
+                $this->clearSubmissionLock($sessionId);
                 return response()->json([
                     'success' => false,
                     'error' => 'Diese E-Mail-Adresse ist bereits registriert.',
@@ -254,7 +291,8 @@ class WidgetController extends Controller
                 'widget_session' => $sessionId,
             ]);
 
-            $result = $this->widgetService->processRegistration($gym, [
+            // Registrierungsdaten vorbereiten
+            $registrationData = [
                 'plan_id' => $plan->id,
                 'salutation' => $request->salutation,
                 'first_name' => $request->first_name,
@@ -267,22 +305,30 @@ class WidgetController extends Controller
                 'city' => $request->city,
                 'postal_code' => $request->postal_code,
                 'country' => $request->country ?? 'DE',
-                'iban' => $request->iban,
-                'account_holder' => $request->account_holder,
-                'sepa_mandate' => $request->boolean('sepa_mandate'),
                 'voucher_code' => $request->voucher_code,
                 'fitness_goals' => $request->fitness_goals,
+                'payment_method' => $request->payment_method,
                 'widget_session' => $sessionId,
-            ]);
+            ];
 
-            // Session-Daten cleanup nach erfolgreicher Registrierung
-            $this->cleanupWidgetSession($sessionId);
+            // SEPA-spezifische Daten hinzufügen
+            if ($request->payment_method === 'sepa_direct_debit') {
+                $registrationData['sepa_mandate_acknowledged'] = $request->boolean('sepa_mandate_acknowledged');
+            }
 
-            // Erfolgs-Response
+            $result = $this->widgetService->processRegistration($gym, $registrationData);
+
+            // Session-Daten cleanup nach erfolgreicher Registrierung (außer bei Mollie)
+            if (!isset($result['requires_payment']) || !$result['requires_payment']) {
+                $this->cleanupWidgetSession($sessionId);
+            }
+
+            // Submission-Lock entfernen
+            $this->clearSubmissionLock($sessionId);
+
             return response()->json($result);
 
         } catch (\Exception $e) {
-
             // Submission-Lock entfernen bei Fehler
             $this->clearSubmissionLock($sessionId);
 
@@ -290,13 +336,212 @@ class WidgetController extends Controller
                 'gym_id' => $gymId,
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
-                'request_data' => $request->except(['iban', 'password'])
+                'request_data' => $request->except(['iban', 'password']),
+                'payment_method' => $request->payment_method
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
                 'error_code' => 'CREATION_FAILED'
+            ], 500);
+        }
+    }
+
+    /**
+     * Mollie Payment Return verarbeiten
+     */
+    public function handleMollieReturn(Request $request, int $gymId, string $widgetSession)
+    {
+        try {
+            $gym = Gym::findOrFail($gymId);
+            $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"' . $widgetSession . '"%')->latest()->first();
+            $paymentId = $widgetRegistration->payment_data['mollie_payment_id'] ?? false;
+
+            if (!$paymentId) {
+                return $this->renderMollieResult([
+                    'success' => false,
+                    'status' => 'error',
+                    'message' => 'Fehlende Payment-ID.',
+                ], $gym);
+            }
+
+            // Payment-Status von WidgetService verarbeiten lassen
+            $result = $this->widgetService->processMollieReturn($gym, $widgetSession, $paymentId);
+
+            // Analytics tracken
+            $this->widgetService->trackEvent($gym, 'mollie_return_processed', 'payment_return', [
+                'session_id' => $widgetSession,
+                'payment_id' => $paymentId,
+                'status' => $result['status'],
+                'success' => $result['success']
+            ]);
+
+            // Session cleanup bei erfolgreichem Payment
+            if ($result['success'] && $result['status'] === 'paid') {
+                $this->cleanupWidgetSession($widgetSession);
+            }
+
+            return $this->renderMollieResult($result, $gym);
+
+        } catch (\Exception $e) {
+            Log::error('Mollie return handling failed', [
+                'gym_id' => $gymId,
+                'session_id' => $widgetSession,
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
+
+            return $this->renderMollieResult([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Fehler bei der Zahlungsverarbeitung.',
+            ], Gym::find($gymId));
+        }
+    }
+
+    /**
+     * Mollie Webhook verarbeiten
+     */
+    public function handleMollieWebhook(Request $request)
+    {
+        try {
+            $payload = $request->json()->all();
+
+            // Hook ping
+            if (data_get($payload, 'resource') === 'event' &&
+                data_get($payload, 'type') === 'hook.ping') {
+                return response('OK', 200);
+            }
+
+            $paymentId = $request->input('id');
+
+            if (!$paymentId) {
+                return response('Payment ID missing', 400);
+            }
+
+            // Lokale Payment-Referenz finden
+            $localPayment = Payment::where('mollie_payment_id', $paymentId)->first();
+
+            if (!$localPayment) {
+                Log::warning('Mollie webhook: Payment reference not found', ['payment_id' => $paymentId]);
+                return response('Payment not found', 404);
+            }
+
+            $gym = Gym::findOrFail($localPayment->gym_id);
+            $mollieService = app(MollieService::class);
+
+            // Aktuellen Payment-Status von Mollie abrufen
+            $molliePayment = $mollieService->getPayment($gym, $paymentId);
+
+            // Status aktualisieren
+            $oldStatus = $localPayment->status;
+            $localPayment->update([
+                'status' => $molliePayment->status,
+                'paid_date' => $molliePayment->isPaid() ? now() : null
+            ]);
+
+            // Wenn Payment neu bezahlt wurde
+            if ($molliePayment->isPaid() && $oldStatus !== 'paid') {
+                $member = $localPayment->member;
+                $membership = $localPayment->membership;
+
+                // Member und Membership aktivieren
+                $member->update(['status' => 'active']);
+                $membership->update(['status' => 'active']);
+
+                // Widget-Registrierung abschließen
+                WidgetRegistration::where('gym_id', $gym->id)
+                    ->where('payment_data', 'like', '%' . $molliePayment->id . '%')
+                    ->update([
+                        'status' => 'completed',
+                        'completed_at' => now()
+                    ]);
+
+                // PaymentMethod aktualisieren
+                $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
+
+                // Analytics
+                $this->widgetService->trackEvent($gym, 'mollie_webhook_paid', 'payment_webhook', [
+                    'member_id' => $member->id,
+                    'membership_id' => $membership->id,
+                    'payment_method' => $localPayment->method,
+                    'amount' => $localPayment->amount,
+                    'mollie_payment_id' => $paymentId
+                ]);
+
+                // Welcome-Email senden (falls noch nicht gesendet)
+                $plan = $membership->membershipPlan;
+                $this->widgetService->sendWelcomeEmail($member, $gym, $plan);
+
+                Log::info('Mollie webhook: Payment completed', [
+                    'gym_id' => $gym->id,
+                    'member_id' => $member->id,
+                    'payment_id' => $paymentId
+                ]);
+            }
+
+            return response('OK', 200);
+
+        } catch (\Exception $e) {
+            Log::error('Mollie webhook processing failed', [
+                'payment_id' => $request->input('id'),
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
+
+            return response('Webhook processing failed', 500);
+        }
+    }
+
+    /**
+     * Mollie-Result-Page rendern
+     */
+    private function renderMollieResult(array $result, ?Gym $gym): \Illuminate\Http\Response
+    {
+        $gymData = $gym ? [
+            'id' => $gym->id,
+            'name' => $gym->name,
+            'widget_settings' => $gym->widget_settings ?? []
+        ] : null;
+
+        $html = view('widget.mollie-result', compact('result', 'gymData'))->render();
+
+        return response($html);
+    }
+
+    /**
+     * Mollie Payment-Status abfragen (AJAX-Endpoint)
+     */
+    public function checkMolliePaymentStatus(Request $request)
+    {
+        try {
+            $gymId = $this->getGymIdFromRequest($request);
+            $widgetSession = $request->header('X-Widget-Session');
+            $paymentId = $request->input('payment_id');
+
+            if (!$paymentId) {
+                return response()->json(['error' => 'Payment ID required'], 400);
+            }
+
+            $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"' . $widgetSession . '"%')->select('session_id')->latest()->first();
+            $sessionId = $widgetRegistration->session_id ?? 'unknown';
+
+            $gym = Gym::findOrFail($gymId);
+            $result = $this->widgetService->processMollieReturn($gym, $sessionId, $paymentId);
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            Log::error('Mollie payment status check failed', [
+                'error' => $e->getMessage(),
+                'payment_id' => $request->input('payment_id')
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Status konnte nicht abgerufen werden.'
             ], 500);
         }
     }
@@ -436,10 +681,17 @@ class WidgetController extends Controller
     {
         // Sensitive Daten nicht in Cache speichern
         $allowedFields = [
-            'first_name', 'last_name', 'email', 'phone',
-            'address', 'address_addition', 'city', 'postal_code', 'country',
-            'birth_day', 'birth_month', 'birth_year',
-            'salutation', 'fitness_goals', 'voucher_code'
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'address',
+            'address_addition',
+            'city',
+            'postal_code',
+            'country',
+            'birth_date',
+            'payment_method'
         ];
 
         $sanitized = [];
@@ -577,6 +829,9 @@ class WidgetController extends Controller
                 'conversion_funnel' => $this->getConversionFunnel($gymId, $startDate),
 
                 'popular_plans' => $this->getPopularPlans($gymId, $startDate),
+
+                // Mollie-spezifische Statistiken
+                'mollie_stats' => $this->getMollieStats($gymId, $startDate),
             ];
 
             return response()->json([
@@ -599,7 +854,7 @@ class WidgetController extends Controller
     {
         $events = WidgetAnalytics::where('gym_id', $gymId)
             ->where('created_at', '>=', $startDate)
-            ->whereIn('event_type', ['view', 'plan_selected', 'form_started', 'form_completed', 'registration_completed'])
+            ->whereIn('event_type', ['view', 'plan_selected', 'form_started', 'form_completed', 'registration_completed', 'mollie_payment_completed'])
             ->selectRaw('event_type, COUNT(DISTINCT session_id) as unique_sessions')
             ->groupBy('event_type')
             ->get()
@@ -611,6 +866,7 @@ class WidgetController extends Controller
             'form_starts' => $events->get('form_started', 0),
             'form_completions' => $events->get('form_completed', 0),
             'registrations' => $events->get('registration_completed', 0),
+            'mollie_payments' => $events->get('mollie_payment_completed', 0),
         ];
     }
 
@@ -628,5 +884,52 @@ class WidgetController extends Controller
             ->orderBy('selections', 'desc')
             ->limit(10)
             ->get();
+    }
+
+    /**
+     * Mollie-spezifische Statistiken
+     */
+    private function getMollieStats($gymId, $startDate)
+    {
+        $molliePayments = Payment::where('gym_id', $gymId)
+            ->where('created_at', '>=', $startDate)
+            ->selectRaw('
+                method,
+                status,
+                COUNT(*) as count,
+                SUM(amount) as total_amount,
+                AVG(amount) as avg_amount
+            ')
+            ->groupBy('method', 'status')
+            ->get();
+
+        // Payment-Method-Performance
+        $methodStats = $molliePayments->groupBy('method')->map(function ($payments, $method) {
+            $total = $payments->sum('count');
+            $paid = $payments->where('status', 'paid')->sum('count');
+            $pending = $payments->where('status', 'pending')->sum('count');
+            $failed = $payments->where('status', 'failed')->sum('count');
+
+            return [
+                'method' => $method,
+                'total_payments' => $total,
+                'paid' => $paid,
+                'pending' => $pending,
+                'failed' => $failed,
+                'success_rate' => $total > 0 ? round(($paid / $total) * 100, 2) : 0,
+                'total_amount' => $payments->sum('total_amount'),
+                'avg_amount' => $payments->avg('avg_amount'),
+            ];
+        });
+
+        return [
+            'total_payments' => $molliePayments->sum('count'),
+            'total_amount' => $molliePayments->sum('total_amount'),
+            'avg_amount' => $molliePayments->avg('avg_amount'),
+            'method_breakdown' => $methodStats->values(),
+            'overall_success_rate' => $molliePayments->sum('count') > 0
+                ? round(($molliePayments->where('status', 'paid')->sum('count') / $molliePayments->sum('count')) * 100, 2)
+                : 0,
+        ];
     }
 }

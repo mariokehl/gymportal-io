@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\SettingController;
+use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
@@ -74,6 +76,15 @@ Route::middleware(['auth:web', 'subscription'])->group(function () {
         Route::post('/gym-users', [SettingController::class, 'storeGymUser'])->name('gym-users.store');
         Route::put('/gym-users/{gymUser}', [SettingController::class, 'updateGymUser'])->name('gym-users.update');
         Route::delete('/gym-users/{gymUser}', [SettingController::class, 'destroyGymUser'])->name('gym-users.destroy');
+        Route::prefix('payment-methods')->name('payment-methods.')->group(function () {
+            Route::get('/', [PaymentMethodsController::class, 'index'])->name('index');
+            Route::get('/overview', [PaymentMethodsController::class, 'overview'])->name('overview');
+            Route::put('/update', [PaymentMethodsController::class, 'update'])->name('update');
+        });
+        Route::prefix('mollie')->name('.mollie.')->group(function () {
+            Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');
+            Route::delete('/remove', [PaymentMethodsController::class, 'removeMollieConfig'])->name('remove');
+        });
     });
     Route::post('/gyms', [GymController::class, 'store'])->name('gyms.store');
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');

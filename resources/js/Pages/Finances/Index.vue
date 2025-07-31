@@ -440,11 +440,11 @@
     <!-- Payment Detail Modal -->
     <div
       v-if="showPaymentModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50"
       @click="closePaymentModal"
     >
       <div
-        class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
+        class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
         @click.stop
       >
         <div class="flex items-center justify-between mb-4">

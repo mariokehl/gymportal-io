@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\Web\NotificationController;
+use App\Services\MollieService;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -30,7 +31,8 @@ Route::prefix('v1')->name('v1.')->group(function () {
     // Public routes
     Route::name('public.')->prefix('/public')->group(static function (): void {
         // Mollie webhook
-        Route::get('/webhooks/mollie/{organization}', [MollieSetupController::class, 'validateCredentials'])->name('mollie.webhook');
+        //Route::post('/webhooks/mollie/{organization}', [MollieService::class, 'handleWebhook'])->name('mollie.webhook');
+        Route::post('/mollie/webhook', [WidgetController::class, 'handleMollieWebhook'])->name('mollie.webhook');
     });
 
     /*
@@ -55,6 +57,12 @@ Route::group(['prefix' => 'widget', 'middleware' => ['api', 'widget.auth']], fun
     Route::post('/save-form-data', [WidgetController::class, 'saveFormData']);
     Route::post('/contracts', [WidgetController::class, 'createContract']);
     Route::post('/analytics', [WidgetController::class, 'trackAnalytics']);
+    Route::post('/mollie/check-status', [WidgetController::class, 'checkMolliePaymentStatus']);
+});
+
+// Mollie Public Routes
+Route::prefix('widget')->group(function () {
+    Route::get('/mollie/return/{gym}/{session}', [WidgetController::class, 'handleMollieReturn'])->name('widget.mollie.return'); // Mollie Return-URL (für Browserweiterleitung)
 });
 
 // Widget-Middleware für Authentifizierung
