@@ -59,21 +59,8 @@ return new class extends Migration
                 break;
 
             case 'pgsql':
-                // Prüfen ob der ENUM-Typ existiert
-                $enumExists = DB::select("SELECT 1 FROM pg_type WHERE typname = 'member_status'");
-
-                if (empty($enumExists)) {
-                    // ENUM-Typ erstellen falls nicht vorhanden
-                    DB::statement("CREATE TYPE member_status AS ENUM('active', 'inactive', 'paused', 'overdue', 'pending')");
-                    DB::statement("ALTER TABLE members ALTER COLUMN status TYPE member_status USING status::member_status");
-                } else {
-                    // Prüfen ob 'pending' bereits existiert
-                    $pendingExists = DB::select("SELECT 1 FROM pg_enum WHERE enumlabel = 'pending' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'member_status')");
-
-                    if (empty($pendingExists)) {
-                        DB::statement("ALTER TYPE member_status ADD VALUE 'pending'");
-                    }
-                }
+                DB::statement('ALTER TABLE members DROP CONSTRAINT IF EXISTS members_status_check');
+                DB::statement("ALTER TABLE members ADD CONSTRAINT members_status_check CHECK (status IN ('active', 'inactive', 'paused', 'overdue', 'pending'))");
                 break;
 
             case 'sqlite':
