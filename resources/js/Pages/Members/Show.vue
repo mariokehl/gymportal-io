@@ -361,7 +361,7 @@
                   </div>
 
                   <!-- SEPA Mandate Actions -->
-                  <div v-if="paymentMethod.type === 'sepa_direct_debit' && paymentMethod.sepa_mandate_status === 'pending'" class="mt-4 p-3 bg-yellow-50 rounded-md">
+                  <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'pending'" class="mt-4 p-3 bg-yellow-50 rounded-md">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center">
                         <AlertCircle class="w-5 h-5 text-yellow-600 mr-2" />
