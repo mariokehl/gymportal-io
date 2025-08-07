@@ -135,39 +135,7 @@ class Gym extends Model
 
     protected function getDefaultPaymentMethodsConfig(): array
     {
-        return [
-            'banktransfer' => [
-                'enabled' => false,
-                'name' => 'Manuelle Überweisung (Vorkasse)',
-                'description' => 'Mitglied überweist selbst per IBAN',
-                'icon' => 'Wallet',
-            ],
-            'cash' => [
-                'enabled' => false,
-                'name' => 'Barzahlung',
-                'description' => 'Zahlung erfolgt vor Ort in bar',
-                'icon' => 'HandCoins',
-            ],
-            'invoice' => [
-                'enabled' => false,
-                'name' => 'Zahlung auf Rechnung',
-                'description' => 'Mitglied erhält eine Rechnung zur Überweisung',
-                'icon' => 'FileText',
-            ],
-            'standingorder' => [
-                'enabled' => false,
-                'name' => 'Dauerauftrag',
-                'description' => 'Wiederkehrende Überweisung durch Mitglied',
-                'icon' => 'DollarSign',
-            ],
-            'sepa_direct_debit' => [
-                'enabled' => false,
-                'name' => 'SEPA-Lastschrift',
-                'description' => 'Automatischer Einzug vom Bankkonto',
-                'icon' => 'CreditCard',
-                'requires_mandate' => true,
-            ],
-        ];
+        return PaymentMethod::getDefaultConfig();
     }
 
     public function getStandardPaymentMethods(): array
@@ -210,11 +178,31 @@ class Gym extends Model
                 'icon' => 'CreditCard',
                 'type' => 'mollie',
                 'enabled' => true,
+                'requires_mandate' => $this->getMollieMandateType($methodId) ? true : false,
                 'mollie_method_id' => $methodId,
             ];
         }
 
         return $methods;
+    }
+
+    public function getMollieMandateType(string $methodId): string
+    {
+        if ($methodId === 'directdebit') return 'directdebit';
+
+        $mandateTypes = [
+            'creditcard' => 'creditcard',
+            'paypal' => 'paypal',
+            'belfius' => 'directdebit',
+            'bancontact' => 'directdebit',
+            'eps' => 'directdebit',
+            'ideal' => 'directdebit',
+            'kbc' => 'directdebit',
+            'paybybank' => 'directdebit',
+            'trustly' => 'directdebit'
+        ];
+
+        return $mandateTypes[$methodId] ?? '';
     }
 
     protected function getMollieMethodDisplayName(string $methodId, string $fallbackDescription): string
@@ -267,9 +255,9 @@ class Gym extends Model
 
     public function getEnabledPaymentMethods(): array
     {
-        return array_filter($this->getAllPaymentMethods(), function ($method) {
+        return array_values(array_filter($this->getAllPaymentMethods(), function ($method) {
             return $method['enabled'];
-        });
+        }));
     }
 
     protected function isPaymentMethodOverriddenByIntegration(string $methodKey): bool
@@ -325,6 +313,19 @@ class Gym extends Model
         foreach ($enabledMethods as $method) {
             if ($method['type'] === $type) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getPaymentMethodForKey(string $key): array|bool
+    {
+        $enabledMethods = $this->getEnabledPaymentMethods();
+
+        foreach ($enabledMethods as $method) {
+            if ($method['key'] === $key) {
+                return $method;
             }
         }
 
@@ -407,6 +408,11 @@ class Gym extends Model
 
     public function setMollieConfigAttribute($value)
     {
+        if ($value === null) {
+            $this->attributes['mollie_config'] = null;
+            return;
+        }
+
         if (is_array($value)) {
             $value = json_encode($value);
         }

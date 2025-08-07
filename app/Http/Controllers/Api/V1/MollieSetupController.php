@@ -187,7 +187,7 @@ class MollieSetupController extends Controller
             $payment = $this->mollieService->createPayment($gym, [
                 'amount' => 1.00,
                 'description' => 'Test-Zahlung für ' . $gym->name,
-                'method' => 'creditcard' // or any other available method
+                'method' => $gym->mollie_config['enabled_methods'][0] ?: 'creditcard' // or any other available method
             ]);
 
             return response()->json([
