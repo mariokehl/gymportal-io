@@ -345,25 +345,41 @@
         <div v-show="currentStep === 2" class="p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-6">Zahlungsmethode</h3>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Show message if no payment methods are enabled -->
+          <div v-if="!paymentMethods || !Array.isArray(paymentMethods) || paymentMethods.length === 0" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-800">
+                  Keine Zahlungsmethoden aktiviert. Bitte aktiviere mindestens eine Zahlungsmethode in den Einstellungen.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               v-for="method in paymentMethods"
-              :key="method.value"
+              :key="method.key"
               class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-              :class="form.payment_method === method.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
-              @click="form.payment_method = method.value"
+              :class="form.payment_method === method.key ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
+              @click="form.payment_method = method.key"
             >
               <div class="flex items-center">
                 <input
                   type="radio"
-                  :id="`payment_${method.value}`"
-                  :value="method.value"
+                  :id="`payment_${method.key}`"
+                  :value="method.key"
                   v-model="form.payment_method"
                   class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                 />
                 <div class="ml-3">
-                  <label :for="`payment_${method.value}`" class="font-medium text-gray-900">
-                    {{ method.label }}
+                  <label :for="`payment_${method.key}`" class="font-medium text-gray-900">
+                    {{ method.name }}
                   </label>
                   <p class="text-sm text-gray-600">{{ method.description }}</p>
                 </div>
@@ -492,6 +508,10 @@ const props = defineProps({
     membershipPlans: {
         type: Array,
         default: () => []
+    },
+    paymentMethods: {
+        type: Array,
+        default: () => []
     }
 })
 
@@ -531,29 +551,6 @@ const form = useForm({
   // Zustimmung
   accept_terms: true // TODO: Momentan über Adminbereich immer erteilt, ggf. an SEPA-Lastschriftverfahren koppeln
 })
-
-const paymentMethods = [
-  {
-    value: 'sepa',
-    label: 'SEPA-Lastschrift',
-    description: 'Automatischer Bankeinzug (empfohlen)'
-  },
-  {
-    value: 'creditcard',
-    label: 'Kreditkarte',
-    description: 'Visa, MasterCard, American Express'
-  },
-  {
-    value: 'paypal',
-    label: 'PayPal',
-    description: 'Zahlung über PayPal-Konto'
-  },
-  {
-    value: 'banktransfer',
-    label: 'Überweisung',
-    description: 'Manuelle Überweisung'
-  }
-]
 
 const today = computed(() => {
   return new Date().toISOString().split('T')[0]
@@ -655,8 +652,11 @@ const getEndDate = () => {
 }
 
 const getPaymentMethodLabel = () => {
-  const method = paymentMethods.find(m => m.value === form.payment_method)
-  return method ? method.label : ''
+  if (!props.paymentMethods || !Array.isArray(props.paymentMethods)) {
+    return ''
+  }
+  const method = props.paymentMethods.find(m => m.key === form.payment_method)
+  return method ? method.name : ''
 }
 
 const handleSubmit = () => {

@@ -799,6 +799,7 @@ const removeMollieConfig = async () => {
         successMessage.value = 'Mollie Integration erfolgreich entfernt!'
         setTimeout(() => successMessage.value = '', 3000)
     } catch (error) {
+        console.error(error)
         errorMessage.value = 'Fehler beim Entfernen der Mollie Integration'
         setTimeout(() => errorMessage.value = '', 3000)
     }

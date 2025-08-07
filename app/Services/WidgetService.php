@@ -71,7 +71,7 @@ class WidgetService
             // Member erstellen
             $member = Member::create([
                 'gym_id' => $gym->id,
-                'member_number' => $this->generateMemberNumber($gym),
+                'member_number' => MemberService::generateMemberNumber($gym, 'W'),
                 'salutation' => $data['salutation'] ?? null,
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
@@ -767,29 +767,6 @@ class WidgetService
             'member_name' => $member->full_name,
             'member_email' => $member->email,
         ]);
-    }
-
-    /**
-     * Mitgliedsnummer generieren
-     */
-    private function generateMemberNumber(Gym $gym): string
-    {
-        $prefix = 'W' . str_pad($gym->id, 3, '0', STR_PAD_LEFT);
-        $year = date('y');
-        $lastNumber = Member::withTrashed()
-            ->where('gym_id', $gym->id)
-            ->where('member_number', 'like', $prefix . $year . '%')
-            ->orderBy('member_number', 'desc')
-            ->value('member_number');
-
-        if ($lastNumber) {
-            $lastSequence = intval(substr($lastNumber, -4));
-            $nextSequence = $lastSequence + 1;
-        } else {
-            $nextSequence = 1;
-        }
-
-        return $prefix . $year . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
     }
 
     /**
