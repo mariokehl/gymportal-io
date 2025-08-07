@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
+use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use Illuminate\Http\Request;
@@ -53,6 +54,12 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 Route::middleware(['auth:web', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
+    Route::name('members.payment-methods.')->group(function () {
+        Route::post('/members/{member}/payment-methods', [PaymentMethodController::class, 'store'])->name('store');
+        Route::put('/members/{member}/payment-methods/{paymentMethod}/set-default', [PaymentMethodController::class, 'setAsDefault'])->name('set-default');
+        Route::put('/members/{member}/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+        Route::put('/members/{member}/payment-methods/{paymentMethod}/deactivate', [PaymentMethodController::class, 'deactivate'])->name('deactivate');
+    });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');
         Route::get('/create', [MembershipPlanController::class, 'create'])->name('create');
@@ -81,7 +88,7 @@ Route::middleware(['auth:web', 'subscription'])->group(function () {
             Route::get('/overview', [PaymentMethodsController::class, 'overview'])->name('overview');
             Route::put('/update', [PaymentMethodsController::class, 'update'])->name('update');
         });
-        Route::prefix('mollie')->name('.mollie.')->group(function () {
+        Route::prefix('mollie')->name('mollie.')->group(function () {
             Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');
             Route::delete('/remove', [PaymentMethodsController::class, 'removeMollieConfig'])->name('remove');
         });

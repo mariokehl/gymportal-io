@@ -138,7 +138,11 @@ class MollieService
      */
     public function createFirstPayment(Gym $gym, string $customerId, array $paymentData): MolliePayment
     {
-        $paymentData['sequenceType'] = 'first';
+        // First and recurring payment is only possible for certain types.
+        // see https://help.mollie.com/hc/en-us/articles/115000470109-What-is-Mollie-Recurring
+        if ($gym->getMollieMandateType($paymentData['method'])) {
+            $paymentData['sequenceType'] = 'first';
+        }
         $paymentData['customerId'] = $customerId;
 
         return $this->createPayment($gym, $paymentData);
@@ -163,7 +167,7 @@ class MollieService
             ],
             'description' => $this->formatDescription($config, $paymentData['description']),
             'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
-            'webhookUrl' => $config['webhook_url'],
+            'webhookUrl' => $config['webhook_url'] ?? '',
             'method' => str_starts_with($paymentData['method'], 'mollie_')
                 ? substr($paymentData['method'], 7)
                 : $paymentData['method'],

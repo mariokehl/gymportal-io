@@ -4,11 +4,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Services\MemberService;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -87,8 +90,13 @@ class MemberController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        /** @var Gym $gym */
+        $gym = $user->currentGym;
+        $paymentMethods = $gym->getEnabledPaymentMethods(); // Now returns a proper array
+
         return Inertia::render('Members/Create', [
-            'membershipPlans' => $membershipPlans
+            'membershipPlans' => $membershipPlans,
+            'paymentMethods' => $paymentMethods
         ]);
     }
 
@@ -102,6 +110,10 @@ class MemberController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        /** @var Gym $gym */
+        $gym = $user->currentGym;
+        $enabledPaymentMethods = array_column($gym->getEnabledPaymentMethods(), 'key');
+
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
@@ -112,55 +124,78 @@ class MemberController extends Controller
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue'])],
+            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
             'joined_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
+            'payment_method' => ['required', Rule::in($enabledPaymentMethods)],
         ]);
 
         // Next member number
-        $lastMember = Member::orderBy('id', 'desc')->first();
-        $nextNumber = $lastMember ? $lastMember->id + 100000 : 100001;
-        $validated['member_number'] = $nextNumber; // TODO: Implement number ranges
+        $memberData = [];
+        $memberData['member_number'] = MemberService::generateMemberNumber($gym, 'M');
 
         // Add gym_id to the validated data
-        $validated['gym_id'] = $user->current_gym_id;
-        $validated['user_id'] = $user->id;
+        $memberData['gym_id'] = $user->current_gym_id;
+        $memberData['user_id'] = $user->id;
+
+        // Member status
+        $memberData['status'] = 'pending';
 
         try {
             DB::beginTransaction();
 
             // Create the member
-            $newMember = Member::create($validated);
+            $newMember = Member::create(
+                array_merge(
+                    $validated,
+                    $memberData,
+                )
+            );
 
             // Get membership plan to calculate end date
             $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
 
             // Create membership
-            Membership::create([
+            $newMembership = Membership::create([
                 'member_id' => $newMember->id,
                 'membership_plan_id' => $request->membership_plan_id,
                 'start_date' => $validated['joined_date'],
-                'end_date' => Carbon::parse($validated['joined_date'])->addMonths($membershipPlan->commitment_months)
+                'end_date' => Carbon::parse($validated['joined_date'])->addMonths($membershipPlan->commitment_months),
+                'status' => 'pending' // bis erste Zahlung erfolgt
             ]);
 
             // Select payment method
-            PaymentMethod::create([
+            $paymentMethodData = [
                 'member_id' => $newMember->id,
-                'type' => $request->payment_method
-            ]);
+                'type' => $request->payment_method,
+            ];
+
+            // Check if this payment method requires a mandate
+            if (PaymentMethod::typeRequiresMandate($request->payment_method, $gym->getPaymentMethodForKey($request->payment_method))) {
+                $paymentMethodData['status'] = 'pending'; // bis Zahlungsdaten vollständig hinterlegt (z.B. SEPA-Mandat)
+                $paymentMethodData['requires_mandate'] = true;
+                $paymentMethodData['sepa_mandate_status'] = 'pending';
+                $paymentMethodData['sepa_mandate_acknowledged'] = false;
+            } else {
+                $paymentMethodData['requires_mandate'] = false;
+            }
+
+            $newPaymentMethod = PaymentMethod::create($paymentMethodData);
+
+            // Create Payment
+            $paymentService = app(PaymentService::class);
+            $paymentService->createSetupFeePayment($newMember, $newMembership, $newPaymentMethod);
+            $paymentService->createPendingPayment($newMember, $newMembership, $newPaymentMethod);
 
             DB::commit();
 
-            return redirect()
-                ->route('dashboard')
-                ->with('success', 'Organisation wurde erfolgreich erstellt!');
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()
-                ->withErrors(['general' => 'Fehler beim Erstellen der Organisation. Bitte versuchen Sie es erneut.'])
+                ->withErrors(['general' => 'Fehler beim Erstellen des Mitglieds. Bitte versuchen Sie es erneut.'])
                 ->withInput();
         }
 
@@ -187,8 +222,12 @@ class MemberController extends Controller
             },
         ]);
 
+        // Lade die aktivierten Zahlungsmethoden des Gyms
+        $availablePaymentMethods = $member->gym->getEnabledPaymentMethods();
+
         return Inertia::render('Members/Show', [
-            'member' => $member
+            'member' => $member,
+            'availablePaymentMethods' => $availablePaymentMethods
         ]);
     }
 
