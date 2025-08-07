@@ -5,12 +5,18 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\PaymentMethod;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
 class PaymentMethodController extends Controller
 {
+    use AuthorizesRequests;
+
     public function store(Request $request, Member $member)
     {
+        // Ensure user can only access payment methods from their gym
+        $this->authorize('create', PaymentMethod::class);
+
         $validated = $request->validate([
             'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice',
             'status' => 'required|in:active,pending',
@@ -55,6 +61,9 @@ class PaymentMethodController extends Controller
 
     public function setAsDefault(Member $member, PaymentMethod $paymentMethod)
     {
+        // Ensure user can only modify payment methods from their gym
+        $this->authorize('update', $paymentMethod);
+
         // Alle anderen als nicht-Standard setzen
         $member->paymentMethods()->update(['is_default' => false]);
 
@@ -66,6 +75,9 @@ class PaymentMethodController extends Controller
 
     public function update(Request $request, Member $member, PaymentMethod $paymentMethod)
     {
+        // Ensure user can only modify payment methods from their gym
+        $this->authorize('update', $paymentMethod);
+
         $validated = $request->validate([
             'status' => 'required|in:active,pending,expired,failed',
             'is_default' => 'boolean',
@@ -94,6 +106,9 @@ class PaymentMethodController extends Controller
 
     public function deactivate(Member $member, PaymentMethod $paymentMethod)
     {
+        // Ensure user can only modify payment methods from their gym
+        $this->authorize('update', $paymentMethod);
+
         $paymentMethod->update(['status' => 'expired']);
 
         return back()->with('success', 'Zahlungsmethode deaktiviert.');
