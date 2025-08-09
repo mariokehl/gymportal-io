@@ -7,12 +7,15 @@ use App\Models\Member;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Mollie\Api\MollieApiClient;
 use Mollie\Api\Resources\Customer;
 use Mollie\Api\Resources\Mandate;
 use Mollie\Api\Resources\Payment as MolliePayment;
 use Mollie\Api\Resources\MethodCollection;
+use Mollie\Api\Types\MandateMethod;
 
 class MollieService
 {
@@ -140,7 +143,7 @@ class MollieService
     {
         // First and recurring payment is only possible for certain types.
         // see https://help.mollie.com/hc/en-us/articles/115000470109-What-is-Mollie-Recurring
-        if ($gym->getMollieMandateType($paymentData['method'])) {
+        if ($gym->getMollieMandateType(str_replace('mollie_', '', $paymentData['method']))) {
             $paymentData['sequenceType'] = 'first';
         }
         $paymentData['customerId'] = $customerId;
@@ -220,6 +223,31 @@ class MollieService
     }
 
     /**
+     * Create a mandate for a specific customer
+     *
+     * @param Gym $gym
+     * @param string $customerId Provide the ID of the related customer.
+     * @param PaymentMethod $method Payment method of the mandate. SEPA Direct Debit and PayPal mandates can be created directly. Possible values: creditcard directdebit paypal
+     * @param string $consumerName The customer's name.
+     * @return void
+     */
+    public function createMandate(Gym $gym, string $customerId, PaymentMethod $paymentMethod, string $consumerName): Mandate
+    {
+        $client = $this->initializeClient($gym);
+
+        $mandate = $client->customers->get($customerId)->createMandate([
+            'method' => MandateMethod::getForFirstPaymentMethod(str_replace('mollie_', '', $paymentMethod->type)),
+            'consumerName' => $consumerName,
+            'consumerAccount' => $paymentMethod->iban,
+            //'consumerBic' => 'INGBNL2A',
+            //'signatureDate' => '2023-05-07',
+            'mandateReference' => $paymentMethod->sepa_mandate_reference,
+        ]);
+
+        return $mandate;
+    }
+
+    /**
      * Process webhook callback
      *
      * @deprecated Diese Funktion wird aktuell nicht verwendet.
@@ -281,12 +309,19 @@ class MollieService
      */
     protected function validatePaymentData(array $paymentData): void
     {
-        if (!isset($paymentData['amount']) || $paymentData['amount'] <= 0) {
-            throw new \InvalidArgumentException('Ungültiger Zahlungsbetrag');
-        }
-
         if (!isset($paymentData['description']) || empty($paymentData['description'])) {
             throw new \InvalidArgumentException('Zahlungsbeschreibung ist erforderlich');
+        }
+
+        // For credit card and PayPal payments, you can create a payment with a zero amount.
+        // No money will then be debited from the card or account when doing the first payment.
+        if (
+            strpos($paymentData['method'], 'creditcard') &&
+            isset($paymentData['sequenceType']) && $paymentData['sequenceType'] === 'first'
+        ) return;
+
+        if (!isset($paymentData['amount']) || $paymentData['amount'] <= 0) {
+            throw new \InvalidArgumentException('Ungültiger Zahlungsbetrag');
         }
 
         // Minimum amount for Mollie (usually 0.01 EUR)
@@ -347,6 +382,77 @@ class MollieService
             'status' => 'pending',
             'is_default' => true,
         ]);
+    }
+
+    /**
+     * Takes care of manually adding or updating Mollie payment methods in the member file
+     */
+    public function handleMolliePaymentMethod(Member $member, PaymentMethod $paymentMethod): void
+    {
+        //$paymentMethod->type = 'mollie_directdebit'; // For testing purposes
+        $mandateType = $member->gym->getMollieMandateType(str_replace('mollie_', '', $paymentMethod->type));
+
+        if (
+            !str_starts_with($paymentMethod->type, 'mollie_') ||
+            !$mandateType
+        ) return;
+
+        if (!$paymentMethod->mollie_customer_id) {
+            /** @var Customer $customer */
+            $customer = $this->createCustomer($member->gym, $member->fullName(), $member->email);
+        }
+        $customerId = $customer->id ?? $paymentMethod->mollie_customer_id;
+
+        /**
+         * It is only possible to create mandates for IBANs and PayPal billing agreements with this endpoint.
+         * To create mandates for cards, your customers need to perform a 'first payment' with their card.
+         *
+         * @var Mandate $mandate
+         */
+        if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && !$paymentMethod->mollie_mandate_id) {
+            $mandate = $this->createMandate($member->gym, $customerId, $paymentMethod, $member->fullName());
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Authorise a first credit card payment for subscription payments.
+            if ($mandateType === MandateMethod::CREDITCARD) {
+                $paymentData = [
+                    'method' => $paymentMethod->type,
+                    'amount' => 0,
+                    'description' => '1. Zahlung zur Authorisierung',
+                    'metadata' => [
+                        'membership_id' => $member->memberships->first()?->id,
+                        'member_id' => $member->id
+                    ]
+                ];
+                $this->createFirstPayment($member->gym, $customerId, $paymentData);
+            }
+
+            $mandateId = $mandate->id ?? $this->getMandate($member->gym, $customerId)?->id;
+            $status = $mandateId ? 'active' : 'pending';
+            if ($status === 'active') {
+                $member->update(['status' => 'active']);
+                $membership = $member->memberships->first();
+                $membership->update(['status' => 'active']);
+            }
+
+            $paymentMethod->update([
+                'status' => $status,
+                'mollie_customer_id' => $customerId,
+                'mollie_mandate_id' => $mandateId,
+                'iban' => $paymentMethod->masked_iban
+            ]);
+
+            DB::commit();
+
+        } catch (Exception $e) {
+            DB::rollback();
+
+            // Log the error for debugging
+            Log::error('Handling of mollie payment method failed: ' . $e->getMessage());
+        }
     }
 
     /**
