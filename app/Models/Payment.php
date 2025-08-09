@@ -65,7 +65,7 @@ class Payment extends Model
             'paid' => 'Bezahlt',
             'failed' => 'Fehlgeschlagen',
             'refunded' => 'Erstattet',
-            'expired' => 'Abgelaufen',
+            'expired' => 'Verfallen',
         ][$this->status] ?? $this->status;
     }
 
@@ -94,6 +94,10 @@ class Payment extends Model
             'banktransfer' => 'Banküberweisung',
             'cash' => 'Barzahlung',
             'invoice' => 'Rechnung',
+            'mollie_creditcard' => 'Mollie: Kreditkarte',
+            'mollie_directdebit' => 'Mollie: SEPA-Lastschriftverfahren',
+            'mollie_paypal' => 'Mollie: PayPal',
+            'mollie_klarna' => 'Mollie: Klarna',
         ][$this->payment_method] ?? $this->payment_method;
     }
 
