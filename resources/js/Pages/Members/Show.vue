@@ -286,7 +286,7 @@
                       </div>
                       <div>
                         <div class="flex items-center gap-2">
-                          <h4 class="font-semibold text-gray-900">{{ getPaymentMethodName(paymentMethod.type) }}</h4>
+                          <h4 class="font-semibold text-gray-900">{{ paymentMethod.type_text }}</h4>
                           <span v-if="paymentMethod.is_default" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                             Standard
                           </span>
@@ -332,24 +332,6 @@
 
                         <!-- Bank Transfer Details -->
                         <div v-else-if="isBankTransferType(paymentMethod.type)" class="mt-1">
-                          <p v-if="paymentMethod.bank_name" class="text-sm text-gray-600">{{ paymentMethod.bank_name }}</p>
-                        </div>
-
-                        <!-- Credit Card Details -->
-                        <div v-else-if="paymentMethod.type === 'creditcard'" class="mt-1 space-y-1">
-                          <p class="text-sm text-gray-600">
-                            **** **** **** {{ paymentMethod.last_four }}
-                          </p>
-                          <p v-if="paymentMethod.cardholder_name" class="text-sm text-gray-600">
-                            {{ paymentMethod.cardholder_name }}
-                          </p>
-                          <p v-if="paymentMethod.expiry_date" class="text-sm text-gray-600">
-                            Gültig bis: {{ formatMonthYear(paymentMethod.expiry_date) }}
-                          </p>
-                        </div>
-
-                        <!-- Bank Transfer Details -->
-                        <div v-else-if="paymentMethod.type === 'banktransfer'" class="mt-1">
                           <p v-if="paymentMethod.bank_name" class="text-sm text-gray-600">{{ paymentMethod.bank_name }}</p>
                         </div>
                       </div>
@@ -449,105 +431,82 @@
             <!-- Divider -->
             <div class="border-t border-gray-200"></div>
 
-            <!-- Payment History Section -->
+            <!-- Payment History Section with PaymentsTable -->
             <div class="space-y-6">
               <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-900">Zahlungshistorie</h3>
                 <div class="flex items-center space-x-2">
-                  <select class="border border-gray-300 rounded-md px-3 py-1 text-sm">
+                  <select
+                    v-model="paymentStatusFilter"
+                    @change="filterPayments"
+                    class="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                  >
                     <option value="">Alle Status</option>
                     <option value="paid">Bezahlt</option>
                     <option value="pending">Ausstehend</option>
                     <option value="failed">Fehlgeschlagen</option>
                   </select>
                   <button
+                    @click="openAddPayment"
                     type="button"
                     class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
                   >
                     <Plus class="w-4 h-4" />
                     Zahlung hinzufügen
                   </button>
+                  <button
+                    v-if="selectedPaymentIds.length > 0 && hasPendingPaymentsSelected"
+                    @click="executeSelectedPayments"
+                    type="button"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                    :disabled="executingPayments"
+                  >
+                    <PlayCircle class="w-4 h-4" />
+                    {{ executingPayments ? 'Wird ausgeführt...' : `Zahlungen ausführen (${selectedPendingPaymentIds.length})` }}
+                  </button>
                 </div>
               </div>
 
-              <div v-if="member.payments && member.payments.length > 0">
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zahlungsmethode</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aktionen</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                      <tr v-for="payment in member.payments" :key="payment.id" class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">
-                          <div>{{ formatDate(payment.paid_date || payment.due_date) }}</div>
-                          <div v-if="payment.due_date && payment.status === 'pending'" class="text-xs text-gray-500">
-                            Fällig: {{ formatDate(payment.due_date) }}
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm font-medium">{{ formatCurrency(payment.amount) }}</td>
-                        <td class="px-4 py-3 text-sm">
-                          <div>{{ payment.description }}</div>
-                          <div v-if="payment.transaction_id" class="text-xs text-gray-500">
-                            ID: {{ payment.transaction_id }}
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <span :class="getPaymentStatusClass(payment.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                            {{ getPaymentStatusText(payment.status) }}
-                          </span>
-                          <div v-if="payment.status === 'pending' && isPaymentOverdue(payment)" class="text-xs text-red-600 mt-1">
-                            Überfällig
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <div class="flex items-center gap-2">
-                            <component :is="getPaymentMethodIcon(payment.payment_method)" class="w-4 h-4" />
-                            {{ getPaymentMethodName(payment.payment_method) }}
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <div class="flex items-center space-x-2">
-                            <button
-                              v-if="payment.status === 'pending'"
-                              type="button"
-                              class="text-green-600 hover:text-green-800"
-                              title="Als bezahlt markieren"
-                            >
-                              <CheckCircle class="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              class="text-gray-600 hover:text-gray-800"
-                              title="Details anzeigen"
-                            >
-                              <Eye class="w-4 h-4" />
-                            </button>
-                            <button
-                              v-if="payment.status === 'paid'"
-                              type="button"
-                              class="text-blue-600 hover:text-blue-800"
-                              title="Rechnung herunterladen"
-                            >
-                              <Download class="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div v-if="filteredPayments && filteredPayments.data && filteredPayments.data.length > 0">
+                <PaymentsTable
+                  :payments="filteredPayments"
+                  :columns="paymentTableColumns"
+                  v-model:selectedIds="selectedPaymentIds"
+                  :show-checkboxes="true"
+                  :show-csv-export="false"
+                  :show-sepa-export="false"
+                  :show-pagination="false"
+                  @payment-marked-paid="handlePaymentMarkedPaid"
+                  @before-mark-paid="handleBeforeMarkPaid"
+                >
+                  <!-- Custom Actions Slot für zusätzliche Buttons -->
+                  <template #actions="{ payment }">
+                    <button
+                      v-if="payment.invoice_id"
+                      @click="downloadInvoice(payment)"
+                      type="button"
+                      class="text-blue-600 hover:text-blue-800"
+                      title="Rechnung herunterladen"
+                    >
+                      <Download class="w-4 h-4" />
+                    </button>
+                    <button
+                      v-if="payment.status === 'pending'"
+                      @click="executePayment(payment)"
+                      type="button"
+                      class="text-indigo-600 hover:text-indigo-800"
+                      title="Zahlung ausführen"
+                    >
+                      <PlayCircle class="w-4 h-4" />
+                    </button>
+                  </template>
+                </PaymentsTable>
               </div>
               <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
                 <CreditCard class="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p class="text-gray-500">Keine Zahlungen vorhanden</p>
                 <button
+                  @click="openAddPayment"
                   type="button"
                   class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 mx-auto"
                 >
@@ -614,7 +573,7 @@
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Typ</label>
                   <input
-                    :value="getPaymentMethodName(paymentMethodForm.type)"
+                    :value="paymentMethodForm.type_text"
                     disabled
                     class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
                   />
@@ -941,17 +900,140 @@
         </div>
       </div>
     </teleport>
+
+    <!-- Add Payment Modal -->
+    <teleport to="body">
+      <div v-if="showAddPaymentModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPayment">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="createPayment">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Neue Zahlung hinzufügen
+                </h3>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="newPaymentForm.amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="newPaymentForm.description"
+                    type="text"
+                    placeholder="z.B. Monatsbeitrag Januar 2024"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Fälligkeitsdatum</label>
+                  <input
+                    v-model="newPaymentForm.due_date"
+                    type="date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
+                  <select
+                    v-model="newPaymentForm.payment_method"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Bitte wählen...</option>
+                    <option
+                      v-for="method in availablePaymentMethodTypes"
+                      :key="method.key"
+                      :value="method.key"
+                    >
+                      {{ method.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    v-model="newPaymentForm.status"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="pending">Ausstehend</option>
+                    <option value="paid">Bezahlt</option>
+                  </select>
+                </div>
+
+                <div v-if="newPaymentForm.status === 'paid'">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Bezahlt am</label>
+                  <input
+                    v-model="newPaymentForm.paid_date"
+                    type="date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                  <textarea
+                    v-model="newPaymentForm.notes"
+                    rows="2"
+                    placeholder="Optionale Notizen zur Zahlung"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div v-if="newPaymentForm.errors && Object.keys(newPaymentForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in newPaymentForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="newPaymentForm.processing || !newPaymentForm.amount || !newPaymentForm.description"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ newPaymentForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeAddPayment"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PaymentsTable from '@/Components/PaymentsTable.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
-  Eye, Download, Building2, Smartphone, Banknote, X
+  Download, Building2, Banknote, PlayCircle, WalletCards
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -966,11 +1048,21 @@ const editMode = ref(false)
 const activeTab = ref('personal')
 const showEditPaymentMethodModal = ref(false)
 const showAddPaymentMethodModal = ref(false)
+const showAddPaymentModal = ref(false)
 const settingDefault = ref(null)
 const deactivating = ref(null)
 const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
+const executingPayments = ref(false)
+
+// Payment-related state
+const paymentStatusFilter = ref('')
+const selectedPaymentIds = ref([])
+const filteredPayments = ref(props.member.payments ?
+  { data: props.member.payments, total: props.member.payments.length } :
+  { data: [], total: 0 }
+)
 
 const tabs = [
   { id: 'personal', name: 'Persönliche Daten', icon: User },
@@ -979,23 +1071,29 @@ const tabs = [
   { id: 'checkins', name: 'Check-Ins', icon: Clock },
 ]
 
+// Payment table columns configuration
+const paymentTableColumns = ref([
+  { key: 'id', label: 'ID', sortable: true, nowrap: true, visible: false },
+  { key: 'created_at', label: 'Datum', sortable: true, nowrap: true },
+  { key: 'amount', label: 'Betrag', sortable: true, nowrap: true },
+  { key: 'description', label: 'Beschreibung', sortable: false },
+  { key: 'status', label: 'Status', sortable: false, nowrap: true },
+  { key: 'payment_method', label: 'Zahlungsmethode', sortable: false, nowrap: true },
+  { key: 'due_date', label: 'Fälligkeitsdatum', sortable: false, nowrap: true }
+])
+
 const formatDateForInput = (dateString) => {
   return dateString ? dateString.split('T')[0] : '';
 };
 
-// Computed property für verfügbare Zahlungsmethoden
+// Computed properties
 const availablePaymentMethodTypes = computed(() => {
-  // Wenn availablePaymentMethods als Prop übergeben wurde
   if (props.availablePaymentMethods && props.availablePaymentMethods.length > 0) {
     return props.availablePaymentMethods
   }
-
-  // Wenn member.gym.enabled_payment_methods vorhanden ist
   if (props.member?.gym?.enabled_payment_methods) {
     return props.member.gym.enabled_payment_methods
   }
-
-  // Fallback auf leeres Array
   return []
 })
 
@@ -1006,27 +1104,38 @@ const currentMonth = computed(() => {
     return `${year}-${month}`;
 })
 
-// Helper um zu prüfen ob ein Payment Method Type SEPA ist
+const hasPendingPaymentsSelected = computed(() => {
+  return selectedPendingPaymentIds.value.length > 0
+})
+
+const selectedPendingPaymentIds = computed(() => {
+  if (!filteredPayments.value || !filteredPayments.value.data) return []
+  return selectedPaymentIds.value.filter(id => {
+    const payment = filteredPayments.value.data.find(p => p.id === id)
+    return payment && payment.status === 'pending'
+  })
+})
+
+// Helper functions
 const isSepaType = (type) => {
   return type === 'sepa_direct_debit' ||
          type === 'sepa' ||
          type === 'mollie_directdebit'
 }
 
-// Helper um zu prüfen ob ein Payment Method Type Kreditkarte ist
 const isCreditCardType = (type) => {
   return type === 'creditcard' ||
          type === 'mollie_creditcard' ||
          type?.includes('creditcard')
 }
 
-// Helper um zu prüfen ob ein Payment Method Type Banküberweisung ist
 const isBankTransferType = (type) => {
   return type === 'banktransfer' ||
          type === 'mollie_banktransfer' ||
          type?.includes('banktransfer')
 }
 
+// Forms
 const form = useForm({
   member_number: props.member.member_number,
   first_name: props.member.first_name,
@@ -1079,11 +1188,157 @@ const newPaymentMethodForm = useForm({
   notes: '',
 })
 
-watch(() => showAddPaymentMethodModal.value, (isOpen) => {
-  if (isOpen && !newPaymentMethodForm.expiry_date) {
-    newPaymentMethodForm.expiry_date = currentMonth.value
-  }
+const newPaymentForm = useForm({
+  amount: '',
+  description: '',
+  due_date: '',
+  paid_date: '',
+  payment_method: '',
+  status: 'pending',
+  notes: ''
 })
+
+// Payment methods
+const filterPayments = () => {
+  if (!props.member.payments) {
+    filteredPayments.value = { data: [], total: 0 }
+    return
+  }
+
+  let payments = [...props.member.payments]
+
+  if (paymentStatusFilter.value) {
+    payments = payments.filter(p => p.status === paymentStatusFilter.value)
+  }
+
+  filteredPayments.value = {
+    data: payments,
+    total: payments.length
+  }
+}
+
+const openAddPayment = () => {
+  newPaymentForm.reset()
+  newPaymentForm.due_date = new Date().toISOString().split('T')[0]
+  showAddPaymentModal.value = true
+}
+
+const closeAddPayment = () => {
+  showAddPaymentModal.value = false
+  newPaymentForm.reset()
+}
+
+const createPayment = () => {
+  newPaymentForm.post(route('members.payments.store', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeAddPayment()
+      // Reload member data and re-apply filters
+      router.reload({
+        only: ['member'],
+        preserveScroll: true,
+        onSuccess: () => {
+          filterPayments()
+        }
+      })
+    }
+  })
+}
+
+const executePayment = (payment) => {
+  if (!confirm(`Möchten Sie die Zahlung "${payment.description}" jetzt ausführen?`)) {
+    return
+  }
+
+  router.post(route('members.payments.execute', {
+    member: props.member.id,
+    payment: payment.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      // Reload member data and re-apply filters
+      router.reload({
+        only: ['member'],
+        preserveScroll: true,
+        onSuccess: () => {
+          filterPayments()
+        }
+      })
+    },
+    onError: () => {
+      alert('Die Zahlung konnte nicht ausgeführt werden.')
+    }
+  })
+}
+
+const executeSelectedPayments = () => {
+  const count = selectedPendingPaymentIds.value.length
+  if (!confirm(`Möchten Sie ${count} ausstehende Zahlung(en) jetzt ausführen?`)) {
+    return
+  }
+
+  executingPayments.value = true
+
+  router.post(route('members.payments.execute-batch', props.member.id), {
+    payment_ids: selectedPendingPaymentIds.value
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      executingPayments.value = false
+      selectedPaymentIds.value = []
+      // Reload member data and re-apply filters
+      router.reload({
+        only: ['member'],
+        preserveScroll: true,
+        onSuccess: () => {
+          filterPayments()
+        }
+      })
+    },
+    onError: () => {
+      executingPayments.value = false
+      alert('Die Zahlungen konnten nicht ausgeführt werden.')
+    }
+  })
+}
+
+const downloadInvoice = (payment) => {
+  // Placeholder für Rechnung-Download
+  window.open(route('members.payments.invoice', {
+    member: props.member.id,
+    payment: payment.id
+  }), '_blank')
+}
+
+const handlePaymentMarkedPaid = (payment) => {
+  // Update the payment status in the local state
+  if (props.member.payments) {
+    const paymentIndex = props.member.payments.findIndex(p => p.id === payment.id)
+    if (paymentIndex !== -1) {
+      // Update the original data
+      props.member.payments[paymentIndex].status = 'paid'
+      props.member.payments[paymentIndex].status_text = 'Bezahlt'
+      props.member.payments[paymentIndex].status_color = 'green'
+      props.member.payments[paymentIndex].paid_date = new Date().toISOString()
+
+      // Re-apply the filter to update the filtered view
+      filterPayments()
+    }
+  }
+
+  // Alternative: Reload the page data via Inertia (preserves scroll position)
+  // router.reload({ only: ['member'] })
+}
+
+const handleBeforeMarkPaid = (event) => {
+  // Here we can add additional validation if needed
+  // event.preventDefault = true would prevent the action
+
+  // Optional: Show loading state or confirm dialog
+  // if (!confirm('Möchten Sie diese Zahlung als bezahlt markieren?')) {
+  //   event.preventDefault = true
+  // }
+}
 
 // Payment Method Functions
 const setAsDefault = (paymentMethod) => {
@@ -1127,6 +1382,7 @@ const deactivatePaymentMethod = (paymentMethod) => {
 const openEditPaymentMethod = (paymentMethod) => {
   paymentMethodForm.id = paymentMethod.id
   paymentMethodForm.type = paymentMethod.type
+  paymentMethodForm.type_text = paymentMethod.type_text
   paymentMethodForm.status = paymentMethod.status
   paymentMethodForm.is_default = paymentMethod.is_default
 
@@ -1181,10 +1437,8 @@ const closeAddPaymentMethod = () => {
 }
 
 const createPaymentMethod = () => {
-  // Finde die gewählte Payment Method aus den verfügbaren Methoden
   const selectedMethod = availablePaymentMethodTypes.value.find(m => m.key === newPaymentMethodForm.type)
 
-  // Nur relevante Felder für den gewählten Typ senden
   const dataToSend = {
     type: newPaymentMethodForm.type,
     status: newPaymentMethodForm.status,
@@ -1192,7 +1446,6 @@ const createPaymentMethod = () => {
     requires_mandate: selectedMethod?.requires_mandate || false,
   }
 
-  // Je nach Typ nur die relevanten Felder hinzufügen
   if (isSepaType(newPaymentMethodForm.type)) {
     dataToSend.iban = newPaymentMethodForm.iban
     dataToSend.bank_name = newPaymentMethodForm.bank_name
@@ -1200,18 +1453,15 @@ const createPaymentMethod = () => {
     dataToSend.sepa_mandate_acknowledged = newPaymentMethodForm.sepa_mandate_acknowledged
     dataToSend.requires_mandate = true
   } else if (isCreditCardType(newPaymentMethodForm.type)) {
-    // Nur die letzten 4 Ziffern speichern
     const cardNumber = newPaymentMethodForm.card_number.replace(/\s+/g, '')
     dataToSend.last_four = cardNumber.slice(-4)
     dataToSend.cardholder_name = newPaymentMethodForm.cardholder_name
     dataToSend.expiry_date = newPaymentMethodForm.expiry_date
-    // CVV wird normalerweise nicht gespeichert, nur für die Validierung verwendet
   } else if (isBankTransferType(newPaymentMethodForm.type)) {
     dataToSend.bank_name = newPaymentMethodForm.bank_name
     dataToSend.notes = newPaymentMethodForm.notes
   }
 
-  // Für Mollie-Methoden zusätzliche Informationen hinzufügen
   if (newPaymentMethodForm.type.startsWith('mollie_')) {
     dataToSend.mollie_method_id = selectedMethod?.mollie_method_id || newPaymentMethodForm.type.replace('mollie_', '')
   }
@@ -1227,9 +1477,6 @@ const createPaymentMethod = () => {
   )
 }
 
-/**
- * Markiert ein SEPA-Mandat als unterschrieben
- */
 const markSepaMandateAsSigned = (paymentMethod) => {
   if (!confirm('Möchten Sie dieses SEPA-Mandat als unterschrieben markieren?\n\nDies sollte nur erfolgen, wenn Sie die unterschriebene Mandatserteilung vom Kunden erhalten haben.')) {
     return
@@ -1244,9 +1491,7 @@ const markSepaMandateAsSigned = (paymentMethod) => {
     preserveScroll: true,
     onSuccess: (page) => {
       markingAsSigned.value = null
-      // Optional: Zeige Success-Message wenn vorhanden
       if (page.props.flash?.success) {
-        // Verwende dein Toast/Notification System hier
         console.log('Erfolg:', page.props.flash.success)
       }
     },
@@ -1258,9 +1503,6 @@ const markSepaMandateAsSigned = (paymentMethod) => {
   })
 }
 
-/**
- * Aktiviert ein unterschriebenes SEPA-Mandat
- */
 const activateSepaMandate = (paymentMethod) => {
   if (!confirm('Möchten Sie dieses SEPA-Mandat aktivieren?\n\nNach der Aktivierung können Lastschriften eingezogen werden.')) {
     return
@@ -1287,13 +1529,9 @@ const activateSepaMandate = (paymentMethod) => {
   })
 }
 
-/**
- * Sendet ein SEPA-Mandat per E-Mail (Placeholder-Funktion)
- */
 const sendSepaMandate = (paymentMethod) => {
   sendingMandate.value = paymentMethod.id
 
-  // Zeige informativen Hinweis
   const message = `Diese Funktion ist noch nicht implementiert.
 
 Das SEPA-Mandat kann aktuell nur manuell versendet werden:
@@ -1305,58 +1543,12 @@ Diese Funktion wird in einem zukünftigen Update automatisiert.`
 
   alert(message)
 
-  // Reset nach kurzer Zeit
   setTimeout(() => {
     sendingMandate.value = null
   }, 500)
 }
 
-/**
- * Generiert ein SEPA-Mandat PDF (optional - für zukünftige Implementierung)
- */
-const generateSepaMandatePdf = (paymentMethod) => {
-  // Placeholder für PDF-Generierung
-  console.log('PDF-Generierung für Mandat:', paymentMethod.sepa_mandate_reference)
-
-  // In Zukunft könnte hier ein API-Call erfolgen:
-  // router.get(route('members.payment-methods.generate-mandate-pdf', {
-  //   member: props.member.id,
-  //   paymentMethod: paymentMethod.id
-  // }))
-}
-
-/**
- * Widerruft ein SEPA-Mandat
- */
-const revokeSepaMandate = (paymentMethod) => {
-  const reason = prompt('Bitte geben Sie einen Grund für den Widerruf an (optional):')
-
-  if (reason === null) {
-    // Benutzer hat abgebrochen
-    return
-  }
-
-  if (!confirm('Möchten Sie dieses SEPA-Mandat wirklich widerrufen?\n\nDies kann nicht rückgängig gemacht werden.')) {
-    return
-  }
-
-  // Diese Funktion würde einen zusätzlichen Controller-Endpunkt benötigen
-  router.put(route('members.payment-methods.revoke-mandate', {
-    member: props.member.id,
-    paymentMethod: paymentMethod.id
-  }), {
-    reason: reason || 'Manueller Widerruf'
-  }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      console.log('SEPA-Mandat wurde widerrufen')
-    },
-    onError: () => {
-      alert('Das SEPA-Mandat konnte nicht widerrufen werden.')
-    }
-  })
-}
-
+// Utility functions
 const getInitials = (firstName, lastName) => {
   return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase()
 }
@@ -1398,28 +1590,6 @@ const getBillingCycleText = (cycle) => {
   return cycles[cycle] || cycle
 }
 
-// Payment Method Helper Functions
-const getPaymentMethodName = (type) => {
-  // Erst in den verfügbaren Zahlungsmethoden suchen
-  const availableMethod = availablePaymentMethodTypes.value.find(m => m.key === type)
-  if (availableMethod) {
-    return availableMethod.name
-  }
-
-  // Fallback auf statische Namen
-  const names = {
-    'sepa_direct_debit': 'SEPA-Lastschrift',
-    'sepa': 'SEPA-Lastschrift',
-    'creditcard': 'Kreditkarte',
-    'banktransfer': 'Banküberweisung',
-    'cash': 'Barzahlung',
-    'invoice': 'Rechnung',
-    'mollie_creditcard': 'Mollie: Kreditkarte',
-    'mollie_directdebit': 'Mollie: SEPA-Lastschriftverfahren',
-  }
-  return names[type] || type
-}
-
 const getPaymentMethodIcon = (type) => {
   const icons = {
     'sepa_direct_debit': Building2,
@@ -1430,6 +1600,8 @@ const getPaymentMethodIcon = (type) => {
     'invoice': FileText,
     'mollie_creditcard': CreditCard,
     'mollie_directdebit': Building2,
+    'mollie_paypal': WalletCards,
+    'mollie_klarna': FileText,
   }
   return icons[type] || CreditCard
 }
@@ -1464,20 +1636,6 @@ const getSepaMandateStatusText = (status) => {
     'active': 'Aktiv',
     'revoked': 'Widerrufen',
     'expired': 'Abgelaufen'
-  }
-  return texts[status] || status
-}
-
-const getPaymentStatusClass = (status) => getStatusBadgeClass(status)
-
-const getPaymentStatusText = (status) => {
-  const texts = {
-    paid: 'Bezahlt',
-    pending: 'Ausstehend',
-    failed: 'Fehlgeschlagen',
-    cancelled: 'Storniert',
-    refunded: 'Erstattet',
-    expired: 'Verfallen'
   }
   return texts[status] || status
 }
@@ -1518,11 +1676,6 @@ const calculateDuration = (checkIn, checkOut) => {
   return `${hours}h ${minutes}m`
 }
 
-const isPaymentOverdue = (payment) => {
-  if (payment.status !== 'pending' || !payment.due_date) return false
-  return new Date(payment.due_date) < new Date()
-}
-
 const updateMember = () => {
   form.put(route('members.update', props.member.id), {
     onSuccess: () => {
@@ -1536,10 +1689,30 @@ const cancelEdit = () => {
   editMode.value = false
 }
 
+// Watchers
+watch(() => showAddPaymentMethodModal.value, (isOpen) => {
+  if (isOpen && !newPaymentMethodForm.expiry_date) {
+    newPaymentMethodForm.expiry_date = currentMonth.value
+  }
+})
+
+watch(paymentStatusFilter, () => {
+  filterPayments()
+})
+
+// Watch for changes in member payments data (after Inertia reload)
+watch(() => props.member.payments, () => {
+  filterPayments()
+}, { deep: true })
+
+// Lifecycle
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('edit') === 'true') {
     editMode.value = true
   }
+
+  // Initial filter application
+  filterPayments()
 })
 </script>
