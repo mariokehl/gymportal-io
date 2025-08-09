@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
 use App\Http\Controllers\Web\MemberController;
+use App\Http\Controllers\Web\MemberPaymentController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
@@ -62,6 +63,12 @@ Route::middleware(['auth:web', 'subscription'])->group(function () {
         // Neue SEPA-Mandat Routen
         Route::put('/{paymentMethod}/mark-signed', [PaymentMethodController::class, 'markSepaMandateAsSigned'])->name('mark-signed');
         Route::put('/{paymentMethod}/activate-mandate', [PaymentMethodController::class, 'activateSepaMandate'])->name('activate-mandate');
+    });
+    Route::prefix('members/{member}/payments')->name('members.payments.')->group(function () {
+        Route::post('/', [MemberPaymentController::class, 'store'])->name('store');
+        Route::post('/{payment}/execute', [MemberPaymentController::class, 'execute'])->name('execute');
+        Route::post('/execute-batch', [MemberPaymentController::class, 'executeBatch'])->name('execute-batch');
+        Route::get('/{payment}/invoice', [MemberPaymentController::class, 'invoice'])->name('invoice');
     });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');

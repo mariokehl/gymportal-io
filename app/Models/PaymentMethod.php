@@ -94,6 +94,10 @@ class PaymentMethod extends Model
             'banktransfer' => 'Banküberweisung',
             'cash' => 'Barzahlung',
             'invoice' => 'Rechnung',
+            'mollie_creditcard' => 'Mollie: Kreditkarte',
+            'mollie_directdebit' => 'Mollie: SEPA-Lastschriftverfahren',
+            'mollie_paypal' => 'Mollie: PayPal',
+            'mollie_klarna' => 'Mollie: Klarna',
         ][$this->type] ?? $this->type;
     }
 
