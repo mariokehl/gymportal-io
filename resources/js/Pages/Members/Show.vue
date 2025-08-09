@@ -394,17 +394,39 @@
                       <div class="flex space-x-2">
                         <button
                           type="button"
-                          class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
+                          @click="sendSepaMandate(paymentMethod)"
+                          :disabled="sendingMandate === paymentMethod.id"
+                          class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Mandat versenden
+                          {{ sendingMandate === paymentMethod.id ? 'Wird verarbeitet...' : 'Mandat versenden' }}
                         </button>
                         <button
                           type="button"
-                          class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                          @click="markSepaMandateAsSigned(paymentMethod)"
+                          :disabled="markingAsSigned === paymentMethod.id"
+                          class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Als unterschrieben markieren
+                          {{ markingAsSigned === paymentMethod.id ? 'Wird markiert...' : 'Als unterschrieben markieren' }}
                         </button>
                       </div>
+                    </div>
+                  </div>
+
+                  <!-- Zusätzliche Aktionen für unterschriebene Mandate -->
+                  <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'signed'" class="mt-4 p-3 bg-blue-50 rounded-md">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center">
+                        <CheckCircle class="w-5 h-5 text-blue-600 mr-2" />
+                        <span class="text-sm text-blue-800">SEPA-Mandat wurde unterschrieben und wartet auf Aktivierung</span>
+                      </div>
+                      <button
+                        type="button"
+                        @click="activateSepaMandate(paymentMethod)"
+                        :disabled="activatingMandate === paymentMethod.id"
+                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {{ activatingMandate === paymentMethod.id ? 'Wird aktiviert...' : 'Mandat aktivieren' }}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -838,6 +860,7 @@
                       <input
                         v-model="newPaymentMethodForm.expiry_date"
                         type="month"
+                        :min="currentMonth"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
@@ -922,7 +945,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
@@ -945,6 +968,9 @@ const showEditPaymentMethodModal = ref(false)
 const showAddPaymentMethodModal = ref(false)
 const settingDefault = ref(null)
 const deactivating = ref(null)
+const markingAsSigned = ref(null)
+const sendingMandate = ref(null)
+const activatingMandate = ref(null)
 
 const tabs = [
   { id: 'personal', name: 'Persönliche Daten', icon: User },
@@ -971,6 +997,13 @@ const availablePaymentMethodTypes = computed(() => {
 
   // Fallback auf leeres Array
   return []
+})
+
+const currentMonth = computed(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
 })
 
 // Helper um zu prüfen ob ein Payment Method Type SEPA ist
@@ -1044,6 +1077,12 @@ const newPaymentMethodForm = useForm({
   cvv: '',
   // Bank transfer fields
   notes: '',
+})
+
+watch(() => showAddPaymentMethodModal.value, (isOpen) => {
+  if (isOpen && !newPaymentMethodForm.expiry_date) {
+    newPaymentMethodForm.expiry_date = currentMonth.value
+  }
 })
 
 // Payment Method Functions
@@ -1188,6 +1227,136 @@ const createPaymentMethod = () => {
   )
 }
 
+/**
+ * Markiert ein SEPA-Mandat als unterschrieben
+ */
+const markSepaMandateAsSigned = (paymentMethod) => {
+  if (!confirm('Möchten Sie dieses SEPA-Mandat als unterschrieben markieren?\n\nDies sollte nur erfolgen, wenn Sie die unterschriebene Mandatserteilung vom Kunden erhalten haben.')) {
+    return
+  }
+
+  markingAsSigned.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.mark-signed', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: (page) => {
+      markingAsSigned.value = null
+      // Optional: Zeige Success-Message wenn vorhanden
+      if (page.props.flash?.success) {
+        // Verwende dein Toast/Notification System hier
+        console.log('Erfolg:', page.props.flash.success)
+      }
+    },
+    onError: (errors) => {
+      markingAsSigned.value = null
+      console.error('Fehler:', errors)
+      alert('Das SEPA-Mandat konnte nicht als unterschrieben markiert werden.')
+    }
+  })
+}
+
+/**
+ * Aktiviert ein unterschriebenes SEPA-Mandat
+ */
+const activateSepaMandate = (paymentMethod) => {
+  if (!confirm('Möchten Sie dieses SEPA-Mandat aktivieren?\n\nNach der Aktivierung können Lastschriften eingezogen werden.')) {
+    return
+  }
+
+  activatingMandate.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.activate-mandate', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: (page) => {
+      activatingMandate.value = null
+      if (page.props.flash?.success) {
+        console.log('Erfolg:', page.props.flash.success)
+      }
+    },
+    onError: (errors) => {
+      activatingMandate.value = null
+      console.error('Fehler:', errors)
+      alert('Das SEPA-Mandat konnte nicht aktiviert werden.')
+    }
+  })
+}
+
+/**
+ * Sendet ein SEPA-Mandat per E-Mail (Placeholder-Funktion)
+ */
+const sendSepaMandate = (paymentMethod) => {
+  sendingMandate.value = paymentMethod.id
+
+  // Zeige informativen Hinweis
+  const message = `Diese Funktion ist noch nicht implementiert.
+
+Das SEPA-Mandat kann aktuell nur manuell versendet werden:
+1. Generieren Sie das Mandat-PDF
+2. Versenden Sie es per E-Mail an: ${props.member.email}
+3. Nach Erhalt der Unterschrift markieren Sie es als "unterschrieben"
+
+Diese Funktion wird in einem zukünftigen Update automatisiert.`
+
+  alert(message)
+
+  // Reset nach kurzer Zeit
+  setTimeout(() => {
+    sendingMandate.value = null
+  }, 500)
+}
+
+/**
+ * Generiert ein SEPA-Mandat PDF (optional - für zukünftige Implementierung)
+ */
+const generateSepaMandatePdf = (paymentMethod) => {
+  // Placeholder für PDF-Generierung
+  console.log('PDF-Generierung für Mandat:', paymentMethod.sepa_mandate_reference)
+
+  // In Zukunft könnte hier ein API-Call erfolgen:
+  // router.get(route('members.payment-methods.generate-mandate-pdf', {
+  //   member: props.member.id,
+  //   paymentMethod: paymentMethod.id
+  // }))
+}
+
+/**
+ * Widerruft ein SEPA-Mandat
+ */
+const revokeSepaMandate = (paymentMethod) => {
+  const reason = prompt('Bitte geben Sie einen Grund für den Widerruf an (optional):')
+
+  if (reason === null) {
+    // Benutzer hat abgebrochen
+    return
+  }
+
+  if (!confirm('Möchten Sie dieses SEPA-Mandat wirklich widerrufen?\n\nDies kann nicht rückgängig gemacht werden.')) {
+    return
+  }
+
+  // Diese Funktion würde einen zusätzlichen Controller-Endpunkt benötigen
+  router.put(route('members.payment-methods.revoke-mandate', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {
+    reason: reason || 'Manueller Widerruf'
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      console.log('SEPA-Mandat wurde widerrufen')
+    },
+    onError: () => {
+      alert('Das SEPA-Mandat konnte nicht widerrufen werden.')
+    }
+  })
+}
+
 const getInitials = (firstName, lastName) => {
   return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase()
 }
@@ -1242,10 +1411,11 @@ const getPaymentMethodName = (type) => {
     'sepa_direct_debit': 'SEPA-Lastschrift',
     'sepa': 'SEPA-Lastschrift',
     'creditcard': 'Kreditkarte',
-    'mollie_creditcard': 'Mollie: Kreditkarte',
     'banktransfer': 'Banküberweisung',
     'cash': 'Barzahlung',
     'invoice': 'Rechnung',
+    'mollie_creditcard': 'Mollie: Kreditkarte',
+    'mollie_directdebit': 'Mollie: SEPA-Lastschriftverfahren',
   }
   return names[type] || type
 }
@@ -1257,7 +1427,9 @@ const getPaymentMethodIcon = (type) => {
     'creditcard': CreditCard,
     'banktransfer': Building2,
     'cash': Banknote,
-    'invoice': FileText
+    'invoice': FileText,
+    'mollie_creditcard': CreditCard,
+    'mollie_directdebit': Building2,
   }
   return icons[type] || CreditCard
 }
@@ -1304,7 +1476,8 @@ const getPaymentStatusText = (status) => {
     pending: 'Ausstehend',
     failed: 'Fehlgeschlagen',
     cancelled: 'Storniert',
-    refunded: 'Erstattet'
+    refunded: 'Erstattet',
+    expired: 'Verfallen'
   }
   return texts[status] || status
 }

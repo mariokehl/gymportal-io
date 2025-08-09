@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\PaymentMethod;
+use App\Services\MollieService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
@@ -18,7 +19,7 @@ class PaymentMethodController extends Controller
         $this->authorize('create', PaymentMethod::class);
 
         $validated = $request->validate([
-            'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice',
+            'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice,mollie_creditcard,mollie_klarna,mollie_paypal',
             'status' => 'required|in:active,pending',
             'is_default' => 'boolean',
             // SEPA
@@ -55,6 +56,8 @@ class PaymentMethodController extends Controller
         } else {
             $paymentMethod = $member->paymentMethods()->create($validated);
         }
+
+        app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
 
         return back()->with('success', 'Zahlungsmethode erfolgreich hinzugefügt.');
     }
@@ -101,6 +104,8 @@ class PaymentMethodController extends Controller
 
         $paymentMethod->update($validated);
 
+        app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
+
         return back()->with('success', 'Zahlungsmethode aktualisiert.');
     }
 
@@ -112,5 +117,60 @@ class PaymentMethodController extends Controller
         $paymentMethod->update(['status' => 'expired']);
 
         return back()->with('success', 'Zahlungsmethode deaktiviert.');
+    }
+
+    /**
+     * Markiert ein SEPA-Mandat als unterschrieben
+     */
+    public function markSepaMandateAsSigned(Member $member, PaymentMethod $paymentMethod)
+    {
+        // Ensure user can only modify payment methods from their gym
+        $this->authorize('update', $paymentMethod);
+
+        // Validierung: Nur SEPA-Zahlungsmethoden mit pending Mandat
+        if (!$paymentMethod->requiresSepaMandate()) {
+            return back()->with('error', 'Diese Zahlungsmethode benötigt kein SEPA-Mandat.');
+        }
+
+        if ($paymentMethod->sepa_mandate_status !== 'pending') {
+            return back()->with('error', 'Das SEPA-Mandat hat bereits einen anderen Status.');
+        }
+
+        // Mandat als unterschrieben markieren
+        $success = $paymentMethod->markSepaMandateAsSigned();
+
+        if ($success) {
+            return back()->with('success', 'SEPA-Mandat wurde als unterschrieben markiert.');
+        }
+
+        return back()->with('error', 'Das SEPA-Mandat konnte nicht als unterschrieben markiert werden.');
+    }
+
+    /**
+     * Aktiviert ein unterschriebenes SEPA-Mandat
+     */
+    public function activateSepaMandate(Member $member, PaymentMethod $paymentMethod)
+    {
+        // Ensure user can only modify payment methods from their gym
+        $this->authorize('update', $paymentMethod);
+
+        if (!$paymentMethod->requiresSepaMandate()) {
+            return back()->with('error', 'Diese Zahlungsmethode benötigt kein SEPA-Mandat.');
+        }
+
+        if ($paymentMethod->sepa_mandate_status !== 'signed') {
+            return back()->with('error', 'Das SEPA-Mandat muss erst unterschrieben sein, bevor es aktiviert werden kann.');
+        }
+
+        // Hole Creditor ID aus den Gym-Einstellungen (falls vorhanden)
+        $creditorId = $member->gym->sepa_creditor_id ?? null;
+
+        $success = $paymentMethod->activateSepaMandate($creditorId);
+
+        if ($success) {
+            return back()->with('success', 'SEPA-Mandat wurde aktiviert und kann nun für Lastschriften verwendet werden.');
+        }
+
+        return back()->with('error', 'Das SEPA-Mandat konnte nicht aktiviert werden.');
     }
 }

@@ -54,11 +54,14 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 Route::middleware(['auth:web', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
-    Route::name('members.payment-methods.')->group(function () {
-        Route::post('/members/{member}/payment-methods', [PaymentMethodController::class, 'store'])->name('store');
-        Route::put('/members/{member}/payment-methods/{paymentMethod}/set-default', [PaymentMethodController::class, 'setAsDefault'])->name('set-default');
-        Route::put('/members/{member}/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
-        Route::put('/members/{member}/payment-methods/{paymentMethod}/deactivate', [PaymentMethodController::class, 'deactivate'])->name('deactivate');
+    Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
+        Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
+        Route::put('/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+        Route::put('/{paymentMethod}/set-default', [PaymentMethodController::class, 'setAsDefault'])->name('set-default');
+        Route::put('/{paymentMethod}/deactivate', [PaymentMethodController::class, 'deactivate'])->name('deactivate');
+        // Neue SEPA-Mandat Routen
+        Route::put('/{paymentMethod}/mark-signed', [PaymentMethodController::class, 'markSepaMandateAsSigned'])->name('mark-signed');
+        Route::put('/{paymentMethod}/activate-mandate', [PaymentMethodController::class, 'activateSepaMandate'])->name('activate-mandate');
     });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');

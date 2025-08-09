@@ -59,7 +59,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.first_name }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('first_name', 'Vorname ist erforderlich')"
               />
               <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">
                 {{ errors.first_name }}
@@ -76,7 +76,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.last_name }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('last_name', 'Nachname ist erforderlich')"
               />
               <p v-if="errors.last_name" class="mt-1 text-sm text-red-600">
                 {{ errors.last_name }}
@@ -89,11 +89,12 @@
               </label>
               <input
                 id="email"
-                v-model="form.email"
+                v-model.trim="form.email"
                 type="email"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.email }"
-                @blur="validateStep1"
+                @blur="handleEmailBlur"
+                autocomplete="email"
               />
               <p v-if="errors.email" class="mt-1 text-sm text-red-600">
                 {{ errors.email }}
@@ -110,7 +111,7 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.phone }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('phone', 'Mobilfunknummer ist erforderlich')"
               />
               <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
                 {{ errors.phone }}
@@ -127,7 +128,7 @@
                 type="date"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.birth_date }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('birth_date', 'Geburtsdatum ist erforderlich')"
               />
               <p v-if="errors.birth_date" class="mt-1 text-sm text-red-600">
                 {{ errors.birth_date }}
@@ -148,7 +149,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.address }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('address', 'Straße und Hausnummer ist erforderlich')"
               />
               <p v-if="errors.address" class="mt-1 text-sm text-red-600">
                 {{ errors.address }}
@@ -166,7 +167,7 @@
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   :class="{ 'border-red-500': errors.postal_code }"
-                  @blur="validateStep1"
+                  @blur="handleFieldBlur('postal_code', 'PLZ ist erforderlich')"
                 />
                 <p v-if="errors.postal_code" class="mt-1 text-sm text-red-600">
                   {{ errors.postal_code }}
@@ -183,7 +184,7 @@
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   :class="{ 'border-red-500': errors.city }"
-                  @blur="validateStep1"
+                  @blur="handleFieldBlur('city', 'Stadt ist erforderlich')"
                 />
                 <p v-if="errors.city" class="mt-1 text-sm text-red-600">
                   {{ errors.city }}
@@ -200,7 +201,7 @@
                 v-model="form.country"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.country }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('country', 'Land ist erforderlich')"
               >
                 <option value="" selected>Land auswählen</option>
                 <option value="DE">Deutschland</option>
@@ -226,7 +227,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_name }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('emergency_contact_name', 'Name des Notfallkontakts ist erforderlich')"
               />
               <p v-if="errors.emergency_contact_name" class="mt-1 text-sm text-red-600">
                 {{ errors.emergency_contact_name }}
@@ -243,7 +244,7 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_phone }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('emergency_contact_phone', 'Telefon des Notfallkontakts ist erforderlich')"
               />
               <p v-if="errors.emergency_contact_phone" class="mt-1 text-sm text-red-600">
                 {{ errors.emergency_contact_phone }}
@@ -562,10 +563,101 @@ const selectedPlan = computed(() => {
 
 const errors = computed(() => form.errors)
 
+// Touch-Status für Felder verfolgen
+const touchedFields = ref(new Set())
+
+// Feld als berührt markieren
+const markFieldAsTouched = (fieldName) => {
+  touchedFields.value.add(fieldName)
+}
+
+// Prüfen ob Feld berührt wurde
+const isFieldTouched = (fieldName) => {
+  return touchedFields.value.has(fieldName)
+}
+
+// Email-Validierung (nur wenn Feld berührt wurde)
+const validateEmail = (email) => {
+  if (!isFieldTouched('email')) {
+    return true // Keine Validierung wenn nicht berührt
+  }
+
+  const trimmedEmail = email.trim()
+
+  // Email-Regex für Grundvalidierung
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!trimmedEmail) {
+    form.setError('email', 'E-Mail ist erforderlich')
+    return false
+  }
+
+  if (!emailRegex.test(trimmedEmail)) {
+    form.setError('email', 'Bitte geben Sie eine gültige E-Mail-Adresse ein')
+    return false
+  }
+
+  if (trimmedEmail.length > 255) {
+    form.setError('email', 'E-Mail-Adresse ist zu lang (maximal 255 Zeichen)')
+    return false
+  }
+
+  // Fehler löschen wenn E-Mail gültig ist
+  form.clearErrors('email')
+  return true
+}
+
+// Feldvalidierung für Pflichtfelder
+const validateRequiredField = (fieldName, fieldValue, errorMessage) => {
+  if (!isFieldTouched(fieldName)) {
+    return true // Keine Validierung wenn nicht berührt
+  }
+
+  if (!fieldValue || fieldValue.toString().trim() === '') {
+    form.setError(fieldName, errorMessage)
+    return false
+  }
+
+  form.clearErrors(fieldName)
+  return true
+}
+
+// Email-Feld Event Handler
+const handleEmailBlur = () => {
+  markFieldAsTouched('email')
+  validateEmail(form.email)
+}
+
+// Generische Handler für andere Felder
+const handleFieldBlur = (fieldName, errorMessage) => {
+  markFieldAsTouched(fieldName)
+  validateRequiredField(fieldName, form[fieldName], errorMessage)
+}
+
 // Step validation
 const validateStep1 = () => {
+  const step1Fields = ['first_name', 'last_name', 'phone', 'birth_date', 'address', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone']
+
+  let isValid = true
+
+  // Prüfe alle Pflichtfelder
+  step1Fields.forEach(field => {
+    if (!form[field] || form[field].toString().trim() === '') {
+      isValid = false
+    }
+  })
+
+  // Email separat prüfen
+  if (!form.email || form.email.trim() === '' || form.errors.email) {
+    isValid = false
+  }
+
+  return isValid
+}
+
+const touchAllStep1Fields = () => {
   const step1Fields = ['first_name', 'last_name', 'email', 'phone', 'birth_date', 'address', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone']
-  return step1Fields.every(field => form[field] && !form.errors[field])
+  step1Fields.forEach(field => markFieldAsTouched(field))
 }
 
 const validateStep2 = () => {
@@ -605,6 +697,28 @@ const getStepClasses = (index) => {
 }
 
 const nextStep = () => {
+  if (currentStep.value === 0) {
+    // Alle Felder als berührt markieren und validieren
+    touchAllStep1Fields()
+    const requiredFields = [
+      { field: 'first_name', message: 'Vorname ist erforderlich' },
+      { field: 'last_name', message: 'Nachname ist erforderlich' },
+      { field: 'phone', message: 'Mobilfunknummer ist erforderlich' },
+      { field: 'birth_date', message: 'Geburtsdatum ist erforderlich' },
+      { field: 'address', message: 'Straße und Hausnummer ist erforderlich' },
+      { field: 'city', message: 'Stadt ist erforderlich' },
+      { field: 'postal_code', message: 'PLZ ist erforderlich' },
+      { field: 'country', message: 'Land ist erforderlich' },
+      { field: 'emergency_contact_name', message: 'Name des Notfallkontakts ist erforderlich' },
+      { field: 'emergency_contact_phone', message: 'Telefon des Notfallkontakts ist erforderlich' }
+    ]
+
+    requiredFields.forEach(({ field, message }) => {
+      validateRequiredField(field, form[field], message)
+    })
+    validateEmail(form.email)
+  }
+
   if (currentStep.value < steps.length - 1 && isCurrentStepValid()) {
     currentStep.value++
   }

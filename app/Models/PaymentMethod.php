@@ -41,7 +41,7 @@ class PaymentMethod extends Model
         'requires_mandate' => 'boolean',
     ];
 
-    protected $appends = ['type_text', 'status_text', 'sepa_mandate_status_text'];
+    protected $appends = ['type_text', 'status_text', 'sepa_mandate_status_text', 'masked_iban'];
 
     /**
      * Standard-Konfiguration für Zahlungsmethoden
