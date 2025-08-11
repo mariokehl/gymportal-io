@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Services\MollieService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -94,7 +95,10 @@ class PaymentMethodsController extends Controller
     }
 
     /**
-     * Mollie-Konfiguration entfernen
+     * Remove Mollie configuration
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function removeMollieConfig(Request $request): JsonResponse
     {
@@ -103,6 +107,10 @@ class PaymentMethodsController extends Controller
         if (!$gym) {
             return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
         }
+
+        $config = $gym->mollie_config;
+
+        MollieService::deleteWebhookIfAny($config);
 
         $gym->update(['mollie_config' => null]);
 

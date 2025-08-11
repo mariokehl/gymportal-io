@@ -770,7 +770,14 @@ const closeMollieSetup = () => {
 const onMollieSetupCompleted = async () => {
     await loadPaymentMethods()
     successMessage.value = 'Mollie Integration erfolgreich eingerichtet!'
-    setTimeout(() => successMessage.value = '', 3000)
+    router.reload({
+        only: ['currentGym'],
+        preserveScroll: true,
+        preserveState: false,
+        onSuccess: () => {
+            setTimeout(() => successMessage.value = '', 3000)
+        }
+    })
 }
 
 const onMollieConfigSaved = async (config) => {
@@ -797,7 +804,14 @@ const removeMollieConfig = async () => {
 
         await loadPaymentMethods()
         successMessage.value = 'Mollie Integration erfolgreich entfernt!'
-        setTimeout(() => successMessage.value = '', 3000)
+        router.reload({
+            only: ['currentGym'],
+            preserveScroll: true,
+            preserveState: false,
+            onSuccess: () => {
+                setTimeout(() => successMessage.value = '', 3000)
+            }
+        })
     } catch (error) {
         console.error(error)
         errorMessage.value = 'Fehler beim Entfernen der Mollie Integration'
