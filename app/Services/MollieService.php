@@ -197,6 +197,81 @@ class MollieService
     }
 
     /**
+     * Create a new payment without storing it in the database
+     * Use this when you want to update an existing Payment model
+     */
+    public function createPaymentWithoutStoring(Member $member, Payment $payment, PaymentMethod $paymentMethod): MolliePayment
+    {
+        $client = $this->initializeClient($member->gym);
+        $config = $this->getConfig($member->gym);
+
+        // Setup payment details
+        $paymentData = [
+            'amount' => $payment->amount,
+            'currency' => $payment->currency ?? 'EUR',
+            'description' => $this->formatDescription($config, $payment->description),
+            'method' => $paymentMethod->type,
+            'customerId' => $paymentMethod->mollie_customer_id,
+            'sequenceType' => 'recurring', // (also for one-off payments with an existing mandate)
+            'mandateId' => $paymentMethod->mollie_mandate_id,
+            'metadata' => [
+                'payment_id' => $payment->id,
+                'member_id' => $member->id,
+                'membership_id' => $payment->membership_id,
+                'gym_id' => $member->gym_id
+            ]
+        ];
+
+        // Validate payment details
+        $this->validatePaymentData($paymentData);
+
+        // Create Mollie payment
+        $molliePayment = $client->payments->create($this->getMollieParamsBy($paymentData, $config));
+
+        // Update payment in local database
+        $this->updatePayment($molliePayment, $payment, $paymentMethod);
+
+        return $molliePayment;
+    }
+
+    /**
+     * @param array $paymentData
+     * @param array $config
+     * @return array
+     */
+    private function getMollieParamsBy(array $paymentData, array $config): array
+    {
+        $mollieParams = [
+            'amount' => [
+                'currency' => $paymentData['currency'] ?? 'EUR',
+                'value' => number_format($paymentData['amount'], 2, '.', '')
+            ],
+            'description' => $this->formatDescription($config, $paymentData['description']),
+            'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
+            'webhookUrl' => $paymentData['webhookUrl'] ?? $config['webhook_url'],
+            'method' => str_starts_with($paymentData['method'], 'mollie_')
+                ? substr($paymentData['method'], 7)
+                : $paymentData['method'],
+            'metadata' => $paymentData['metadata'] ?? []
+        ];
+
+        // Optionale Parameter hinzufügen (für wiederkehrende Zahlungen)
+        if (isset($paymentData['customerId'])) {
+            $mollieParams['customerId'] = $paymentData['customerId'];
+        }
+
+        if (isset($paymentData['sequenceType'])) {
+            $mollieParams['sequenceType'] = $paymentData['sequenceType'];
+        }
+
+        if (isset($paymentData['mandateId'])) {
+            $mollieParams['mandateId'] = $paymentData['mandateId'];
+        }
+
+        return $mollieParams;
+    }
+
+    /**
      * Get a payment from Mollie
      */
     public function getPayment(Gym $gym, string $paymentId): MolliePayment
@@ -420,7 +495,7 @@ class MollieService
             'description' => $paymentData['description'],
             'status' => $this->mapMollieStatus($molliePayment->status),
             'mollie_status' => $molliePayment->status,
-            'payment_method' => $molliePayment->method,
+            'payment_method' => $paymentData['method'],
             'checkout_url' => $molliePayment->getCheckoutUrl(),
             'user_id' => $paymentData['metadata']['user_id'] ?? null,
             'member_id' => $paymentData['metadata']['member_id'] ?? null,
@@ -428,6 +503,25 @@ class MollieService
             'metadata' => $paymentData['metdata'] ?? null,
             'due_date' => Carbon::now()->format('Y-m-d'),
             'created_at' => now(),
+        ]);
+    }
+
+    /**
+     * Update existing payment
+     *
+     * @param MolliePayment $molliePayment
+     * @param Payment $payment
+     * @param PaymentMethod $paymentMethod
+     * @return void
+     */
+    protected function updatePayment(MolliePayment $molliePayment, Payment $payment, PaymentMethod $paymentMethod): void
+    {
+        $payment->update([
+            'mollie_payment_id' => $molliePayment->id,
+            'status' => $this->mapMollieStatus($molliePayment->status),
+            'mollie_status' => $molliePayment->status,
+            'payment_method' => $paymentMethod->type,
+            'paid_date' => Carbon::now()->format('Y-m-d'),
         ]);
     }
 
