@@ -57,8 +57,6 @@ class PaymentMethodController extends Controller
             $paymentMethod = $member->paymentMethods()->create($validated);
         }
 
-        app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
-
         return back()->with('success', 'Zahlungsmethode erfolgreich hinzugefügt.');
     }
 
@@ -103,8 +101,6 @@ class PaymentMethodController extends Controller
         unset($validated['type']);
 
         $paymentMethod->update($validated);
-
-        app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
 
         return back()->with('success', 'Zahlungsmethode aktualisiert.');
     }
@@ -166,6 +162,9 @@ class PaymentMethodController extends Controller
         $creditorId = $member->gym->sepa_creditor_id ?? null;
 
         $success = $paymentMethod->activateSepaMandate($creditorId);
+
+        // Mandat ggf. bei Mollie anlegen
+        app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
 
         if ($success) {
             return back()->with('success', 'SEPA-Mandat wurde aktiviert und kann nun für Lastschriften verwendet werden.');
