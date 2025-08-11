@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $user->id,
                         'first_name' => $user->first_name,
                         'last_name' => $user->last_name,
+                        'email' => $user->email, // E-Mail hinzugefügt für Verifizierungsseite
                         'current_gym' => $user->currentGym !== null ? [
                             'id' => $user->currentGym->id,
                             'name' => $user->currentGym->name,
@@ -64,6 +65,7 @@ class HandleInertiaRequests extends Middleware
                         })->all(),
                     ]));
                 },
+                'verified' => $request->user()?->hasVerifiedEmail(),
             ],
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),

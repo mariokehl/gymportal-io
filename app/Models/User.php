@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Notifications\ResetPassword as ResetPasswordNotification;
+use App\Notifications\VerifyEmailGerman;
 use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, SoftDeletes, CanResetPassword;
 
@@ -32,6 +34,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    // Überschreibe die Standard-Verifizierungs-E-Mail
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new VerifyEmailGerman);
+    }
 
     // Overrides the default password reset notification
     public function sendPasswordResetNotification($token)

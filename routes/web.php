@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
@@ -40,6 +39,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// Email verification
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [AuthController::class, 'showVerifyEmail'])->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware('throttle:6,1')->name('verification.send');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
 // Billing-Routen
 Route::middleware(['auth', 'verified'])->group(function () {
     // Billing Management
@@ -52,7 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook'])->name('billing.webhook')->middleware('paddleIp');
 
 // Protected routes
-Route::middleware(['auth:web', 'subscription'])->group(function () {
+Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
     Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
@@ -107,7 +114,6 @@ Route::middleware(['auth:web', 'subscription'])->group(function () {
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');
     Route::delete('/gyms/remove/{gym}', [GymController::class, 'remove'])->name('gyms.remove');
     Route::post('/user/switch-organization', [GymController::class, 'switchOrganization'])->name('user.switch-organization');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
 // Zusätzliche Widget-Admin-Routes für AJAX-Calls
