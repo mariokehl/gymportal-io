@@ -162,7 +162,9 @@ class MemberController extends Controller
                 'member_id' => $newMember->id,
                 'membership_plan_id' => $request->membership_plan_id,
                 'start_date' => $validated['joined_date'],
-                'end_date' => Carbon::parse($validated['joined_date'])->addMonths($membershipPlan->commitment_months),
+                'end_date' => Carbon::parse($validated['joined_date'])
+                    ->addMonths($membershipPlan->commitment_months)
+                    ->subDay(), // Einen Tag abziehen für korrektes Vertragsende
                 'status' => 'pending' // bis erste Zahlung erfolgt
             ]);
 

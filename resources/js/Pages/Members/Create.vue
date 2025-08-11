@@ -756,13 +756,16 @@ const formatDate = (dateString) => {
 }
 
 const getEndDate = () => {
-  if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
+    if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
 
-  const startDate = new Date(form.joined_date)
-  const endDate = new Date(startDate)
-  endDate.setMonth(endDate.getMonth() + selectedPlan.value.commitment_months)
+    const startDate = new Date(form.joined_date)
+    const endDate = new Date(startDate)
+    endDate.setMonth(endDate.getMonth() + selectedPlan.value.commitment_months)
 
-  return endDate.toLocaleDateString('de-DE')
+    // Einen Tag abziehen für korrektes Vertragsende
+    endDate.setDate(endDate.getDate() - 1)
+
+    return endDate.toLocaleDateString('de-DE')
 }
 
 const getPaymentMethodLabel = () => {
