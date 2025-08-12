@@ -98,6 +98,7 @@ class PaymentMethod extends Model
             'mollie_directdebit' => 'Mollie: SEPA-Lastschriftverfahren',
             'mollie_paypal' => 'Mollie: PayPal',
             'mollie_klarna' => 'Mollie: Klarna',
+            'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
         ][$this->type] ?? $this->type;
     }
 
