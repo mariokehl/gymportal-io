@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
 use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MemberPaymentController;
+use App\Http\Controllers\Web\MembershipController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
@@ -62,6 +63,13 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
+    Route::prefix('members/{member}/memberships/{membership}')->group(function () {
+        Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');
+        Route::put('/pause', [MembershipController::class, 'pause'])->name('members.memberships.pause');
+        Route::put('/resume', [MembershipController::class, 'resume'])->name('members.memberships.resume');
+        Route::put('/cancel', [MembershipController::class, 'cancel'])->name('members.memberships.cancel');
+        Route::put('/revoke-cancellation', [MembershipController::class, 'revokeCancellation'])->name('members.memberships.revoke-cancellation');
+    });
     Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
         Route::put('/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
