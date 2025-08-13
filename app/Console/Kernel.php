@@ -18,23 +18,26 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // ===================================
-        // MEMBERSHIP PAYMENT PROCESSING
+        // MEMBERSHIP PROCESSING
         // ===================================
 
-        // Main payment processing - runs daily at 2 AM
-        $schedule->command('memberships:process-payments')
+        // Main processing - runs daily at 2 AM
+        $schedule->command('memberships:daily-process')
             ->dailyAt('02:00')
             ->withoutOverlapping()
-            ->runInBackground()
             ->onSuccess(function () {
-                Log::info('Daily membership payment processing completed successfully');
+                Log::info('Daily membership processing completed successfully');
             })
             ->onFailure(function () {
-                Log::error('Daily membership payment processing failed');
+                Log::error('Daily membership processing failed');
                 // Send alert to administrators
-                $this->notifyAdministrators('Payment processing failed');
+                $this->notifyAdministrators('Membership processing failed');
             })
-            ->appendOutputTo(storage_path('logs/scheduler-payments.log'));
+            ->appendOutputTo(storage_path('logs/scheduler-memberships.log'));
+
+        // ===================================
+        // MEMBERSHIP PAYMENT PROCESSING
+        // ===================================
 
         // Retry failed payments - runs at 10 AM
         //$schedule->command('memberships:retry-failed-payments')

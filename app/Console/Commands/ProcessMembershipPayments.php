@@ -336,10 +336,27 @@ class ProcessMembershipPayments extends Command
     }
 
     /**
-     * Create payments for a specific membership
+     * Create upcoming payments - mit Status-Check
      */
     protected function createPaymentsForMembership(Membership $membership): int
     {
+        // Keine Zahlungen für nicht-aktive Mitgliedschaften erstellen
+        if (!in_array($membership->status, ['active'])) {
+            if ($this->verboseLog) {
+                $this->info("→ Skipping payment creation for {$membership->status} membership #{$membership->id}");
+            }
+            return 0;
+        }
+
+        // Keine Zahlungen für gekündigte Mitgliedschaften
+        if ($membership->cancellation_date &&
+            Carbon::parse($membership->cancellation_date)->isPast()) {
+            if ($this->verboseLog) {
+                $this->info("→ Skipping payment creation for cancelled membership #{$membership->id}");
+            }
+            return 0;
+        }
+
         $plan = $membership->membershipPlan;
         $member = $membership->member;
         $created = 0;
@@ -416,19 +433,22 @@ class ProcessMembershipPayments extends Command
 
     /**
      * Process contract renewals and expirations
+     * Angepasst um mit bereits aktualisierten Status zu arbeiten
      */
     protected function processContractRenewals(): array
     {
         $stats = ['renewed' => 0, 'expired' => 0];
 
         // Get memberships expiring within the next 30 days
-        $expiringMemberships = Membership::where('status', 'active')
+        // Schließt bereits expired/cancelled aus
+        $expiringMemberships = Membership::whereIn('status', ['active', 'paused'])
             ->whereNotNull('end_date')
             ->whereDate('end_date', '<=', Carbon::today()->addDays(30))
+            ->whereNull('cancellation_date') // Keine gekündigten
             ->with(['member', 'membershipPlan'])
             ->get();
 
-        $this->info("Found {$expiringMemberships->count()} memberships to review");
+        $this->info("Found {$expiringMemberships->count()} memberships to review for renewal");
 
         foreach ($expiringMemberships as $membership) {
             try {
@@ -441,11 +461,14 @@ class ProcessMembershipPayments extends Command
                         $this->info("✓ Renewed membership #{$membership->id}");
                     }
                 } else if ($membership->end_date->isToday() || $membership->end_date->isPast()) {
-                    $this->expireMembership($membership);
-                    $stats['expired']++;
+                    // Nur expiren wenn noch nicht expired
+                    if ($membership->status !== 'expired') {
+                        $this->expireMembership($membership);
+                        $stats['expired']++;
 
-                    if ($this->verboseLog) {
-                        $this->info("✓ Expired membership #{$membership->id}");
+                        if ($this->verboseLog) {
+                            $this->info("✓ Expired membership #{$membership->id}");
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -538,10 +561,18 @@ class ProcessMembershipPayments extends Command
     }
 
     /**
-     * Expire a membership
+     * Expire a membership (nur wenn noch nicht durch UpdateMembershipStatuses erfolgt)
      */
     protected function expireMembership(Membership $membership): void
     {
+        // Prüfen ob bereits expired durch anderen Prozess
+        if ($membership->status === 'expired') {
+            if ($this->verboseLog) {
+                $this->info("→ Membership #{$membership->id} already expired, skipping");
+            }
+            return;
+        }
+
         if ($this->testMode) {
             $this->logTestAction('membership_expiration', [
                 'membership_id' => $membership->id,
@@ -554,6 +585,7 @@ class ProcessMembershipPayments extends Command
             'status' => 'expired',
             'metadata' => array_merge($membership->metadata ?? [], [
                 'expired_at' => now()->toDateTimeString(),
+                'expired_by' => 'payment_processor', // Kennzeichnung der Quelle
             ])
         ]);
 
@@ -563,7 +595,7 @@ class ProcessMembershipPayments extends Command
             $member->update(['status' => 'inactive']);
         }
 
-        Log::info('Membership expired', [
+        Log::info('Membership expired by payment processor', [
             'membership_id' => $membership->id,
             'member_id' => $membership->member_id,
         ]);

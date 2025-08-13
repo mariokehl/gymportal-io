@@ -227,25 +227,125 @@
                 <div class="flex justify-between items-start">
                   <div>
                     <h4 class="text-lg font-semibold">
-                        {{ membership.membership_plan.name }}
-                        <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
-                          {{ getStatusText(membership.status) }}
-                        </span>
+                      {{ membership.membership_plan.name }}
+                      <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
+                        {{ getStatusText(membership.status) }}
+                      </span>
                     </h4>
                     <p class="text-gray-600">{{ membership.membership_plan.description }}</p>
                     <div class="mt-2 space-y-1">
                       <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
+                      <p v-if="membership.membership_plan.commitment_months" class="text-sm">
+                        <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
+                      </p>
+                      <p v-if="membership.membership_plan.cancellation_period_days" class="text-sm">
+                        <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.cancellation_period_days }} Tage
+                      </p>
+                      <p v-if="membership.cancellation_date" class="text-sm text-red-600">
+                        <span class="font-medium">Gekündigt zum:</span> {{ formatDate(membership.cancellation_date) }}
+                      </p>
                     </div>
                   </div>
-                  <div class="text-right">
-                    <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
-                    <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
+                  <div class="flex flex-col items-end">
+                    <!-- Aktions-Buttons für Mitgliedschaften - über dem Preis -->
+                    <div v-if="membership.status === 'active' || membership.status === 'paused' || membership.status === 'pending'" class="flex flex-wrap items-center justify-end gap-2 sm:gap-3 mb-3">
+                      <!-- Pending Mitgliedschaft aktivieren -->
+                      <button
+                        v-if="membership.status === 'pending'"
+                        @click="activateMembership(membership)"
+                        type="button"
+                        class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="activatingMembership === membership.id"
+                      >
+                        <CheckCircle class="w-4 h-4" />
+                        <span>{{ activatingMembership === membership.id ? 'Wird aktiviert...' : 'Aktivieren' }}</span>
+                      </button>
+
+                      <!-- Pausieren Button -->
+                      <button
+                        v-if="membership.status === 'active' && !membership.cancellation_date"
+                        @click="openPauseMembership(membership)"
+                        type="button"
+                        class="text-sm text-yellow-600 hover:text-yellow-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="pausingMembership === membership.id"
+                      >
+                        <Clock class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ pausingMembership === membership.id ? 'Wird stillgelegt...' : 'Stilllegen' }}</span>
+                        <span class="sm:hidden">{{ pausingMembership === membership.id ? '...' : 'Pause' }}</span>
+                      </button>
+
+                      <!-- Fortsetzen Button -->
+                      <button
+                        v-if="membership.status === 'paused'"
+                        @click="resumeMembership(membership)"
+                        type="button"
+                        class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="resumingMembership === membership.id"
+                      >
+                        <PlayCircle class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ resumingMembership === membership.id ? 'Wird aktiviert...' : 'Fortsetzen' }}</span>
+                        <span class="sm:hidden">{{ resumingMembership === membership.id ? '...' : 'Weiter' }}</span>
+                      </button>
+
+                      <!-- Trennlinie -->
+                      <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date" class="hidden sm:block w-px h-4 bg-gray-300"></div>
+
+                      <!-- Kündigen Button -->
+                      <button
+                        v-if="!membership.cancellation_date && membership.status !== 'pending'"
+                        @click="openCancelMembership(membership)"
+                        type="button"
+                        class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="cancellingMembership === membership.id"
+                      >
+                        <XCircle class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ cancellingMembership === membership.id ? 'Wird gekündigt...' : 'Kündigen' }}</span>
+                        <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
+                      </button>
+
+                      <!-- Kündigung zurücknehmen Button -->
+                      <button
+                        v-if="membership.cancellation_date"
+                        @click="revokeCancellation(membership)"
+                        type="button"
+                        class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="revokingCancellation === membership.id"
+                      >
+                        <RotateCcw class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ revokingCancellation === membership.id ? 'Wird zurückgenommen...' : 'Kündigung zurücknehmen' }}</span>
+                        <span class="sm:hidden">{{ revokingCancellation === membership.id ? '...' : 'Zurück' }}</span>
+                      </button>
+                    </div>
+
+                    <!-- Preis-Anzeige -->
+                    <div class="text-right">
+                      <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
+                      <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
+                    </div>
                   </div>
                 </div>
+
+                <div v-if="membership.status === 'pending'" class="mt-3 p-3 bg-orange-50 rounded-md">
+                  <p class="text-sm text-orange-800">
+                    <AlertCircle class="w-4 h-4 inline mr-1" />
+                    Diese Mitgliedschaft wartet auf Aktivierung
+                  </p>
+                </div>
+
                 <div v-if="membership.pause_start_date" class="mt-3 p-3 bg-yellow-50 rounded-md">
                   <p class="text-sm text-yellow-800">
                     <Clock class="w-4 h-4 inline mr-1" />
                     Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
+                  </p>
+                </div>
+
+                <div v-if="membership.cancellation_date" class="mt-3 p-3 bg-red-50 rounded-md">
+                  <p class="text-sm text-red-800">
+                    <AlertCircle class="w-4 h-4 inline mr-1" />
+                    Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
+                    <span v-if="membership.cancellation_reason" class="block mt-1">
+                      Grund: {{ membership.cancellation_reason }}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -555,6 +655,210 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal für Mitgliedschaft pausieren -->
+    <teleport to="body">
+      <div v-if="showPauseMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closePauseMembership">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="pauseMembership">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Mitgliedschaft stilllegen
+                </h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  Die Mitgliedschaft wird für den angegebenen Zeitraum pausiert.
+                  Der Vertrag verlängert sich entsprechend.
+                </p>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Pausierung beginnt am <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="pauseMembershipForm.pause_start_date"
+                    type="date"
+                    :min="new Date().toISOString().split('T')[0]"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Pausierung endet am <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="pauseMembershipForm.pause_end_date"
+                    type="date"
+                    :min="pauseMembershipForm.pause_start_date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Grund (optional)
+                  </label>
+                  <textarea
+                    v-model="pauseMembershipForm.reason"
+                    rows="3"
+                    placeholder="z.B. Urlaub, Verletzung, etc."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div v-if="pauseMembershipForm.errors && Object.keys(pauseMembershipForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in pauseMembershipForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="pauseMembershipForm.processing"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {{ pauseMembershipForm.processing ? 'Wird pausiert...' : 'Mitgliedschaft pausieren' }}
+              </button>
+              <button
+                type="button"
+                @click="closePauseMembership"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Modal für Mitgliedschaft kündigen -->
+    <teleport to="body">
+      <div v-if="showCancelMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeCancelMembership">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="cancelMembership">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Mitgliedschaft kündigen
+                </h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  Die Mitgliedschaft wird zum angegebenen Datum beendet.
+                </p>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Kündigungsdatum <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="cancelMembershipForm.cancellation_date"
+                    type="date"
+                    :min="cancelMembershipForm.min_cancellation_date || new Date().toISOString().split('T')[0]"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                  <p class="mt-1 text-sm text-gray-500">
+                    Die Mitgliedschaft endet zu diesem Datum.
+                  </p>
+                  <p v-if="selectedMembership?.membership_plan?.commitment_months" class="mt-1 text-sm text-yellow-600">
+                    <AlertCircle class="w-3 h-3 inline mr-1" />
+                    Mindestlaufzeit: {{ selectedMembership.membership_plan.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
+                  </p>
+                  <p v-if="selectedMembership?.membership_plan?.cancellation_period_days" class="mt-1 text-sm text-blue-600">
+                    <Clock class="w-3 h-3 inline mr-1" />
+                    Kündigungsfrist: {{ selectedMembership.membership_plan.cancellation_period_days }} Tage
+                  </p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Kündigungsgrund <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    v-model="cancelMembershipForm.cancellation_reason"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  >
+                    <option value="">Bitte wählen...</option>
+                    <option value="move">Umzug</option>
+                    <option value="financial">Finanzielle Gründe</option>
+                    <option value="health">Gesundheitliche Gründe</option>
+                    <option value="dissatisfied">Unzufriedenheit</option>
+                    <option value="no_time">Zeitmangel</option>
+                    <option value="other">Sonstiges</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="flex items-center">
+                    <input
+                      v-model="cancelMembershipForm.immediate"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">
+                      Sofort kündigen (außerordentliche Kündigung)
+                      <span v-if="selectedMembership?.membership_plan?.commitment_months" class="text-gray-500">
+                        - umgeht die Mindestlaufzeit
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="mt-4 p-3 bg-yellow-50 rounded-md">
+                <div class="flex items-start">
+                  <AlertCircle class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
+                  <div class="text-sm text-yellow-800">
+                    <p class="font-medium">Wichtiger Hinweis:</p>
+                    <p class="mt-1">
+                      Diese Aktion kann rückgängig gemacht werden, solange das Kündigungsdatum noch nicht erreicht wurde.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="cancelMembershipForm.errors && Object.keys(cancelMembershipForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in cancelMembershipForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="cancelMembershipForm.processing"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {{ cancelMembershipForm.processing ? 'Wird gekündigt...' : 'Mitgliedschaft kündigen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeCancelMembership"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
 
     <!-- Edit Payment Method Modal -->
     <teleport to="body">
@@ -1033,7 +1337,8 @@ import PaymentsTable from '@/Components/PaymentsTable.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
-  Download, Building2, Banknote, PlayCircle, WalletCards
+  Download, Building2, Banknote, PlayCircle, WalletCards,
+  XCircle, RotateCcw
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -1046,6 +1351,18 @@ const props = defineProps({
 
 const editMode = ref(false)
 const activeTab = ref('personal')
+
+// Membership-related state
+const pausingMembership = ref(null)
+const resumingMembership = ref(null)
+const cancellingMembership = ref(null)
+const revokingCancellation = ref(null)
+const activatingMembership = ref(null)
+const showPauseMembershipModal = ref(false)
+const showCancelMembershipModal = ref(false)
+const selectedMembership = ref(null)
+
+// PaymentMethod-related state
 const showEditPaymentMethodModal = ref(false)
 const showAddPaymentMethodModal = ref(false)
 const showAddPaymentModal = ref(false)
@@ -1154,6 +1471,23 @@ const form = useForm({
   joined_date: formatDateForInput(props.member.joined_date),
 })
 
+// Forms für Mitgliedschafts-Aktionen
+const pauseMembershipForm = useForm({
+  membership_id: null,
+  pause_start_date: '',
+  pause_end_date: '',
+  reason: ''
+})
+
+const cancelMembershipForm = useForm({
+  membership_id: null,
+  cancellation_date: '',
+  cancellation_reason: '',
+  immediate: false,
+  min_cancellation_date: null
+})
+
+// Forms für Zahlungsmethoden
 const paymentMethodForm = useForm({
   id: null,
   type: '',
@@ -1197,6 +1531,172 @@ const newPaymentForm = useForm({
   status: 'pending',
   notes: ''
 })
+
+// Mitgliedschafts-Aktionen
+const activateMembership = (membership) => {
+  if (!confirm('Möchten Sie diese Mitgliedschaft aktivieren?')) {
+    return
+  }
+
+  activatingMembership.value = membership.id
+
+  router.put(route('members.memberships.activate', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      activatingMembership.value = null
+    },
+    onError: () => {
+      activatingMembership.value = null
+      alert('Die Mitgliedschaft konnte nicht aktiviert werden.')
+    }
+  })
+}
+
+const openPauseMembership = (membership) => {
+  selectedMembership.value = membership
+  pauseMembershipForm.membership_id = membership.id
+  pauseMembershipForm.pause_start_date = new Date().toISOString().split('T')[0]
+
+  // Standardmäßig für 1 Monat pausieren
+  const endDate = new Date()
+  endDate.setMonth(endDate.getMonth() + 1)
+  pauseMembershipForm.pause_end_date = endDate.toISOString().split('T')[0]
+
+  showPauseMembershipModal.value = true
+}
+
+const closePauseMembership = () => {
+  showPauseMembershipModal.value = false
+  pauseMembershipForm.reset()
+  selectedMembership.value = null
+}
+
+const pauseMembership = () => {
+  pauseMembershipForm.put(route('members.memberships.pause', {
+    member: props.member.id,
+    membership: pauseMembershipForm.membership_id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closePauseMembership()
+      pausingMembership.value = null
+    },
+    onError: () => {
+      pausingMembership.value = null
+    }
+  })
+}
+
+const resumeMembership = (membership) => {
+  if (!confirm('Möchten Sie diese Mitgliedschaft wirklich wieder aufnehmen?')) {
+    return
+  }
+
+  resumingMembership.value = membership.id
+
+  router.put(route('members.memberships.resume', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      resumingMembership.value = null
+    },
+    onError: () => {
+      resumingMembership.value = null
+      alert('Die Mitgliedschaft konnte nicht wieder aufgenommen werden.')
+    }
+  })
+}
+
+const openCancelMembership = (membership) => {
+  selectedMembership.value = membership
+  cancelMembershipForm.membership_id = membership.id
+
+  // Mindestlaufzeit und Kündigungsfrist berücksichtigen
+  let minCancellationDate = new Date()
+
+  // Kündigungsfrist berücksichtigen
+  if (membership.membership_plan.cancellation_period_days) {
+    minCancellationDate.setDate(minCancellationDate.getDate() + membership.membership_plan.cancellation_period_days)
+  }
+
+  // Mindestlaufzeit berücksichtigen
+  if (membership.membership_plan.commitment_months) {
+    const startDate = new Date(membership.start_date)
+    const minEndDate = new Date(startDate)
+    minEndDate.setMonth(minEndDate.getMonth() + membership.membership_plan.commitment_months)
+
+    if (minEndDate > minCancellationDate) {
+      minCancellationDate = minEndDate
+    }
+  }
+
+  // Standardmäßig zum Ende der Laufzeit oder Mindestlaufzeit kündigen
+  if (membership.end_date) {
+    const endDate = new Date(membership.end_date)
+    if (endDate > minCancellationDate) {
+      cancelMembershipForm.cancellation_date = formatDateForInput(membership.end_date)
+    } else {
+      cancelMembershipForm.cancellation_date = minCancellationDate.toISOString().split('T')[0]
+    }
+  } else {
+    cancelMembershipForm.cancellation_date = minCancellationDate.toISOString().split('T')[0]
+  }
+
+  // Store minimum date for validation
+  cancelMembershipForm.min_cancellation_date = minCancellationDate.toISOString().split('T')[0]
+
+  showCancelMembershipModal.value = true
+}
+
+const closeCancelMembership = () => {
+  showCancelMembershipModal.value = false
+  cancelMembershipForm.reset()
+  cancelMembershipForm.min_cancellation_date = null
+  selectedMembership.value = null
+}
+
+const cancelMembership = () => {
+  cancelMembershipForm.put(route('members.memberships.cancel', {
+    member: props.member.id,
+    membership: cancelMembershipForm.membership_id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeCancelMembership()
+      cancellingMembership.value = null
+    },
+    onError: () => {
+      cancellingMembership.value = null
+    }
+  })
+}
+
+const revokeCancellation = (membership) => {
+  if (!confirm('Möchten Sie die Kündigung wirklich zurücknehmen?')) {
+    return
+  }
+
+  revokingCancellation.value = membership.id
+
+  router.put(route('members.memberships.revoke-cancellation', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      revokingCancellation.value = null
+    },
+    onError: () => {
+      revokingCancellation.value = null
+      alert('Die Kündigung konnte nicht zurückgenommen werden.')
+    }
+  })
+}
 
 // Payment methods
 const filterPayments = () => {
@@ -1557,7 +2057,7 @@ const getStatusBadgeClass = (status) => {
   const classes = {
     active: 'bg-green-100 text-green-800',
     inactive: 'bg-gray-100 text-gray-800',
-    suspended: 'bg-yellow-100 text-yellow-800',
+    paused: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-red-100 text-red-800',
     paid: 'bg-green-100 text-green-800',
     pending: 'bg-orange-100 text-orange-800',
@@ -1571,7 +2071,7 @@ const getStatusText = (status) => {
   const texts = {
     active: 'Aktiv',
     inactive: 'Inaktiv',
-    suspended: 'Pausiert',
+    paused: 'Pausiert',
     cancelled: 'Gekündigt',
     paid: 'Bezahlt',
     pending: 'Ausstehend',
