@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -33,6 +35,14 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+
+            /** @var User $user */
+            $user = Auth::user();
+
+            if (!$user->hasVerifiedEmail()) {
+                return redirect()->route('verification.notice');
+            }
+
             return redirect()->intended('/dashboard');
         }
 
@@ -53,7 +63,7 @@ class AuthController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'terms_accepted' => ['required', 'accepted'], // Wichtig für die Validierung
+            'terms_accepted' => ['required', 'accepted'],
         ], [
             'terms_accepted.required' => 'Sie müssen den Allgemeinen Geschäftsbedingungen und der Datenschutzerklärung zustimmen.',
             'terms_accepted.accepted' => 'Sie müssen den Allgemeinen Geschäftsbedingungen und der Datenschutzerklärung zustimmen.',
@@ -85,8 +95,13 @@ class AuthController extends Controller
 
             DB::commit();
 
+            // Löse das Registered Event aus - das verschickt die Verifizierungs-E-Mail!
+            event(new Registered($user));
+
             Auth::login($user);
-            return redirect('/dashboard');
+
+            // Zur Verifizierungsseite weiterleiten statt direkt zum Dashboard
+            return redirect()->route('verification.notice');
 
         } catch (Exception $e) {
             DB::rollback();
@@ -99,6 +114,45 @@ class AuthController extends Controller
                 'registration' => 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.'
             ]);
         }
+    }
+
+    /**
+     * Zeige die E-Mail-Verifizierungsseite
+     */
+    public function showVerifyEmail()
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect('/dashboard');
+        }
+
+        return Inertia::render('Auth/VerifyEmail');
+    }
+
+    /**
+     * Verifiziere die E-Mail-Adresse
+     */
+    public function verifyEmail(EmailVerificationRequest $request)
+    {
+        $request->fulfill();
+
+        return redirect('/dashboard')->with('message', 'E-Mail-Adresse erfolgreich bestätigt!');
+    }
+
+    /**
+     * Sende die Verifizierungs-E-Mail erneut
+     */
+    public function resendVerificationEmail(Request $request)
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect('/dashboard');
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('message', 'Ein neuer Bestätigungslink wurde an Ihre E-Mail-Adresse gesendet.');
     }
 
     public function showForgotPassword()

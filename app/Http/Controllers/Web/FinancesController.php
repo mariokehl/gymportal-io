@@ -71,7 +71,7 @@ class FinancesController extends Controller
             'paid' => 'Bezahlt',
             'failed' => 'Fehlgeschlagen',
             'refunded' => 'Erstattet',
-            'expired' => 'Abgelaufen',
+            'expired' => 'Verfallen',
         ];
 
         $paymentMethodOptions = array_map(fn($method) => $method['name'], Auth::user()->currentGym->payment_methods_config);

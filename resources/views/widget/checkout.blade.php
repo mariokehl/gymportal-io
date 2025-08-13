@@ -52,10 +52,12 @@
                 <span class="label">Kündigungsfrist:</span>
                 <span class="value">{{ $planData['cancellation_period_days'] ?? 30 }} Tage</span>
             </div>
+            {{--
             <div class="detail-row">
                 <span class="label">Gesamtpreis Mindestvertragslaufzeit:</span>
                 <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['membership_price']['total_price'], 'EUR') }}</span>
             </div>
+            --}}
         </div>
 
         <div class="member-summary">

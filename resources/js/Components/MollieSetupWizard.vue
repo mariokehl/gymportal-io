@@ -117,7 +117,7 @@
                             </label>
                             <div class="relative">
                                 <input id="api_key" v-model="form.api_key" :type="showApiKey ? 'text' : 'password'"
-                                    class="block w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    class="block w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="live_... oder test_..." required>
                                 <button type="button" @click="showApiKey = !showApiKey"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -158,7 +158,7 @@
                             <div class="relative">
                                 <input id="oauth_token" v-model="form.oauth_token"
                                     :type="showOAuthToken ? 'text' : 'password'"
-                                    class="block w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    class="block w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="access_...">
                                 <button type="button" @click="showOAuthToken = !showOAuthToken"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -320,7 +320,7 @@
                                 Zahlungsbeschreibung Präfix
                             </label>
                             <input id="description_prefix" v-model="form.description_prefix" type="text"
-                                class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 :placeholder="organization.name">
                             <p class="text-xs text-gray-500 mt-1">
                                 Wird bei jeder Zahlung als Präfix verwendet (z.B. "{{ form.description_prefix || organization.name }} - Mitgliedsbeitrag")
@@ -332,7 +332,7 @@
                                 Weiterleitungs-URL (optional)
                             </label>
                             <input id="redirect_url" v-model="form.redirect_url" type="url"
-                                class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="https://...">
                             <p class="text-xs text-gray-500 mt-1">
                                 URL, zu der Kunden nach der Zahlung weitergeleitet werden (Standard: Mitgliederbereich)

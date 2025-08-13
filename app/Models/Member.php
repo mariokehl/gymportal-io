@@ -299,6 +299,142 @@ class Member extends Model
         return $this->checkIns()->latest('check_in_time')->first();
     }
 
+    /**
+     * Get the status history for the member
+     */
+    public function statusHistory()
+    {
+        return $this->hasMany(MemberStatusHistory::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get the latest status change
+     */
+    public function getLatestStatusChangeAttribute()
+    {
+        return $this->statusHistory()->first();
+    }
+
+    /**
+     * Get recent status history (last 30 days)
+     */
+    public function recentStatusHistory()
+    {
+        return $this->statusHistory()->where('created_at', '>=', now()->subDays(30));
+    }
+
+    /**
+     * Check if member was recently activated
+     */
+    public function wasRecentlyActivated(): bool
+    {
+        return $this->statusHistory()
+            ->where('new_status', 'active')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->exists();
+    }
+
+    /**
+     * Get the reason for current status
+     */
+    public function getCurrentStatusReasonAttribute(): ?string
+    {
+        $lastChange = $this->statusHistory()
+            ->where('new_status', $this->status)
+            ->first();
+
+        return $lastChange ? $lastChange->reason : null;
+    }
+
+    /**
+     * Get pause information from status history
+     */
+    public function getPauseInfoAttribute(): ?array
+    {
+        if ($this->status !== 'paused') {
+            return null;
+        }
+
+        $pauseRecord = $this->statusHistory()
+            ->where('new_status', 'paused')
+            ->latest()
+            ->first();
+
+        if (!$pauseRecord) {
+            return null;
+        }
+
+        return [
+            'paused_at' => $pauseRecord->created_at,
+            'reason' => $pauseRecord->reason,
+            'paused_by' => $pauseRecord->changedBy ? $pauseRecord->changedBy->name : 'System',
+            'triggered_by' => $pauseRecord->metadata['triggered_by'] ?? null
+        ];
+    }
+
+    /**
+     * Check if member was paused due to overdue payment
+     */
+    public function isPausedDueToOverdue(): bool
+    {
+        if ($this->status !== 'paused') {
+            return false;
+        }
+
+        $lastPause = $this->statusHistory()
+            ->where('new_status', 'paused')
+            ->latest()
+            ->first();
+
+        return $lastPause && ($lastPause->metadata['triggered_by'] ?? null) === 'payment_overdue';
+    }
+
+    /**
+     * Get status transition count
+     */
+    public function getStatusChangeCountAttribute(): int
+    {
+        return $this->statusHistory()->count();
+    }
+
+
+    /**
+     * Get available status transitions based on current state
+     */
+    public function getAvailableStatusTransitionsAttribute(): array
+    {
+        $current = $this->status;
+        $available = [];
+
+        // Define possible transitions
+        $transitions = [
+            'active' => ['inactive', 'paused', 'overdue'],
+            'inactive' => ['active', 'pending'],
+            'paused' => ['active', 'inactive', 'overdue'],
+            'overdue' => ['active', 'inactive'],
+            'pending' => ['active', 'inactive']
+        ];
+
+        return $transitions[$current] ?? [];
+    }
+
+    /**
+     * Log a status change with context
+     */
+    public function logStatusChange(
+        string $newStatus,
+        ?string $reason = null,
+        ?array $metadata = null
+    ): MemberStatusHistory {
+        return MemberStatusHistory::recordChange(
+            $this,
+            $this->status,
+            $newStatus,
+            $reason,
+            $metadata
+        );
+    }
+
     // Erweiterte Scopes
     public function scopeActive($query)
     {
@@ -369,5 +505,318 @@ class Member extends Model
                     ->whereHas('sepaPaymentMethods', function($q) {
                         $q->where('sepa_mandate_status', 'pending');
                     });
+    }
+
+    /**
+     * Prüft ob das Mitglied inaktiviert werden kann
+     */
+    public function canBeInactivated(): bool
+    {
+        // Keine aktiven/ausstehenden Mitgliedschaften
+        $hasActiveMemberships = $this->memberships()
+            ->whereIn('memberships.status', ['active', 'pending'])
+            ->exists();
+
+        if ($hasActiveMemberships) {
+            return false;
+        }
+
+        // Keine ausstehenden Zahlungen
+        $hasPendingPayments = $this->payments()
+            ->where('payments.status', 'pending')
+            ->exists();
+
+        return !$hasPendingPayments;
+    }
+
+    /**
+     * Prüft ob das Mitglied aktiviert werden kann (von pending)
+     */
+    public function canBeActivatedFromPending(): bool
+    {
+        // Prüfe SEPA-Mandate
+        $needsActiveSepaMandate = $this->paymentMethods()
+            ->where('requires_mandate', true)
+            ->where('sepa_mandate_status', '!=', 'active')
+            ->exists();
+
+        if ($needsActiveSepaMandate) {
+            return false;
+        }
+
+        // Prüfe aktive Zahlungsmethode
+        return $this->paymentMethods()
+            ->where('payment_methods.status', 'active')
+            ->exists();
+    }
+
+    /**
+     * Prüft ob das Mitglied aktiviert werden kann (von overdue)
+     */
+    public function canBeActivatedFromOverdue(): bool
+    {
+        // Keine überfälligen Zahlungen
+        $hasOverduePayments = $this->payments()
+            ->where('payments.status', 'pending')
+            ->where('payments.due_date', '<', now())
+            ->exists();
+
+        return !$hasOverduePayments;
+    }
+
+    /**
+     * Prüft ob das Mitglied pausiert werden kann
+     */
+    public function canBePaused(): bool
+    {
+        return $this->memberships()
+            ->where('memberships.status', 'active')
+            ->whereNull('memberships.pause_start_date')
+            ->exists();
+    }
+
+    /**
+     * Prüft ob das Mitglied als überfällig markiert werden kann
+     */
+    public function canBeMarkedOverdue(): bool
+    {
+        return in_array($this->status, ['active', 'paused']);
+    }
+
+    /**
+     * Gibt den Grund zurück, warum ein Status-Wechsel nicht möglich ist
+     */
+    public function getStatusChangeBlockReason(string $newStatus): ?string
+    {
+        // Gleicher Status
+        if ($this->status === $newStatus) {
+            return null; // Wird im Controller geprüft
+        }
+
+        switch ($newStatus) {
+            case 'inactive':
+                if (!$this->canBeInactivated()) {
+                    // Detaillierte Fehleranalyse
+                    $hasActiveMemberships = $this->memberships()
+                        ->whereIn('memberships.status', ['active', 'pending'])
+                        ->exists();
+
+                    if ($hasActiveMemberships) {
+                        $activeCount = $this->memberships()
+                            ->where('memberships.status', 'active')
+                            ->count();
+                        $pendingCount = $this->memberships()
+                            ->where('memberships.status', 'pending')
+                            ->count();
+
+                        if ($activeCount > 0 && $pendingCount > 0) {
+                            return "Mitglied kann nicht inaktiviert werden - {$activeCount} aktive und {$pendingCount} ausstehende Mitgliedschaft(en) vorhanden.";
+                        } elseif ($activeCount > 0) {
+                            return "Mitglied kann nicht inaktiviert werden - {$activeCount} aktive Mitgliedschaft(en) vorhanden.";
+                        } else {
+                            return "Mitglied kann nicht inaktiviert werden - {$pendingCount} ausstehende Mitgliedschaft(en) vorhanden.";
+                        }
+                    }
+
+                    $pendingPaymentsCount = $this->payments()
+                        ->where('payments.status', 'pending')
+                        ->count();
+
+                    if ($pendingPaymentsCount > 0) {
+                        return "Mitglied kann nicht inaktiviert werden - {$pendingPaymentsCount} ausstehende Zahlung(en) vorhanden.";
+                    }
+
+                    return 'Mitglied kann nicht inaktiviert werden.';
+                }
+                break;
+
+            case 'active':
+                if ($this->status === 'pending' && !$this->canBeActivatedFromPending()) {
+                    $needsSepa = $this->paymentMethods()
+                        ->where('requires_mandate', true)
+                        ->where('sepa_mandate_status', '!=', 'active')
+                        ->exists();
+
+                    if ($needsSepa) {
+                        $pendingMandates = $this->paymentMethods()
+                            ->where('requires_mandate', true)
+                            ->where('sepa_mandate_status', 'pending')
+                            ->count();
+
+                        if ($pendingMandates > 0) {
+                            return "Aktivierung nicht möglich - {$pendingMandates} SEPA-Mandat(e) warten auf Unterschrift.";
+                        }
+
+                        return 'Aktivierung nicht möglich - SEPA-Mandat nicht aktiv.';
+                    }
+
+                    $hasPaymentMethod = $this->paymentMethods()
+                        ->where('payment_methods.status', 'active')
+                        ->exists();
+
+                    if (!$hasPaymentMethod) {
+                        return 'Aktivierung nicht möglich - keine aktive Zahlungsmethode vorhanden.';
+                    }
+                }
+
+                if ($this->status === 'overdue' && !$this->canBeActivatedFromOverdue()) {
+                    $overdueCount = $this->payments()
+                        ->where('payments.status', 'pending')
+                        ->where('payments.due_date', '<', now())
+                        ->count();
+
+                    $overdueAmount = $this->payments()
+                        ->where('payments.status', 'pending')
+                        ->where('payments.due_date', '<', now())
+                        ->sum('amount');
+
+                    if ($overdueCount > 0) {
+                        return sprintf(
+                            'Aktivierung nicht möglich - %d überfällige Zahlung(en) im Gesamtwert von %.2f € nicht beglichen.',
+                            $overdueCount,
+                            $overdueAmount
+                        );
+                    }
+
+                    return 'Aktivierung nicht möglich - überfällige Zahlungen nicht beglichen.';
+                }
+                break;
+
+            case 'paused':
+                if (!$this->canBePaused()) {
+                    $activeMemberships = $this->memberships()
+                        ->where('memberships.status', 'active')
+                        ->count();
+
+                    if ($activeMemberships === 0) {
+                        return 'Pausierung nicht möglich - keine aktive Mitgliedschaft vorhanden.';
+                    }
+
+                    $alreadyPaused = $this->memberships()
+                        ->where('memberships.status', 'active')
+                        ->whereNotNull('memberships.pause_start_date')
+                        ->exists();
+
+                    if ($alreadyPaused) {
+                        return 'Pausierung nicht möglich - Mitgliedschaft ist bereits pausiert.';
+                    }
+
+                    return 'Pausierung nicht möglich.';
+                }
+                break;
+
+            case 'overdue':
+                if (!$this->canBeMarkedOverdue()) {
+                    return 'Überfällig-Status kann nur von aktiven oder pausierten Mitgliedern gesetzt werden.';
+                }
+                break;
+        }
+
+        return null;
+    }
+
+    /**
+     * Validiert ob ein Status-Wechsel erlaubt ist
+     */
+    public function validateStatusChange(string $newStatus): array
+    {
+        $blockReason = $this->getStatusChangeBlockReason($newStatus);
+
+        return [
+            'allowed' => $blockReason === null,
+            'reason' => $blockReason
+        ];
+    }
+
+    /**
+     * Führt einen Status-Wechsel durch (wenn erlaubt)
+     */
+    public function changeStatusTo(string $newStatus, ?string $reason = null): bool
+    {
+        $validation = $this->validateStatusChange($newStatus);
+
+        if (!$validation['allowed']) {
+            throw new \Exception($validation['reason']);
+        }
+
+        $oldStatus = $this->status;
+        $this->status = $newStatus;
+        $result = $this->save();
+
+        if ($result) {
+            // Log die Änderung
+            MemberStatusHistory::recordChange(
+                $this,
+                $oldStatus,
+                $newStatus,
+                $reason
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Scope für Mitglieder die inaktiviert werden können
+     */
+    public function scopeCanBeInactivated($query)
+    {
+        return $query->whereDoesntHave('memberships', function($q) {
+            $q->whereIn('memberships.status', ['active', 'pending']);
+        })->whereDoesntHave('payments', function($q) {
+            $q->where('payments.status', 'pending');
+        });
+    }
+
+    /**
+     * Scope für Mitglieder mit aktiven oder ausstehenden Mitgliedschaften
+     */
+    public function scopeWithActiveMemberships($query)
+    {
+        return $query->whereHas('memberships', function($q) {
+            $q->whereIn('memberships.status', ['active', 'pending']);
+        });
+    }
+
+    /**
+     * Scope für Mitglieder mit ausstehenden Zahlungen
+     */
+    public function scopeWithPendingPayments($query)
+    {
+        return $query->whereHas('payments', function($q) {
+            $q->where('payments.status', 'pending');
+        });
+    }
+
+    /**
+     * Scope für Mitglieder mit überfälligen Zahlungen
+     */
+    public function scopeWithOverduePayments($query)
+    {
+        return $query->whereHas('payments', function($q) {
+            $q->where('payments.status', 'pending')
+            ->where('payments.due_date', '<', now());
+        });
+    }
+
+    /**
+     * Gibt Status-Statistiken zurück
+     */
+    public function getStatusStatistics(): array
+    {
+        return [
+            'can_be_inactivated' => $this->canBeInactivated(),
+            'can_be_activated' => $this->status === 'pending' ? $this->canBeActivatedFromPending() :
+                                ($this->status === 'overdue' ? $this->canBeActivatedFromOverdue() : false),
+            'can_be_paused' => $this->canBePaused(),
+            'can_be_marked_overdue' => $this->canBeMarkedOverdue(),
+            'active_memberships' => $this->memberships()->where('memberships.status', 'active')->count(),
+            'pending_memberships' => $this->memberships()->where('memberships.status', 'pending')->count(),
+            'pending_payments' => $this->payments()->where('payments.status', 'pending')->count(),
+            'overdue_payments' => $this->payments()
+                ->where('payments.status', 'pending')
+                ->where('payments.due_date', '<', now())
+                ->count()
+        ];
     }
 }

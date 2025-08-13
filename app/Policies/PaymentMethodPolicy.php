@@ -13,7 +13,7 @@ class PaymentMethodPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,7 +21,7 @@ class PaymentMethodPolicy
      */
     public function view(User $user, PaymentMethod $paymentMethod): bool
     {
-        return false;
+        return $user->current_gym_id === $paymentMethod->member->gym->id;
     }
 
     /**
@@ -29,7 +29,7 @@ class PaymentMethodPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->current_gym_id > 0;
     }
 
     /**
@@ -37,7 +37,7 @@ class PaymentMethodPolicy
      */
     public function update(User $user, PaymentMethod $paymentMethod): bool
     {
-        return false;
+        return $user->current_gym_id === $paymentMethod->member->gym->id;
     }
 
     /**

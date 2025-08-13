@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             GymUserSeeder::class,
             MembershipPlanSeeder::class,
             MemberSeeder::class,
+            MemberStatusHistorySeeder::class,
             MembershipSeeder::class,
             PaymentMethodSeeder::class,
             PaymentSeeder::class,

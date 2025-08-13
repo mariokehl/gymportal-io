@@ -25,9 +25,24 @@
                 {{ member.first_name }} {{ member.last_name }}
               </h2>
               <p class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
-              <span :class="getStatusBadgeClass(member.status)" class="inline-flex px-3 py-1 text-sm font-semibold rounded-full mt-2">
-                {{ getStatusText(member.status) }}
-              </span>
+
+              <div class="mt-2">
+                <!-- Im Bearbeitungsmodus: Editierbare Status-Komponente -->
+                <MemberStatusEditor
+                  v-if="editMode"
+                  :member="member"
+                  :status="member.status"
+                  @status-changed="handleStatusChanged"
+                  @status-changing="handleStatusChanging"
+                />
+
+                <!-- Im Anzeigemodus: Readonly Badge -->
+                <MemberStatusBadge
+                  v-else
+                  :status="member.status"
+                  :show-icon="true"
+                />
+              </div>
             </div>
           </div>
           <div class="flex items-center space-x-3">
@@ -66,6 +81,14 @@
             >
               <component :is="tab.icon" class="w-4 h-4" />
               {{ tab.name }}
+
+              <!-- Badge für Status-History Tab -->
+              <span
+                v-if="tab.id === 'history' && member.status_history?.length > 0"
+                class="ml-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full"
+              >
+                {{ member.status_history.length }}
+              </span>
             </button>
           </nav>
         </div>
@@ -227,25 +250,125 @@
                 <div class="flex justify-between items-start">
                   <div>
                     <h4 class="text-lg font-semibold">
-                        {{ membership.membership_plan.name }}
-                        <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
-                          {{ getStatusText(membership.status) }}
-                        </span>
+                      {{ membership.membership_plan.name }}
+                      <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
+                        {{ getStatusText(membership.status) }}
+                      </span>
                     </h4>
                     <p class="text-gray-600">{{ membership.membership_plan.description }}</p>
                     <div class="mt-2 space-y-1">
                       <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
+                      <p v-if="membership.membership_plan.commitment_months" class="text-sm">
+                        <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
+                      </p>
+                      <p v-if="membership.membership_plan.cancellation_period_days" class="text-sm">
+                        <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.cancellation_period_days }} Tage
+                      </p>
+                      <p v-if="membership.cancellation_date" class="text-sm text-red-600">
+                        <span class="font-medium">Gekündigt zum:</span> {{ formatDate(membership.cancellation_date) }}
+                      </p>
                     </div>
                   </div>
-                  <div class="text-right">
-                    <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
-                    <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
+                  <div class="flex flex-col items-end">
+                    <!-- Aktions-Buttons für Mitgliedschaften - über dem Preis -->
+                    <div v-if="membership.status === 'active' || membership.status === 'paused' || membership.status === 'pending'" class="flex flex-wrap items-center justify-end gap-2 sm:gap-3 mb-3">
+                      <!-- Pending Mitgliedschaft aktivieren -->
+                      <button
+                        v-if="membership.status === 'pending'"
+                        @click="activateMembership(membership)"
+                        type="button"
+                        class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="activatingMembership === membership.id"
+                      >
+                        <CheckCircle class="w-4 h-4" />
+                        <span>{{ activatingMembership === membership.id ? 'Wird aktiviert...' : 'Aktivieren' }}</span>
+                      </button>
+
+                      <!-- Pausieren Button -->
+                      <button
+                        v-if="membership.status === 'active' && !membership.cancellation_date"
+                        @click="openPauseMembership(membership)"
+                        type="button"
+                        class="text-sm text-yellow-600 hover:text-yellow-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="pausingMembership === membership.id"
+                      >
+                        <Clock class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ pausingMembership === membership.id ? 'Wird stillgelegt...' : 'Stilllegen' }}</span>
+                        <span class="sm:hidden">{{ pausingMembership === membership.id ? '...' : 'Pause' }}</span>
+                      </button>
+
+                      <!-- Fortsetzen Button -->
+                      <button
+                        v-if="membership.status === 'paused'"
+                        @click="resumeMembership(membership)"
+                        type="button"
+                        class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="resumingMembership === membership.id"
+                      >
+                        <PlayCircle class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ resumingMembership === membership.id ? 'Wird aktiviert...' : 'Fortsetzen' }}</span>
+                        <span class="sm:hidden">{{ resumingMembership === membership.id ? '...' : 'Weiter' }}</span>
+                      </button>
+
+                      <!-- Trennlinie -->
+                      <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date" class="hidden sm:block w-px h-4 bg-gray-300"></div>
+
+                      <!-- Kündigen Button -->
+                      <button
+                        v-if="!membership.cancellation_date && membership.status !== 'pending'"
+                        @click="openCancelMembership(membership)"
+                        type="button"
+                        class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="cancellingMembership === membership.id"
+                      >
+                        <XCircle class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ cancellingMembership === membership.id ? 'Wird gekündigt...' : 'Kündigen' }}</span>
+                        <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
+                      </button>
+
+                      <!-- Kündigung zurücknehmen Button -->
+                      <button
+                        v-if="membership.cancellation_date"
+                        @click="revokeCancellation(membership)"
+                        type="button"
+                        class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                        :disabled="revokingCancellation === membership.id"
+                      >
+                        <RotateCcw class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ revokingCancellation === membership.id ? 'Wird zurückgenommen...' : 'Kündigung zurücknehmen' }}</span>
+                        <span class="sm:hidden">{{ revokingCancellation === membership.id ? '...' : 'Zurück' }}</span>
+                      </button>
+                    </div>
+
+                    <!-- Preis-Anzeige -->
+                    <div class="text-right">
+                      <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
+                      <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
+                    </div>
                   </div>
                 </div>
+
+                <div v-if="membership.status === 'pending'" class="mt-3 p-3 bg-orange-50 rounded-md">
+                  <p class="text-sm text-orange-800">
+                    <AlertCircle class="w-4 h-4 inline mr-1" />
+                    Diese Mitgliedschaft wartet auf Aktivierung
+                  </p>
+                </div>
+
                 <div v-if="membership.pause_start_date" class="mt-3 p-3 bg-yellow-50 rounded-md">
                   <p class="text-sm text-yellow-800">
                     <Clock class="w-4 h-4 inline mr-1" />
                     Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
+                  </p>
+                </div>
+
+                <div v-if="membership.cancellation_date" class="mt-3 p-3 bg-red-50 rounded-md">
+                  <p class="text-sm text-red-800">
+                    <AlertCircle class="w-4 h-4 inline mr-1" />
+                    Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
+                    <span v-if="membership.cancellation_reason" class="block mt-1">
+                      Grund: {{ membership.cancellation_reason }}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -264,6 +387,7 @@
               <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-900">Zahlungsmethoden</h3>
                 <button
+                  @click="openAddPaymentMethod"
                   type="button"
                   class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
                 >
@@ -285,7 +409,7 @@
                       </div>
                       <div>
                         <div class="flex items-center gap-2">
-                          <h4 class="font-semibold text-gray-900">{{ getPaymentMethodName(paymentMethod.type) }}</h4>
+                          <h4 class="font-semibold text-gray-900">{{ paymentMethod.type_text }}</h4>
                           <span v-if="paymentMethod.is_default" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                             Standard
                           </span>
@@ -295,7 +419,7 @@
                         </div>
 
                         <!-- SEPA Details -->
-                        <div v-if="paymentMethod.type === 'sepa_direct_debit'" class="mt-1 space-y-1">
+                        <div v-if="isSepaType(paymentMethod.type)" class="mt-1 space-y-1">
                           <p class="text-sm text-gray-600">
                             IBAN: {{ paymentMethod.masked_iban || '****' }}
                           </p>
@@ -317,7 +441,7 @@
                         </div>
 
                         <!-- Credit Card Details -->
-                        <div v-else-if="paymentMethod.type === 'creditcard'" class="mt-1 space-y-1">
+                        <div v-else-if="isCreditCardType(paymentMethod.type)" class="mt-1 space-y-1">
                           <p class="text-sm text-gray-600">
                             **** **** **** {{ paymentMethod.last_four }}
                           </p>
@@ -330,7 +454,7 @@
                         </div>
 
                         <!-- Bank Transfer Details -->
-                        <div v-else-if="paymentMethod.type === 'banktransfer'" class="mt-1">
+                        <div v-else-if="isBankTransferType(paymentMethod.type)" class="mt-1">
                           <p v-if="paymentMethod.bank_name" class="text-sm text-gray-600">{{ paymentMethod.bank_name }}</p>
                         </div>
                       </div>
@@ -339,12 +463,15 @@
                     <div class="flex items-center space-x-2">
                       <button
                         v-if="!paymentMethod.is_default && paymentMethod.status === 'active'"
+                        @click="setAsDefault(paymentMethod)"
                         type="button"
                         class="text-sm text-indigo-600 hover:text-indigo-800"
+                        :disabled="settingDefault === paymentMethod.id"
                       >
-                        Als Standard setzen
+                        {{ settingDefault === paymentMethod.id ? 'Wird gesetzt...' : 'Als Standard setzen' }}
                       </button>
                       <button
+                        @click="openEditPaymentMethod(paymentMethod)"
                         type="button"
                         class="text-sm text-gray-600 hover:text-gray-800"
                       >
@@ -352,16 +479,18 @@
                       </button>
                       <button
                         v-if="paymentMethod.status === 'active'"
+                        @click="deactivatePaymentMethod(paymentMethod)"
                         type="button"
                         class="text-sm text-red-600 hover:text-red-800"
+                        :disabled="deactivating === paymentMethod.id"
                       >
-                        Deaktivieren
+                        {{ deactivating === paymentMethod.id ? 'Deaktivieren...' : 'Deaktivieren' }}
                       </button>
                     </div>
                   </div>
 
                   <!-- SEPA Mandate Actions -->
-                  <div v-if="paymentMethod.type === 'sepa_direct_debit' && paymentMethod.sepa_mandate_status === 'pending'" class="mt-4 p-3 bg-yellow-50 rounded-md">
+                  <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'pending'" class="mt-4 p-3 bg-yellow-50 rounded-md">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center">
                         <AlertCircle class="w-5 h-5 text-yellow-600 mr-2" />
@@ -370,17 +499,39 @@
                       <div class="flex space-x-2">
                         <button
                           type="button"
-                          class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700"
+                          @click="sendSepaMandate(paymentMethod)"
+                          :disabled="sendingMandate === paymentMethod.id"
+                          class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Mandat versenden
+                          {{ sendingMandate === paymentMethod.id ? 'Wird verarbeitet...' : 'Mandat versenden' }}
                         </button>
                         <button
                           type="button"
-                          class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                          @click="markSepaMandateAsSigned(paymentMethod)"
+                          :disabled="markingAsSigned === paymentMethod.id"
+                          class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Als unterschrieben markieren
+                          {{ markingAsSigned === paymentMethod.id ? 'Wird markiert...' : 'Als unterschrieben markieren' }}
                         </button>
                       </div>
+                    </div>
+                  </div>
+
+                  <!-- Zusätzliche Aktionen für unterschriebene Mandate -->
+                  <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'signed'" class="mt-4 p-3 bg-blue-50 rounded-md">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center">
+                        <CheckCircle class="w-5 h-5 text-blue-600 mr-2" />
+                        <span class="text-sm text-blue-800">SEPA-Mandat wurde unterschrieben und wartet auf Aktivierung</span>
+                      </div>
+                      <button
+                        type="button"
+                        @click="activateSepaMandate(paymentMethod)"
+                        :disabled="activatingMandate === paymentMethod.id"
+                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {{ activatingMandate === paymentMethod.id ? 'Wird aktiviert...' : 'Mandat aktivieren' }}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -390,6 +541,7 @@
                 <Wallet class="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p class="text-gray-500">Keine Zahlungsmethoden vorhanden</p>
                 <button
+                  @click="openAddPaymentMethod"
                   type="button"
                   class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 mx-auto"
                 >
@@ -402,105 +554,82 @@
             <!-- Divider -->
             <div class="border-t border-gray-200"></div>
 
-            <!-- Payment History Section -->
+            <!-- Payment History Section with PaymentsTable -->
             <div class="space-y-6">
               <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-900">Zahlungshistorie</h3>
                 <div class="flex items-center space-x-2">
-                  <select class="border border-gray-300 rounded-md px-3 py-1 text-sm">
+                  <select
+                    v-model="paymentStatusFilter"
+                    @change="filterPayments"
+                    class="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                  >
                     <option value="">Alle Status</option>
                     <option value="paid">Bezahlt</option>
                     <option value="pending">Ausstehend</option>
                     <option value="failed">Fehlgeschlagen</option>
                   </select>
                   <button
+                    @click="openAddPayment"
                     type="button"
                     class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
                   >
                     <Plus class="w-4 h-4" />
                     Zahlung hinzufügen
                   </button>
+                  <button
+                    v-if="selectedPaymentIds.length > 0 && hasPendingPaymentsSelected"
+                    @click="executeSelectedPayments"
+                    type="button"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                    :disabled="executingPayments"
+                  >
+                    <PlayCircle class="w-4 h-4" />
+                    {{ executingPayments ? 'Wird ausgeführt...' : `Zahlungen ausführen (${selectedPendingPaymentIds.length})` }}
+                  </button>
                 </div>
               </div>
 
-              <div v-if="member.payments && member.payments.length > 0">
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zahlungsmethode</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aktionen</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                      <tr v-for="payment in member.payments" :key="payment.id" class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">
-                          <div>{{ formatDate(payment.paid_date || payment.due_date) }}</div>
-                          <div v-if="payment.due_date && payment.status === 'pending'" class="text-xs text-gray-500">
-                            Fällig: {{ formatDate(payment.due_date) }}
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm font-medium">{{ formatCurrency(payment.amount) }}</td>
-                        <td class="px-4 py-3 text-sm">
-                          <div>{{ payment.description }}</div>
-                          <div v-if="payment.transaction_id" class="text-xs text-gray-500">
-                            ID: {{ payment.transaction_id }}
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <span :class="getPaymentStatusClass(payment.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                            {{ getPaymentStatusText(payment.status) }}
-                          </span>
-                          <div v-if="payment.status === 'pending' && isPaymentOverdue(payment)" class="text-xs text-red-600 mt-1">
-                            Überfällig
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <div class="flex items-center gap-2">
-                            <component :is="getPaymentMethodIcon(payment.payment_method)" class="w-4 h-4" />
-                            {{ getPaymentMethodName(payment.payment_method) }}
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <div class="flex items-center space-x-2">
-                            <button
-                              v-if="payment.status === 'pending'"
-                              type="button"
-                              class="text-green-600 hover:text-green-800"
-                              title="Als bezahlt markieren"
-                            >
-                              <CheckCircle class="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              class="text-gray-600 hover:text-gray-800"
-                              title="Details anzeigen"
-                            >
-                              <Eye class="w-4 h-4" />
-                            </button>
-                            <button
-                              v-if="payment.status === 'paid'"
-                              type="button"
-                              class="text-blue-600 hover:text-blue-800"
-                              title="Rechnung herunterladen"
-                            >
-                              <Download class="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div v-if="filteredPayments && filteredPayments.data && filteredPayments.data.length > 0">
+                <PaymentsTable
+                  :payments="filteredPayments"
+                  :columns="paymentTableColumns"
+                  v-model:selectedIds="selectedPaymentIds"
+                  :show-checkboxes="true"
+                  :show-csv-export="false"
+                  :show-sepa-export="false"
+                  :show-pagination="false"
+                  @payment-marked-paid="handlePaymentMarkedPaid"
+                  @before-mark-paid="handleBeforeMarkPaid"
+                >
+                  <!-- Custom Actions Slot für zusätzliche Buttons -->
+                  <template #actions="{ payment }">
+                    <button
+                      v-if="payment.invoice_id"
+                      @click="downloadInvoice(payment)"
+                      type="button"
+                      class="text-blue-600 hover:text-blue-800"
+                      title="Rechnung herunterladen"
+                    >
+                      <Download class="w-4 h-4" />
+                    </button>
+                    <button
+                      v-if="payment.status === 'pending'"
+                      @click="executePayment(payment)"
+                      type="button"
+                      class="text-indigo-600 hover:text-indigo-800"
+                      title="Zahlung ausführen"
+                    >
+                      <PlayCircle class="w-4 h-4" />
+                    </button>
+                  </template>
+                </PaymentsTable>
               </div>
               <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
                 <CreditCard class="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p class="text-gray-500">Keine Zahlungen vorhanden</p>
                 <button
+                  @click="openAddPayment"
                   type="button"
                   class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 mx-auto"
                 >
@@ -546,40 +675,817 @@
               <p class="text-gray-500">Keine Check-Ins vorhanden</p>
             </div>
           </div>
+
+          <!-- Status History Tab -->
+          <div v-show="activeTab === 'history'" class="space-y-4">
+            <StatusHistory :member="member" />
+          </div>
+
         </div>
       </div>
     </div>
+
+    <!-- Modal für Mitgliedschaft pausieren -->
+    <teleport to="body">
+      <div v-if="showPauseMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closePauseMembership">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="pauseMembership">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Mitgliedschaft stilllegen
+                </h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  Die Mitgliedschaft wird für den angegebenen Zeitraum pausiert.
+                  Der Vertrag verlängert sich entsprechend.
+                </p>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Pausierung beginnt am <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="pauseMembershipForm.pause_start_date"
+                    type="date"
+                    :min="new Date().toISOString().split('T')[0]"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Pausierung endet am <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="pauseMembershipForm.pause_end_date"
+                    type="date"
+                    :min="pauseMembershipForm.pause_start_date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Grund (optional)
+                  </label>
+                  <textarea
+                    v-model="pauseMembershipForm.reason"
+                    rows="3"
+                    placeholder="z.B. Urlaub, Verletzung, etc."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div v-if="pauseMembershipForm.errors && Object.keys(pauseMembershipForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in pauseMembershipForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="pauseMembershipForm.processing"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {{ pauseMembershipForm.processing ? 'Wird pausiert...' : 'Mitgliedschaft pausieren' }}
+              </button>
+              <button
+                type="button"
+                @click="closePauseMembership"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Modal für Mitgliedschaft kündigen -->
+    <teleport to="body">
+      <div v-if="showCancelMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeCancelMembership">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="cancelMembership">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Mitgliedschaft kündigen
+                </h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  Die Mitgliedschaft wird zum angegebenen Datum beendet.
+                </p>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Kündigungsdatum <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="cancelMembershipForm.cancellation_date"
+                    type="date"
+                    :min="cancelMembershipForm.min_cancellation_date || new Date().toISOString().split('T')[0]"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                  <p class="mt-1 text-sm text-gray-500">
+                    Die Mitgliedschaft endet zu diesem Datum.
+                  </p>
+                  <p v-if="selectedMembership?.membership_plan?.commitment_months" class="mt-1 text-sm text-yellow-600">
+                    <AlertCircle class="w-3 h-3 inline mr-1" />
+                    Mindestlaufzeit: {{ selectedMembership.membership_plan.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
+                  </p>
+                  <p v-if="selectedMembership?.membership_plan?.cancellation_period_days" class="mt-1 text-sm text-blue-600">
+                    <Clock class="w-3 h-3 inline mr-1" />
+                    Kündigungsfrist: {{ selectedMembership.membership_plan.cancellation_period_days }} Tage
+                  </p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Kündigungsgrund <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    v-model="cancelMembershipForm.cancellation_reason"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  >
+                    <option value="">Bitte wählen...</option>
+                    <option value="move">Umzug</option>
+                    <option value="financial">Finanzielle Gründe</option>
+                    <option value="health">Gesundheitliche Gründe</option>
+                    <option value="dissatisfied">Unzufriedenheit</option>
+                    <option value="no_time">Zeitmangel</option>
+                    <option value="other">Sonstiges</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="flex items-center">
+                    <input
+                      v-model="cancelMembershipForm.immediate"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">
+                      Sofort kündigen (außerordentliche Kündigung)
+                      <span v-if="selectedMembership?.membership_plan?.commitment_months" class="text-gray-500">
+                        - umgeht die Mindestlaufzeit
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="mt-4 p-3 bg-yellow-50 rounded-md">
+                <div class="flex items-start">
+                  <AlertCircle class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
+                  <div class="text-sm text-yellow-800">
+                    <p class="font-medium">Wichtiger Hinweis:</p>
+                    <p class="mt-1">
+                      Diese Aktion kann rückgängig gemacht werden, solange das Kündigungsdatum noch nicht erreicht wurde.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="cancelMembershipForm.errors && Object.keys(cancelMembershipForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in cancelMembershipForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="cancelMembershipForm.processing"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {{ cancelMembershipForm.processing ? 'Wird gekündigt...' : 'Mitgliedschaft kündigen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeCancelMembership"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Edit Payment Method Modal -->
+    <teleport to="body">
+      <div v-if="showEditPaymentMethodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeEditPaymentMethod">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="updatePaymentMethod">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Zahlungsmethode bearbeiten
+                </h3>
+              </div>
+
+              <div class="space-y-4">
+                <!-- Type (nicht änderbar) -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Typ</label>
+                  <input
+                    :value="paymentMethodForm.type_text"
+                    disabled
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                  />
+                </div>
+
+                <!-- Status -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    v-model="paymentMethodForm.status"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="active">Aktiv</option>
+                    <option value="pending">Ausstehend</option>
+                    <option value="expired">Abgelaufen</option>
+                    <option value="failed">Fehlgeschlagen</option>
+                  </select>
+                </div>
+
+                <!-- SEPA-spezifische Felder -->
+                <template v-if="isSepaType(paymentMethodForm.type)">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
+                    <input
+                      v-model="paymentMethodForm.iban"
+                      type="text"
+                      placeholder="DE89 3704 0044 0532 0130 00"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <input
+                      v-model="paymentMethodForm.bank_name"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">SEPA-Mandat Status</label>
+                    <select
+                      v-model="paymentMethodForm.sepa_mandate_status"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="pending">Unterschrift ausstehend</option>
+                      <option value="signed">Unterschrieben</option>
+                      <option value="active">Aktiv</option>
+                      <option value="revoked">Widerrufen</option>
+                      <option value="expired">Abgelaufen</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">SEPA-Mandatsreferenz</label>
+                    <input
+                      v-model="paymentMethodForm.sepa_mandate_reference"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </template>
+
+                <!-- Kreditkarten-spezifische Felder -->
+                <template v-if="isCreditCardType(paymentMethodForm.type)">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Letzte 4 Ziffern</label>
+                    <input
+                      v-model="paymentMethodForm.last_four"
+                      type="text"
+                      maxlength="4"
+                      pattern="[0-9]{4}"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Karteninhaber</label>
+                    <input
+                      v-model="paymentMethodForm.cardholder_name"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ablaufdatum</label>
+                    <input
+                      v-model="paymentMethodForm.expiry_date"
+                      type="date"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </template>
+
+                <!-- Banküberweisung-spezifische Felder -->
+                <template v-if="isBankTransferType(paymentMethodForm.type)">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <input
+                      v-model="paymentMethodForm.bank_name"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </template>
+
+                <!-- Standard-Zahlungsmethode -->
+                <div>
+                  <label class="flex items-center">
+                    <input
+                      v-model="paymentMethodForm.is_default"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">Als Standard-Zahlungsmethode setzen</span>
+                  </label>
+                </div>
+              </div>
+
+              <div v-if="paymentMethodForm.errors && Object.keys(paymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in paymentMethodForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="paymentMethodForm.processing"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {{ paymentMethodForm.processing ? 'Speichern...' : 'Speichern' }}
+              </button>
+              <button
+                type="button"
+                @click="closeEditPaymentMethod"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Add Payment Method Modal -->
+    <teleport to="body">
+      <div v-if="showAddPaymentMethodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPaymentMethod">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="createPaymentMethod">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Neue Zahlungsmethode hinzufügen
+                </h3>
+              </div>
+
+              <div class="space-y-4">
+                <!-- Type (auswählbar bei neuer Zahlungsmethode) -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode <span class="text-red-500">*</span></label>
+                  <select
+                    v-model="newPaymentMethodForm.type"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Bitte wählen...</option>
+                    <option
+                      v-for="method in availablePaymentMethodTypes"
+                      :key="method.key"
+                      :value="method.key"
+                    >
+                      {{ method.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- SEPA-spezifische Felder -->
+                <template v-if="isSepaType(newPaymentMethodForm.type)">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">IBAN <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentMethodForm.iban"
+                      type="text"
+                      placeholder="DE89 3704 0044 0532 0130 00"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kontoinhaber</label>
+                    <input
+                      v-model="newPaymentMethodForm.account_holder"
+                      type="text"
+                      placeholder="Max Mustermann"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <input
+                      v-model="newPaymentMethodForm.bank_name"
+                      type="text"
+                      placeholder="Commerzbank"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="flex items-center">
+                      <input
+                        v-model="newPaymentMethodForm.sepa_mandate_acknowledged"
+                        type="checkbox"
+                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span class="ml-2 text-sm text-gray-700">SEPA-Mandat wurde zur Kenntnis genommen</span>
+                    </label>
+                  </div>
+                </template>
+
+                <!-- Kreditkarten-spezifische Felder -->
+                <template v-if="isCreditCardType(newPaymentMethodForm.type)">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kartennummer <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentMethodForm.card_number"
+                      type="text"
+                      placeholder="**** **** **** 1234"
+                      maxlength="19"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Karteninhaber <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentMethodForm.cardholder_name"
+                      type="text"
+                      placeholder="Max Mustermann"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Ablaufdatum <span class="text-red-500">*</span></label>
+                      <input
+                        v-model="newPaymentMethodForm.expiry_date"
+                        type="month"
+                        :min="currentMonth"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">CVV <span class="text-red-500">*</span></label>
+                      <input
+                        v-model="newPaymentMethodForm.cvv"
+                        type="text"
+                        maxlength="4"
+                        pattern="[0-9]{3,4}"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Banküberweisung-spezifische Felder -->
+                <template v-if="isBankTransferType(newPaymentMethodForm.type)">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <input
+                      v-model="newPaymentMethodForm.bank_name"
+                      type="text"
+                      placeholder="Commerzbank"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                    <textarea
+                      v-model="newPaymentMethodForm.notes"
+                      rows="2"
+                      placeholder="z.B. Verwendungszweck-Vorgaben"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    ></textarea>
+                  </div>
+                </template>
+
+                <!-- Standard-Zahlungsmethode -->
+                <div v-if="newPaymentMethodForm.type">
+                  <label class="flex items-center">
+                    <input
+                      v-model="newPaymentMethodForm.is_default"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">Als Standard-Zahlungsmethode setzen</span>
+                  </label>
+                </div>
+              </div>
+
+              <div v-if="newPaymentMethodForm.errors && Object.keys(newPaymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in newPaymentMethodForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="newPaymentMethodForm.processing || !newPaymentMethodForm.type"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ newPaymentMethodForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeAddPaymentMethod"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Add Payment Modal -->
+    <teleport to="body">
+      <div v-if="showAddPaymentModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPayment">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="createPayment">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Neue Zahlung hinzufügen
+                </h3>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="newPaymentForm.amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="newPaymentForm.description"
+                    type="text"
+                    placeholder="z.B. Monatsbeitrag Januar 2024"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Fälligkeitsdatum</label>
+                  <input
+                    v-model="newPaymentForm.due_date"
+                    type="date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
+                  <select
+                    v-model="newPaymentForm.payment_method"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Bitte wählen...</option>
+                    <option
+                      v-for="method in availablePaymentMethodTypes"
+                      :key="method.key"
+                      :value="method.key"
+                    >
+                      {{ method.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    v-model="newPaymentForm.status"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="pending">Ausstehend</option>
+                    <option value="paid">Bezahlt</option>
+                  </select>
+                </div>
+
+                <div v-if="newPaymentForm.status === 'paid'">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Bezahlt am</label>
+                  <input
+                    v-model="newPaymentForm.paid_date"
+                    type="date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                  <textarea
+                    v-model="newPaymentForm.notes"
+                    rows="2"
+                    placeholder="Optionale Notizen zur Zahlung"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div v-if="newPaymentForm.errors && Object.keys(newPaymentForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
+                <div class="text-sm text-red-800">
+                  <ul class="list-disc list-inside">
+                    <li v-for="(error, field) in newPaymentForm.errors" :key="field">{{ error }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="newPaymentForm.processing || !newPaymentForm.amount || !newPaymentForm.description"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ newPaymentForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeAddPayment"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useForm, Link } from '@inertiajs/vue3'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useForm, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
+import StatusHistory from '@/Components/StatusHistory.vue'
+import PaymentsTable from '@/Components/PaymentsTable.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
-  Eye, Download, Building2, Smartphone, Banknote
+  Download, Building2, Banknote, PlayCircle, WalletCards,
+  XCircle, RotateCcw, History
 } from 'lucide-vue-next'
 
 const props = defineProps({
   member: Object,
+  availablePaymentMethods: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const editMode = ref(false)
 const activeTab = ref('personal')
+
+// Membership-related state
+const pausingMembership = ref(null)
+const resumingMembership = ref(null)
+const cancellingMembership = ref(null)
+const revokingCancellation = ref(null)
+const activatingMembership = ref(null)
+const showPauseMembershipModal = ref(false)
+const showCancelMembershipModal = ref(false)
+const selectedMembership = ref(null)
+
+// PaymentMethod-related state
+const showEditPaymentMethodModal = ref(false)
+const showAddPaymentMethodModal = ref(false)
+const showAddPaymentModal = ref(false)
+const settingDefault = ref(null)
+const deactivating = ref(null)
+const markingAsSigned = ref(null)
+const sendingMandate = ref(null)
+const activatingMandate = ref(null)
+const executingPayments = ref(false)
+
+// Payment-related state
+const paymentStatusFilter = ref('')
+const selectedPaymentIds = ref([])
+const filteredPayments = ref(props.member.payments ?
+  { data: props.member.payments, total: props.member.payments.length } :
+  { data: [], total: 0 }
+)
 
 const tabs = [
   { id: 'personal', name: 'Persönliche Daten', icon: User },
   { id: 'membership', name: 'Mitgliedschaften', icon: FileText },
   { id: 'payments', name: 'Zahlungen', icon: CreditCard },
   { id: 'checkins', name: 'Check-Ins', icon: Clock },
+  { id: 'history', name: 'Status-Verlauf', icon: History },
 ]
+
+// Payment table columns configuration
+const paymentTableColumns = ref([
+  { key: 'id', label: 'ID', sortable: true, nowrap: true, visible: false },
+  { key: 'created_at', label: 'Datum', sortable: true, nowrap: true },
+  { key: 'amount', label: 'Betrag', sortable: true, nowrap: true },
+  { key: 'description', label: 'Beschreibung', sortable: false },
+  { key: 'status', label: 'Status', sortable: false, nowrap: true },
+  { key: 'payment_method', label: 'Zahlungsmethode', sortable: false, nowrap: true },
+  { key: 'due_date', label: 'Fälligkeitsdatum', sortable: false, nowrap: true }
+])
 
 const formatDateForInput = (dateString) => {
   return dateString ? dateString.split('T')[0] : '';
 };
 
+// Computed properties
+const availablePaymentMethodTypes = computed(() => {
+  if (props.availablePaymentMethods && props.availablePaymentMethods.length > 0) {
+    return props.availablePaymentMethods
+  }
+  if (props.member?.gym?.enabled_payment_methods) {
+    return props.member.gym.enabled_payment_methods
+  }
+  return []
+})
+
+const currentMonth = computed(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+})
+
+const hasPendingPaymentsSelected = computed(() => {
+  return selectedPendingPaymentIds.value.length > 0
+})
+
+const selectedPendingPaymentIds = computed(() => {
+  if (!filteredPayments.value || !filteredPayments.value.data) return []
+  return selectedPaymentIds.value.filter(id => {
+    const payment = filteredPayments.value.data.find(p => p.id === id)
+    return payment && payment.status === 'pending'
+  })
+})
+
+// Helper functions
+const isSepaType = (type) => {
+  return type === 'sepa_direct_debit' ||
+         type === 'sepa' ||
+         type === 'mollie_directdebit'
+}
+
+const isCreditCardType = (type) => {
+  return type === 'creditcard' ||
+         type === 'mollie_creditcard' ||
+         type?.includes('creditcard')
+}
+
+const isBankTransferType = (type) => {
+  return type === 'banktransfer' ||
+         type === 'mollie_banktransfer' ||
+         type?.includes('banktransfer')
+}
+
+// Forms
 const form = useForm({
   member_number: props.member.member_number,
   first_name: props.member.first_name,
@@ -598,6 +1504,595 @@ const form = useForm({
   joined_date: formatDateForInput(props.member.joined_date),
 })
 
+// Forms für Mitgliedschafts-Aktionen
+const pauseMembershipForm = useForm({
+  membership_id: null,
+  pause_start_date: '',
+  pause_end_date: '',
+  reason: ''
+})
+
+const cancelMembershipForm = useForm({
+  membership_id: null,
+  cancellation_date: '',
+  cancellation_reason: '',
+  immediate: false,
+  min_cancellation_date: null
+})
+
+// Forms für Zahlungsmethoden
+const paymentMethodForm = useForm({
+  id: null,
+  type: '',
+  status: 'active',
+  is_default: false,
+  // SEPA fields
+  iban: '',
+  bank_name: '',
+  sepa_mandate_status: 'pending',
+  sepa_mandate_reference: '',
+  // Credit card fields
+  last_four: '',
+  cardholder_name: '',
+  expiry_date: '',
+})
+
+const newPaymentMethodForm = useForm({
+  type: '',
+  status: 'active',
+  is_default: false,
+  // SEPA fields
+  iban: '',
+  account_holder: '',
+  bank_name: '',
+  sepa_mandate_acknowledged: false,
+  // Credit card fields
+  card_number: '',
+  cardholder_name: '',
+  expiry_date: '',
+  cvv: '',
+  // Bank transfer fields
+  notes: '',
+})
+
+const newPaymentForm = useForm({
+  amount: '',
+  description: '',
+  due_date: '',
+  paid_date: '',
+  payment_method: '',
+  status: 'pending',
+  notes: ''
+})
+
+// Status-Change Handler
+const handleStatusChanged = (newStatus) => {
+  console.log('Status wurde geändert zu:', newStatus)
+  // Die Seite wird automatisch durch Inertia aktualisiert
+}
+
+const handleStatusChanging = (newStatus) => {
+  console.log('Status wird geändert zu:', newStatus)
+  // Optional: Zeige Loading-Indicator
+}
+
+// Mitgliedschafts-Aktionen
+const activateMembership = (membership) => {
+  if (!confirm('Möchten Sie diese Mitgliedschaft aktivieren?')) {
+    return
+  }
+
+  activatingMembership.value = membership.id
+
+  router.put(route('members.memberships.activate', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      activatingMembership.value = null
+    },
+    onError: () => {
+      activatingMembership.value = null
+      alert('Die Mitgliedschaft konnte nicht aktiviert werden.')
+    }
+  })
+}
+
+const openPauseMembership = (membership) => {
+  selectedMembership.value = membership
+  pauseMembershipForm.membership_id = membership.id
+  pauseMembershipForm.pause_start_date = new Date().toISOString().split('T')[0]
+
+  // Standardmäßig für 1 Monat pausieren
+  const endDate = new Date()
+  endDate.setMonth(endDate.getMonth() + 1)
+  pauseMembershipForm.pause_end_date = endDate.toISOString().split('T')[0]
+
+  showPauseMembershipModal.value = true
+}
+
+const closePauseMembership = () => {
+  showPauseMembershipModal.value = false
+  pauseMembershipForm.reset()
+  selectedMembership.value = null
+}
+
+const pauseMembership = () => {
+  pauseMembershipForm.put(route('members.memberships.pause', {
+    member: props.member.id,
+    membership: pauseMembershipForm.membership_id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closePauseMembership()
+      pausingMembership.value = null
+    },
+    onError: () => {
+      pausingMembership.value = null
+    }
+  })
+}
+
+const resumeMembership = (membership) => {
+  if (!confirm('Möchten Sie diese Mitgliedschaft wirklich wieder aufnehmen?')) {
+    return
+  }
+
+  resumingMembership.value = membership.id
+
+  router.put(route('members.memberships.resume', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      resumingMembership.value = null
+    },
+    onError: () => {
+      resumingMembership.value = null
+      alert('Die Mitgliedschaft konnte nicht wieder aufgenommen werden.')
+    }
+  })
+}
+
+const openCancelMembership = (membership) => {
+  selectedMembership.value = membership
+  cancelMembershipForm.membership_id = membership.id
+
+  // Mindestlaufzeit und Kündigungsfrist berücksichtigen
+  let minCancellationDate = new Date()
+
+  // Kündigungsfrist berücksichtigen
+  if (membership.membership_plan.cancellation_period_days) {
+    minCancellationDate.setDate(minCancellationDate.getDate() + membership.membership_plan.cancellation_period_days)
+  }
+
+  // Mindestlaufzeit berücksichtigen
+  if (membership.membership_plan.commitment_months) {
+    const startDate = new Date(membership.start_date)
+    const minEndDate = new Date(startDate)
+    minEndDate.setMonth(minEndDate.getMonth() + membership.membership_plan.commitment_months)
+
+    if (minEndDate > minCancellationDate) {
+      minCancellationDate = minEndDate
+    }
+  }
+
+  // Standardmäßig zum Ende der Laufzeit oder Mindestlaufzeit kündigen
+  if (membership.end_date) {
+    const endDate = new Date(membership.end_date)
+    if (endDate > minCancellationDate) {
+      cancelMembershipForm.cancellation_date = formatDateForInput(membership.end_date)
+    } else {
+      cancelMembershipForm.cancellation_date = minCancellationDate.toISOString().split('T')[0]
+    }
+  } else {
+    cancelMembershipForm.cancellation_date = minCancellationDate.toISOString().split('T')[0]
+  }
+
+  // Store minimum date for validation
+  cancelMembershipForm.min_cancellation_date = minCancellationDate.toISOString().split('T')[0]
+
+  showCancelMembershipModal.value = true
+}
+
+const closeCancelMembership = () => {
+  showCancelMembershipModal.value = false
+  cancelMembershipForm.reset()
+  cancelMembershipForm.min_cancellation_date = null
+  selectedMembership.value = null
+}
+
+const cancelMembership = () => {
+  cancelMembershipForm.put(route('members.memberships.cancel', {
+    member: props.member.id,
+    membership: cancelMembershipForm.membership_id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeCancelMembership()
+      cancellingMembership.value = null
+    },
+    onError: () => {
+      cancellingMembership.value = null
+    }
+  })
+}
+
+const revokeCancellation = (membership) => {
+  if (!confirm('Möchten Sie die Kündigung wirklich zurücknehmen?')) {
+    return
+  }
+
+  revokingCancellation.value = membership.id
+
+  router.put(route('members.memberships.revoke-cancellation', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      revokingCancellation.value = null
+    },
+    onError: () => {
+      revokingCancellation.value = null
+      alert('Die Kündigung konnte nicht zurückgenommen werden.')
+    }
+  })
+}
+
+// Payment methods
+const filterPayments = () => {
+  if (!props.member.payments) {
+    filteredPayments.value = { data: [], total: 0 }
+    return
+  }
+
+  let payments = [...props.member.payments]
+
+  if (paymentStatusFilter.value) {
+    payments = payments.filter(p => p.status === paymentStatusFilter.value)
+  }
+
+  filteredPayments.value = {
+    data: payments,
+    total: payments.length
+  }
+}
+
+const openAddPayment = () => {
+  newPaymentForm.reset()
+  newPaymentForm.due_date = new Date().toISOString().split('T')[0]
+  showAddPaymentModal.value = true
+}
+
+const closeAddPayment = () => {
+  showAddPaymentModal.value = false
+  newPaymentForm.reset()
+}
+
+const createPayment = () => {
+  newPaymentForm.post(route('members.payments.store', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeAddPayment()
+      // Reload member data and re-apply filters
+      router.reload({
+        only: ['member'],
+        preserveScroll: true,
+        onSuccess: () => {
+          filterPayments()
+        }
+      })
+    }
+  })
+}
+
+const executePayment = (payment) => {
+  if (!confirm(`Möchten Sie die Zahlung "${payment.description}" jetzt ausführen?`)) {
+    return
+  }
+
+  router.post(route('members.payments.execute', {
+    member: props.member.id,
+    payment: payment.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      // Reload member data and re-apply filters
+      router.reload({
+        only: ['member'],
+        preserveScroll: true,
+        onSuccess: () => {
+          filterPayments()
+        }
+      })
+    },
+    onError: () => {
+      alert('Die Zahlung konnte nicht ausgeführt werden.')
+    }
+  })
+}
+
+const executeSelectedPayments = () => {
+  const count = selectedPendingPaymentIds.value.length
+  if (!confirm(`Möchten Sie ${count} ausstehende Zahlung(en) jetzt ausführen?`)) {
+    return
+  }
+
+  executingPayments.value = true
+
+  router.post(route('members.payments.execute-batch', props.member.id), {
+    payment_ids: selectedPendingPaymentIds.value
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      executingPayments.value = false
+      selectedPaymentIds.value = []
+      // Reload member data and re-apply filters
+      router.reload({
+        only: ['member'],
+        preserveScroll: true,
+        onSuccess: () => {
+          filterPayments()
+        }
+      })
+    },
+    onError: () => {
+      executingPayments.value = false
+      alert('Die Zahlungen konnten nicht ausgeführt werden.')
+    }
+  })
+}
+
+const downloadInvoice = (payment) => {
+  // Placeholder für Rechnung-Download
+  window.open(route('members.payments.invoice', {
+    member: props.member.id,
+    payment: payment.id
+  }), '_blank')
+}
+
+const handlePaymentMarkedPaid = (payment) => {
+  // Update the payment status in the local state
+  if (props.member.payments) {
+    const paymentIndex = props.member.payments.findIndex(p => p.id === payment.id)
+    if (paymentIndex !== -1) {
+      // Update the original data
+      props.member.payments[paymentIndex].status = 'paid'
+      props.member.payments[paymentIndex].status_text = 'Bezahlt'
+      props.member.payments[paymentIndex].status_color = 'green'
+      props.member.payments[paymentIndex].paid_date = new Date().toISOString()
+
+      // Re-apply the filter to update the filtered view
+      filterPayments()
+    }
+  }
+
+  // Alternative: Reload the page data via Inertia (preserves scroll position)
+  // router.reload({ only: ['member'] })
+}
+
+const handleBeforeMarkPaid = (event) => {
+  // Here we can add additional validation if needed
+  // event.preventDefault = true would prevent the action
+
+  // Optional: Show loading state or confirm dialog
+  // if (!confirm('Möchten Sie diese Zahlung als bezahlt markieren?')) {
+  //   event.preventDefault = true
+  // }
+}
+
+// Payment Method Functions
+const setAsDefault = (paymentMethod) => {
+  settingDefault.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.set-default', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      settingDefault.value = null
+    },
+    onError: () => {
+      settingDefault.value = null
+    }
+  })
+}
+
+const deactivatePaymentMethod = (paymentMethod) => {
+  if (!confirm('Möchten Sie diese Zahlungsmethode wirklich deaktivieren?')) {
+    return
+  }
+
+  deactivating.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.deactivate', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      deactivating.value = null
+    },
+    onError: () => {
+      deactivating.value = null
+    }
+  })
+}
+
+const openEditPaymentMethod = (paymentMethod) => {
+  paymentMethodForm.id = paymentMethod.id
+  paymentMethodForm.type = paymentMethod.type
+  paymentMethodForm.type_text = paymentMethod.type_text
+  paymentMethodForm.status = paymentMethod.status
+  paymentMethodForm.is_default = paymentMethod.is_default
+
+  // SEPA fields
+  if (isSepaType(paymentMethod.type)) {
+    paymentMethodForm.iban = paymentMethod.iban || ''
+    paymentMethodForm.bank_name = paymentMethod.bank_name || ''
+    paymentMethodForm.sepa_mandate_status = paymentMethod.sepa_mandate_status || 'pending'
+    paymentMethodForm.sepa_mandate_reference = paymentMethod.sepa_mandate_reference || ''
+  }
+
+  // Credit card fields
+  if (isCreditCardType(paymentMethod.type)) {
+    paymentMethodForm.last_four = paymentMethod.last_four || ''
+    paymentMethodForm.cardholder_name = paymentMethod.cardholder_name || ''
+    paymentMethodForm.expiry_date = formatDateForInput(paymentMethod.expiry_date)
+  }
+
+  // Bank transfer fields
+  if (isBankTransferType(paymentMethod.type)) {
+    paymentMethodForm.bank_name = paymentMethod.bank_name || ''
+  }
+
+  showEditPaymentMethodModal.value = true
+}
+
+const closeEditPaymentMethod = () => {
+  showEditPaymentMethodModal.value = false
+  paymentMethodForm.reset()
+}
+
+const updatePaymentMethod = () => {
+  paymentMethodForm.put(route('members.payment-methods.update', {
+    member: props.member.id,
+    paymentMethod: paymentMethodForm.id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeEditPaymentMethod()
+    }
+  })
+}
+
+const openAddPaymentMethod = () => {
+  newPaymentMethodForm.reset()
+  showAddPaymentMethodModal.value = true
+}
+
+const closeAddPaymentMethod = () => {
+  showAddPaymentMethodModal.value = false
+  newPaymentMethodForm.reset()
+}
+
+const createPaymentMethod = () => {
+  const selectedMethod = availablePaymentMethodTypes.value.find(m => m.key === newPaymentMethodForm.type)
+
+  const dataToSend = {
+    type: newPaymentMethodForm.type,
+    status: newPaymentMethodForm.status,
+    is_default: newPaymentMethodForm.is_default,
+    requires_mandate: selectedMethod?.requires_mandate || false,
+  }
+
+  if (isSepaType(newPaymentMethodForm.type)) {
+    dataToSend.iban = newPaymentMethodForm.iban
+    dataToSend.bank_name = newPaymentMethodForm.bank_name
+    dataToSend.account_holder = newPaymentMethodForm.account_holder
+    dataToSend.sepa_mandate_acknowledged = newPaymentMethodForm.sepa_mandate_acknowledged
+    dataToSend.requires_mandate = true
+  } else if (isCreditCardType(newPaymentMethodForm.type)) {
+    const cardNumber = newPaymentMethodForm.card_number.replace(/\s+/g, '')
+    dataToSend.last_four = cardNumber.slice(-4)
+    dataToSend.cardholder_name = newPaymentMethodForm.cardholder_name
+    dataToSend.expiry_date = newPaymentMethodForm.expiry_date
+  } else if (isBankTransferType(newPaymentMethodForm.type)) {
+    dataToSend.bank_name = newPaymentMethodForm.bank_name
+    dataToSend.notes = newPaymentMethodForm.notes
+  }
+
+  if (newPaymentMethodForm.type.startsWith('mollie_')) {
+    dataToSend.mollie_method_id = selectedMethod?.mollie_method_id || newPaymentMethodForm.type.replace('mollie_', '')
+  }
+
+  newPaymentMethodForm.transform(() => dataToSend).post(
+    route('members.payment-methods.store', props.member.id),
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        closeAddPaymentMethod()
+      }
+    }
+  )
+}
+
+const markSepaMandateAsSigned = (paymentMethod) => {
+  if (!confirm('Möchten Sie dieses SEPA-Mandat als unterschrieben markieren?\n\nDies sollte nur erfolgen, wenn Sie die unterschriebene Mandatserteilung vom Kunden erhalten haben.')) {
+    return
+  }
+
+  markingAsSigned.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.mark-signed', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: (page) => {
+      markingAsSigned.value = null
+      if (page.props.flash?.success) {
+        console.log('Erfolg:', page.props.flash.success)
+      }
+    },
+    onError: (errors) => {
+      markingAsSigned.value = null
+      console.error('Fehler:', errors)
+      alert('Das SEPA-Mandat konnte nicht als unterschrieben markiert werden.')
+    }
+  })
+}
+
+const activateSepaMandate = (paymentMethod) => {
+  if (!confirm('Möchten Sie dieses SEPA-Mandat aktivieren?\n\nNach der Aktivierung können Lastschriften eingezogen werden.')) {
+    return
+  }
+
+  activatingMandate.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.activate-mandate', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: (page) => {
+      activatingMandate.value = null
+      if (page.props.flash?.success) {
+        console.log('Erfolg:', page.props.flash.success)
+      }
+    },
+    onError: (errors) => {
+      activatingMandate.value = null
+      console.error('Fehler:', errors)
+      alert('Das SEPA-Mandat konnte nicht aktiviert werden.')
+    }
+  })
+}
+
+const sendSepaMandate = (paymentMethod) => {
+  sendingMandate.value = paymentMethod.id
+
+  const message = `Diese Funktion ist noch nicht implementiert.
+
+Das SEPA-Mandat kann aktuell nur manuell versendet werden:
+1. Generieren Sie das Mandat-PDF
+2. Versenden Sie es per E-Mail an: ${props.member.email}
+3. Nach Erhalt der Unterschrift markieren Sie es als "unterschrieben"
+
+Diese Funktion wird in einem zukünftigen Update automatisiert.`
+
+  alert(message)
+
+  setTimeout(() => {
+    sendingMandate.value = null
+  }, 500)
+}
+
+// Utility functions
 const getInitials = (firstName, lastName) => {
   return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase()
 }
@@ -606,7 +2101,7 @@ const getStatusBadgeClass = (status) => {
   const classes = {
     active: 'bg-green-100 text-green-800',
     inactive: 'bg-gray-100 text-gray-800',
-    suspended: 'bg-yellow-100 text-yellow-800',
+    paused: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-red-100 text-red-800',
     paid: 'bg-green-100 text-green-800',
     pending: 'bg-orange-100 text-orange-800',
@@ -620,9 +2115,11 @@ const getStatusText = (status) => {
   const texts = {
     active: 'Aktiv',
     inactive: 'Inaktiv',
-    suspended: 'Pausiert',
+    paused: 'Pausiert',
     cancelled: 'Gekündigt',
+    paid: 'Bezahlt',
     pending: 'Ausstehend',
+    failed: 'Fehlgeschlagen',
     expired: 'Abgelaufen'
   }
   return texts[status] || status
@@ -637,20 +2134,6 @@ const getBillingCycleText = (cycle) => {
   return cycles[cycle] || cycle
 }
 
-// Payment Method Helper Functions
-const getPaymentMethodName = (type) => {
-  const names = {
-    'sepa_direct_debit': 'SEPA-Lastschrift',
-    'sepa': 'SEPA-Lastschrift',
-    'creditcard': 'Kreditkarte',
-    'mollie_creditcard': 'Mollie: Kreditkarte',
-    'banktransfer': 'Banküberweisung',
-    'cash': 'Barzahlung',
-    'invoice': 'Rechnung',
-  }
-  return names[type] || type
-}
-
 const getPaymentMethodIcon = (type) => {
   const icons = {
     'sepa_direct_debit': Building2,
@@ -658,7 +2141,11 @@ const getPaymentMethodIcon = (type) => {
     'creditcard': CreditCard,
     'banktransfer': Building2,
     'cash': Banknote,
-    'invoice': FileText
+    'invoice': FileText,
+    'mollie_creditcard': CreditCard,
+    'mollie_directdebit': Building2,
+    'mollie_paypal': WalletCards,
+    'mollie_klarna': FileText,
   }
   return icons[type] || CreditCard
 }
@@ -693,19 +2180,6 @@ const getSepaMandateStatusText = (status) => {
     'active': 'Aktiv',
     'revoked': 'Widerrufen',
     'expired': 'Abgelaufen'
-  }
-  return texts[status] || status
-}
-
-const getPaymentStatusClass = (status) => getStatusBadgeClass(status)
-
-const getPaymentStatusText = (status) => {
-  const texts = {
-    paid: 'Bezahlt',
-    pending: 'Ausstehend',
-    failed: 'Fehlgeschlagen',
-    cancelled: 'Storniert',
-    refunded: 'Erstattet'
   }
   return texts[status] || status
 }
@@ -746,11 +2220,6 @@ const calculateDuration = (checkIn, checkOut) => {
   return `${hours}h ${minutes}m`
 }
 
-const isPaymentOverdue = (payment) => {
-  if (payment.status !== 'pending' || !payment.due_date) return false
-  return new Date(payment.due_date) < new Date()
-}
-
 const updateMember = () => {
   form.put(route('members.update', props.member.id), {
     onSuccess: () => {
@@ -764,10 +2233,30 @@ const cancelEdit = () => {
   editMode.value = false
 }
 
+// Watchers
+watch(() => showAddPaymentMethodModal.value, (isOpen) => {
+  if (isOpen && !newPaymentMethodForm.expiry_date) {
+    newPaymentMethodForm.expiry_date = currentMonth.value
+  }
+})
+
+watch(paymentStatusFilter, () => {
+  filterPayments()
+})
+
+// Watch for changes in member payments data (after Inertia reload)
+watch(() => props.member.payments, () => {
+  filterPayments()
+}, { deep: true })
+
+// Lifecycle
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('edit') === 'true') {
     editMode.value = true
   }
+
+  // Initial filter application
+  filterPayments()
 })
 </script>

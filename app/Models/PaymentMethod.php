@@ -22,6 +22,7 @@ class PaymentMethod extends Model
         'iban',
         'is_default',
         'status',
+        'requires_mandate',
         // SEPA-Felder
         'sepa_mandate_acknowledged',
         'sepa_mandate_status',
@@ -37,9 +38,10 @@ class PaymentMethod extends Model
         'is_default' => 'boolean',
         'sepa_mandate_acknowledged' => 'boolean',
         'sepa_mandate_data' => 'array',
+        'requires_mandate' => 'boolean',
     ];
 
-    protected $appends = ['type_text', 'status_text', 'sepa_mandate_status_text'];
+    protected $appends = ['type_text', 'status_text', 'sepa_mandate_status_text', 'masked_iban'];
 
     /**
      * Standard-Konfiguration für Zahlungsmethoden
@@ -92,6 +94,11 @@ class PaymentMethod extends Model
             'banktransfer' => 'Banküberweisung',
             'cash' => 'Barzahlung',
             'invoice' => 'Rechnung',
+            'mollie_creditcard' => 'Mollie: Kreditkarte',
+            'mollie_directdebit' => 'Mollie: SEPA-Lastschriftverfahren',
+            'mollie_paypal' => 'Mollie: PayPal',
+            'mollie_klarna' => 'Mollie: Klarna',
+            'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
         ][$this->type] ?? $this->type;
     }
 
@@ -170,7 +177,7 @@ class PaymentMethod extends Model
     // SEPA-spezifische Methoden
     public function requiresSepaMandate(): bool
     {
-        return $this->is_sepa;
+        return $this->requires_mandate;
     }
 
     public function hasActiveSepaMandateRequired(): bool
@@ -281,6 +288,7 @@ class PaymentMethod extends Model
             'type' => 'sepa_direct_debit',
             'status' => 'pending',
             'is_default' => true,
+            'requires_mandate' => true,
             'sepa_mandate_acknowledged' => $acknowledgedOnline,
             'sepa_mandate_status' => 'pending',
             'sepa_mandate_data' => [
@@ -317,9 +325,11 @@ class PaymentMethod extends Model
     /**
      * Prüfe ob eine Zahlungsmethode ein Mandat benötigt
      */
-    public static function typeRequiresMandate(string $type): bool
+    public static function typeRequiresMandate(string $type, array $config = []): bool
     {
-        $config = self::getConfigForType($type);
+        if (count($config) === 0) {
+            $config = self::getConfigForType($type);
+        }
         return $config['requires_mandate'] ?? false;
     }
 

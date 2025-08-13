@@ -1,15 +1,17 @@
 <?php
 
-use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
 use App\Http\Controllers\Web\MemberController;
+use App\Http\Controllers\Web\MemberPaymentController;
+use App\Http\Controllers\Web\MembershipController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
+use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use Illuminate\Http\Request;
@@ -38,6 +40,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// Email verification
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [AuthController::class, 'showVerifyEmail'])->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware('throttle:6,1')->name('verification.send');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
 // Billing-Routen
 Route::middleware(['auth', 'verified'])->group(function () {
     // Billing Management
@@ -50,9 +60,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook'])->name('billing.webhook')->middleware('paddleIp');
 
 // Protected routes
-Route::middleware(['auth:web', 'subscription'])->group(function () {
+Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
+    Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
+    Route::prefix('members/{member}/memberships/{membership}')->group(function () {
+        Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');
+        Route::put('/pause', [MembershipController::class, 'pause'])->name('members.memberships.pause');
+        Route::put('/resume', [MembershipController::class, 'resume'])->name('members.memberships.resume');
+        Route::put('/cancel', [MembershipController::class, 'cancel'])->name('members.memberships.cancel');
+        Route::put('/revoke-cancellation', [MembershipController::class, 'revokeCancellation'])->name('members.memberships.revoke-cancellation');
+    });
+    Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
+        Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
+        Route::put('/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+        Route::put('/{paymentMethod}/set-default', [PaymentMethodController::class, 'setAsDefault'])->name('set-default');
+        Route::put('/{paymentMethod}/deactivate', [PaymentMethodController::class, 'deactivate'])->name('deactivate');
+        // Neue SEPA-Mandat Routen
+        Route::put('/{paymentMethod}/mark-signed', [PaymentMethodController::class, 'markSepaMandateAsSigned'])->name('mark-signed');
+        Route::put('/{paymentMethod}/activate-mandate', [PaymentMethodController::class, 'activateSepaMandate'])->name('activate-mandate');
+    });
+    Route::prefix('members/{member}/payments')->name('members.payments.')->group(function () {
+        Route::post('/', [MemberPaymentController::class, 'store'])->name('store');
+        Route::post('/{payment}/execute', [MemberPaymentController::class, 'execute'])->name('execute');
+        Route::post('/execute-batch', [MemberPaymentController::class, 'executeBatch'])->name('execute-batch');
+        Route::get('/{payment}/invoice', [MemberPaymentController::class, 'invoice'])->name('invoice');
+    });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');
         Route::get('/create', [MembershipPlanController::class, 'create'])->name('create');
@@ -81,7 +114,7 @@ Route::middleware(['auth:web', 'subscription'])->group(function () {
             Route::get('/overview', [PaymentMethodsController::class, 'overview'])->name('overview');
             Route::put('/update', [PaymentMethodsController::class, 'update'])->name('update');
         });
-        Route::prefix('mollie')->name('.mollie.')->group(function () {
+        Route::prefix('mollie')->name('mollie.')->group(function () {
             Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');
             Route::delete('/remove', [PaymentMethodsController::class, 'removeMollieConfig'])->name('remove');
         });
@@ -90,7 +123,6 @@ Route::middleware(['auth:web', 'subscription'])->group(function () {
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');
     Route::delete('/gyms/remove/{gym}', [GymController::class, 'remove'])->name('gyms.remove');
     Route::post('/user/switch-organization', [GymController::class, 'switchOrganization'])->name('user.switch-organization');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
 // Zusätzliche Widget-Admin-Routes für AJAX-Calls

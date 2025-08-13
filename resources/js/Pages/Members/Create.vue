@@ -59,7 +59,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.first_name }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('first_name', 'Vorname ist erforderlich')"
               />
               <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">
                 {{ errors.first_name }}
@@ -76,7 +76,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.last_name }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('last_name', 'Nachname ist erforderlich')"
               />
               <p v-if="errors.last_name" class="mt-1 text-sm text-red-600">
                 {{ errors.last_name }}
@@ -89,11 +89,12 @@
               </label>
               <input
                 id="email"
-                v-model="form.email"
+                v-model.trim="form.email"
                 type="email"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.email }"
-                @blur="validateStep1"
+                @blur="handleEmailBlur"
+                autocomplete="email"
               />
               <p v-if="errors.email" class="mt-1 text-sm text-red-600">
                 {{ errors.email }}
@@ -110,7 +111,7 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.phone }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('phone', 'Mobilfunknummer ist erforderlich')"
               />
               <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
                 {{ errors.phone }}
@@ -127,7 +128,7 @@
                 type="date"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.birth_date }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('birth_date', 'Geburtsdatum ist erforderlich')"
               />
               <p v-if="errors.birth_date" class="mt-1 text-sm text-red-600">
                 {{ errors.birth_date }}
@@ -148,7 +149,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.address }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('address', 'Straße und Hausnummer ist erforderlich')"
               />
               <p v-if="errors.address" class="mt-1 text-sm text-red-600">
                 {{ errors.address }}
@@ -166,7 +167,7 @@
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   :class="{ 'border-red-500': errors.postal_code }"
-                  @blur="validateStep1"
+                  @blur="handleFieldBlur('postal_code', 'PLZ ist erforderlich')"
                 />
                 <p v-if="errors.postal_code" class="mt-1 text-sm text-red-600">
                   {{ errors.postal_code }}
@@ -183,7 +184,7 @@
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   :class="{ 'border-red-500': errors.city }"
-                  @blur="validateStep1"
+                  @blur="handleFieldBlur('city', 'Stadt ist erforderlich')"
                 />
                 <p v-if="errors.city" class="mt-1 text-sm text-red-600">
                   {{ errors.city }}
@@ -200,7 +201,7 @@
                 v-model="form.country"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.country }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('country', 'Land ist erforderlich')"
               >
                 <option value="" selected>Land auswählen</option>
                 <option value="DE">Deutschland</option>
@@ -226,7 +227,7 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_name }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('emergency_contact_name', 'Name des Notfallkontakts ist erforderlich')"
               />
               <p v-if="errors.emergency_contact_name" class="mt-1 text-sm text-red-600">
                 {{ errors.emergency_contact_name }}
@@ -243,7 +244,7 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_phone }"
-                @blur="validateStep1"
+                @blur="handleFieldBlur('emergency_contact_phone', 'Telefon des Notfallkontakts ist erforderlich')"
               />
               <p v-if="errors.emergency_contact_phone" class="mt-1 text-sm text-red-600">
                 {{ errors.emergency_contact_phone }}
@@ -345,25 +346,41 @@
         <div v-show="currentStep === 2" class="p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-6">Zahlungsmethode</h3>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Show message if no payment methods are enabled -->
+          <div v-if="!paymentMethods || !Array.isArray(paymentMethods) || paymentMethods.length === 0" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-800">
+                  Keine Zahlungsmethoden aktiviert. Bitte aktiviere mindestens eine Zahlungsmethode in den Einstellungen.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               v-for="method in paymentMethods"
-              :key="method.value"
+              :key="method.key"
               class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-              :class="form.payment_method === method.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
-              @click="form.payment_method = method.value"
+              :class="form.payment_method === method.key ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
+              @click="form.payment_method = method.key"
             >
               <div class="flex items-center">
                 <input
                   type="radio"
-                  :id="`payment_${method.value}`"
-                  :value="method.value"
+                  :id="`payment_${method.key}`"
+                  :value="method.key"
                   v-model="form.payment_method"
                   class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                 />
                 <div class="ml-3">
-                  <label :for="`payment_${method.value}`" class="font-medium text-gray-900">
-                    {{ method.label }}
+                  <label :for="`payment_${method.key}`" class="font-medium text-gray-900">
+                    {{ method.name }}
                   </label>
                   <p class="text-sm text-gray-600">{{ method.description }}</p>
                 </div>
@@ -492,6 +509,10 @@ const props = defineProps({
     membershipPlans: {
         type: Array,
         default: () => []
+    },
+    paymentMethods: {
+        type: Array,
+        default: () => []
     }
 })
 
@@ -532,29 +553,6 @@ const form = useForm({
   accept_terms: true // TODO: Momentan über Adminbereich immer erteilt, ggf. an SEPA-Lastschriftverfahren koppeln
 })
 
-const paymentMethods = [
-  {
-    value: 'sepa',
-    label: 'SEPA-Lastschrift',
-    description: 'Automatischer Bankeinzug (empfohlen)'
-  },
-  {
-    value: 'creditcard',
-    label: 'Kreditkarte',
-    description: 'Visa, MasterCard, American Express'
-  },
-  {
-    value: 'paypal',
-    label: 'PayPal',
-    description: 'Zahlung über PayPal-Konto'
-  },
-  {
-    value: 'banktransfer',
-    label: 'Überweisung',
-    description: 'Manuelle Überweisung'
-  }
-]
-
 const today = computed(() => {
   return new Date().toISOString().split('T')[0]
 })
@@ -565,10 +563,101 @@ const selectedPlan = computed(() => {
 
 const errors = computed(() => form.errors)
 
+// Touch-Status für Felder verfolgen
+const touchedFields = ref(new Set())
+
+// Feld als berührt markieren
+const markFieldAsTouched = (fieldName) => {
+  touchedFields.value.add(fieldName)
+}
+
+// Prüfen ob Feld berührt wurde
+const isFieldTouched = (fieldName) => {
+  return touchedFields.value.has(fieldName)
+}
+
+// Email-Validierung (nur wenn Feld berührt wurde)
+const validateEmail = (email) => {
+  if (!isFieldTouched('email')) {
+    return true // Keine Validierung wenn nicht berührt
+  }
+
+  const trimmedEmail = email.trim()
+
+  // Email-Regex für Grundvalidierung
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!trimmedEmail) {
+    form.setError('email', 'E-Mail ist erforderlich')
+    return false
+  }
+
+  if (!emailRegex.test(trimmedEmail)) {
+    form.setError('email', 'Bitte geben Sie eine gültige E-Mail-Adresse ein')
+    return false
+  }
+
+  if (trimmedEmail.length > 255) {
+    form.setError('email', 'E-Mail-Adresse ist zu lang (maximal 255 Zeichen)')
+    return false
+  }
+
+  // Fehler löschen wenn E-Mail gültig ist
+  form.clearErrors('email')
+  return true
+}
+
+// Feldvalidierung für Pflichtfelder
+const validateRequiredField = (fieldName, fieldValue, errorMessage) => {
+  if (!isFieldTouched(fieldName)) {
+    return true // Keine Validierung wenn nicht berührt
+  }
+
+  if (!fieldValue || fieldValue.toString().trim() === '') {
+    form.setError(fieldName, errorMessage)
+    return false
+  }
+
+  form.clearErrors(fieldName)
+  return true
+}
+
+// Email-Feld Event Handler
+const handleEmailBlur = () => {
+  markFieldAsTouched('email')
+  validateEmail(form.email)
+}
+
+// Generische Handler für andere Felder
+const handleFieldBlur = (fieldName, errorMessage) => {
+  markFieldAsTouched(fieldName)
+  validateRequiredField(fieldName, form[fieldName], errorMessage)
+}
+
 // Step validation
 const validateStep1 = () => {
+  const step1Fields = ['first_name', 'last_name', 'phone', 'birth_date', 'address', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone']
+
+  let isValid = true
+
+  // Prüfe alle Pflichtfelder
+  step1Fields.forEach(field => {
+    if (!form[field] || form[field].toString().trim() === '') {
+      isValid = false
+    }
+  })
+
+  // Email separat prüfen
+  if (!form.email || form.email.trim() === '' || form.errors.email) {
+    isValid = false
+  }
+
+  return isValid
+}
+
+const touchAllStep1Fields = () => {
   const step1Fields = ['first_name', 'last_name', 'email', 'phone', 'birth_date', 'address', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone']
-  return step1Fields.every(field => form[field] && !form.errors[field])
+  step1Fields.forEach(field => markFieldAsTouched(field))
 }
 
 const validateStep2 = () => {
@@ -608,6 +697,28 @@ const getStepClasses = (index) => {
 }
 
 const nextStep = () => {
+  if (currentStep.value === 0) {
+    // Alle Felder als berührt markieren und validieren
+    touchAllStep1Fields()
+    const requiredFields = [
+      { field: 'first_name', message: 'Vorname ist erforderlich' },
+      { field: 'last_name', message: 'Nachname ist erforderlich' },
+      { field: 'phone', message: 'Mobilfunknummer ist erforderlich' },
+      { field: 'birth_date', message: 'Geburtsdatum ist erforderlich' },
+      { field: 'address', message: 'Straße und Hausnummer ist erforderlich' },
+      { field: 'city', message: 'Stadt ist erforderlich' },
+      { field: 'postal_code', message: 'PLZ ist erforderlich' },
+      { field: 'country', message: 'Land ist erforderlich' },
+      { field: 'emergency_contact_name', message: 'Name des Notfallkontakts ist erforderlich' },
+      { field: 'emergency_contact_phone', message: 'Telefon des Notfallkontakts ist erforderlich' }
+    ]
+
+    requiredFields.forEach(({ field, message }) => {
+      validateRequiredField(field, form[field], message)
+    })
+    validateEmail(form.email)
+  }
+
   if (currentStep.value < steps.length - 1 && isCurrentStepValid()) {
     currentStep.value++
   }
@@ -645,18 +756,24 @@ const formatDate = (dateString) => {
 }
 
 const getEndDate = () => {
-  if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
+    if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
 
-  const startDate = new Date(form.joined_date)
-  const endDate = new Date(startDate)
-  endDate.setMonth(endDate.getMonth() + selectedPlan.value.commitment_months)
+    const startDate = new Date(form.joined_date)
+    const endDate = new Date(startDate)
+    endDate.setMonth(endDate.getMonth() + selectedPlan.value.commitment_months)
 
-  return endDate.toLocaleDateString('de-DE')
+    // Einen Tag abziehen für korrektes Vertragsende
+    endDate.setDate(endDate.getDate() - 1)
+
+    return endDate.toLocaleDateString('de-DE')
 }
 
 const getPaymentMethodLabel = () => {
-  const method = paymentMethods.find(m => m.value === form.payment_method)
-  return method ? method.label : ''
+  if (!props.paymentMethods || !Array.isArray(props.paymentMethods)) {
+    return ''
+  }
+  const method = props.paymentMethods.find(m => m.key === form.payment_method)
+  return method ? method.name : ''
 }
 
 const handleSubmit = () => {
