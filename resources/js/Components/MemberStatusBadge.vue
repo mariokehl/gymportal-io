@@ -1,36 +1,28 @@
 <template>
   <span
     :class="[
-      'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
-      `bg-${color}-100`,
-      `text-${color}-700`
+      'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full',
+      statusClasses
     ]"
   >
-    {{ text }}
+    <component v-if="showIcon" :is="statusIcon" class="w-3 h-3" />
+    {{ statusText }}
   </span>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { getStatusText, getStatusBadgeClass, getStatusIcon } from '@/utils/memberStatus'
+
 const props = defineProps({
   status: String,
+  showIcon: {
+    type: Boolean,
+    default: false
+  }
 })
 
-const statusColorMap = {
-  active: 'green',
-  inactive: 'gray',
-  paused: 'yellow',
-  overdue: 'red',
-  pending: 'orange'
-}
-
-const textMap = {
-  active: 'Aktiv',
-  inactive: 'Inaktiv',
-  paused: 'Pausiert',
-  overdue: 'Überfällig',
-  pending: 'Ausstehend'
-}
-
-const color = statusColorMap[props.status] ?? 'gray'
-const text = textMap[props.status] ?? props.status
+const statusClasses = computed(() => getStatusBadgeClass(props.status))
+const statusText = computed(() => getStatusText(props.status))
+const statusIcon = computed(() => getStatusIcon(props.status))
 </script>

@@ -63,6 +63,7 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
+    Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {
         Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');
         Route::put('/pause', [MembershipController::class, 'pause'])->name('members.memberships.pause');

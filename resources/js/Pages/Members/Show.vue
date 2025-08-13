@@ -25,9 +25,24 @@
                 {{ member.first_name }} {{ member.last_name }}
               </h2>
               <p class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
-              <span :class="getStatusBadgeClass(member.status)" class="inline-flex px-3 py-1 text-sm font-semibold rounded-full mt-2">
-                {{ getStatusText(member.status) }}
-              </span>
+
+              <div class="mt-2">
+                <!-- Im Bearbeitungsmodus: Editierbare Status-Komponente -->
+                <MemberStatusEditor
+                  v-if="editMode"
+                  :member="member"
+                  :status="member.status"
+                  @status-changed="handleStatusChanged"
+                  @status-changing="handleStatusChanging"
+                />
+
+                <!-- Im Anzeigemodus: Readonly Badge -->
+                <MemberStatusBadge
+                  v-else
+                  :status="member.status"
+                  :show-icon="true"
+                />
+              </div>
             </div>
           </div>
           <div class="flex items-center space-x-3">
@@ -66,6 +81,14 @@
             >
               <component :is="tab.icon" class="w-4 h-4" />
               {{ tab.name }}
+
+              <!-- Badge für Status-History Tab -->
+              <span
+                v-if="tab.id === 'history' && member.status_history?.length > 0"
+                class="ml-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full"
+              >
+                {{ member.status_history.length }}
+              </span>
             </button>
           </nav>
         </div>
@@ -652,6 +675,12 @@
               <p class="text-gray-500">Keine Check-Ins vorhanden</p>
             </div>
           </div>
+
+          <!-- Status History Tab -->
+          <div v-show="activeTab === 'history'" class="space-y-4">
+            <StatusHistory :member="member" />
+          </div>
+
         </div>
       </div>
     </div>
@@ -1333,12 +1362,15 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
+import StatusHistory from '@/Components/StatusHistory.vue'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  XCircle, RotateCcw
+  XCircle, RotateCcw, History
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -1386,6 +1418,7 @@ const tabs = [
   { id: 'membership', name: 'Mitgliedschaften', icon: FileText },
   { id: 'payments', name: 'Zahlungen', icon: CreditCard },
   { id: 'checkins', name: 'Check-Ins', icon: Clock },
+  { id: 'history', name: 'Status-Verlauf', icon: History },
 ]
 
 // Payment table columns configuration
@@ -1531,6 +1564,17 @@ const newPaymentForm = useForm({
   status: 'pending',
   notes: ''
 })
+
+// Status-Change Handler
+const handleStatusChanged = (newStatus) => {
+  console.log('Status wurde geändert zu:', newStatus)
+  // Die Seite wird automatisch durch Inertia aktualisiert
+}
+
+const handleStatusChanging = (newStatus) => {
+  console.log('Status wird geändert zu:', newStatus)
+  // Optional: Zeige Loading-Indicator
+}
 
 // Mitgliedschafts-Aktionen
 const activateMembership = (membership) => {
