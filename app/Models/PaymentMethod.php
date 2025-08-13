@@ -227,7 +227,7 @@ class PaymentMethod extends Model
         return true;
     }
 
-    public function activateSepaMandate(string $creditorId = null): bool
+    public function activateSepaMandate(?string $creditorId = null): bool
     {
         if (!$this->requiresSepaMandate() || $this->sepa_mandate_status !== 'signed') {
             return false;
@@ -250,7 +250,7 @@ class PaymentMethod extends Model
         return true;
     }
 
-    public function revokeSepaMandate(string $reason = null): bool
+    public function revokeSepaMandate(?string $reason = null): bool
     {
         if (!$this->requiresSepaMandate() || !in_array($this->sepa_mandate_status, ['signed', 'active'])) {
             return false;

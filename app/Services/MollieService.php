@@ -11,11 +11,14 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Mollie\Api\Exceptions\ApiException;
 use Mollie\Api\MollieApiClient;
 use Mollie\Api\Resources\Customer;
 use Mollie\Api\Resources\Mandate;
 use Mollie\Api\Resources\Payment as MolliePayment;
 use Mollie\Api\Resources\MethodCollection;
+use Mollie\Api\Resources\Refund;
+use Mollie\Api\Resources\RefundCollection;
 use Mollie\Api\Types\MandateMethod;
 
 class MollieService
@@ -56,7 +59,7 @@ class MollieService
         $config = $this->getConfig($gym);
 
         if (!isset($config['api_key'])) {
-            throw new \Exception('Mollie API-Schlüssel nicht konfiguriert');
+            throw new Exception('Mollie API-Schlüssel nicht konfiguriert');
         }
 
         $this->client->setApiKey($config['api_key']);
@@ -109,12 +112,12 @@ class MollieService
                 'permissions' => $availablePermissions,
             ];
 
-        } catch (\Mollie\Api\Exceptions\ApiException $e) {
+        } catch (ApiException $e) {
             return [
                 'valid' => false,
                 'message' => 'API-Fehler bei Token-Validierung: ' . $e->getMessage()
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'valid' => false,
                 'message' => 'Unerwarteter Fehler bei Token-Validierung: ' . $e->getMessage()
@@ -357,7 +360,7 @@ class MollieService
 
             Log::info("Webhook erfolgreich verarbeitet für Payment ID: {$paymentId}");
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Fehler beim Verarbeiten des Webhooks: " . $e->getMessage());
             throw $e;
         }
@@ -705,7 +708,7 @@ class MollieService
     /**
      * Create refund
      */
-    public function createRefund(Gym $gym, string $paymentId, float $amount = null, string $description = null): \Mollie\Api\Resources\Refund
+    public function createRefund(Gym $gym, string $paymentId, ?float $amount = null, ?string $description = null): Refund
     {
         $client = $this->initializeClient($gym);
         $molliePayment = $this->getPayment($gym, $paymentId);
@@ -729,7 +732,7 @@ class MollieService
     /**
      * Get all refunds for a payment
      */
-    public function getRefunds(Gym $gym, string $paymentId): \Mollie\Api\Resources\RefundCollection
+    public function getRefunds(Gym $gym, string $paymentId): RefundCollection
     {
         $client = $this->initializeClient($gym);
 
@@ -749,7 +752,7 @@ class MollieService
     /**
      * Get payment statistics for Gym
      */
-    public function getPaymentStatistics(Gym $gym, \Carbon\Carbon $from = null, \Carbon\Carbon $to = null): array
+    public function getPaymentStatistics(Gym $gym, ?Carbon $from = null, ?Carbon $to = null): array
     {
         $query = Payment::where('gym_id', $gym->id);
 

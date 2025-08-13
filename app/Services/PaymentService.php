@@ -572,7 +572,7 @@ class PaymentService
     /**
      * Storniert Payment
      */
-    public function cancelPayment(Payment $payment, string $reason = null): bool
+    public function cancelPayment(Payment $payment, ?string $reason = null): bool
     {
         try {
             $payment->update([

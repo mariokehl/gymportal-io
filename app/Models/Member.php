@@ -213,7 +213,7 @@ class Member extends Model
         return $this->update(['status' => 'active']);
     }
 
-    public function setPending(string $reason = null): bool
+    public function setPending(?string $reason = null): bool
     {
         $this->update([
             'status' => 'pending',
