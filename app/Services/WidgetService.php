@@ -535,7 +535,7 @@ class WidgetService
         Member $member,
         MembershipPlan $plan,
         Membership $membership,
-        PaymentMethod $paymentMethod = null
+        ?PaymentMethod $paymentMethod = null
     ): PaymentCreationResult {
         $paymentService = app(PaymentService::class);
 
@@ -649,7 +649,7 @@ class WidgetService
     /**
      * Analytics-Event tracken
      */
-    public function trackEvent(Gym $gym, string $eventType, string $step = null, array $data = []): void
+    public function trackEvent(Gym $gym, string $eventType, ?string $step = null, array $data = []): void
     {
         try {
             WidgetAnalytics::create([
