@@ -757,6 +757,104 @@ class Member extends Model
     }
 
     /**
+     * Prüft ob das Mitglied gelöscht werden kann
+     */
+    public function canBeDeleted(): bool
+    {
+        // Nur inaktive Mitglieder können gelöscht werden
+        if ($this->status !== 'inactive') {
+            return false;
+        }
+
+        // Keine aktiven oder ausstehenden Mitgliedschaften
+        $hasActiveMemberships = $this->memberships()
+            ->whereIn('memberships.status', ['active', 'pending'])
+            ->exists();
+
+        if ($hasActiveMemberships) {
+            return false;
+        }
+
+        // Keine ausstehenden Zahlungen
+        $hasPendingPayments = $this->payments()
+            ->where('payments.status', 'pending')
+            ->exists();
+
+        if ($hasPendingPayments) {
+            return false;
+        }
+
+        // Keine offenen SEPA-Mandate
+        $hasOpenSepaMandates = $this->sepaPaymentMethods()
+            ->whereIn('sepa_mandate_status', ['pending', 'active'])
+            ->exists();
+
+        if ($hasOpenSepaMandates) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Gibt detaillierte Informationen zurück, warum nicht gelöscht werden kann
+     */
+    public function getDeleteBlockReason(): ?array
+    {
+        if ($this->status !== 'inactive') {
+            return [
+                'reason' => 'Status muss "Inaktiv" sein',
+                'current_status' => $this->status_text,
+                'type' => 'status'
+            ];
+        }
+
+        $activeMemberships = $this->memberships()
+            ->whereIn('status', ['active', 'pending'])
+            ->count();
+
+        if ($activeMemberships > 0) {
+            return [
+                'reason' => "Es existieren noch {$activeMemberships} aktive/ausstehende Mitgliedschaft(en)",
+                'count' => $activeMemberships,
+                'type' => 'memberships'
+            ];
+        }
+
+        $pendingPayments = $this->payments()
+            ->where('status', 'pending')
+            ->count();
+
+        if ($pendingPayments > 0) {
+            $totalAmount = $this->payments()
+                ->where('status', 'pending')
+                ->sum('amount');
+
+            return [
+                'reason' => sprintf('%d ausstehende Zahlung(en) im Wert von %.2f €',
+                    $pendingPayments, $totalAmount),
+                'count' => $pendingPayments,
+                'amount' => $totalAmount,
+                'type' => 'payments'
+            ];
+        }
+
+        $openMandates = $this->sepaPaymentMethods()
+            ->whereIn('sepa_mandate_status', ['pending', 'active'])
+            ->count();
+
+        if ($openMandates > 0) {
+            return [
+                'reason' => "Es existieren noch {$openMandates} offene SEPA-Mandate",
+                'count' => $openMandates,
+                'type' => 'sepa'
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * Scope für Mitglieder die inaktiviert werden können
      */
     public function scopeCanBeInactivated($query)
@@ -766,6 +864,23 @@ class Member extends Model
         })->whereDoesntHave('payments', function($q) {
             $q->where('payments.status', 'pending');
         });
+    }
+
+    /**
+     * Scope für löschbare Mitglieder
+     */
+    public function scopeDeletable($query)
+    {
+        return $query->where('status', 'inactive')
+            ->whereDoesntHave('memberships', function($q) {
+                $q->whereIn('status', ['active', 'pending']);
+            })
+            ->whereDoesntHave('payments', function($q) {
+                $q->where('status', 'pending');
+            })
+            ->whereDoesntHave('sepaPaymentMethods', function($q) {
+                $q->whereIn('sepa_mandate_status', ['pending', 'active']);
+            });
     }
 
     /**
