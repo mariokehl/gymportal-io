@@ -178,66 +178,13 @@
           </table>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="members.links && members.links.length > 3" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <Link
-              v-if="members.prev_page_url"
-              :href="members.prev_page_url"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Zurück
-            </Link>
-            <Link
-              v-if="members.next_page_url"
-              :href="members.next_page_url"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Weiter
-            </Link>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700">
-                Zeige
-                <span class="font-medium">{{ members.from }}</span>
-                bis
-                <span class="font-medium">{{ members.to }}</span>
-                von
-                <span class="font-medium">{{ members.total }}</span>
-                Ergebnissen
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <template v-for="(link, index) in members.links" :key="index">
-                  <Link
-                    v-if="link.url"
-                    :href="link.url"
-                    :class="[
-                      'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
-                      link.active
-                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                      index === 0 ? 'rounded-l-md' : '',
-                      index === members.links.length - 1 ? 'rounded-r-md' : ''
-                    ]"
-                    v-html="link.label"
-                  />
-                  <span
-                    v-else
-                    :class="[
-                      'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-300',
-                      index === 0 ? 'rounded-l-md' : '',
-                      index === members.links.length - 1 ? 'rounded-r-md' : ''
-                    ]"
-                    v-html="link.label"
-                  />
-                </template>
-              </nav>
-            </div>
-          </div>
-        </div>
+        <!-- Pagination Component -->
+        <Pagination
+          :data="members"
+          item-label="Mitglieder"
+          :is-loading="isProcessing"
+          @navigate="handlePaginationEvent"
+        />
       </div>
 
       <!-- Keine Ergebnisse -->
@@ -331,15 +278,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive } from 'vue'
 import { router, Link } from '@inertiajs/vue3'
 import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
+import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import {
   Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2
 } from 'lucide-vue-next'
-import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
-import Tooltip from '@/Components/Tooltip.vue'
 
 // Props
 const props = defineProps({
@@ -356,6 +304,7 @@ const filters = reactive({
 const showDeleteModal = ref(false)
 const memberToDelete = ref(null)
 const isDeleting = ref(false)
+const isProcessing = ref(false)
 
 // Methods
 const handleSearch = debounce(() => {
@@ -370,6 +319,14 @@ const handleFilter = () => {
     preserveState: true,
     replace: true
   })
+}
+
+const handlePaginationEvent = (event) => {
+  if (event.type === 'start') {
+    isProcessing.value = true
+  } else if (event.type === 'finish') {
+    isProcessing.value = false
+  }
 }
 
 const getInitials = (firstName, lastName) => {

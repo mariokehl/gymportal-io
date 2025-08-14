@@ -195,79 +195,14 @@
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="showPagination && payments.links" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <button
-            v-if="payments.prev_page_url"
-            @click="handlePaginate(payments.prev_page_url)"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Zurück
-          </button>
-          <button
-            v-if="payments.next_page_url"
-            @click="handlePaginate(payments.next_page_url)"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Weiter
-          </button>
-        </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              Zeige
-              <span class="font-medium">{{ payments.from || 0 }}</span>
-              bis
-              <span class="font-medium">{{ payments.to || 0 }}</span>
-              von
-              <span class="font-medium">{{ payments.total }}</span>
-              Zahlungen
-            </p>
-          </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button
-                v-if="payments.prev_page_url"
-                @click="handlePaginate(payments.prev_page_url)"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span class="sr-only">Zurück</span>
-                <ChevronLeft class="h-5 w-5" />
-              </button>
-
-              <template v-for="link in payments.links" :key="link.label">
-                <button
-                  v-if="link.url && !link.label.includes('Previous') && !link.label.includes('Next')"
-                  @click="handlePaginate(link.url)"
-                  :class="[
-                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
-                    link.active
-                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                  ]"
-                  v-html="link.label"
-                />
-                <span
-                  v-else-if="!link.url && !link.label.includes('Previous') && !link.label.includes('Next')"
-                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                >
-                  ...
-                </span>
-              </template>
-
-              <button
-                v-if="payments.next_page_url"
-                @click="handlePaginate(payments.next_page_url)"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span class="sr-only">Weiter</span>
-                <ChevronRight class="h-5 w-5" />
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
+      <!-- Pagination with Pagination Component -->
+      <Pagination
+        v-if="showPagination"
+        :data="payments"
+        item-label="Zahlungen"
+        :is-loading="isProcessing"
+        @navigate="handlePaginationEvent"
+      />
     </div>
 
     <!-- Payment Detail Modal -->
@@ -382,13 +317,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import Pagination from '@/Components/Pagination.vue'
 import {
   Download,
   ArrowUpDown,
   Eye,
   CheckCircle,
-  ChevronLeft,
-  ChevronRight,
   X
 } from 'lucide-vue-next'
 
@@ -473,6 +407,7 @@ const emit = defineEmits([
 const selectedPayments = ref(props.selectedIds)
 const showPaymentModal = ref(false)
 const selectedPayment = ref(null)
+const isProcessing = ref(false)
 
 // Watch for external changes to selectedIds
 watch(() => props.selectedIds, (newVal) => {
@@ -544,17 +479,16 @@ const handleExport = async (type) => {
   }
 }
 
-const handlePaginate = (url) => {
-  // Check if we're in an Inertia environment
-  if (router && router.get) {
-    router.get(url, {}, {
-      preserveState: true,
-      preserveScroll: true
-    })
-  } else {
-    // Otherwise emit for parent to handle
-    emit('paginate', url)
+const handlePaginationEvent = (event) => {
+  // Handle loading states from Pagination component
+  if (event.type === 'start') {
+    isProcessing.value = true
+  } else if (event.type === 'finish') {
+    isProcessing.value = false
   }
+
+  // Emit event for parent component if needed
+  emit('paginate', event)
 }
 
 const viewPayment = (payment) => {
