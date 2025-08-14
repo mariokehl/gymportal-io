@@ -400,6 +400,7 @@ class ProcessMembershipPayments extends Command
                         'due_date' => $nextPaymentDate->toDateString(),
                     ]);
                 } else {
+                    // TODO: Refactor to PaymentService aka createOneRecurringPayment (from createRecurringPayments)
                     $payment = Payment::create([
                         'gym_id' => $member->gym_id,
                         'membership_id' => $membership->id,
