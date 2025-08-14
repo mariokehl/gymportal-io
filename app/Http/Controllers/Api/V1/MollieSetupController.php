@@ -47,7 +47,7 @@ class MollieSetupController extends Controller
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $request->api_key,
                 'Content-Type' => 'application/json'
-            ])->get('https://api.mollie.com/v2/methods');
+            ])->get('https://api.mollie.com/v2/methods?sequenceType=recurring'); // Set it to recurring to only return enabled methods that can be used for recurring payments or subscriptions.
 
             if (!$response->successful()) {
                 return response()->json([
