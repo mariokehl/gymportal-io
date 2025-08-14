@@ -98,8 +98,13 @@ Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
     });
     Route::get('/finances', [FinancesController::class, 'index'])->name('finances.index');
     Route::post('/finances/export', [FinancesController::class, 'export'])->name('finances.export');
-    Route::patch('/payments/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('payments.mark-paid');
-    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
+        Route::patch('/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('mark-paid');
+        Route::patch('/{payment}/mark-failed', [PaymentController::class, 'markAsFailed'])->name('mark-failed');
+        Route::delete('/{payment}/cancel', [PaymentController::class, 'cancel'])->name('cancel');
+        Route::post('/{payment}/refund', [PaymentController::class, 'refund'])->name('refund');
+    });
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
