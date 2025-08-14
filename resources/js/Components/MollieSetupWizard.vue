@@ -273,8 +273,7 @@
                                 <div class="ml-3 flex-1">
                                     <div class="flex items-center">
                                         <div class="w-8 h-8 bg-gray-100 rounded mr-2 flex items-center justify-center">
-                                            <span class="text-xs font-bold text-gray-600">{{ method.id.substring(0,
-                                                2).toUpperCase() }}</span>
+                                            <img :src="method.image.size1x" class="h-8 w-8 object-contain" />
                                         </div>
                                         <div>
                                             <label :for="method.id"
