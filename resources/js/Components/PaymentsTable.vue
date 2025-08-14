@@ -187,6 +187,14 @@
                   >
                     <CheckCircle class="w-4 h-4" />
                   </button>
+                  <button
+                    v-if="payment.status === 'pending' && showCancelPayment"
+                    @click="cancelPayment(payment)"
+                    class="text-red-600 hover:text-red-900"
+                    title="Zahlung abbrechen"
+                  >
+                    <XCircle class="w-4 h-4" />
+                  </button>
                   <slot name="actions" :payment="payment"></slot>
                 </div>
               </td>
@@ -258,6 +266,10 @@
               <label class="block text-sm font-medium text-gray-700">Bezahlt am</label>
               <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.paid_at) }}</p>
             </div>
+            <div v-if="selectedPayment.canceled_at">
+              <label class="block text-sm font-medium text-gray-700">Abgebrochen am</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.canceled_at) }}</p>
+            </div>
           </div>
 
           <div v-if="selectedPayment.membership?.member">
@@ -302,6 +314,13 @@
             Schließen
           </button>
           <button
+            v-if="selectedPayment?.status === 'pending' && showCancelPayment"
+            @click="cancelPaymentFromModal"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          >
+            Zahlung abbrechen
+          </button>
+          <button
             v-if="selectedPayment?.status === 'pending' && showMarkAsPaid"
             @click="markAsPaidFromModal"
             class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -323,6 +342,9 @@ import {
   ArrowUpDown,
   Eye,
   CheckCircle,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
   X
 } from 'lucide-vue-next'
 
@@ -361,6 +383,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  showCancelPayment: {
+    type: Boolean,
+    default: true
+  },
   showPagination: {
     type: Boolean,
     default: true
@@ -381,6 +407,10 @@ const props = defineProps({
     type: String,
     default: 'payments.mark-paid'
   },
+  cancelRoute: {
+    type: String,
+    default: 'payments.cancel'
+  },
   exportRoute: {
     type: String,
     default: 'finances.export'
@@ -388,6 +418,10 @@ const props = defineProps({
   confirmMarkPaidMessage: {
     type: String,
     default: 'Möchten Sie diese Zahlung als bezahlt markieren?'
+  },
+  confirmCancelMessage: {
+    type: String,
+    default: 'Möchten Sie diese Zahlung wirklich abbrechen? Diese Aktion kann nicht rückgängig gemacht werden.'
   }
 })
 
@@ -399,7 +433,9 @@ const emit = defineEmits([
   'update:selectedIds',
   'payment-viewed',
   'payment-marked-paid',
+  'payment-canceled',
   'before-mark-paid',
+  'before-cancel',
   'before-export'
 ])
 
@@ -535,6 +571,43 @@ const performMarkAsPaid = async (payment) => {
     } else {
       // Emit for parent to handle
       emit('payment-marked-paid', payment)
+    }
+  }
+}
+
+const cancelPayment = async (payment) => {
+  if (confirm(props.confirmCancelMessage)) {
+    await performCancelPayment(payment)
+  }
+}
+
+const cancelPaymentFromModal = async () => {
+  if (selectedPayment.value && confirm(props.confirmCancelMessage)) {
+    await performCancelPayment(selectedPayment.value)
+    closePaymentModal()
+  }
+}
+
+const performCancelPayment = async (payment) => {
+  // Allow parent to handle or prevent cancellation
+  const beforeCancelEvent = {
+    payment,
+    preventDefault: false
+  }
+
+  emit('before-cancel', beforeCancelEvent)
+
+  if (!beforeCancelEvent.preventDefault) {
+    // If parent doesn't handle it, use default behavior
+    if (props.cancelRoute && window.route && router) {
+      router.delete(route(props.cancelRoute, payment.id), {
+        onSuccess: () => {
+          emit('payment-canceled', payment)
+        }
+      })
+    } else {
+      // Emit for parent to handle
+      emit('payment-canceled', payment)
     }
   }
 }

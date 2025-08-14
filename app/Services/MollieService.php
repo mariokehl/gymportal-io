@@ -238,6 +238,25 @@ class MollieService
     }
 
     /**
+     * Cancel payment: Depending on the payment method, you may be able to cancel a payment
+     * for a certain amount of time — usually until the next business day or as long as the payment status is open.
+     */
+    public function cancelPayment(Member $member, Payment $payment): ?MolliePayment
+    {
+        $client = $this->initializeClient($member->gym);
+
+        /** @var MolliePayment $molliePayment */
+        $molliePayment = $client->payments->get($payment->mollie_payment_id);
+
+        // Prüfen ob die Zahlung bei Mollie abgebrochen werden kann
+        if ($molliePayment->isCancelable) {
+            return $client->payments->delete($payment->mollie_payment_id);
+        }
+
+        return null;
+    }
+
+    /**
      * @param array $paymentData
      * @param array $config
      * @return array
