@@ -38,6 +38,9 @@ class Payment extends Model
         'amount' => 'decimal:2',
         'due_date' => 'date',
         'paid_date' => 'date',
+        'canceled_at' => 'datetime',
+        'failed_at' => 'datetime',
+        'expired_at' => 'datetime',
         'metadata' => 'array',
     ];
 
@@ -66,6 +69,7 @@ class Payment extends Model
             'failed' => 'Fehlgeschlagen',
             'refunded' => 'Erstattet',
             'expired' => 'Verfallen',
+            'canceled' => 'Abgebrochen',
         ][$this->status] ?? $this->status;
     }
 
@@ -77,6 +81,7 @@ class Payment extends Model
             'failed' => 'red',
             'refunded' => 'blue',
             'expired' => 'gray',
+            'canceled' => 'red',
         ][$this->status] ?? 'gray';
     }
 
@@ -122,9 +127,38 @@ class Payment extends Model
         return $query->where('status', 'refunded');
     }
 
+    public function scopeCanceled($query)
+    {
+        return $query->where('status', 'canceled');
+    }
+
     public function scopeOverdue($query)
     {
         return $query->where('status', 'pending')
                      ->where('due_date', '<', now());
+    }
+
+    /**
+     * Check if payment can be canceled
+     */
+    public function canBeCanceled(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * Check if payment can be marked as paid
+     */
+    public function canBeMarkedAsPaid(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * Check if payment can be refunded
+     */
+    public function canBeRefunded(): bool
+    {
+        return $this->status === 'paid';
     }
 }

@@ -69,6 +69,14 @@ class MemberController extends Controller
             //    ->where('status', 'active')
             //    ->first()?->end_date;
 
+            // Füge Lösch-Informationen hinzu
+            $member->can_delete = $member->canBeDeleted();
+            if (!$member->can_delete) {
+                $deleteBlockInfo = $member->getDeleteBlockReason();
+                $member->delete_block_reason = $deleteBlockInfo['reason'] ?? 'Löschen nicht möglich';
+                $member->delete_block_type = $deleteBlockInfo['type'] ?? 'unknown';
+            }
+
             return $member;
         });
 
@@ -497,18 +505,60 @@ class MemberController extends Controller
     }
 
     /**
-     * Remove the specified member from storage.
+     * Enhanced destroy method with validation
      */
     public function destroy(Member $member)
     {
-        // Ensure the member belongs to the current gym
         $this->authorize('delete', $member);
 
-        $memberName = $member->first_name . ' ' . $member->last_name;
+        // Prüfe ob Mitglied gelöscht werden kann
+        if (!$member->canBeDeleted()) {
+            $blockReason = $member->getDeleteBlockReason();
 
-        $member->delete();
+            return back()->withErrors([
+                'delete' => $blockReason['reason'] ?? 'Mitglied kann nicht gelöscht werden.'
+            ])->with('error_details', $blockReason);
+        }
 
-        return redirect()->route('members.index')
-            ->with('success', "Mitglied {$memberName} wurde erfolgreich gelöscht.");
+        $memberName = $member->full_name;
+
+        try {
+            DB::beginTransaction();
+
+            /** @var User $user */
+            $user = Auth::user();
+
+            // Log deletion in history before soft delete
+            MemberStatusHistory::create([
+                'member_id' => $member->id,
+                'old_status' => $member->status,
+                'new_status' => 'deleted',
+                'reason' => 'Mitglied gelöscht',
+                'changed_by' => $user->id,
+                'metadata' => [
+                    'deleted_at' => now()->toISOString(),
+                    'member_data' => $member->only(['member_number', 'email'])
+                ]
+            ]);
+
+            $member->delete();
+
+            DB::commit();
+
+            return redirect()->route('members.index')
+                ->with('success', "Mitglied {$memberName} wurde erfolgreich gelöscht.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Member deletion failed', [
+                'member_id' => $member->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->withErrors([
+                'delete' => 'Fehler beim Löschen des Mitglieds.'
+            ]);
+        }
     }
 }

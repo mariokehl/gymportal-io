@@ -24,7 +24,9 @@ class Kernel extends ConsoleKernel
         // Main processing - runs daily at 2 AM
         $schedule->command('memberships:daily-process')
             ->dailyAt('02:00')
+            ->timezone('Europe/Berlin')
             ->withoutOverlapping()
+            ->onOneServer()
             ->onSuccess(function () {
                 Log::info('Daily membership processing completed successfully');
             })
@@ -33,7 +35,8 @@ class Kernel extends ConsoleKernel
                 // Send alert to administrators
                 $this->notifyAdministrators('Membership processing failed');
             })
-            ->appendOutputTo(storage_path('logs/scheduler-memberships.log'));
+            ->appendOutputTo(storage_path('logs/scheduler-memberships.log'))
+            ->emailOutputTo('support@gymportal.io');
 
         // ===================================
         // MEMBERSHIP PAYMENT PROCESSING
@@ -42,20 +45,26 @@ class Kernel extends ConsoleKernel
         // Retry failed payments - runs at 10 AM
         //$schedule->command('memberships:retry-failed-payments')
         //    ->dailyAt('10:00')
+        //    ->timezone('Europe/Berlin')
         //    ->withoutOverlapping()
+        //    ->onOneServer()
         //    ->runInBackground()
         //    ->appendOutputTo(storage_path('logs/scheduler-retry.log'));
 
         // Check expiring contracts - runs weekly on Mondays
         //$schedule->command('memberships:check-expiring')
         //    ->weeklyOn(1, '09:00')
+        //    ->timezone('Europe/Berlin')
         //    ->withoutOverlapping()
+        //    ->onOneServer()
         //    ->appendOutputTo(storage_path('logs/scheduler-expiring.log'));
 
         // Clean up old test data - runs monthly
         //$schedule->command('memberships:cleanup-test-data')
         //    ->monthlyOn(1, '03:00')
+        //    ->timezone('Europe/Berlin')
         //    ->withoutOverlapping()
+        //    ->onOneServer()
         //    ->appendOutputTo(storage_path('logs/scheduler-cleanup.log'));
 
         // ===================================
@@ -65,7 +74,9 @@ class Kernel extends ConsoleKernel
         // Process pending SEPA mandates
         //$schedule->command('sepa:process-mandates')
         //    ->dailyAt('03:00')
+        //    ->timezone('Europe/Berlin')
         //    ->withoutOverlapping()
+        //    ->onOneServer()
         //    ->runInBackground()
         //    ->appendOutputTo(storage_path('logs/scheduler-sepa.log'));
 

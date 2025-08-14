@@ -187,6 +187,14 @@
                   >
                     <CheckCircle class="w-4 h-4" />
                   </button>
+                  <button
+                    v-if="payment.status === 'pending' && showCancelPayment"
+                    @click="cancelPayment(payment)"
+                    class="text-red-600 hover:text-red-900"
+                    title="Zahlung abbrechen"
+                  >
+                    <XCircle class="w-4 h-4" />
+                  </button>
                   <slot name="actions" :payment="payment"></slot>
                 </div>
               </td>
@@ -195,79 +203,14 @@
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="showPagination && payments.links" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <button
-            v-if="payments.prev_page_url"
-            @click="handlePaginate(payments.prev_page_url)"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Zurück
-          </button>
-          <button
-            v-if="payments.next_page_url"
-            @click="handlePaginate(payments.next_page_url)"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Weiter
-          </button>
-        </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              Zeige
-              <span class="font-medium">{{ payments.from || 0 }}</span>
-              bis
-              <span class="font-medium">{{ payments.to || 0 }}</span>
-              von
-              <span class="font-medium">{{ payments.total }}</span>
-              Zahlungen
-            </p>
-          </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button
-                v-if="payments.prev_page_url"
-                @click="handlePaginate(payments.prev_page_url)"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span class="sr-only">Zurück</span>
-                <ChevronLeft class="h-5 w-5" />
-              </button>
-
-              <template v-for="link in payments.links" :key="link.label">
-                <button
-                  v-if="link.url && !link.label.includes('Previous') && !link.label.includes('Next')"
-                  @click="handlePaginate(link.url)"
-                  :class="[
-                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
-                    link.active
-                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                  ]"
-                  v-html="link.label"
-                />
-                <span
-                  v-else-if="!link.url && !link.label.includes('Previous') && !link.label.includes('Next')"
-                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                >
-                  ...
-                </span>
-              </template>
-
-              <button
-                v-if="payments.next_page_url"
-                @click="handlePaginate(payments.next_page_url)"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span class="sr-only">Weiter</span>
-                <ChevronRight class="h-5 w-5" />
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
+      <!-- Pagination with Pagination Component -->
+      <Pagination
+        v-if="showPagination"
+        :data="payments"
+        item-label="Zahlungen"
+        :is-loading="isProcessing"
+        @navigate="handlePaginationEvent"
+      />
     </div>
 
     <!-- Payment Detail Modal -->
@@ -323,6 +266,10 @@
               <label class="block text-sm font-medium text-gray-700">Bezahlt am</label>
               <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.paid_at) }}</p>
             </div>
+            <div v-if="selectedPayment.canceled_at">
+              <label class="block text-sm font-medium text-gray-700">Abgebrochen am</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.canceled_at) }}</p>
+            </div>
           </div>
 
           <div v-if="selectedPayment.membership?.member">
@@ -367,6 +314,13 @@
             Schließen
           </button>
           <button
+            v-if="selectedPayment?.status === 'pending' && showCancelPayment"
+            @click="cancelPaymentFromModal"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          >
+            Zahlung abbrechen
+          </button>
+          <button
             v-if="selectedPayment?.status === 'pending' && showMarkAsPaid"
             @click="markAsPaidFromModal"
             class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -382,11 +336,13 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import Pagination from '@/Components/Pagination.vue'
 import {
   Download,
   ArrowUpDown,
   Eye,
   CheckCircle,
+  XCircle,
   ChevronLeft,
   ChevronRight,
   X
@@ -427,6 +383,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  showCancelPayment: {
+    type: Boolean,
+    default: true
+  },
   showPagination: {
     type: Boolean,
     default: true
@@ -447,6 +407,10 @@ const props = defineProps({
     type: String,
     default: 'payments.mark-paid'
   },
+  cancelRoute: {
+    type: String,
+    default: 'payments.cancel'
+  },
   exportRoute: {
     type: String,
     default: 'finances.export'
@@ -454,6 +418,10 @@ const props = defineProps({
   confirmMarkPaidMessage: {
     type: String,
     default: 'Möchten Sie diese Zahlung als bezahlt markieren?'
+  },
+  confirmCancelMessage: {
+    type: String,
+    default: 'Möchten Sie diese Zahlung wirklich abbrechen? Diese Aktion kann nicht rückgängig gemacht werden.'
   }
 })
 
@@ -465,7 +433,9 @@ const emit = defineEmits([
   'update:selectedIds',
   'payment-viewed',
   'payment-marked-paid',
+  'payment-canceled',
   'before-mark-paid',
+  'before-cancel',
   'before-export'
 ])
 
@@ -473,6 +443,7 @@ const emit = defineEmits([
 const selectedPayments = ref(props.selectedIds)
 const showPaymentModal = ref(false)
 const selectedPayment = ref(null)
+const isProcessing = ref(false)
 
 // Watch for external changes to selectedIds
 watch(() => props.selectedIds, (newVal) => {
@@ -544,17 +515,16 @@ const handleExport = async (type) => {
   }
 }
 
-const handlePaginate = (url) => {
-  // Check if we're in an Inertia environment
-  if (router && router.get) {
-    router.get(url, {}, {
-      preserveState: true,
-      preserveScroll: true
-    })
-  } else {
-    // Otherwise emit for parent to handle
-    emit('paginate', url)
+const handlePaginationEvent = (event) => {
+  // Handle loading states from Pagination component
+  if (event.type === 'start') {
+    isProcessing.value = true
+  } else if (event.type === 'finish') {
+    isProcessing.value = false
   }
+
+  // Emit event for parent component if needed
+  emit('paginate', event)
 }
 
 const viewPayment = (payment) => {
@@ -601,6 +571,43 @@ const performMarkAsPaid = async (payment) => {
     } else {
       // Emit for parent to handle
       emit('payment-marked-paid', payment)
+    }
+  }
+}
+
+const cancelPayment = async (payment) => {
+  if (confirm(props.confirmCancelMessage)) {
+    await performCancelPayment(payment)
+  }
+}
+
+const cancelPaymentFromModal = async () => {
+  if (selectedPayment.value && confirm(props.confirmCancelMessage)) {
+    await performCancelPayment(selectedPayment.value)
+    closePaymentModal()
+  }
+}
+
+const performCancelPayment = async (payment) => {
+  // Allow parent to handle or prevent cancellation
+  const beforeCancelEvent = {
+    payment,
+    preventDefault: false
+  }
+
+  emit('before-cancel', beforeCancelEvent)
+
+  if (!beforeCancelEvent.preventDefault) {
+    // If parent doesn't handle it, use default behavior
+    if (props.cancelRoute && window.route && router) {
+      router.delete(route(props.cancelRoute, payment.id), {
+        onSuccess: () => {
+          emit('payment-canceled', payment)
+        }
+      })
+    } else {
+      // Emit for parent to handle
+      emit('payment-canceled', payment)
     }
   }
 }

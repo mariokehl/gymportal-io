@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Services\MollieService;
+use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -55,6 +58,32 @@ class PaymentController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Zahlung wurde als fehlgeschlagen markiert.');
+    }
+
+    public function cancel(Payment $payment): RedirectResponse
+    {
+        $this->authorize('update', $payment);
+
+        if ($payment->status !== 'pending') {
+            return redirect()->back()->with('error', 'Nur ausstehende Zahlungen können abgebrochen werden.');
+        }
+
+        // Wenn es eine Mollie-Zahlung ist, sollte sie auch bei Mollie abgebrochen werden
+        if ($payment->mollie_payment_id) {
+            try {
+                app(MollieService::class)->cancelPayment($payment->member, $payment);
+            } catch (Exception $e) {
+                // Log error but continue with local cancellation
+                Log::error('Failed to cancel Mollie payment: ' . $e->getMessage());
+            }
+        }
+
+        $payment->update([
+            'status' => 'canceled',
+            'canceled_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Zahlung wurde erfolgreich abgebrochen.');
     }
 
     public function refund(Payment $payment): RedirectResponse

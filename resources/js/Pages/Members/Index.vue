@@ -115,27 +115,62 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex items-center justify-end space-x-2">
+                    <!-- View Button -->
                     <Link
                       :href="route('members.show', member.id)"
-                      class="text-gray-700 hover:text-gray-900 p-1 rounded"
+                      class="text-gray-700 hover:text-gray-900 p-1 rounded transition-colors"
                       title="Anzeigen"
                     >
                       <Eye class="w-4 h-4" />
                     </Link>
+
+                    <!-- Edit Button -->
                     <Link
                       :href="route('members.show', member.id) + '?edit=true'"
-                      class="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                      class="text-indigo-600 hover:text-indigo-900 p-1 rounded transition-colors"
                       title="Bearbeiten"
                     >
                       <Edit class="w-4 h-4" />
                     </Link>
+
+                    <!-- Delete Button mit bedingter Deaktivierung -->
                     <button
+                      v-if="member.can_delete"
                       @click="confirmDelete(member)"
-                      class="text-red-600 hover:text-red-900 p-1 rounded"
+                      class="text-red-600 hover:text-red-900 p-1 rounded transition-colors"
                       title="Löschen"
                     >
                       <Trash2 class="w-4 h-4" />
                     </button>
+
+                    <!-- Deaktivierter Delete Button mit Tooltip -->
+                    <Tooltip v-else position="left">
+                      <template #default>
+                        <button
+                          disabled
+                          class="text-gray-300 cursor-not-allowed p-1 rounded opacity-50"
+                          :title="member.delete_block_reason"
+                        >
+                          <Trash2 class="w-4 h-4" />
+                        </button>
+                      </template>
+
+                      <template #content>
+                        <div class="font-semibold mb-1 flex items-center">
+                          <AlertCircle class="w-3 h-3 mr-1" />
+                          Löschen nicht möglich
+                        </div>
+                        <div class="text-gray-300">
+                          {{ member.delete_block_reason }}
+                        </div>
+                        <div
+                          v-if="member.status !== 'inactive'"
+                          class="mt-2 pt-2 border-t border-gray-700 text-gray-400"
+                        >
+                          Tipp: Mitglied muss erst inaktiviert werden
+                        </div>
+                      </template>
+                    </Tooltip>
                   </div>
                 </td>
               </tr>
@@ -143,66 +178,13 @@
           </table>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="members.links && members.links.length > 3" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <Link
-              v-if="members.prev_page_url"
-              :href="members.prev_page_url"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Zurück
-            </Link>
-            <Link
-              v-if="members.next_page_url"
-              :href="members.next_page_url"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Weiter
-            </Link>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700">
-                Zeige
-                <span class="font-medium">{{ members.from }}</span>
-                bis
-                <span class="font-medium">{{ members.to }}</span>
-                von
-                <span class="font-medium">{{ members.total }}</span>
-                Ergebnissen
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <template v-for="(link, index) in members.links" :key="index">
-                  <Link
-                    v-if="link.url"
-                    :href="link.url"
-                    :class="[
-                      'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
-                      link.active
-                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                      index === 0 ? 'rounded-l-md' : '',
-                      index === members.links.length - 1 ? 'rounded-r-md' : ''
-                    ]"
-                    v-html="link.label"
-                  />
-                  <span
-                    v-else
-                    :class="[
-                      'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-300',
-                      index === 0 ? 'rounded-l-md' : '',
-                      index === members.links.length - 1 ? 'rounded-r-md' : ''
-                    ]"
-                    v-html="link.label"
-                  />
-                </template>
-              </nav>
-            </div>
-          </div>
-        </div>
+        <!-- Pagination Component -->
+        <Pagination
+          :data="members"
+          item-label="Mitglieder"
+          :is-loading="isProcessing"
+          @navigate="handlePaginationEvent"
+        />
       </div>
 
       <!-- Keine Ergebnisse -->
@@ -224,7 +206,7 @@
       </div>
     </div>
 
-    <!-- Lösch-Bestätigungsmodal -->
+    <!-- Erweitertes Lösch-Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3 text-center">
@@ -232,23 +214,59 @@
             <AlertTriangle class="h-6 w-6 text-red-600" />
           </div>
           <h3 class="text-lg font-medium text-gray-900 mt-2">Mitglied löschen</h3>
-          <div class="mt-2 px-7 py-3">
-            <p class="text-sm text-gray-500">
-              Sind Sie sicher, dass Sie das Mitglied
-              <strong>{{ memberToDelete?.first_name }} {{ memberToDelete?.last_name }}</strong>
-              löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
-            </p>
+
+          <div class="mt-4 px-7 py-3">
+            <!-- Mitgliedsinfo -->
+            <div class="bg-gray-50 rounded-lg p-3 mb-4">
+              <div class="font-medium text-gray-900">
+                {{ memberToDelete?.first_name }} {{ memberToDelete?.last_name }}
+              </div>
+              <div class="text-sm text-gray-500">
+                {{ memberToDelete?.member_number }} • {{ memberToDelete?.email }}
+              </div>
+            </div>
+
+            <!-- Prüfungs-Checkliste -->
+            <div class="text-left space-y-2 mb-4">
+              <div class="flex items-center text-sm">
+                <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
+                <span class="text-gray-600">Status: Inaktiv</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
+                <span class="text-gray-600">Keine aktiven Mitgliedschaften</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
+                <span class="text-gray-600">Keine offenen Zahlungen</span>
+              </div>
+            </div>
+
+            <!-- Warnung -->
+            <div class="bg-red-50 border border-red-200 rounded-md p-3">
+              <p class="text-sm text-red-800">
+                <strong>Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
+                Alle Daten des Mitglieds werden unwiderruflich gelöscht.
+              </p>
+            </div>
           </div>
-          <div class="items-center px-4 py-3">
+
+          <div class="items-center px-4 py-3 space-y-2">
             <button
               @click="deleteMember"
-              class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+              :disabled="isDeleting"
+              class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Löschen
+              <span v-if="!isDeleting">Endgültig löschen</span>
+              <span v-else class="flex items-center justify-center">
+                <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+                Wird gelöscht...
+              </span>
             </button>
             <button
-              @click="showDeleteModal = false"
-              class="mt-3 px-4 py-2 bg-white text-gray-500 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
+              @click="closeDeleteModal"
+              :disabled="isDeleting"
+              class="px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
             >
               Abbrechen
             </button>
@@ -260,14 +278,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive } from 'vue'
 import { router, Link } from '@inertiajs/vue3'
 import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import {
-  Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle
-} from 'lucide-vue-next'
+import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import Tooltip from '@/Components/Tooltip.vue'
+import {
+  Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2
+} from 'lucide-vue-next'
 
 // Props
 const props = defineProps({
@@ -283,6 +303,8 @@ const filters = reactive({
 
 const showDeleteModal = ref(false)
 const memberToDelete = ref(null)
+const isDeleting = ref(false)
+const isProcessing = ref(false)
 
 // Methods
 const handleSearch = debounce(() => {
@@ -297,6 +319,14 @@ const handleFilter = () => {
     preserveState: true,
     replace: true
   })
+}
+
+const handlePaginationEvent = (event) => {
+  if (event.type === 'start') {
+    isProcessing.value = true
+  } else if (event.type === 'finish') {
+    isProcessing.value = false
+  }
 }
 
 const getInitials = (firstName, lastName) => {
@@ -317,13 +347,27 @@ const confirmDelete = (member) => {
 }
 
 const deleteMember = () => {
-  if (memberToDelete.value) {
+  if (memberToDelete.value && !isDeleting.value) {
+    isDeleting.value = true
+
     router.delete(route('members.destroy', memberToDelete.value.id), {
       onSuccess: () => {
         showDeleteModal.value = false
         memberToDelete.value = null
+        isDeleting.value = false
+      },
+      onError: (errors) => {
+        isDeleting.value = false
+        // Error wird automatisch von Inertia angezeigt
       }
     })
+  }
+}
+
+const closeDeleteModal = () => {
+  if (!isDeleting.value) {
+    showDeleteModal.value = false
+    memberToDelete.value = null
   }
 }
 </script>
