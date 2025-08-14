@@ -120,7 +120,7 @@
 
             <div>
               <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">
-                Geburtsdatum <span class="text-red-500">*</span>
+                Geburtsdatum
               </label>
               <input
                 id="birth_date"
@@ -128,7 +128,6 @@
                 type="date"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.birth_date }"
-                @blur="handleFieldBlur('birth_date', 'Geburtsdatum ist erforderlich')"
               />
               <p v-if="errors.birth_date" class="mt-1 text-sm text-red-600">
                 {{ errors.birth_date }}
@@ -219,7 +218,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="emergency_contact_name" class="block text-sm font-medium text-gray-700 mb-2">
-                Name des Notfallkontakts <span class="text-red-500">*</span>
+                Name des Notfallkontakts
               </label>
               <input
                 id="emergency_contact_name"
@@ -227,7 +226,6 @@
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_name }"
-                @blur="handleFieldBlur('emergency_contact_name', 'Name des Notfallkontakts ist erforderlich')"
               />
               <p v-if="errors.emergency_contact_name" class="mt-1 text-sm text-red-600">
                 {{ errors.emergency_contact_name }}
@@ -236,7 +234,7 @@
 
             <div>
               <label for="emergency_contact_phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Telefon des Notfallkontakts <span class="text-red-500">*</span>
+                Telefon des Notfallkontakts
               </label>
               <input
                 id="emergency_contact_phone"
@@ -244,7 +242,6 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.emergency_contact_phone }"
-                @blur="handleFieldBlur('emergency_contact_phone', 'Telefon des Notfallkontakts ist erforderlich')"
               />
               <p v-if="errors.emergency_contact_phone" class="mt-1 text-sm text-red-600">
                 {{ errors.emergency_contact_phone }}
@@ -636,7 +633,7 @@ const handleFieldBlur = (fieldName, errorMessage) => {
 
 // Step validation
 const validateStep1 = () => {
-  const step1Fields = ['first_name', 'last_name', 'phone', 'birth_date', 'address', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone']
+  const step1Fields = ['first_name', 'last_name', 'phone', 'address', 'city', 'postal_code', 'country']
 
   let isValid = true
 
@@ -656,7 +653,7 @@ const validateStep1 = () => {
 }
 
 const touchAllStep1Fields = () => {
-  const step1Fields = ['first_name', 'last_name', 'email', 'phone', 'birth_date', 'address', 'city', 'postal_code', 'country', 'emergency_contact_name', 'emergency_contact_phone']
+  const step1Fields = ['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country']
   step1Fields.forEach(field => markFieldAsTouched(field))
 }
 
@@ -704,13 +701,10 @@ const nextStep = () => {
       { field: 'first_name', message: 'Vorname ist erforderlich' },
       { field: 'last_name', message: 'Nachname ist erforderlich' },
       { field: 'phone', message: 'Mobilfunknummer ist erforderlich' },
-      { field: 'birth_date', message: 'Geburtsdatum ist erforderlich' },
       { field: 'address', message: 'Straße und Hausnummer ist erforderlich' },
       { field: 'city', message: 'Stadt ist erforderlich' },
       { field: 'postal_code', message: 'PLZ ist erforderlich' },
       { field: 'country', message: 'Land ist erforderlich' },
-      { field: 'emergency_contact_name', message: 'Name des Notfallkontakts ist erforderlich' },
-      { field: 'emergency_contact_phone', message: 'Telefon des Notfallkontakts ist erforderlich' }
     ]
 
     requiredFields.forEach(({ field, message }) => {
