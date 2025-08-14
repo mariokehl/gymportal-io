@@ -15,6 +15,6 @@ return [
 
     'notifications' => [
         'expiry_days' => explode(',', env('NOTIFICATION_EXPIRY_DAYS', '30,14,7,3,1')),
-        'admin_email' => env('NOTIFICATION_ADMIN_EMAIL'),
+        'admin_email' => env('NOTIFICATION_ADMIN_EMAIL', 'webmaster@gymportal.io'),
     ],
 ];

@@ -715,7 +715,7 @@ class ProcessSepaMandates extends Command
     protected function sendValidationErrorSummary(array $validationErrors): void
     {
         try {
-            $adminEmail = config('app.admin_email');
+            $adminEmail = config('scheduler.notifications.admin_email');
             if (!$adminEmail) {
                 return;
             }
