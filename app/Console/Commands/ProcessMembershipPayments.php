@@ -274,6 +274,14 @@ class ProcessMembershipPayments extends Command
      */
     protected function processMolliePayment(Payment $payment, PaymentMethod $paymentMethod): void
     {
+        // Skip if the payment has already been created
+        if ($payment->mollie_payment_id) {
+            if ($this->verboseLog) {
+                $this->info("→ Skipping payment creation at Mollie for {$payment->id} payment method #{$paymentMethod->id}");
+            }
+            return;
+        }
+
         $member = $payment->member;
 
         // Create Mollie payment
