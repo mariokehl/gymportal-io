@@ -464,12 +464,12 @@ class Gym extends Model
 
     public function getSuccessfulPaymentsCount(): int
     {
-        return $this->payments()->where('status', 'completed')->count();
+        return $this->payments()->where('status', 'paid')->count();
     }
 
     public function getTotalPaymentsAmount(): float
     {
-        return $this->payments()->where('status', 'completed')->sum('amount');
+        return $this->payments()->where('status', 'paid')->sum('amount');
     }
 
     public function getPendingPaymentsCount(): int
