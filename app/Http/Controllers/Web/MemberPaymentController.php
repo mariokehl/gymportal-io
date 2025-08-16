@@ -91,7 +91,7 @@ class MemberPaymentController extends Controller
 
             DB::commit();
 
-            $this->createResponseWithUpdatedPayments($member, 'Zahlung wird über Mollie ausgeführt.');
+            $this->createResponseWithMessage($member, 'Zahlung wird über Mollie ausgeführt.');
 
         } catch (\Mollie\Api\Exceptions\ApiException $e) {
             DB::rollBack();
@@ -189,7 +189,7 @@ class MemberPaymentController extends Controller
 
             DB::commit();
 
-            return $this->createResponseWithUpdatedPayments($payment->member, $message);
+            return $this->createResponseWithMessage($payment->member, $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -202,19 +202,11 @@ class MemberPaymentController extends Controller
         }
     }
 
-    protected function createResponseWithUpdatedPayments(Member $member, string $message)
+    protected function createResponseWithMessage(Member $member, string $message)
     {
-        $updatedPayments = $member->payments()
-            ->with(['membership'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->each(function ($payment) {
-                $payment->append(['status_text', 'status_color', 'payment_method_text']);
-            });
-
         return redirect()->back()->with([
             'message' => $message,
-            'updated_payments' => $updatedPayments->toArray(),
+            'updated_payments' => true,
             'member_id' => $member->id
         ]);
     }
@@ -302,7 +294,7 @@ class MemberPaymentController extends Controller
             $message .= " $failedCount Zahlung(en) fehlgeschlagen.";
         }
 
-        return $this->createResponseWithUpdatedPayments($member, $message);
+        return $this->createResponseWithMessage($member, $message);
     }
 
     /**
@@ -389,7 +381,7 @@ class MemberPaymentController extends Controller
             $message .= " $failedCount Zahlung(en) fehlgeschlagen.";
         }
 
-        return $this->createResponseWithUpdatedPayments($member, $message);
+        return $this->createResponseWithMessage($member, $message);
     }
 
     public function invoice(Member $member, Payment $payment)
