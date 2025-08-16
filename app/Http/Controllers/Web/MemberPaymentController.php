@@ -28,7 +28,7 @@ class MemberPaymentController extends Controller
             'due_date' => 'nullable|date',
             'paid_date' => 'nullable|date',
             'payment_method' => 'nullable|string',
-            'status' => 'required|in:pending,paid,completed',
+            'status' => 'required|in:pending,paid',
             'notes' => 'nullable|string'
         ]);
 
@@ -115,8 +115,6 @@ class MemberPaymentController extends Controller
      */
     protected function executeStandardPayment(Payment $payment, string $paymentMethod)
     {
-        DB::beginTransaction();
-
         try {
             $updateData = [
                 'payment_method' => $paymentMethod,
@@ -126,7 +124,7 @@ class MemberPaymentController extends Controller
             switch ($paymentMethod) {
                 case 'cash':
                     // Barzahlung wird direkt als bezahlt markiert
-                    $updateData['status'] = 'completed';
+                    $updateData['status'] = 'paid';
                     $updateData['paid_date'] = now();
                     $updateData['notes'] = ($payment->notes ? $payment->notes . "\n" : '') .
                                           'Barzahlung erhalten am ' . now()->format('d.m.Y H:i');
@@ -135,7 +133,7 @@ class MemberPaymentController extends Controller
 
                 case 'banktransfer':
                     // Banküberweisung wird als bezahlt markiert (manuell überprüft)
-                    $updateData['status'] = 'completed';
+                    $updateData['status'] = 'paid';
                     $updateData['paid_date'] = now();
                     $updateData['notes'] = ($payment->notes ? $payment->notes . "\n" : '') .
                                           'Überweisung erhalten am ' . now()->format('d.m.Y H:i');
@@ -144,7 +142,7 @@ class MemberPaymentController extends Controller
 
                 case 'invoice':
                     // Rechnung wird als bezahlt markiert
-                    $updateData['status'] = 'completed';
+                    $updateData['status'] = 'paid';
                     $updateData['paid_date'] = now();
                     $updateData['notes'] = ($payment->notes ? $payment->notes . "\n" : '') .
                                           'Rechnung bezahlt am ' . now()->format('d.m.Y H:i');
@@ -153,7 +151,7 @@ class MemberPaymentController extends Controller
 
                 case 'standingorder':
                     // Dauerauftrag wird als bezahlt markiert
-                    $updateData['status'] = 'completed';
+                    $updateData['status'] = 'paid';
                     $updateData['paid_date'] = now();
                     $updateData['notes'] = ($payment->notes ? $payment->notes . "\n" : '') .
                                           'Dauerauftrag eingegangen am ' . now()->format('d.m.Y H:i');
@@ -177,7 +175,7 @@ class MemberPaymentController extends Controller
             $payment->update($updateData);
 
             // Bei erfolgreicher Zahlung ggf. Membership aktivieren
-            if ($updateData['status'] === 'completed' && $payment->membership_id) {
+            if ($updateData['status'] === 'paid' && $payment->membership_id) {
                 $membership = $payment->membership;
                 if ($membership && $membership->status !== 'active') {
                     $membership->update(['status' => 'active']);
@@ -332,7 +330,7 @@ class MemberPaymentController extends Controller
             try {
                 $updateData = [
                     'payment_method' => $paymentMethod,
-                    'status' => 'completed',
+                    'status' => 'paid',
                     'paid_date' => now(),
                 ];
 

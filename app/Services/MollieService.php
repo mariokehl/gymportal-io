@@ -661,12 +661,12 @@ class MollieService
     protected function mapMollieStatus(string $mollieStatus): string
     {
         return match($mollieStatus) {
-            'paid' => 'completed',
-            'failed' => 'failed',
-            'canceled' => 'canceled',
-            'expired' => 'expired',
-            'pending' => 'pending',
             'open' => 'pending',
+            'canceled' => 'canceled',
+            'pending' => 'pending',
+            'expired' => 'expired',
+            'failed' => 'failed',
+            'paid' => 'paid',
             default => 'unknown'
         };
     }
@@ -788,11 +788,11 @@ class MollieService
         return [
             'total_payments' => $payments->count(),
             'total_amount' => $payments->sum('amount'),
-            'successful_payments' => $payments->where('status', 'completed')->count(),
+            'successful_payments' => $payments->where('status', 'paid')->count(),
             'failed_payments' => $payments->where('status', 'failed')->count(),
             'pending_payments' => $payments->where('status', 'pending')->count(),
             'success_rate' => $payments->count() > 0 ?
-                round(($payments->where('status', 'completed')->count() / $payments->count()) * 100, 2) : 0
+                round(($payments->where('status', 'paid')->count() / $payments->count()) * 100, 2) : 0
         ];
     }
 }

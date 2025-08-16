@@ -70,6 +70,7 @@ class Payment extends Model
             'refunded' => 'Erstattet',
             'expired' => 'Verfallen',
             'canceled' => 'Abgebrochen',
+            'completed' => 'Bezahlt'
         ][$this->status] ?? $this->status;
     }
 
@@ -82,6 +83,7 @@ class Payment extends Model
             'refunded' => 'blue',
             'expired' => 'gray',
             'canceled' => 'red',
+            'completed' => 'green'
         ][$this->status] ?? 'gray';
     }
 
