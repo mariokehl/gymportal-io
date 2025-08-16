@@ -639,7 +639,7 @@
                       v-if="payment.status === 'pending'"
                       @click="handleExecutePayment(payment)"
                       type="button"
-                      :disabled="isPaymentExecuting(payment.id) || executingBatch"
+                      :disabled="isPaymentExecuting(payment.id) || executingBatch || payment.mollie_payment_id"
                       class="text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       :title="isPaymentExecuting(payment.id) ? 'Wird ausgeführt...' : 'Zahlung ausführen'"
                     >
