@@ -216,7 +216,7 @@ class MemberPaymentController extends Controller
 
         return redirect()->back()->with([
             'message' => $message,
-            'updated_payments' => $updatedPayments,
+            'updated_payments' => $updatedPayments->toArray(),
             'member_id' => $member->id
         ]);
     }
