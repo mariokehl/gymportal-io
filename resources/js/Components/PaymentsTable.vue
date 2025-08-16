@@ -315,6 +315,11 @@
             <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedPayment.transaction_id }}</p>
           </div>
 
+          <div v-if="selectedPayment.mollie_payment_id">
+            <label class="block text-sm font-medium text-gray-700">Zahlungs-ID (Mollie)</label>
+            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedPayment.mollie_payment_id }}</p>
+          </div>
+
           <div v-if="selectedPayment.notes">
             <label class="block text-sm font-medium text-gray-700">Notizen</label>
             <p class="mt-1 text-sm text-gray-900">{{ selectedPayment.notes }}</p>
