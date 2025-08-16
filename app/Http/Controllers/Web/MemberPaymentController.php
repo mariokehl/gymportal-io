@@ -39,7 +39,7 @@ class MemberPaymentController extends Controller
             'member_id' => $member->id,
         ]);
 
-        return redirect()->back()->with('success', 'Zahlung wurde hinzugefügt.');
+        return redirect()->back()->with('message', 'Zahlung wurde hinzugefügt.');
     }
 
     public function execute(Request $request, Member $member, Payment $payment)
@@ -91,9 +91,7 @@ class MemberPaymentController extends Controller
 
             DB::commit();
 
-            return redirect()->back()
-                ->with('success', 'Zahlung wird über ausgeführt.')
-                ->with('member', $member); // Member-Daten mitgeben
+            $this->createResponseWithUpdatedPayments($member, 'Zahlung wird über Mollie ausgeführt.');
 
         } catch (\Mollie\Api\Exceptions\ApiException $e) {
             DB::rollBack();
@@ -193,9 +191,7 @@ class MemberPaymentController extends Controller
 
             DB::commit();
 
-            return redirect()->back()
-                ->with('success', $message)
-                ->with('member', $member); // Aktualisierte Member-Daten mitgeben
+            return $this->createResponseWithUpdatedPayments($payment->member, $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -208,12 +204,29 @@ class MemberPaymentController extends Controller
         }
     }
 
+    protected function createResponseWithUpdatedPayments(Member $member, string $message)
+    {
+        $updatedPayments = $member->payments()
+            ->with(['membership'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->each(function ($payment) {
+                $payment->append(['status_text', 'status_color', 'payment_method_text']);
+            });
+
+        return redirect()->back()->with([
+            'message' => $message,
+            'updated_payments' => $updatedPayments,
+            'member_id' => $member->id
+        ]);
+    }
+
     public function executeBatch(Request $request, Member $member)
     {
         $validated = $request->validate([
             'payment_ids' => 'required|array',
             'payment_ids.*' => 'exists:payments,id',
-            'payment_method' => 'nullable|string' // Optionale Zahlungsmethode für Batch
+            'payment_method' => 'nullable|string'
         ]);
 
         $payments = $member->payments()
@@ -286,34 +299,12 @@ class MemberPaymentController extends Controller
             }
         }
 
-        // Rückmeldung erstellen
-        $message = "$successCount Zahlung(en) erfolgreich über Mollie gestartet.";
+        $message = "$successCount Zahlung(en) erfolgreich verarbeitet.";
         if ($failedCount > 0) {
             $message .= " $failedCount Zahlung(en) fehlgeschlagen.";
         }
 
-        // Member mit allen Daten neu laden
-        $member->load([
-            'payments' => function ($query) {
-                $query->orderBy('created_at', 'desc');
-            },
-            'paymentMethods',
-            'memberships.membershipPlan',
-            'checkIns'
-        ]);
-
-        // Accessoren für alle Payments anhängen
-        $member->payments->each(function ($p) {
-            $p->append(['status_text', 'status_color', 'payment_method_text']);
-        });
-
-        $response = redirect()->back()->with('success', $message)->with('member', $member);
-
-        if (!empty($errors)) {
-            $response->with('errors', $errors);
-        }
-
-        return $response;
+        return $this->createResponseWithUpdatedPayments($member, $message);
     }
 
     /**
@@ -395,33 +386,12 @@ class MemberPaymentController extends Controller
             default => ''
         };
 
-        $message = "$successCount Zahlung(en) $methodText erfolgreich verbucht.";
+        $message = "$successCount Zahlung(en) erfolgreich verarbeitet.";
         if ($failedCount > 0) {
             $message .= " $failedCount Zahlung(en) fehlgeschlagen.";
         }
 
-        // Member mit allen Daten neu laden
-        $member->load([
-            'payments' => function ($query) {
-                $query->orderBy('created_at', 'desc');
-            },
-            'paymentMethods',
-            'memberships.membershipPlan',
-            'checkIns'
-        ]);
-
-        // Accessoren für alle Payments anhängen
-        $member->payments->each(function ($p) {
-            $p->append(['status_text', 'status_color', 'payment_method_text']);
-        });
-
-        $response = redirect()->back()->with('success', $message)->with('member', $member);
-
-        if (!empty($errors)) {
-            $response->with('errors', $errors);
-        }
-
-        return $response;
+        return $this->createResponseWithUpdatedPayments($member, $message);
     }
 
     public function invoice(Member $member, Payment $payment)
@@ -437,82 +407,5 @@ class MemberPaymentController extends Controller
 
         // PDF generieren oder vorhandene Rechnung zurückgeben
         return response()->download(storage_path('app/' . $payment->invoice_path));
-    }
-
-    /**
-     * Handle payment return from Mollie
-     */
-    public function handleReturn(Member $member, Payment $payment)
-    {
-        try {
-            // Nur für Mollie-Zahlungen relevant
-            if (!$payment->mollie_payment_id) {
-                return redirect()->route('members.show', $member)
-                    ->with('info', 'Zahlung wurde verarbeitet.');
-            }
-
-            // Mollie-Zahlung abrufen und Status aktualisieren
-            $molliePayment = $this->mollieService->getPayment(
-                $member->gym,
-                $payment->mollie_payment_id
-            );
-
-            $payment->update([
-                'status' => $this->mapMollieStatus($molliePayment->status),
-                'mollie_status' => $molliePayment->status,
-                'paid_date' => $molliePayment->isPaid() ? now() : null,
-                'failed_at' => $molliePayment->isFailed() ? now() : null,
-                'canceled_at' => $molliePayment->isCanceled() ? now() : null
-            ]);
-
-            if ($molliePayment->isPaid()) {
-                // Membership aktivieren wenn nötig
-                if ($payment->membership_id) {
-                    $membership = $payment->membership;
-                    if ($membership && $membership->status !== 'active') {
-                        $membership->update(['status' => 'active']);
-                    }
-
-                    $member = $payment->member;
-                    if ($member && $member->status !== 'active') {
-                        $member->update(['status' => 'active']);
-                    }
-                }
-
-                return redirect()->route('members.show', $member)
-                    ->with('success', 'Zahlung erfolgreich abgeschlossen.');
-            } elseif ($molliePayment->isFailed() || $molliePayment->isCanceled()) {
-                return redirect()->route('members.show', $member)
-                    ->with('error', 'Zahlung wurde abgebrochen oder ist fehlgeschlagen.');
-            }
-
-            return redirect()->route('members.show', $member)
-                ->with('info', 'Zahlungsstatus wird verarbeitet.');
-
-        } catch (\Exception $e) {
-            Log::error('Fehler beim Verarbeiten der Zahlung-Rückkehr', [
-                'payment_id' => $payment->id,
-                'error' => $e->getMessage()
-            ]);
-
-            return redirect()->route('members.show', $member)
-                ->with('error', 'Fehler beim Verarbeiten der Zahlung.');
-        }
-    }
-
-    /**
-     * Map Mollie status to local status
-     */
-    protected function mapMollieStatus(string $mollieStatus): string
-    {
-        return match($mollieStatus) {
-            'paid' => 'completed',
-            'failed' => 'failed',
-            'canceled' => 'canceled',
-            'expired' => 'expired',
-            'pending' => 'pending',
-            'open' => 'processing',
-            default => 'unknown'
-        };
     }
 }

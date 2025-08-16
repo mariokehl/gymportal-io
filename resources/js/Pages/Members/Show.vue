@@ -382,6 +382,21 @@
           <!-- Payments & Payment Methods Tab -->
           <div v-show="activeTab === 'payments'" class="space-y-8">
 
+            <!-- Flash Messages -->
+            <div v-if="$page.props.flash?.message" class="bg-green-50 border border-green-200 rounded-md p-4">
+              <div class="flex">
+                <CheckCircle class="w-5 h-5 text-green-400 mr-2" />
+                <div class="text-sm text-green-800">{{ $page.props.flash.message }}</div>
+              </div>
+            </div>
+
+            <div v-if="$page.props.flash?.error" class="bg-red-50 border border-red-200 rounded-md p-4">
+              <div class="flex">
+                <XCircle class="w-5 h-5 text-red-400 mr-2" />
+                <div class="text-sm text-red-800">{{ $page.props.flash.error }}</div>
+              </div>
+            </div>
+
             <!-- Payment Methods Section -->
             <div class="space-y-6">
               <div class="flex justify-between items-center">
@@ -559,6 +574,7 @@
               <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-900">Zahlungshistorie</h3>
                 <div class="flex items-center space-x-2">
+                  <!-- Filter -->
                   <select
                     v-model="paymentStatusFilter"
                     @change="filterPayments"
@@ -569,6 +585,8 @@
                     <option value="pending">Ausstehend</option>
                     <option value="failed">Fehlgeschlagen</option>
                   </select>
+
+                  <!-- Add Payment Button -->
                   <button
                     @click="openAddPayment"
                     type="button"
@@ -577,20 +595,23 @@
                     <Plus class="w-4 h-4" />
                     Zahlung hinzufügen
                   </button>
+
+                  <!-- Batch Execute Button -->
                   <button
                     v-if="selectedPaymentIds.length > 0 && hasPendingPaymentsSelected"
                     @click="executeSelectedPayments"
                     type="button"
-                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-                    :disabled="executingPayments"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="executingBatch"
                   >
-                    <PlayCircle class="w-4 h-4" />
-                    {{ executingPayments ? 'Wird ausgeführt...' : `Zahlungen ausführen (${selectedPendingPaymentIds.length})` }}
+                    <PlayCircle v-if="!executingBatch" class="w-4 h-4" />
+                    <div v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {{ executingBatch ? 'Wird ausgeführt...' : `Zahlungen ausführen (${selectedPendingPaymentIds.length})` }}
                   </button>
                 </div>
               </div>
 
-              <div v-if="filteredPayments && filteredPayments.data && filteredPayments.data.length > 0">
+              <div v-if="filteredPayments?.data?.length > 0">
                 <PaymentsTable
                   :payments="filteredPayments"
                   :columns="paymentTableColumns"
@@ -599,8 +620,9 @@
                   :show-csv-export="false"
                   :show-sepa-export="false"
                   :show-pagination="false"
+                  :executing-payment-id="executingPaymentId"
+                  :batch-executing-payments="executingBatch"
                   @payment-marked-paid="handlePaymentMarkedPaid"
-                  @before-mark-paid="handleBeforeMarkPaid"
                 >
                   <!-- Custom Actions Slot für zusätzliche Buttons -->
                   <template #actions="{ payment }">
@@ -615,12 +637,14 @@
                     </button>
                     <button
                       v-if="payment.status === 'pending'"
-                      @click="executePayment(payment)"
+                      @click="handleExecutePayment(payment)"
                       type="button"
-                      class="text-indigo-600 hover:text-indigo-800"
-                      title="Zahlung ausführen"
+                      :disabled="isPaymentExecuting(payment.id) || executingBatch"
+                      class="text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                      :title="isPaymentExecuting(payment.id) ? 'Wird ausgeführt...' : 'Zahlung ausführen'"
                     >
-                      <PlayCircle class="w-4 h-4" />
+                      <PlayCircle v-if="!isPaymentExecuting(payment.id)" class="w-4 h-4" />
+                      <div v-else class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                     </button>
                   </template>
                 </PaymentsTable>
@@ -1360,7 +1384,8 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useForm, Link, router } from '@inertiajs/vue3'
+import { useForm, Link, router, usePage } from '@inertiajs/vue3'
+import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
@@ -1373,6 +1398,8 @@ import {
   XCircle, RotateCcw, History
 } from 'lucide-vue-next'
 
+const page = usePage()
+
 const props = defineProps({
   member: Object,
   availablePaymentMethods: {
@@ -1380,6 +1407,16 @@ const props = defineProps({
     default: () => []
   }
 })
+
+const {
+  payments,
+  executePayment,
+  executeBatchPayments,
+  executingPaymentId,
+  executingBatch,
+  updateLocalPayments,
+  isPaymentExecuting
+} = useInertiaPayments(props.member.id)
 
 const editMode = ref(false)
 const activeTab = ref('personal')
@@ -1403,15 +1440,6 @@ const deactivating = ref(null)
 const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
-const executingPayments = ref(false)
-
-// Payment-related state
-const paymentStatusFilter = ref('')
-const selectedPaymentIds = ref([])
-const filteredPayments = ref(props.member.payments ?
-  { data: props.member.payments, total: props.member.payments.length } :
-  { data: [], total: 0 }
-)
 
 const tabs = [
   { id: 'personal', name: 'Persönliche Daten', icon: User },
@@ -1422,6 +1450,8 @@ const tabs = [
 ]
 
 // Payment table columns configuration
+const paymentStatusFilter = ref('')
+const selectedPaymentIds = ref([])
 const paymentTableColumns = ref([
   { key: 'id', label: 'ID', sortable: true, nowrap: true, visible: false },
   { key: 'created_at', label: 'Datum', sortable: true, nowrap: true },
@@ -1454,16 +1484,28 @@ const currentMonth = computed(() => {
     return `${year}-${month}`;
 })
 
-const hasPendingPaymentsSelected = computed(() => {
-  return selectedPendingPaymentIds.value.length > 0
+const filteredPayments = computed(() => {
+  let paymentList = payments.value || []
+
+  if (paymentStatusFilter.value) {
+    paymentList = paymentList.filter(p => p.status === paymentStatusFilter.value)
+  }
+
+  return {
+    data: paymentList,
+    total: paymentList.length
+  }
 })
 
 const selectedPendingPaymentIds = computed(() => {
-  if (!filteredPayments.value || !filteredPayments.value.data) return []
   return selectedPaymentIds.value.filter(id => {
-    const payment = filteredPayments.value.data.find(p => p.id === id)
+    const payment = payments.value.find(p => p.id === id)
     return payment && payment.status === 'pending'
   })
+})
+
+const hasPendingPaymentsSelected = computed(() => {
+  return selectedPendingPaymentIds.value.length > 0
 })
 
 // Helper functions
@@ -1744,21 +1786,8 @@ const revokeCancellation = (membership) => {
 
 // Payment methods
 const filterPayments = () => {
-  if (!props.member.payments) {
-    filteredPayments.value = { data: [], total: 0 }
-    return
-  }
-
-  let payments = [...props.member.payments]
-
-  if (paymentStatusFilter.value) {
-    payments = payments.filter(p => p.status === paymentStatusFilter.value)
-  }
-
-  filteredPayments.value = {
-    data: payments,
-    total: payments.length
-  }
+  // Filter wird automatisch durch computed property angewendet
+  console.log(`Showing ${filteredPayments.value.total} payments`)
 }
 
 const openAddPayment = () => {
@@ -1789,61 +1818,33 @@ const createPayment = () => {
   })
 }
 
-const executePayment = (payment) => {
-  if (!confirm(`Möchten Sie die Zahlung "${payment.description}" jetzt ausführen?`)) {
-    return
-  }
-
-  router.post(route('members.payments.execute', {
-    member: props.member.id,
-    payment: payment.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      // Reload member data and re-apply filters
-      router.reload({
-        only: ['member'],
-        preserveScroll: true,
-        onSuccess: () => {
-          filterPayments()
-        }
-      })
-    },
-    onError: () => {
-      alert('Die Zahlung konnte nicht ausgeführt werden.')
-    }
-  })
+const handleExecutePayment = (payment) => {
+  executePayment(payment)
+    .then((result) => {
+      if (result && result.success) {
+        console.log('Payment executed successfully:', result.message)
+      }
+    })
+    .catch((error) => {
+      console.error('Payment execution failed:', error)
+    })
 }
 
 const executeSelectedPayments = () => {
-  const count = selectedPendingPaymentIds.value.length
-  if (!confirm(`Möchten Sie ${count} ausstehende Zahlung(en) jetzt ausführen?`)) {
+  if (selectedPendingPaymentIds.value.length === 0) {
     return
   }
 
-  executingPayments.value = true
-
-  router.post(route('members.payments.execute-batch', props.member.id), {
-    payment_ids: selectedPendingPaymentIds.value
-  }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      executingPayments.value = false
-      selectedPaymentIds.value = []
-      // Reload member data and re-apply filters
-      router.reload({
-        only: ['member'],
-        preserveScroll: true,
-        onSuccess: () => {
-          filterPayments()
-        }
-      })
-    },
-    onError: () => {
-      executingPayments.value = false
-      alert('Die Zahlungen konnten nicht ausgeführt werden.')
-    }
-  })
+  executeBatchPayments(selectedPendingPaymentIds.value)
+    .then((result) => {
+      if (result && result.success) {
+        selectedPaymentIds.value = []
+        console.log(`${result.count} payments executed successfully`)
+      }
+    })
+    .catch((error) => {
+      console.error('Batch execution failed:', error)
+    })
 }
 
 const downloadInvoice = (payment) => {
@@ -1856,22 +1857,22 @@ const downloadInvoice = (payment) => {
 
 const handlePaymentMarkedPaid = (payment) => {
   // Update the payment status in the local state
-  if (props.member.payments) {
-    const paymentIndex = props.member.payments.findIndex(p => p.id === payment.id)
-    if (paymentIndex !== -1) {
-      // Update the original data
-      props.member.payments[paymentIndex].status = 'paid'
-      props.member.payments[paymentIndex].status_text = 'Bezahlt'
-      props.member.payments[paymentIndex].status_color = 'green'
-      props.member.payments[paymentIndex].paid_date = new Date().toISOString()
+  const paymentList = payments.value
+  const paymentIndex = paymentList.findIndex(p => p.id === payment.id)
 
-      // Re-apply the filter to update the filtered view
-      filterPayments()
+  if (paymentIndex !== -1) {
+    // Create new array with updated payment
+    const updatedPayments = [...paymentList]
+    updatedPayments[paymentIndex] = {
+      ...updatedPayments[paymentIndex],
+      status: 'paid',
+      status_text: 'Bezahlt',
+      status_color: 'green',
+      paid_date: new Date().toISOString()
     }
-  }
 
-  // Alternative: Reload the page data via Inertia (preserves scroll position)
-  // router.reload({ only: ['member'] })
+    updateLocalPayments(updatedPayments)
+  }
 }
 
 const handleBeforeMarkPaid = (event) => {
@@ -2240,14 +2241,15 @@ watch(() => showAddPaymentMethodModal.value, (isOpen) => {
   }
 })
 
+watch(() => props.member?.payments, (newPayments) => {
+  if (newPayments && Array.isArray(newPayments)) {
+    updateLocalPayments(newPayments)
+  }
+}, { deep: true, immediate: true })
+
 watch(paymentStatusFilter, () => {
   filterPayments()
 })
-
-// Watch for changes in member payments data (after Inertia reload)
-watch(() => props.member.payments, () => {
-  filterPayments()
-}, { deep: true })
 
 // Lifecycle
 onMounted(() => {
@@ -2256,7 +2258,12 @@ onMounted(() => {
     editMode.value = true
   }
 
-  // Initial filter application
+  // Initial payments laden
+  if (props.member?.payments) {
+    updateLocalPayments(props.member.payments)
+  }
+
+  // Initial filter anwenden
   filterPayments()
 })
 </script>
