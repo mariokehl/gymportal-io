@@ -255,7 +255,7 @@ class MemberController extends Controller
         return Inertia::render('Members/Show', [
             'member' => $member,
             'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
-            'updatedPayments' => session('updated_payments', null)
+            'updatedPayments' => session('updated_payments', false) ? $member->payments : null
         ]);
     }
 
