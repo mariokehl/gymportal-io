@@ -125,6 +125,7 @@ class MemberController extends Controller
         $enabledPaymentMethods = array_column($gym->getEnabledPaymentMethods(), 'key');
 
         $validated = $request->validate([
+            'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->whereNull('deleted_at')],
@@ -271,6 +272,7 @@ class MemberController extends Controller
             'member_number' => ['required', 'string', 'max:50',
                 Rule::unique('members', 'member_number')->ignore($member->id)
             ],
+            'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
@@ -282,7 +284,7 @@ class MemberController extends Controller
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue'])],
+            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
             'joined_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
