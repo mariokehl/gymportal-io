@@ -270,9 +270,9 @@
                     </div>
                   </div>
                   <div class="flex flex-col items-end">
-                    <!-- Aktions-Buttons für Mitgliedschaften - über dem Preis -->
-                    <div v-if="membership.status === 'active' || membership.status === 'paused' || membership.status === 'pending'" class="flex flex-wrap items-center justify-end gap-2 sm:gap-3 mb-3">
-                      <!-- Pending Mitgliedschaft aktivieren -->
+                    <!-- Action buttons for memberships - above the price -->
+                    <div v-if="membership.status === 'active' || membership.status === 'paused' || membership.status === 'pending'" class="flex items-center justify-end gap-2 sm:gap-3 mb-3">
+                      <!-- Activate pending membership -->
                       <button
                         v-if="membership.status === 'pending'"
                         @click="activateMembership(membership)"
@@ -284,7 +284,7 @@
                         <span>{{ activatingMembership === membership.id ? 'Wird aktiviert...' : 'Aktivieren' }}</span>
                       </button>
 
-                      <!-- Pausieren Button -->
+                      <!-- Pause button -->
                       <button
                         v-if="membership.status === 'active' && !membership.cancellation_date"
                         @click="openPauseMembership(membership)"
@@ -297,7 +297,7 @@
                         <span class="sm:hidden">{{ pausingMembership === membership.id ? '...' : 'Pause' }}</span>
                       </button>
 
-                      <!-- Fortsetzen Button -->
+                      <!-- Continue button -->
                       <button
                         v-if="membership.status === 'paused'"
                         @click="resumeMembership(membership)"
@@ -310,10 +310,10 @@
                         <span class="sm:hidden">{{ resumingMembership === membership.id ? '...' : 'Weiter' }}</span>
                       </button>
 
-                      <!-- Trennlinie -->
+                      <!-- Dividing line -->
                       <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date" class="hidden sm:block w-px h-4 bg-gray-300"></div>
 
-                      <!-- Kündigen Button -->
+                      <!-- Cancel button -->
                       <button
                         v-if="!membership.cancellation_date && membership.status !== 'pending'"
                         @click="openCancelMembership(membership)"
@@ -326,7 +326,7 @@
                         <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
                       </button>
 
-                      <!-- Kündigung zurücknehmen Button -->
+                      <!-- Cancel cancellation button -->
                       <button
                         v-if="membership.cancellation_date"
                         @click="revokeCancellation(membership)"
@@ -340,7 +340,7 @@
                       </button>
                     </div>
 
-                    <!-- Preis-Anzeige -->
+                    <!-- Price display -->
                     <div class="text-right">
                       <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
                       <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
