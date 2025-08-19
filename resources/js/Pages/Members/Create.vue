@@ -431,9 +431,9 @@
                 <div><span class="font-medium">Name:</span> {{ form.first_name }} {{ form.last_name }}</div>
                 <div><span class="font-medium">E-Mail:</span> {{ form.email }}</div>
                 <div><span class="font-medium">Telefon:</span> {{ form.phone }}</div>
-                <div><span class="font-medium">Geburtsdatum:</span> {{ formatDate(form.birth_date) }}</div>
+                <div v-if="form.birth_date"><span class="font-medium">Geburtsdatum:</span> {{ formatDate(form.birth_date) }}</div>
                 <div><span class="font-medium">Adresse:</span> {{ form.address }}, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
-                <div><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
+                <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
               </div>
             </div>
 
