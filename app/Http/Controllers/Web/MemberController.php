@@ -211,7 +211,7 @@ class MemberController extends Controller
                 ->withInput();
         }
 
-        return redirect()->route('members.index')
+        return redirect()->route('members.show', ['member' => $newMember->id])
             ->with('success', 'Mitglied wurde erfolgreich erstellt.');
     }
 

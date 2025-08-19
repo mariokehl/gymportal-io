@@ -119,7 +119,7 @@
 
                 <!-- Date Column -->
                 <template v-else-if="column.key === 'created_at'">
-                  <span class="text-sm text-gray-900">{{ formatDate(payment.created_at) }}</span>
+                  <span class="text-sm text-gray-900">{{ formatDate(payment.execution_date || payment.created_at) }}</span>
                 </template>
 
                 <!-- Member Column -->
@@ -275,6 +275,10 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Erstellt am</label>
               <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.created_at) }}</p>
+            </div>
+            <div v-if="selectedPayment.execution_date">
+              <label class="block text-sm font-medium text-gray-700">Ausführungsdatum</label>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedPayment.execution_date) }}</p>
             </div>
             <div v-if="selectedPayment.due_date">
               <label class="block text-sm font-medium text-gray-700">Fälligkeitsdatum</label>
