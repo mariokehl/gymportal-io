@@ -22,7 +22,7 @@
             </div>
             <div>
               <h2 class="text-2xl font-bold text-gray-900">
-                {{ member.first_name }} {{ member.last_name }}
+                {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }}
               </h2>
               <p class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
 
@@ -98,8 +98,26 @@
           <!-- Personal Data Tab -->
           <div v-show="activeTab === 'personal'" class="space-y-6">
             <form @submit.prevent="updateMember">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+              <!-- Anrede, Vorname, Nachname in einer Zeile -->
+              <div class="grid grid-cols-1 md:grid-cols-8 gap-6 mb-6">
+                <!-- Anrede (25% = 2/8 Spalten) -->
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Anrede <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    v-model="form.salutation"
+                    :disabled="!editMode"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                  >
+                    <option value="">Anrede auswählen</option>
+                    <option value="Herr">Herr</option>
+                    <option value="Frau">Frau</option>
+                    <option value="Divers">Divers</option>
+                  </select>
+                  <div v-if="form.errors.salutation" class="text-red-500 text-sm mt-1">{{ form.errors.salutation }}</div>
+                </div>
+                <div class="md:col-span-3">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Vorname <span class="text-red-500">*</span></label>
                   <input
                     v-model="form.first_name"
@@ -109,7 +127,7 @@
                   />
                   <div v-if="form.errors.first_name" class="text-red-500 text-sm mt-1">{{ form.errors.first_name }}</div>
                 </div>
-                <div>
+                <div class="md:col-span-3">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Nachname <span class="text-red-500">*</span></label>
                   <input
                     v-model="form.last_name"
@@ -119,6 +137,8 @@
                   />
                   <div v-if="form.errors.last_name" class="text-red-500 text-sm mt-1">{{ form.errors.last_name }}</div>
                 </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">E-Mail <span class="text-red-500">*</span></label>
                   <input
@@ -1530,6 +1550,7 @@ const isBankTransferType = (type) => {
 // Forms
 const form = useForm({
   member_number: props.member.member_number,
+  salutation: props.member.salutation,
   first_name: props.member.first_name,
   last_name: props.member.last_name,
   email: props.member.email,

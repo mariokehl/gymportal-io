@@ -48,8 +48,32 @@
         <div v-show="currentStep === 0" class="p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-6">Persönliche Daten</h3>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+          <!-- Anrede, Vorname, Nachname in einer Zeile -->
+          <div class="grid grid-cols-1 md:grid-cols-8 gap-6 mb-6">
+            <!-- Anrede (25% = 2/8 Spalten) -->
+            <div class="md:col-span-2">
+              <label for="salutation" class="block text-sm font-medium text-gray-700 mb-2">
+                Anrede <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="salutation"
+                v-model="form.salutation"
+                class="w-full px-3 p-2.5 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.salutation }"
+                @blur="handleFieldBlur('salutation', 'Anrede ist erforderlich')"
+              >
+                <option value="" selected>Anrede auswählen</option>
+                <option value="Herr">Herr</option>
+                <option value="Frau">Frau</option>
+                <option value="Divers">Divers</option>
+              </select>
+              <p v-if="errors.salutation" class="mt-1 text-sm text-red-600">
+                {{ errors.salutation }}
+              </p>
+            </div>
+
+            <!-- Vorname (37.5% = 3/8 Spalten) -->
+            <div class="md:col-span-3">
               <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">
                 Vorname <span class="text-red-500">*</span>
               </label>
@@ -66,7 +90,8 @@
               </p>
             </div>
 
-            <div>
+            <!-- Nachname (37.5% = 3/8 Spalten) -->
+            <div class="md:col-span-3">
               <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">
                 Nachname <span class="text-red-500">*</span>
               </label>
@@ -82,7 +107,10 @@
                 {{ errors.last_name }}
               </p>
             </div>
+          </div>
 
+          <!-- E-Mail und Telefon in zweiter Zeile -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
             <div>
               <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
                 E-Mail <span class="text-red-500">*</span>
@@ -117,7 +145,10 @@
                 {{ errors.phone }}
               </p>
             </div>
+          </div>
 
+          <!-- Geburtsdatum in eigener Zeile -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">
                 Geburtsdatum
@@ -428,6 +459,7 @@
             <div class="bg-gray-50 rounded-lg p-4">
               <h4 class="font-medium text-gray-900 mb-3">Persönliche Daten</h4>
               <div class="space-y-2 text-sm">
+                <div v-if="form.salutation"><span class="font-medium">Anrede:</span> {{ form.salutation }}</div>
                 <div><span class="font-medium">Name:</span> {{ form.first_name }} {{ form.last_name }}</div>
                 <div><span class="font-medium">E-Mail:</span> {{ form.email }}</div>
                 <div><span class="font-medium">Telefon:</span> {{ form.phone }}</div>
@@ -545,6 +577,7 @@ const processing = ref(false)
 
 const form = useForm({
   // Persönliche Daten
+  salutation: '',
   first_name: '',
   last_name: '',
   email: '',
@@ -653,7 +686,7 @@ const handleFieldBlur = (fieldName, errorMessage) => {
 
 // Step validation
 const validateStep1 = () => {
-  const step1Fields = ['first_name', 'last_name', 'phone', 'address', 'city', 'postal_code', 'country']
+  const step1Fields = ['salutation', 'first_name', 'last_name', 'phone', 'address', 'city', 'postal_code', 'country']
 
   let isValid = true
 
@@ -673,7 +706,7 @@ const validateStep1 = () => {
 }
 
 const touchAllStep1Fields = () => {
-  const step1Fields = ['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country']
+  const step1Fields = ['salutation', 'first_name', 'last_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country']
   step1Fields.forEach(field => markFieldAsTouched(field))
 }
 
@@ -718,6 +751,7 @@ const nextStep = () => {
     // Alle Felder als berührt markieren und validieren
     touchAllStep1Fields()
     const requiredFields = [
+      { field: 'salutation', message: 'Anrede ist erforderlich' },
       { field: 'first_name', message: 'Vorname ist erforderlich' },
       { field: 'last_name', message: 'Nachname ist erforderlich' },
       { field: 'phone', message: 'Mobilfunknummer ist erforderlich' },
@@ -801,7 +835,7 @@ const handleSubmit = () => {
     onError: () => {
       processing.value = false
       // Bei Fehlern zum entsprechenden Schritt zurück
-      if (form.errors.first_name || form.errors.last_name || form.errors.email || form.errors.phone || form.errors.birth_date || form.errors.address || form.errors.city || form.errors.postal_code || form.errors.country || form.errors.emergency_contact_name || form.errors.emergency_contact_phone) {
+      if (form.errors.salutation || form.errors.first_name || form.errors.last_name || form.errors.email || form.errors.phone || form.errors.birth_date || form.errors.address || form.errors.city || form.errors.postal_code || form.errors.country || form.errors.emergency_contact_name || form.errors.emergency_contact_phone) {
         currentStep.value = 0
       } else if (form.errors.membership_plan_id || form.errors.joined_date) {
         currentStep.value = 1
