@@ -523,6 +523,7 @@ class MollieService
             'member_id' => $paymentData['metadata']['member_id'] ?? null,
             'invoice_id' => $paymentData['metadata']['invoice_id'] ?? null,
             'metadata' => $paymentData['metdata'] ?? null,
+            'execution_date' => Carbon::now()->format('Y-m-d'),
             'due_date' => Carbon::now()->format('Y-m-d'),
             'created_at' => now(),
         ]);

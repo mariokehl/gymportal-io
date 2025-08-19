@@ -16,7 +16,7 @@ use Carbon\Carbon;
 class PaymentService
 {
     /**
-     * Erstellt ausstehende Zahlungen für eine neue Mitgliedschaft
+     * Creates pending payments for a new membership
      */
     public function createPendingPayment(
         Member $member,
@@ -25,7 +25,7 @@ class PaymentService
     ): ?Payment {
         $plan = $membership->membershipPlan;
 
-        // Bestimme Zahlungsdetails basierend auf Plan und Zahlungsmethode
+        // Specify payment details based on plan and payment method
         $paymentDetails = $this->calculatePaymentDetails($plan, $membership, $paymentMethod);
 
         if (!$paymentDetails) {
@@ -35,7 +35,7 @@ class PaymentService
         DB::beginTransaction();
 
         try {
-            // Payment erstellen
+            // Create payment
             $payment = Payment::create([
                 'gym_id' => $member->gym_id,
                 'membership_id' => $membership->id,
@@ -45,6 +45,7 @@ class PaymentService
                 'description' => $paymentDetails['description'],
                 'status' => $this->determineInitialPaymentStatus($paymentMethod?->type),
                 'payment_method' => $paymentMethod?->type,
+                'execution_date' => $paymentDetails['execution_date'],
                 'due_date' => $paymentDetails['due_date'],
                 'notes' => $paymentDetails['notes'],
                 'metadata' => [
@@ -56,7 +57,7 @@ class PaymentService
                 ],
             ]);
 
-            // Invoice erstellen falls erforderlich
+            // Create invoice if necessary
             if ($this->shouldCreateInvoice($paymentMethod)) {
                 $this->createInvoiceForPayment($payment);
             }
@@ -66,7 +67,7 @@ class PaymentService
             // Analytics Event
             $this->trackPaymentCreation($payment, $member->gym);
 
-            // Weitere Aktionen basierend auf Zahlungsart
+            // Further actions based on payment method
             $this->handlePaymentMethodSpecificActions($payment, $paymentMethod);
 
             return $payment;
@@ -208,96 +209,99 @@ class PaymentService
     }
 
     /**
-     * Berechnet Zahlungsdetails basierend auf Plan und Zahlungsart
+     * Calculates payment details based on plan and payment type
      */
     private function calculatePaymentDetails(
         MembershipPlan $plan,
         Membership $membership,
         ?PaymentMethod $paymentMethod
     ): ?array {
-        $paymentMethodType = $paymentMethod;
+        $paymentMethodType = $paymentMethod?->type ?? 'unknown';
 
-        // Erste Zahlung (kann auch Probezeit beinhalten)
+        // First payment (may include trial period)
         $amount = $plan->trial_period_days > 0 && $plan->trial_price !== null
             ? $plan->trial_price
             : $plan->price;
 
         $description = $plan->trial_period_days > 0 && $plan->trial_price !== null
-            ? "Probezeitraum ({$plan->trial_period_days} Tage) - {$plan->name}"
-            : "Mitgliedsbeitrag - {$plan->name}";
+            ? "Probezeitraum ({$plan->trial_period_days} Tage): {$plan->name}"
+            : "1. Mitgliedsbeitrag: {$plan->name}";
 
-        $dueDate = $this->calculateInitialDueDate($membership, $paymentMethodType);
-        $notes = $this->generatePaymentNotes($membership, $paymentMethodType);
+        $executionDate = $this->calculateInitialExecutionDate($membership, $paymentMethodType);
+        $notes = $this->generatePaymentNotes($membership, $paymentMethod?->type_text);
 
         return [
             'amount' => $amount,
             'description' => $description,
-            'due_date' => $dueDate,
+            'execution_date' => $executionDate,
+            'due_date' => $membership->start_date,
             'notes' => $notes,
             'type' => $plan->trial_period_days > 0 ? 'trial' : 'initial',
         ];
     }
 
     /**
-     * Bestimmt initialen Payment-Status basierend auf Zahlungsart
+     * Determines initial payment status based on payment type
      */
     private function determineInitialPaymentStatus(string $paymentMethod): string
     {
         return match($paymentMethod) {
-            'cash' => 'pending', // Wird vor Ort bezahlt
-            'sepa_direct_debit' => 'pending', // Wird automatisch eingezogen
-            'banktransfer' => 'pending', // Wartet auf Überweisung
-            'invoice' => 'pending', // Wartet auf Rechnungsbegleichung
-            'standingorder' => 'pending', // Wartet auf Dauerauftrag
-            default => 'pending', // Mollie-Methoden
+            'cash' => 'pending',
+            'sepa_direct_debit' => 'pending',
+            'banktransfer' => 'pending',
+            'invoice' => 'pending',
+            'standingorder' => 'pending',
+            default => 'pending',
         };
     }
 
     /**
-     * Berechnet Fälligkeitsdatum für initiale Zahlung
+     * Calculates execution date for initial payment
      */
-    private function calculateInitialDueDate(Membership $membership, string $paymentMethod): Carbon
+    private function calculateInitialExecutionDate(Membership $membership, string $paymentMethod): Carbon
     {
         $baseDate = $membership->start_date;
-        $plan = $membership->membershipPlan;
 
         return match($paymentMethod) {
-            'cash' => $baseDate, // Sofort fällig
-            'sepa_direct_debit' => $baseDate->copy()->addDays(3), // 3 Tage Vorlauf für SEPA
-            'banktransfer' => $baseDate->copy()->addDays(7), // 7 Tage für Überweisung
-            'invoice' => $baseDate->copy()->addDays(14), // 14 Tage Zahlungsziel
-            'standingorder' => $baseDate->copy()->addDays(30), // 30 Tage für Einrichtung
-            default => $baseDate->copy()->addDays(1), // Mollie: nächster Tag
+            'cash' => $baseDate,
+            'sepa_direct_debit' => $baseDate->copy()->addDays(3),
+            'banktransfer' => $baseDate->copy()->addDays(7),
+            'invoice' => $baseDate->copy()->addDays(14),
+            'standingorder' => $baseDate->copy()->addDays(30),
+            'mollie_directdebit' => $baseDate->copy()->addDays(5),
+            default => $baseDate->copy()->addDays(1),
         };
     }
 
     /**
-     * Berechnet Fälligkeitsdatum für Setup-Gebühr
+     * Calculates execution date for setup fee
      */
     private function calculateSetupFeeDueDate(string $paymentMethod): Carbon
     {
         return match($paymentMethod) {
-            'cash' => now(), // Sofort bei Vertragsabschluss
-            'sepa_direct_debit' => now()->addDays(7), // Mit erster regulärer Zahlung
-            'banktransfer' => now()->addDays(3), // Schnelle Überweisung gewünscht
-            'invoice' => now()->addDays(7), // Mit Rechnung
-            'standingorder' => now()->addDays(3), // Separate Überweisung
-            default => now()->addDay(), // Mollie: nächster Tag
+            'cash' => now(),
+            'sepa_direct_debit' => now()->addDays(3),
+            'banktransfer' => now()->addDays(7),
+            'invoice' => now()->addDays(14),
+            'standingorder' => now()->addDays(30),
+            'mollie_directdebit' => now()->addDays(5),
+            default => now()->addDay(),
         };
     }
 
     /**
-     * Berechnet Fälligkeitsdatum für wiederkehrende Zahlungen
+     * Calculates execution date for recurring payments
      */
     private function calculateRecurringDueDate(Carbon $billingDate, string $paymentMethod): Carbon
     {
         return match($paymentMethod) {
-            'cash' => $billingDate, // Am Billing-Datum
-            'sepa_direct_debit' => $billingDate->copy()->subDays(2), // 2 Tage vorher
-            'banktransfer' => $billingDate->copy()->subDays(5), // 5 Tage vorher
-            'invoice' => $billingDate, // Am Billing-Datum
-            'standingorder' => $billingDate->copy()->subDays(3), // 3 Tage vorher
-            default => $billingDate, // Mollie: am Billing-Datum
+            'cash' => $billingDate,
+            'sepa_direct_debit' => $billingDate->copy()->subDays(2),
+            'banktransfer' => $billingDate->copy()->subDays(5),
+            'invoice' => $billingDate,
+            'standingorder' => $billingDate->copy()->subDays(3),
+            'mollie_directdebit' => $billingDate->copy()->subDays(1),
+            default => $billingDate,
         };
     }
 
@@ -343,22 +347,14 @@ class PaymentService
     }
 
     /**
-     * Generiert Notizen für Payment
+     * Generates notes for payment
      */
-    private function generatePaymentNotes(Membership $membership, string $paymentMethod): string
+    private function generatePaymentNotes(Membership $membership, ?string $paymentMethodTypeText): string
     {
         $notes = [];
 
-        $paymentMethodTexts = [
-            'cash' => 'Barzahlung vor Ort',
-            'sepa_direct_debit' => 'SEPA-Lastschrift (automatischer Einzug)',
-            'banktransfer' => 'Banküberweisung',
-            'invoice' => 'Rechnungsstellung',
-            'standingorder' => 'Dauerauftrag',
-        ];
-
-        if (isset($paymentMethodTexts[$paymentMethod])) {
-            $notes[] = "Zahlungsart: {$paymentMethodTexts[$paymentMethod]}";
+        if (isset($paymentMethodTypeText)) {
+            $notes[] = "Zahlungsart: {$paymentMethodTypeText}";
         }
 
         $plan = $membership->membershipPlan;
