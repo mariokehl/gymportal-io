@@ -217,7 +217,7 @@ class RetryFailedPayments extends Command
     protected function retrySepaPayment(Payment $payment, PaymentMethod $paymentMethod): void
     {
         $payment->update([
-            'status' => 'processing',
+            'status' => 'unknown',
             'notes' => $payment->notes . ' | SEPA retry initiated at ' . now()->toDateTimeString(),
         ]);
     }
@@ -237,7 +237,7 @@ class RetryFailedPayments extends Command
         );
 
         $payment->update([
-            'status' => 'processing',
+            'status' => 'unknown',
             'mollie_payment_id' => $molliePayment->id,
             'notes' => $payment->notes . ' | Mollie retry initiated',
         ]);

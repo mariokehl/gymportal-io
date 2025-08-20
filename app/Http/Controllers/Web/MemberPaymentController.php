@@ -49,7 +49,7 @@ class MemberPaymentController extends Controller
             return redirect()->back()->with('error', 'Zahlung gehört nicht zu diesem Mitglied.');
         }
 
-        if (!in_array($payment->status, ['pending', 'processing'])) {
+        if (!in_array($payment->status, ['pending', 'unknown'])) {
             return redirect()->back()->with('error', 'Nur ausstehende Zahlungen können ausgeführt werden.');
         }
 
@@ -221,7 +221,7 @@ class MemberPaymentController extends Controller
 
         $payments = $member->payments()
             ->whereIn('payments.id', $validated['payment_ids'])
-            ->whereIn('payments.status', ['pending', 'processing'])
+            ->whereIn('payments.status', ['pending', 'unknown'])
             ->get();
 
         if ($payments->isEmpty()) {
