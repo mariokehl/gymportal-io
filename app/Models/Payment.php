@@ -72,7 +72,8 @@ class Payment extends Model
             'refunded' => 'Erstattet',
             'expired' => 'Verfallen',
             'canceled' => 'Abgebrochen',
-            'completed' => 'Bezahlt'
+            'completed' => 'Bezahlt',
+            'unknown' => 'Unbekannt',
         ][$this->status] ?? $this->status;
     }
 

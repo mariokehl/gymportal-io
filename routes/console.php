@@ -25,7 +25,7 @@ Schedule::command('memberships:daily-process', ['--verbose-log'])
         app(SchedulerHealthCheckService::class)->notifyAdministrators('Membership processing failed');
     })
     ->appendOutputTo(storage_path('logs/scheduler-memberships.log'))
-    ->emailOutputTo(config('scheduler.admin_email', 'webmaster@gymportal.io'), false);
+    ->emailOutputTo(config('scheduler.notifications.admin_email', 'webmaster@gymportal.io'), false);
 
 // ===================================
 // MEMBERSHIP PAYMENT PROCESSING

@@ -17,7 +17,7 @@ class SchedulerHealthCheckService
     {
         try {
             // Check for stuck payments
-            $stuckPayments = Payment::where('status', 'processing')
+            $stuckPayments = Payment::where('status', 'unknown')
                 ->where('updated_at', '<', now()->subHours(24))
                 ->count();
 

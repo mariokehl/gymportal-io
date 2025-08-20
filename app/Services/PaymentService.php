@@ -139,18 +139,43 @@ class PaymentService
     }
 
     /**
+     * Erstellt die nächste wiederkehrende Zahlung
+     *
+     * @param Member $member
+     * @param Membership $membership
+     * @param Carbon|null $nextPaymentDate
+     * @return Payment
+     */
+    public function createNextRecurringPayment(
+        Member $member,
+        Membership $membership,
+        ?Carbon $nextPaymentDate = null
+    ): Payment {
+        $payments = $this->createRecurringPayments($member, $membership, 1, $nextPaymentDate);
+        return $payments[0];
+    }
+
+    /**
      * Erstellt wiederkehrende Zahlungen für die nächsten Monate
+     *
+     * @param Member $member Das Mitglied für das die Zahlungen erstellt werden
+     * @param Membership $membership Die Mitgliedschaft
+     * @param int $monthsAhead Anzahl der Monate im Voraus (Standard: 3)
+     * @param Carbon|null $nextPaymentDate Optionales Datum für die nächste Zahlung
+     * @return Payment[] Array aus Payment Models
+     * @throws \Exception Wenn die Erstellung der Zahlungen fehlschlägt
      */
     public function createRecurringPayments(
         Member $member,
         Membership $membership,
-        int $monthsAhead = 3
+        int $monthsAhead = 3,
+        ?Carbon $nextPaymentDate = null
     ): array {
         $plan = $membership->membershipPlan;
         $payments = [];
 
         // Berechne Startdatum für wiederkehrende Zahlungen
-        $startDate = $membership->start_date;
+        $startDate = $nextPaymentDate ?? $membership->start_date;
 
         // Berücksichtige Probezeit
         if ($plan->trial_period_days > 0) {
@@ -176,7 +201,8 @@ class PaymentService
                     'description' => $this->generateRecurringPaymentDescription($plan, $currentDate),
                     'status' => 'pending',
                     'payment_method' => $paymentMethod?->type,
-                    'due_date' => $this->calculateRecurringDueDate($currentDate, $paymentMethod),
+                    'execution_date' => $this->calculateRecurringExecutionDate($currentDate, $paymentMethod?->type),
+                    'due_date' => $currentDate->toDateString(),
                     'notes' => "Wiederkehrende Zahlung für {$plan->billing_cycle_text}",
                     'metadata' => [
                         'membership_plan_id' => $plan->id,
@@ -184,6 +210,7 @@ class PaymentService
                         'billing_cycle' => $plan->billing_cycle,
                         'billing_period_start' => $currentDate->toDateString(),
                         'billing_period_end' => $this->calculateBillingPeriodEnd($currentDate, $plan->billing_cycle)->toDateString(),
+                        'created_via' => 'scheduler',
                         'payment_method_id' => $paymentMethod?->id,
                     ],
                 ]);
@@ -292,7 +319,7 @@ class PaymentService
     /**
      * Calculates execution date for recurring payments
      */
-    private function calculateRecurringDueDate(Carbon $billingDate, string $paymentMethod): Carbon
+    private function calculateRecurringExecutionDate(Carbon $billingDate, string $paymentMethod): Carbon
     {
         return match($paymentMethod) {
             'cash' => $billingDate,
@@ -533,6 +560,8 @@ class PaymentService
 
     /**
      * Markiert Payment als bezahlt
+     *
+     * @deprecated Diese Funktion wird aktuell nicht verwendet, da die Logik in PaymentController->markAsPaid ausgelagert wurde
      */
     public function markPaymentAsPaid(Payment $payment, array $metadata = []): bool
     {
@@ -567,6 +596,8 @@ class PaymentService
 
     /**
      * Storniert Payment
+     *
+     * @deprecated Diese Funktion wird aktuell nicht verwendet, da die Logik in PaymentController->cancel ausgelagert wurde
      */
     public function cancelPayment(Payment $payment, ?string $reason = null): bool
     {
