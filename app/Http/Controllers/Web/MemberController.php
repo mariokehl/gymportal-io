@@ -183,6 +183,7 @@ class MemberController extends Controller
             $paymentMethodData = [
                 'member_id' => $newMember->id,
                 'type' => $request->payment_method,
+                'is_default' => true, // Setze als Standard-Zahlungsmethode
             ];
 
             // Check if this payment method requires a mandate
