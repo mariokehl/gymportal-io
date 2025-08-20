@@ -25,7 +25,7 @@ class ProcessMembershipPayments extends Command
     protected $signature = 'memberships:process-payments
                             {--test : Run in test mode without making actual changes}
                             {--rollback : Rollback the last test run}
-                            {--days=30 : Number of days to look ahead for payments}
+                            {--days=14 : Number of days to look ahead for payments}
                             {--gym-id= : Process only specific gym}
                             {--member-id= : Process only specific member}
                             {--verbose-log : Enable detailed logging}';
@@ -46,7 +46,7 @@ class ProcessMembershipPayments extends Command
     protected array $rollbackData = [];
     protected bool $testMode = false;
     protected bool $verboseLog = false;
-    protected int $daysAhead = 30;
+    protected int $daysAhead = 14;
 
     public function __construct(PaymentService $paymentService, MollieService $mollieService)
     {
@@ -140,7 +140,15 @@ class ProcessMembershipPayments extends Command
         ];
 
         $query = Payment::where('status', 'pending')
-            ->where('due_date', '<=', Carbon::today());
+            ->where(function($q) {
+                // Zahlung wird verarbeitet wenn:
+                // - execution_date ist NULL und due_date ist heute oder in der Vergangenheit ODER
+                // - execution_date ist gesetzt und heute oder in der Vergangenheit (überschreibt due_date)
+                $q->where(function($subQ) {
+                    $subQ->whereNull('execution_date')
+                        ->where('due_date', '<=', Carbon::today());
+                })->orWhere('execution_date', '<=', Carbon::today());
+            });
 
         if ($gymId = $this->option('gym-id')) {
             $query->where('gym_id', $gymId);
@@ -161,17 +169,21 @@ class ProcessMembershipPayments extends Command
                 $stats['payments_processed']++;
 
                 if ($this->verboseLog) {
-                    $this->info("✓ Processed payment #{$payment->id} for member {$payment->member->full_name}");
+                    $executionInfo = $payment->execution_date
+                        ? " (execution_date: {$payment->execution_date->format('Y-m-d')})"
+                        : " (no execution_date)";
+                    $this->info("✓ Processed payment #{$payment->id} for member {$payment->member->full_name}{$executionInfo}");
                 }
             } catch (\Exception $e) {
                 $stats['payments_failed']++;
                 $stats['errors'][] = "Payment #{$payment->id}: " . $e->getMessage();
-
                 $this->error("✗ Failed to process payment #{$payment->id}: " . $e->getMessage());
 
                 Log::error('Payment processing failed', [
                     'payment_id' => $payment->id,
                     'member_id' => $payment->member_id,
+                    'due_date' => $payment->due_date,
+                    'execution_date' => $payment->execution_date,
                     'error' => $e->getMessage()
                 ]);
 
@@ -254,7 +266,7 @@ class ProcessMembershipPayments extends Command
         // In production, this would trigger the actual SEPA collection
         // For now, we mark it as processing
         $payment->update([
-            'status' => 'processing',
+            'status' => 'unknown',
             'notes' => $payment->notes . ' | SEPA collection initiated at ' . now()->toDateTimeString(),
             'metadata' => array_merge($payment->metadata ?? [], [
                 'sepa_collection_date' => now()->toDateString(),
@@ -369,13 +381,14 @@ class ProcessMembershipPayments extends Command
         $member = $membership->member;
         $created = 0;
 
-        // Calculate next payment date
+        // Calculate next payment date - mit membership_plan_id Check
         $lastPayment = $membership->payments()
+            ->where('metadata->membership_plan_id', $plan->id)
             ->orderBy('due_date', 'desc')
             ->first();
 
         if (!$lastPayment) {
-            // No payments exist, start from membership start date
+            // No payments exist for this plan, start from membership start date
             $nextPaymentDate = $membership->start_date->copy();
         } else {
             // Calculate next payment based on billing cycle
@@ -394,8 +407,9 @@ class ProcessMembershipPayments extends Command
                 break;
             }
 
-            // Check if payment already exists
+            // Check if payment already exists for this plan
             $exists = Payment::where('membership_id', $membership->id)
+                ->where('metadata->membership_plan_id', $plan->id)
                 ->whereDate('due_date', $nextPaymentDate)
                 ->exists();
 
@@ -408,25 +422,11 @@ class ProcessMembershipPayments extends Command
                         'due_date' => $nextPaymentDate->toDateString(),
                     ]);
                 } else {
-                    // TODO: Refactor to PaymentService aka createOneRecurringPayment (from createRecurringPayments)
-                    $payment = Payment::create([
-                        'gym_id' => $member->gym_id,
-                        'membership_id' => $membership->id,
-                        'member_id' => $member->id,
-                        'amount' => $plan->price,
-                        'currency' => 'EUR',
-                        'description' => $this->generatePaymentDescription($plan, $nextPaymentDate),
-                        'status' => 'pending',
-                        'payment_method' => $member->defaultPaymentMethod?->type,
-                        'due_date' => $nextPaymentDate,
-                        'notes' => "Recurring payment - {$plan->billing_cycle_text}",
-                        'metadata' => [
-                            'membership_plan_id' => $plan->id,
-                            'payment_type' => 'recurring',
-                            'billing_cycle' => $plan->billing_cycle,
-                            'created_by' => 'scheduler',
-                        ],
-                    ]);
+                    $payment = $this->paymentService->createNextRecurringPayment(
+                        $member,
+                        $membership,
+                        $nextPaymentDate
+                    );
 
                     $this->rollbackData['payments'][] = $payment->id;
                 }
@@ -537,6 +537,7 @@ class ProcessMembershipPayments extends Command
         }
 
         DB::beginTransaction();
+
         try {
             // Update membership end date
             $membership->update([
@@ -654,21 +655,6 @@ class ProcessMembershipPayments extends Command
             'yearly' => $currentDate->copy()->addYear(),
             default => $currentDate->copy()->addMonth(),
         };
-    }
-
-    /**
-     * Generate payment description
-     */
-    protected function generatePaymentDescription(MembershipPlan $plan, Carbon $paymentDate): string
-    {
-        $periodText = match($plan->billing_cycle) {
-            'monthly' => $paymentDate->format('m/Y'),
-            'quarterly' => 'Q' . $paymentDate->quarter . ' ' . $paymentDate->year,
-            'yearly' => $paymentDate->year,
-            default => $paymentDate->format('m/Y'),
-        };
-
-        return "Mitgliedsbeitrag {$periodText} - {$plan->name}";
     }
 
     /**
