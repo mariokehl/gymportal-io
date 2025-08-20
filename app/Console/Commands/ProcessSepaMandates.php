@@ -428,7 +428,7 @@ class ProcessSepaMandates extends Command
             ->where('updated_at', '>=', Carbon::now()->subDays(7))
             ->whereDoesntHave('member.payments', function($q) {
                 $q->where('payment_method', 'sepa_direct_debit')
-                  ->whereIn('status', ['pending', 'processing', 'paid']);
+                  ->whereIn('status', ['pending', 'unknown', 'paid']);
             })
             ->with(['member', 'member.memberships.membershipPlan']);
 

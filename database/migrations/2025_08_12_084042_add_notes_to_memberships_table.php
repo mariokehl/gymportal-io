@@ -48,14 +48,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('memberships', function (Blueprint $table) {
-            $table->dropIndexIfExists('memberships_cancellation_date_index');
-            $table->dropIndexIfExists('memberships_status_index');
-            $table->dropColumnIfExists('notes');
+            $table->dropIndex('memberships_cancellation_date_index');
+            $table->dropIndex('memberships_status_index');
+            $table->dropColumn('notes');
         });
 
         Schema::table('membership_plans', function (Blueprint $table) {
-            $table->dropColumnIfExists('cancellation_period_days');
-            $table->dropColumnIfExists('commitment_months');
+            $table->dropColumn('cancellation_period_days');
+            $table->dropColumn('commitment_months');
         });
     }
 };

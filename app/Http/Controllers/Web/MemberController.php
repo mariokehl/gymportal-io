@@ -125,6 +125,7 @@ class MemberController extends Controller
         $enabledPaymentMethods = array_column($gym->getEnabledPaymentMethods(), 'key');
 
         $validated = $request->validate([
+            'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->whereNull('deleted_at')],
@@ -182,6 +183,7 @@ class MemberController extends Controller
             $paymentMethodData = [
                 'member_id' => $newMember->id,
                 'type' => $request->payment_method,
+                'is_default' => true, // Setze als Standard-Zahlungsmethode
             ];
 
             // Check if this payment method requires a mandate
@@ -211,7 +213,7 @@ class MemberController extends Controller
                 ->withInput();
         }
 
-        return redirect()->route('members.index')
+        return redirect()->route('members.show', ['member' => $newMember->id])
             ->with('success', 'Mitglied wurde erfolgreich erstellt.');
     }
 
@@ -254,7 +256,8 @@ class MemberController extends Controller
 
         return Inertia::render('Members/Show', [
             'member' => $member,
-            'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods()
+            'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
+            'updatedPayments' => session('updated_payments', false) ? $member->payments : null
         ]);
     }
 
@@ -270,6 +273,7 @@ class MemberController extends Controller
             'member_number' => ['required', 'string', 'max:50',
                 Rule::unique('members', 'member_number')->ignore($member->id)
             ],
+            'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
@@ -281,7 +285,7 @@ class MemberController extends Controller
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue'])],
+            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
             'joined_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],

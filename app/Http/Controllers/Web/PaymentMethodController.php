@@ -19,7 +19,7 @@ class PaymentMethodController extends Controller
         $this->authorize('create', PaymentMethod::class);
 
         $validated = $request->validate([
-            'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice,mollie_creditcard,mollie_klarna,mollie_paypal',
+            'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice,mollie_creditcard,mollie_directdebit,mollie_klarna,mollie_paypal',
             'status' => 'required|in:active,pending',
             'is_default' => 'boolean',
             // SEPA
@@ -53,6 +53,18 @@ class PaymentMethodController extends Controller
                 'bank_name' => $validated['bank_name'] ?? null,
                 'is_default' => $validated['is_default'] ?? false,
             ]);
+        } elseif ($validated['type'] === 'mollie_directdebit') {
+            $validated['sepa_mandate_status'] = 'pending';
+
+            /** @var PaymentMethod $paymentMethod */
+            $paymentMethod = $member->paymentMethods()->create($validated);
+
+            // Wenn SEPA-Mandat anerkannt wurde, aktiviere es und sende an Mollie
+            if ($validated['sepa_mandate_acknowledged']) {
+                $paymentMethod->markSepaMandateAsSigned();
+                $paymentMethod->activateSepaMandate();
+                app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
+            }
         } else {
             $paymentMethod = $member->paymentMethods()->create($validated);
         }

@@ -27,6 +27,7 @@ class Payment extends Model
         'canceled_at',
         'expired_at',
         'webhook_processed_at',
+        'execution_date',
         'due_date',
         'paid_date',
         'payment_method',
@@ -36,6 +37,7 @@ class Payment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'execution_date' => 'date',
         'due_date' => 'date',
         'paid_date' => 'date',
         'canceled_at' => 'datetime',
@@ -70,6 +72,8 @@ class Payment extends Model
             'refunded' => 'Erstattet',
             'expired' => 'Verfallen',
             'canceled' => 'Abgebrochen',
+            'completed' => 'Bezahlt',
+            'unknown' => 'Unbekannt',
         ][$this->status] ?? $this->status;
     }
 
@@ -82,6 +86,7 @@ class Payment extends Model
             'refunded' => 'blue',
             'expired' => 'gray',
             'canceled' => 'red',
+            'completed' => 'green'
         ][$this->status] ?? 'gray';
     }
 

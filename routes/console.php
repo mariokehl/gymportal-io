@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schedule;
 // ===================================
 
 // Main processing - runs daily at 2 AM
-Schedule::command('memberships:daily-process')
+Schedule::command('memberships:daily-process', ['--verbose-log'])
     ->dailyAt('02:00')
     ->timezone('Europe/Berlin')
     ->withoutOverlapping()
@@ -25,7 +25,7 @@ Schedule::command('memberships:daily-process')
         app(SchedulerHealthCheckService::class)->notifyAdministrators('Membership processing failed');
     })
     ->appendOutputTo(storage_path('logs/scheduler-memberships.log'))
-    ->emailOutputTo('support@gymportal.io');
+    ->emailOutputTo(config('scheduler.notifications.admin_email', 'webmaster@gymportal.io'), false);
 
 // ===================================
 // MEMBERSHIP PAYMENT PROCESSING
