@@ -19,7 +19,7 @@ class PaymentMethodController extends Controller
         $this->authorize('create', PaymentMethod::class);
 
         $validated = $request->validate([
-            'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice,mollie_creditcard,mollie_klarna,mollie_paypal',
+            'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice,mollie_creditcard,mollie_directdebit,mollie_klarna,mollie_paypal',
             'status' => 'required|in:active,pending',
             'is_default' => 'boolean',
             // SEPA
