@@ -1,16 +1,18 @@
 <?php
 
+use App\Http\Controllers\App\AuthController;
+use App\Http\Controllers\App\GymController;
+use App\Http\Controllers\App\MemberController;
 use App\Http\Controllers\Api\V1\MollieSetupController;
+use App\Http\Controllers\Api\V1\ScannerController;
 use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\Web\NotificationController;
-use App\Services\MollieService;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /*
 | API Routes
 */
-
 Route::prefix('v1')->name('v1.')->group(function () {
     Route::middleware([
         'auth:sanctum',
@@ -30,26 +32,48 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
     // Public routes
     Route::name('public.')->prefix('/public')->group(static function (): void {
-        // Mollie webhook
-        //Route::post('/webhooks/mollie/{organization}', [MollieService::class, 'handleWebhook'])->name('mollie.webhook');
         Route::post('/mollie/webhook', [WidgetController::class, 'handleMollieWebhook'])->name('mollie.webhook');
     });
-
-    /*
-    Route::middleware('auth:sanctum')->get('/debug', function (Request $request) {
-        return response()->json([
-            'user' => $request->user(),
-            'token' => $request->bearerToken(),
-        ]);
-    });
-    */
 });
 
+/*
+| PWA Routes - Mit separatem Guard
+*/
+Route::group(['prefix' => 'pwa'], function () {
+    Route::prefix('gyms')->group(function () {
+        Route::get('/', [GymController::class, 'index']);
+        Route::get('{slug}', [GymController::class, 'show']);
+        Route::get('{slug}/theme', [GymController::class, 'theme']);
+        Route::get('{slug}/manifest', [GymController::class, 'manifest']);
+    });
+    Route::prefix('auth')->group(function () {
+        Route::post('send-code', [AuthController::class, 'sendLoginCode']);
+        Route::post('verify-code', [AuthController::class, 'verifyCode']);
+    });
+    Route::middleware(['auth:member-pwa'])->prefix('member')->group(function () {
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::get('profile', [MemberController::class, 'profile']);
+        Route::put('profile', [MemberController::class, 'updateProfile']);
+        Route::get('contract', [MemberController::class, 'contract']);
+        Route::put('contract', [MemberController::class, 'updateContract']);
+        Route::get('qr-code', [MemberController::class, 'generateQrCode']);
+    });
+});
+
+/*
+| Scanner Routes
+*/
+Route::prefix('scanner')->group(function () {
+    Route::middleware(['scanner.auth'])->group(function () {
+        Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
+        //Route::post('validate', [ScannerController::class, 'validateAccess']);
+        //Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
+    });
+});
 
 /*
 | Widget API Routes
 */
-
 Route::group(['prefix' => 'widget', 'middleware' => ['api', 'widget.auth']], function () {
     Route::get('/markup/plans', [WidgetController::class, 'getPlansMarkup']);
     Route::get('/markup/form', [WidgetController::class, 'getFormMarkup']);
@@ -59,20 +83,12 @@ Route::group(['prefix' => 'widget', 'middleware' => ['api', 'widget.auth']], fun
     Route::post('/analytics', [WidgetController::class, 'trackAnalytics']);
     Route::post('/mollie/check-status', [WidgetController::class, 'checkMolliePaymentStatus']);
 });
-
-// Mollie Public Routes
 Route::prefix('widget')->group(function () {
-    Route::get('/mollie/return/{gym}/{session}', [WidgetController::class, 'handleMollieReturn'])->name('widget.mollie.return'); // Mollie Return-URL (für Browserweiterleitung)
+    Route::get('/mollie/return/{gym}/{session}', [WidgetController::class, 'handleMollieReturn'])->name('widget.mollie.return');
 });
 
-// Widget-Middleware für Authentifizierung
-//Route::middleware('widget.auth', function () {
-    // Weitere geschützte Routes
-//});
-
 /**
- * Fallback routes, to prevent a rendered HTML page in /api/* routes
- * The / route is also included since the fallback is not triggered on the root route
+ * Fallback routes
  */
 Route::get('/', function (): void {
     throw new NotFoundHttpException('API resource not found');
