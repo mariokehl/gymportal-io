@@ -42,10 +42,14 @@ class GymController extends Controller
             /** @var User $user */
             $user = Auth::user();
 
-            // Create the gym
+            // Create the gym with default theme
             $gym = Gym::create([
                 ...$validated,
                 'owner_id' => $user->id,
+                // Default theme colors (can be customized later)
+                'primary_color' => '#e11d48', // Rose-600 (matching widget default)
+                'secondary_color' => '#64748b', // Slate-500
+                'accent_color' => '#10b981',    // Emerald-500
             ]);
 
             // Set this gym as the user's current gym
@@ -103,5 +107,54 @@ class GymController extends Controller
         $user->update(['current_gym_id' => $request->gym_id]);
 
         return redirect()->back();
+    }
+
+    /**
+     * PWA Theme Settings Page
+     */
+    public function themeSettings(Gym $gym)
+    {
+        $this->authorize('update', $gym);
+
+        return Inertia::render('Organization/ThemeSettings', [
+            'gym' => $gym->load([]),
+            'theme' => $gym->theme,
+            'pwa_settings' => $gym->pwa_settings,
+        ]);
+    }
+
+    /**
+     * Update PWA Theme Settings
+     */
+    public function updateTheme(Request $request, Gym $gym)
+    {
+        $this->authorize('update', $gym);
+
+        $validated = $request->validate([
+            'primary_color' => ['required', 'regex:/^#[a-f0-9]{6}$/i'],
+            'secondary_color' => ['required', 'regex:/^#[a-f0-9]{6}$/i'],
+            'accent_color' => ['required', 'regex:/^#[a-f0-9]{6}$/i'],
+            'background_color' => ['nullable', 'regex:/^#[a-f0-9]{6}$/i'],
+            'text_color' => ['nullable', 'regex:/^#[a-f0-9]{6}$/i'],
+            'pwa_logo_url' => ['nullable', 'url'],
+            'favicon_url' => ['nullable', 'url'],
+            'custom_css' => ['nullable', 'string', 'max:10000'],
+            'member_app_description' => ['nullable', 'string', 'max:500'],
+            'pwa_enabled' => ['boolean'],
+            'opening_hours' => ['nullable', 'array'],
+            'social_media' => ['nullable', 'array'],
+        ]);
+
+        try {
+            $gym->update($validated);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Theme-Einstellungen wurden erfolgreich gespeichert!');
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['general' => 'Fehler beim Speichern der Theme-Einstellungen.'])
+                ->withInput();
+        }
     }
 }
