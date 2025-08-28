@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateScanner;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PaddleIpMiddleware;
@@ -32,8 +33,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'widget.auth' => WidgetAuthMiddleware::class,
             'subscription' => CheckSubscription::class,
             'paddleIp' => PaddleIpMiddleware::class,
+            'scanner.auth' => AuthenticateScanner::class,
         ]);
         $middleware->validateCsrfTokens(except: [
+            'api/pwa/*',
+            'api/scanner/*',
             'api/widget/*',
             'billing/webhook/paddle',
         ]);

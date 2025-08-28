@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
@@ -36,20 +37,45 @@ class Gym extends Model
         'api_key',
         'widget_enabled',
         'widget_settings',
+        'api_key_generated_at',
         'trial_ends_at',
+        'scanner_secret_key',
+
+        // PWA Theming Fields
+        'primary_color',
+        'secondary_color',
+        'accent_color',
+        'background_color',
+        'text_color',
+        'pwa_logo_url',
+        'favicon_url',
+        'custom_css',
+        'pwa_enabled',
+        'pwa_settings',
+        'opening_hours',
+        'social_media',
+        'member_app_description',
     ];
 
     protected $casts = [
         'subscription_ends_at' => 'datetime',
         'trial_ends_at' => 'datetime',
-        'widget_settings' => 'array',
         'payment_methods_config' => 'array',
         'widget_enabled' => 'boolean',
+        'widget_settings' => 'array',
+        'api_key_generated_at' => 'datetime',
+        'pwa_enabled' => 'boolean',
+        'pwa_settings' => 'array',
+        'opening_hours' => 'array',
+        'social_media' => 'array',
     ];
 
     protected $hidden = [
         'api_key',
+        'scanner_secret_key',
     ];
+
+    protected $appends = ['theme', 'pwa_manifest'];
 
     protected static function boot()
     {
@@ -68,6 +94,11 @@ class Gym extends Model
                 $gym->payment_methods_config = $gym->getDefaultPaymentMethodsConfig();
             }
 
+            // Default PWA settings
+            if (empty($gym->pwa_settings)) {
+                $gym->pwa_settings = $gym->getDefaultPwaSettings();
+            }
+
             $gym->generateSlug();
         });
 
@@ -78,6 +109,7 @@ class Gym extends Model
         });
     }
 
+    // === EXISTING RELATIONSHIPS ===
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -128,9 +160,260 @@ class Gym extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function invoices()
+    // === NEW PWA THEMING METHODS ===
+
+    /**
+     * PWA Theme Attribute - für Frontend Consumption
+     */
+    protected function theme(): Attribute
     {
-        //return $this->hasMany(Invoice::class);
+        return Attribute::make(
+            get: function () {
+                return [
+                    'primary_color' => $this->primary_color,
+                    'secondary_color' => $this->secondary_color,
+                    'accent_color' => $this->accent_color,
+                    'background_color' => $this->background_color ?: '#ffffff',
+                    'text_color' => $this->text_color ?: '#1f2937',
+                    'logo_url' => $this->getPwaLogoUrl(),
+                    'favicon_url' => $this->favicon_url,
+                    'custom_css' => $this->custom_css,
+                ];
+            }
+        );
+    }
+
+    /**
+     * PWA Manifest Attribute - Dynamic manifest generation
+     */
+    protected function pwaManifest(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                return [
+                    'name' => $this->name . ' - Mitglieder App',
+                    'short_name' => $this->name,
+                    'description' => $this->member_app_description ?: $this->description ?: "Mitglieder-App für {$this->name}",
+                    'start_url' => "/{$this->slug}",
+                    'display' => 'standalone',
+                    'background_color' => $this->background_color ?: '#ffffff',
+                    'theme_color' => $this->primary_color,
+                    'orientation' => 'portrait-primary',
+                    'scope' => '/',
+                    'categories' => ['fitness', 'lifestyle', 'sports'],
+                    'lang' => 'de',
+                    'icons' => $this->getPwaIcons(),
+                    'shortcuts' => $this->getPwaShortcuts(),
+                ];
+            }
+        );
+    }
+
+    /**
+     * Get PWA Logo URL with fallbacks
+     */
+    public function getPwaLogoUrl(): ?string
+    {
+        // Priority: PWA-specific logo > general logo > null
+        if ($this->pwa_logo_url) {
+            return $this->pwa_logo_url;
+        }
+
+        if ($this->logo_path) {
+            // Convert relative path to full URL if needed
+            if (str_starts_with($this->logo_path, 'http')) {
+                return $this->logo_path;
+            }
+            return asset('storage/' . $this->logo_path);
+        }
+
+        return null;
+    }
+
+    /**
+     * Generate PWA Icons array for manifest
+     */
+    private function getPwaIcons(): array
+    {
+        $logoUrl = $this->getPwaLogoUrl();
+
+        if (!$logoUrl) {
+            // Fallback to default PWA icons
+            return [
+                [
+                    'src' => '/pwa-192x192.png',
+                    'sizes' => '192x192',
+                    'type' => 'image/png',
+                    'purpose' => 'any'
+                ],
+                [
+                    'src' => '/pwa-512x512.png',
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'any maskable'
+                ]
+            ];
+        }
+
+        return [
+            [
+                'src' => $logoUrl,
+                'sizes' => '192x192',
+                'type' => 'image/png',
+                'purpose' => 'any'
+            ],
+            [
+                'src' => $logoUrl,
+                'sizes' => '512x512',
+                'type' => 'image/png',
+                'purpose' => 'any maskable'
+            ]
+        ];
+    }
+
+    /**
+     * Generate PWA Shortcuts for quick actions
+     */
+    private function getPwaShortcuts(): array
+    {
+        return [
+            [
+                'name' => 'QR-Code anzeigen',
+                'short_name' => 'QR-Code',
+                'description' => 'QR-Code für Zugangskontrolle anzeigen',
+                'url' => "/{$this->slug}/qr-code",
+                'icons' => [
+                    [
+                        'src' => '/icons/qr-icon.png',
+                        'sizes' => '96x96'
+                    ]
+                ]
+            ],
+            [
+                'name' => 'Profil bearbeiten',
+                'short_name' => 'Profil',
+                'description' => 'Persönliche Daten verwalten',
+                'url' => "/{$this->slug}/profile",
+                'icons' => [
+                    [
+                        'src' => '/icons/profile-icon.png',
+                        'sizes' => '96x96'
+                    ]
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Default PWA Settings
+     */
+    private function getDefaultPwaSettings(): array
+    {
+        return [
+            'install_prompt_enabled' => true,
+            'offline_support_enabled' => true,
+            'push_notifications_enabled' => false,
+            'background_sync_enabled' => true,
+            'cache_strategy' => 'network_first',
+            'cache_duration_hours' => 24,
+        ];
+    }
+
+    /**
+     * Check if PWA features are available
+     */
+    public function isPwaEnabled(): bool
+    {
+        return $this->pwa_enabled && $this->canAccessPremiumFeatures();
+    }
+
+    /**
+     * Get opening hours in a formatted way for display
+     */
+    public function getFormattedOpeningHours(): array
+    {
+        if (!$this->opening_hours) {
+            return [];
+        }
+
+        $days = [
+            'monday' => 'Montag',
+            'tuesday' => 'Dienstag',
+            'wednesday' => 'Mittwoch',
+            'thursday' => 'Donnerstag',
+            'friday' => 'Freitag',
+            'saturday' => 'Samstag',
+            'sunday' => 'Sonntag'
+        ];
+
+        $formatted = [];
+        foreach ($days as $key => $name) {
+            if (isset($this->opening_hours[$key])) {
+                $hours = $this->opening_hours[$key];
+                $formatted[] = [
+                    'day' => $name,
+                    'open' => $hours['open'] ?? null,
+                    'close' => $hours['close'] ?? null,
+                    'closed' => $hours['closed'] ?? false,
+                ];
+            }
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Update PWA theme colors
+     */
+    public function updateThemeColors(array $colors): bool
+    {
+        $validColors = ['primary_color', 'secondary_color', 'accent_color', 'background_color', 'text_color'];
+        $updateData = [];
+
+        foreach ($colors as $key => $value) {
+            if (in_array($key, $validColors) && $this->isValidHexColor($value)) {
+                $updateData[$key] = $value;
+            }
+        }
+
+        if (empty($updateData)) {
+            return false;
+        }
+
+        return $this->update($updateData);
+    }
+
+    /**
+     * Validate hex color format
+     */
+    public static function isValidHexColor($color): bool
+    {
+        return preg_match('/^#[a-f0-9]{6}$/i', $color);
+    }
+
+    /**
+     * Get member app API data (for PWA consumption)
+     */
+    public function getMemberAppData(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
+            'description' => $this->member_app_description ?: $this->description,
+            'logo' => $this->logo_path,
+            'logo_url' => $this->getPwaLogoUrl(),
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'address' => $this->address,
+            'city' => $this->city,
+            'postal_code' => $this->postal_code,
+            'website' => $this->website,
+            'opening_hours' => $this->opening_hours,
+            'social_media' => $this->social_media,
+            'theme' => $this->theme,
+            'pwa_enabled' => $this->isPwaEnabled(),
+        ];
     }
 
     protected function getDefaultPaymentMethodsConfig(): array
@@ -267,23 +550,18 @@ class Gym extends Model
 
             switch ($methodKey) {
                 case 'banktransfer':
-                    // Mollie banktransfer, ideal, mybank, trustly overwrite manuelle Überweisung
                     return !empty(array_intersect($mollieMethodIds, ['banktransfer', 'ideal', 'mybank', 'trustly']));
 
                 case 'sepa_direct_debit':
-                    // Mollie directdebit overwrites SEPA-Lastschrift
                     return in_array('directdebit', $mollieMethodIds);
 
                 case 'cash':
-                    // Mollie pointofsale overwrites Barzahlung
                     return in_array('pointofsale', $mollieMethodIds);
 
                 case 'invoice':
-                    // Mollie billie, klarna, riverty, in3 overwrite Rechnung
                     return !empty(array_intersect($mollieMethodIds, ['billie', 'klarna', 'riverty', 'in3']));
 
                 case 'standingorder':
-                    // Mollie directdebit can replace Dauerauftrag
                     return in_array('directdebit', $mollieMethodIds);
             }
         }
@@ -507,6 +785,7 @@ class Gym extends Model
     public function regenerateApiKey(): string
     {
         $this->api_key = $this->generateApiKey();
+        $this->api_key_generated_at = now();
         $this->save();
 
         return $this->api_key;
@@ -516,9 +795,9 @@ class Gym extends Model
     {
         $defaults = [
             'colors' => [
-                'primary' => '#e11d48',
+                'primary' => $this->primary_color, // Use gym's primary color as default
                 'secondary' => '#f9fafb',
-                'text' => '#1f2937',
+                'text' => $this->text_color ?: '#1f2937',
             ],
             'texts' => [
                 'title' => 'Wähle deinen Tarif',
@@ -565,8 +844,40 @@ class Gym extends Model
 </script>';
     }
 
+    public function generateScannerSecretKey(): void
+    {
+        $this->scanner_secret_key = base64_encode(random_bytes(32));
+        $this->save();
+    }
+
+    public function getCurrentScannerKey(): ?string
+    {
+        return $this->scanner_secret_key;
+    }
+
+    public function validateHash(string $memberId, string $timestamp, string $providedHash): bool
+    {
+        if ($this->checkHashWithKey($memberId, $timestamp, $providedHash, $this->scanner_secret_key)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function checkHashWithKey($memberId, $timestamp, $providedHash, $secretKey): bool
+    {
+        $message = "{$memberId}:{$timestamp}";
+        $expectedHash = hash_hmac('sha256', $message, $secretKey);
+        return hash_equals($expectedHash, $providedHash);
+    }
+
     public function scopeWidgetEnabled($query)
     {
         return $query->where('widget_enabled', true);
+    }
+
+    public function scopePwaEnabled($query)
+    {
+        return $query->where('pwa_enabled', true);
     }
 }
