@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\DTOs\PaymentCreationResult;
+use App\Dto\PaymentCreationResult;
 use App\Mail\SepaMandateRequiredMail;
 use App\Mail\WelcomeMemberMail;
 use App\Models\Gym;
