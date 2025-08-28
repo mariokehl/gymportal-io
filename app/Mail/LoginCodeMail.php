@@ -25,7 +25,6 @@ class LoginCodeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address($this->gym->email, $this->gym->name),
             replyTo: [
                 new Address($this->gym->email, $this->gym->name),
             ],
