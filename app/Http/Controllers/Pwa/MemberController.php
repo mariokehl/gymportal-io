@@ -18,9 +18,10 @@ class MemberController extends Controller
         return response()->json([
             'success' => true,
             'data' => $member->only([
-                'id', 'first_name', 'last_name', 'email',
-                'phone', 'address', 'city', 'postal_code', 'member_number'
-            ])
+                'id', 'email', 'first_name', 'last_name',
+                'member_number', 'phone', 'address',
+                'city', 'postal_code', 'status'
+            ]),
         ]);
     }
 
