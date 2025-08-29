@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\App\AuthController;
-use App\Http\Controllers\App\GymController;
-use App\Http\Controllers\App\MemberController;
 use App\Http\Controllers\Api\V1\MollieSetupController;
-use App\Http\Controllers\Api\V1\ScannerController;
+use App\Http\Controllers\Api\ScannerController;
 use App\Http\Controllers\Api\WidgetController;
+use App\Http\Controllers\Pwa\AuthController;
+use App\Http\Controllers\Pwa\GymController;
+use App\Http\Controllers\Pwa\MemberController;
 use App\Http\Controllers\Web\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;

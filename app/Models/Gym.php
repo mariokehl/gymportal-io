@@ -190,20 +190,23 @@ class Gym extends Model
     {
         return Attribute::make(
             get: function () {
+                // Domain aus Request oder als Standard festlegen
+                $domain = request()->header('Origin') ?: 'https://members.gymportal.io';
+
                 return [
                     'name' => $this->name . ' - Mitglieder App',
                     'short_name' => $this->name,
                     'description' => $this->member_app_description ?: $this->description ?: "Mitglieder-App für {$this->name}",
-                    'start_url' => "/{$this->slug}",
+                    'start_url' => $domain . '/' . $this->slug,
                     'display' => 'standalone',
                     'background_color' => $this->background_color ?: '#ffffff',
                     'theme_color' => $this->primary_color,
                     'orientation' => 'portrait-primary',
-                    'scope' => '/',
+                    'scope' => $domain . '/',
                     'categories' => ['fitness', 'lifestyle', 'sports'],
                     'lang' => 'de',
                     'icons' => $this->getPwaIcons(),
-                    'shortcuts' => $this->getPwaShortcuts(),
+                    'shortcuts' => $this->getPwaShortcuts($domain),
                 ];
             }
         );
@@ -274,14 +277,14 @@ class Gym extends Model
     /**
      * Generate PWA Shortcuts for quick actions
      */
-    private function getPwaShortcuts(): array
+    private function getPwaShortcuts($domain): array
     {
         return [
             [
                 'name' => 'QR-Code anzeigen',
                 'short_name' => 'QR-Code',
                 'description' => 'QR-Code für Zugangskontrolle anzeigen',
-                'url' => "/{$this->slug}/qr-code",
+                'url' => "{$domain}/{$this->slug}/qr-code",
                 'icons' => [
                     [
                         'src' => '/icons/qr-icon.png',
@@ -293,7 +296,7 @@ class Gym extends Model
                 'name' => 'Profil bearbeiten',
                 'short_name' => 'Profil',
                 'description' => 'Persönliche Daten verwalten',
-                'url' => "/{$this->slug}/profile",
+                'url' => "{$domain}/{$this->slug}/profile",
                 'icons' => [
                     [
                         'src' => '/icons/profile-icon.png',

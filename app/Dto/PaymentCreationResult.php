@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs;
+namespace App\Dto;
 
 use App\Models\Payment;
 use Illuminate\Support\Collection;
