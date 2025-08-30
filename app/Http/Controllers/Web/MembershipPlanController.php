@@ -25,7 +25,9 @@ class MembershipPlanController extends Controller
         $user = Auth::user();
 
         $membershipPlans = MembershipPlan::where('gym_id', $user->current_gym_id)
-            ->withCount('memberships as member_count')
+            ->withCount(['memberships as member_count' => function ($query) {
+                $query->active();
+            }])
             ->orderBy('created_at', 'desc')
             ->get();
 
