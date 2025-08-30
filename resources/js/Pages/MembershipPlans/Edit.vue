@@ -51,13 +51,13 @@
           <!-- Name -->
           <div class="mb-6">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-              Name des Vertrags *
+              Name des Vertrags <span class="text-red-500">*</span>
             </label>
             <input
               id="name"
               v-model="form.name"
               type="text"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
               :class="{ 'border-red-500': errors.name }"
               placeholder="z.B. Standard Mitgliedschaft"
               required
@@ -74,7 +74,7 @@
               id="description"
               v-model="form.description"
               rows="3"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
               :class="{ 'border-red-500': errors.description }"
               placeholder="Optionale Beschreibung des Vertrags..."
             ></textarea>
@@ -85,7 +85,7 @@
           <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
-                Preis (€) *
+                Preis (€) <span class="text-red-500">*</span>
               </label>
               <input
                 id="price"
@@ -94,7 +94,7 @@
                 step="0.01"
                 min="0"
                 max="9999.99"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
                 :class="{ 'border-red-500': errors.price }"
                 placeholder="0.00"
                 required
@@ -107,12 +107,12 @@
 
             <div>
               <label for="billing_cycle" class="block text-sm font-medium text-gray-700 mb-2">
-                Abrechnungszyklus *
+                Abrechnungszyklus <span class="text-red-500">*</span>
               </label>
               <select
                 id="billing_cycle"
                 v-model="form.billing_cycle"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
                 :class="{ 'border-red-500': errors.billing_cycle }"
                 required
               >
@@ -137,7 +137,7 @@
                 type="number"
                 min="0"
                 max="36"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
                 :class="{ 'border-red-500': errors.commitment_months }"
                 placeholder="0 = keine Mindestlaufzeit"
               />
@@ -147,7 +147,7 @@
 
             <div>
               <label for="cancellation_period_days" class="block text-sm font-medium text-gray-700 mb-2">
-                Kündigungsfrist (Tage) *
+                Kündigungsfrist (Tage) <span class="text-red-500">*</span>
               </label>
               <input
                 id="cancellation_period_days"
@@ -155,7 +155,7 @@
                 type="number"
                 min="0"
                 max="365"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
                 :class="{ 'border-red-500': errors.cancellation_period_days }"
                 placeholder="30"
                 required

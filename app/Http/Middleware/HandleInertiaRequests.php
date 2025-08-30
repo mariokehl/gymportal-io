@@ -71,6 +71,11 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'chatwoot' => [
+                'enabled' => config('chatwoot.enabled'),
+                'token' => config('chatwoot.website_token'),
+                'baseUrl' => config('chatwoot.base_url'),
+            ],
         ]);
 
         // Subscription Status für alle authentifizierten Benutzer

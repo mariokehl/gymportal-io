@@ -129,25 +129,38 @@
       <main class="p-6">
         <slot />
       </main>
+
+      <!-- Chatwoot Integration -->
+      <Chatwoot
+        v-if="chatwootEnabled"
+        :website-token="chatwootToken"
+        :base-url="chatwootUrl"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { router, usePage, Head, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
-  Plus, ChevronDown, FilePlus
+  FilePlus
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
+import Chatwoot from '@/Components/Chatwoot.vue'
 
 // Shared data
 const page = usePage()
 const notificationPopup = ref(null)
+
+// Page
+const chatwootEnabled = page.props.chatwoot?.enabled ?? false
+const chatwootToken = page.props.chatwoot?.token
+const chatwootUrl = page.props.chatwoot?.baseUrl
 
 // Props
 const props = defineProps({
