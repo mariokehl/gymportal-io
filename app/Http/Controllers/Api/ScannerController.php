@@ -76,6 +76,9 @@ class ScannerController extends Controller
                     'scan_type' => $scanType
                 ]);
 
+                // TODO: Check-In protokollieren
+                //...
+
                 return response()->json([
                     'member_id' => $member->id,
                     'active' => true,
