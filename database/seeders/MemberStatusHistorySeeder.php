@@ -18,7 +18,6 @@ class MemberStatusHistorySeeder extends Seeder
         $users = User::all();
 
         if ($members->isEmpty() || $users->isEmpty()) {
-            $this->command->warn('No members or users found. Skipping status history seeding.');
             return;
         }
 
@@ -26,8 +25,6 @@ class MemberStatusHistorySeeder extends Seeder
             // Erstelle eine realistische Status-Historie
             $this->createRealisticHistory($member, $users);
         }
-
-        $this->command->info('Member status history seeded successfully.');
     }
 
     /**
@@ -165,9 +162,3 @@ class MemberStatusHistorySeeder extends Seeder
         $member->update(['status' => $previousStatus]);
     }
 }
-
-// Füge dies zu DatabaseSeeder.php hinzu:
-// $this->call(MemberStatusHistorySeeder::class);
-
-// Oder führe es separat aus:
-// php artisan db:seed --class=MemberStatusHistorySeeder
