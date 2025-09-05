@@ -225,6 +225,7 @@ class MemberController extends Controller
             'checkIns' => function ($query) {
                 $query->latest()->take(10);
             },
+            'accessConfig',
             'statusHistory.changedBy:id,first_name,last_name'
         ]);
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
+use App\Http\Controllers\Web\MemberAccessController;
 use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MemberPaymentController;
 use App\Http\Controllers\Web\MembershipController;
@@ -85,6 +86,13 @@ Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
         Route::post('/{payment}/execute', [MemberPaymentController::class, 'execute'])->name('execute');
         Route::post('/execute-batch', [MemberPaymentController::class, 'executeBatch'])->name('execute-batch');
         Route::get('/{payment}/invoice', [MemberPaymentController::class, 'invoice'])->name('invoice');
+    });
+    Route::prefix('members/{member}/access')->name('members.access.')->group(function () {
+        Route::put('/', [MemberAccessController::class, 'update'])->name('update');
+        Route::post('/invalidate-qr', [MemberAccessController::class, 'invalidateQr'])->name('invalidate-qr');
+        Route::post('/send-app-link', [MemberAccessController::class, 'sendAppLink'])->name('send-app-link');
+        Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');
+        Route::post('/consume-credit', [MemberAccessController::class, 'consumeCredit'])->name('consume-credit');
     });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');

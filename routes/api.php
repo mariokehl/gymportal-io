@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\Pwa\AuthController;
 use App\Http\Controllers\Pwa\GymController;
 use App\Http\Controllers\Pwa\MemberController;
+use App\Http\Controllers\Web\MemberAccessController;
 use App\Http\Controllers\Web\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -70,6 +71,13 @@ Route::prefix('scanner')->group(function () {
         //Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
     });
 });
+
+// API Routes for scanner devices
+//Route::prefix('api/v1')->group(function () {
+//    Route::post('/access/validate', [MemberAccessController::class, 'validateAccess'])
+//        ->middleware('throttle:60,1')
+//        ->name('api.access.validate');
+//});
 
 /*
 | Widget API Routes

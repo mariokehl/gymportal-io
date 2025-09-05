@@ -24,7 +24,7 @@ return new class extends Migration
             $table->text('custom_css')->nullable()->after('favicon_url');
 
             // PWA Settings
-            $table->boolean('pwa_enabled')->default(true)->after('custom_css');
+            $table->boolean('pwa_enabled')->default(false)->after('custom_css');
             $table->json('pwa_settings')->nullable()->after('pwa_enabled');
 
             // Extended Gym Info für PWA

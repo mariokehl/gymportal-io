@@ -67,7 +67,7 @@
       <!-- Tabs Navigation -->
       <div class="bg-white rounded-lg shadow">
         <div class="border-b border-gray-200">
-          <nav class="flex space-x-8 px-6">
+          <nav class="flex space-x-8 px-6 overflow-x-auto">
             <button
               v-for="tab in tabs"
               :key="tab.id"
@@ -88,6 +88,14 @@
                 class="ml-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full"
               >
                 {{ member.status_history.length }}
+              </span>
+
+              <!-- Badge für Access Tab -->
+              <span
+                v-if="tab.id === 'access' && getActiveAccessCount() > 0"
+                class="ml-1 bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full"
+              >
+                {{ getActiveAccessCount() }}
               </span>
             </button>
           </nav>
@@ -717,6 +725,338 @@
             <div v-else class="text-center py-8">
               <Clock class="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p class="text-gray-500">Keine Check-Ins vorhanden</p>
+            </div>
+          </div>
+
+          <!-- Access Control Tab -->
+          <div v-show="activeTab === 'access'" class="space-y-6">
+            <!-- Primary Access Methods -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Primäre Zugangsmethoden</h3>
+
+              <!-- QR Code Section -->
+              <div class="border border-gray-200 rounded-lg p-6 mb-4">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <div class="p-2 bg-indigo-100 rounded-lg">
+                        <QrCode class="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">QR-Code Zugang</h4>
+                        <p class="text-sm text-gray-500">Digitaler Zugang über Mitglieder-App</p>
+                      </div>
+                    </div>
+
+                    <div v-if="accessForm.qr_code_enabled" class="mt-4 space-y-3">
+                      <div class="bg-blue-50 p-3 rounded-lg">
+                        <div class="flex items-start gap-2">
+                          <Info class="w-5 h-5 text-blue-600 mt-0.5" />
+                          <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">QR-Code ist aktiviert</p>
+                            <p>Das Mitglied kann den QR-Code in der Mitglieder-App (PWA) einsehen und für den Check-in verwenden.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-3">
+                        <button
+                          @click="invalidateQrCode"
+                          class="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
+                        >
+                          <XCircle class="w-4 h-4" />
+                          QR-Code invalidieren
+                        </button>
+                        <button
+                          @click="sendQrCodeToMember"
+                          class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                        >
+                          <Mail class="w-4 h-4" />
+                          App-Link per E-Mail senden
+                        </button>
+                      </div>
+                    </div>
+
+                    <div v-else class="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <p class="text-sm text-gray-600">QR-Code-Zugang ist deaktiviert</p>
+                    </div>
+                  </div>
+
+                  <div class="ml-4">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.qr_code_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- NFC Tag Section -->
+              <div class="border border-gray-200 rounded-lg p-6">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <div class="p-2 bg-purple-100 rounded-lg">
+                        <Nfc class="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900">NFC-Tag Zugang</h4>
+                        <p class="text-sm text-gray-500">Kontaktloser Zugang via NFC-Chip oder Karte</p>
+                      </div>
+                    </div>
+
+                    <div v-if="accessForm.nfc_enabled" class="mt-4 space-y-3">
+                      <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                          <input
+                            v-model="nfcInputValue"
+                            type="text"
+                            placeholder="NFC ID eingeben..."
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            :disabled="!editingNfc"
+                            @input="validateNfcInput"
+                          />
+                          <button
+                            v-if="!editingNfc"
+                            @click="startNfcEdit"
+                            class="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50"
+                          >
+                            Bearbeiten
+                          </button>
+                          <template v-else>
+                            <button
+                              @click="saveNfcUid"
+                              :disabled="!isNfcValid"
+                              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            >
+                              Speichern
+                            </button>
+                            <button
+                              @click="cancelNfcEdit"
+                              class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                              Abbrechen
+                            </button>
+                          </template>
+                        </div>
+
+                        <!-- Formathinweise -->
+                        <div v-if="editingNfc" class="text-xs text-gray-500 space-y-1">
+                          <p>Akzeptierte Formate:</p>
+                          <ul class="ml-4 space-y-0.5">
+                            <li>• Hex mit Trennzeichen: <code class="bg-gray-100 px-1 rounded">04:A1:B2:C3</code> oder <code class="bg-gray-100 px-1 rounded">04-A1-B2-C3</code></li>
+                            <li>• Hex mit Prefix: <code class="bg-gray-100 px-1 rounded">0x04A1B2C3</code></li>
+                            <li>• Reines Hex: <code class="bg-gray-100 px-1 rounded">04A1B2C3</code></li>
+                            <li>• Dezimal: <code class="bg-gray-100 px-1 rounded">77856451</code></li>
+                          </ul>
+                        </div>
+
+                        <!-- Validierungsfeedback -->
+                        <div v-if="editingNfc && nfcInputValue && !isNfcValid" class="flex items-center gap-2 text-sm text-red-600">
+                          <XCircle class="w-4 h-4" />
+                          Ungültiges Format
+                        </div>
+
+                        <div v-if="editingNfc && normalizedNfcId && isNfcValid" class="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle class="w-4 h-4" />
+                          Normalisiert: {{ formatNfcIdForDisplay(normalizedNfcId) }}
+                        </div>
+                      </div>
+
+                      <div v-if="accessForm.nfc_uid && !editingNfc" class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <CheckCircle class="w-4 h-4 text-purple-600" />
+                          <div>
+                            <p class="text-sm font-medium text-purple-900">NFC-Tag registriert</p>
+                            <p class="text-xs text-purple-700 font-mono">{{ formatNfcIdForDisplay(accessForm.nfc_uid) }}</p>
+                          </div>
+                        </div>
+                        <button
+                          @click="removeNfcTag"
+                          class="text-sm text-red-600 hover:text-red-800"
+                        >
+                          Entfernen
+                        </button>
+                      </div>
+                    </div>
+
+                    <div v-else class="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <p class="text-sm text-gray-600">NFC-Zugang ist deaktiviert</p>
+                    </div>
+                  </div>
+
+                  <div class="ml-4">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.nfc_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Services -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Zusätzliche Services</h3>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Solarium Access -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="p-2 bg-yellow-100 rounded-lg">
+                        <Sun class="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <h5 class="font-medium text-gray-900">Solarium</h5>
+                        <p class="text-sm text-gray-500">Zugang zur Sonnenbank</p>
+                        <p v-if="accessForm.solarium_enabled" class="text-xs text-gray-400 mt-1">
+                          {{ accessForm.solarium_minutes || 0 }} Minuten verfügbar
+                        </p>
+                      </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.solarium_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Vending Machine -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="p-2 bg-green-100 rounded-lg">
+                        <Package class="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h5 class="font-medium text-gray-900">Vending Machine</h5>
+                        <p class="text-sm text-gray-500">Proteinriegel & Snacks</p>
+                        <p v-if="accessForm.vending_enabled" class="text-xs text-gray-400 mt-1">
+                          Guthaben: {{ formatCurrency(accessForm.vending_credit || 0) }}
+                        </p>
+                      </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.vending_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Massage Chair -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="p-2 bg-blue-100 rounded-lg">
+                        <Armchair class="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h5 class="font-medium text-gray-900">Massagestuhl</h5>
+                        <p class="text-sm text-gray-500">Wellness & Entspannung</p>
+                        <p v-if="accessForm.massage_enabled" class="text-xs text-gray-400 mt-1">
+                          {{ accessForm.massage_sessions || 0 }} Sitzungen verfügbar
+                        </p>
+                      </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.massage_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Coffee Flat -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="p-2 bg-orange-100 rounded-lg">
+                        <Coffee class="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <h5 class="font-medium text-gray-900">Kaffee-Flatrate</h5>
+                        <p class="text-sm text-gray-500">Unbegrenzt Kaffee</p>
+                        <p v-if="accessForm.coffee_flat_enabled" class="text-xs text-gray-400 mt-1">
+                          Gültig bis: {{ accessForm.coffee_flat_expiry ? formatDate(accessForm.coffee_flat_expiry) : 'Unbegrenzt' }}
+                        </p>
+                      </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.coffee_flat_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Access Log -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Zugangshistorie</h3>
+
+              <div v-if="accessLogs && accessLogs.length > 0" class="border border-gray-200 rounded-lg overflow-hidden">
+                <table class="w-full">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zeitpunkt</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Methode</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <tr v-for="log in accessLogs" :key="log.id" class="hover:bg-gray-50">
+                      <td class="px-4 py-3 text-sm">{{ formatDateTime(log.accessed_at) }}</td>
+                      <td class="px-4 py-3 text-sm">{{ log.service_name }}</td>
+                      <td class="px-4 py-3 text-sm">
+                        <span class="inline-flex items-center gap-1">
+                          <component :is="getAccessMethodIcon(log.method)" class="w-4 h-4" />
+                          {{ log.method }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 text-sm">
+                        <span :class="log.success ? 'text-green-600' : 'text-red-600'">
+                          {{ log.success ? 'Erfolgreich' : 'Verweigert' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
+                <Key class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p class="text-gray-500">Noch keine Zugänge protokolliert</p>
+              </div>
             </div>
           </div>
 
@@ -1415,7 +1755,8 @@ import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  XCircle, RotateCcw, History
+  XCircle, RotateCcw, History, Key, QrCode, Nfc,
+  Sun, Package, Armchair, Coffee, Info, Mail
 } from 'lucide-vue-next'
 
 const page = usePage()
@@ -1440,6 +1781,34 @@ const {
 
 const editMode = ref(false)
 const activeTab = ref('personal')
+
+// Access Control state
+const editingNfc = ref(false)
+const nfcInputValue = ref('')
+const normalizedNfcId = ref('')
+const isNfcValid = ref(false)
+const accessLogs = ref([])
+
+// Access form for managing permissions
+const accessForm = useForm({
+  // Primary access methods
+  qr_code_enabled: props.member.access_config?.qr_code_enabled,
+  nfc_enabled: props.member.access_config?.nfc_enabled,
+  nfc_uid: props.member.access_config?.nfc_uid || '',
+
+  // Additional services
+  solarium_enabled: props.member.access_config?.solarium_enabled || false,
+  solarium_minutes: props.member.access_config?.solarium_minutes || 0,
+
+  vending_enabled: props.member.access_config?.vending_enabled || false,
+  vending_credit: props.member.access_config?.vending_credit || 0,
+
+  massage_enabled: props.member.access_config?.massage_enabled || false,
+  massage_sessions: props.member.access_config?.massage_sessions || 0,
+
+  coffee_flat_enabled: props.member.access_config?.coffee_flat_enabled || false,
+  coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
+})
 
 // Membership-related state
 const pausingMembership = ref(null)
@@ -1466,6 +1835,7 @@ const tabs = [
   { id: 'membership', name: 'Mitgliedschaften', icon: FileText },
   { id: 'payments', name: 'Zahlungen', icon: CreditCard },
   { id: 'checkins', name: 'Check-Ins', icon: Clock },
+  { id: 'access', name: 'Zugangsverwaltung', icon: Key },
   { id: 'history', name: 'Status-Verlauf', icon: History },
 ]
 
@@ -1527,6 +1897,166 @@ const selectedPendingPaymentIds = computed(() => {
 const hasPendingPaymentsSelected = computed(() => {
   return selectedPendingPaymentIds.value.length > 0
 })
+
+// Access Control functions
+const getActiveAccessCount = () => {
+  let count = 0
+  if (accessForm.qr_code_enabled) count++
+  if (accessForm.nfc_enabled) count++
+  if (accessForm.solarium_enabled) count++
+  if (accessForm.vending_enabled) count++
+  if (accessForm.massage_enabled) count++
+  if (accessForm.coffee_flat_enabled) count++
+  return count
+}
+
+// NFC ID Normalisierung
+const normalizeCardId = (cardId) => {
+  if (!cardId) return null
+
+  // Whitespace entfernen und in Großbuchstaben
+  cardId = cardId.trim().toUpperCase()
+
+  // 1. UID-Format mit Trennzeichen (04:A1:B2:C3 oder 04-A1-B2-C3)
+  if (cardId.includes(':') || cardId.includes('-')) {
+    // Trennzeichen entfernen
+    const normalized = cardId.replace(/[:-]/g, '')
+    // Prüfen ob gültiges Hex
+    if (/^[0-9A-F]+$/.test(normalized)) {
+      return normalized
+    }
+  }
+
+  // 2. Hexadezimal mit 0x Prefix
+  else if (cardId.startsWith('0X')) {
+    const hexPart = cardId.substring(2)
+    if (/^[0-9A-F]+$/.test(hexPart)) {
+      return hexPart
+    }
+  }
+
+  // 3. Reines Hexadezimal (nur A-F, 0-9)
+  else if (/^[0-9A-F]+$/.test(cardId)) {
+    return cardId
+  }
+
+  // 4. Reine Dezimalzahl
+  else if (/^[0-9]+$/.test(cardId)) {
+    // Dezimal zu Hex konvertieren für einheitliche Speicherung
+    return parseInt(cardId, 10).toString(16).toUpperCase()
+  }
+
+  return null
+}
+
+// Format NFC ID für Anzeige (mit Doppelpunkten für bessere Lesbarkeit)
+const formatNfcIdForDisplay = (nfcId) => {
+  if (!nfcId) return ''
+  // Normalisierte ID in 2er-Gruppen mit Doppelpunkt trennen
+  return nfcId.match(/.{1,2}/g)?.join(':') || nfcId
+}
+
+const invalidateQrCode = () => {
+  if (confirm('Möchten Sie wirklich den QR-Code invalidieren? Das Mitglied kann sich dann nicht mehr per QR-Code einloggen, bis ein neuer Code generiert wird.')) {
+    router.post(route('members.access.invalidate-qr', props.member.id), {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        // Status wird automatisch aktualisiert
+      }
+    })
+  }
+}
+
+const sendQrCodeToMember = () => {
+  if (confirm(`Möchten Sie dem Mitglied einen Link zur Mitglieder-App per E-Mail an ${props.member.email} senden?`)) {
+    router.post(route('members.access.send-app-link', props.member.id), {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        alert('E-Mail wurde erfolgreich versendet.')
+      }
+    })
+  }
+}
+
+const validateNfcInput = () => {
+  const normalized = normalizeCardId(nfcInputValue.value)
+  normalizedNfcId.value = normalized || ''
+  isNfcValid.value = normalized !== null
+}
+
+const startNfcEdit = () => {
+  editingNfc.value = true
+  nfcInputValue.value = formatNfcIdForDisplay(accessForm.nfc_uid) || ''
+  validateNfcInput()
+}
+
+const saveNfcUid = () => {
+  if (!isNfcValid.value) return
+
+  // Speichere die normalisierte Version
+  accessForm.nfc_uid = normalizedNfcId.value
+
+  accessForm.put(route('members.access.update', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      editingNfc.value = false
+      nfcInputValue.value = ''
+      normalizedNfcId.value = ''
+    },
+    onError: (errors) => {
+      console.error('Fehler beim Speichern der NFC-ID:', errors)
+      alert('Die NFC-ID konnte nicht gespeichert werden. Möglicherweise ist diese ID bereits einem anderen Mitglied zugeordnet.')
+    }
+  })
+}
+
+const cancelNfcEdit = () => {
+  nfcInputValue.value = formatNfcIdForDisplay(accessForm.nfc_uid) || ''
+  normalizedNfcId.value = ''
+  isNfcValid.value = false
+  editingNfc.value = false
+}
+
+const removeNfcTag = () => {
+  if (confirm('Möchten Sie den NFC-Tag wirklich entfernen?')) {
+    accessForm.nfc_uid = ''
+    nfcInputValue.value = ''
+    normalizedNfcId.value = ''
+
+    accessForm.put(route('members.access.update', props.member.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        // Erfolgreich entfernt
+      }
+    })
+  }
+}
+
+const updateAccessSettings = () => {
+  accessForm.put(route('members.access.update', props.member.id), {
+    preserveScroll: true
+  })
+}
+
+const getAccessMethodIcon = (method) => {
+  const icons = {
+    'QR-Code': QrCode,
+    'NFC': Nfc,
+    'Manual': Key
+  }
+  return icons[method] || Key
+}
+
+const formatDateTime = (datetime) => {
+  if (!datetime) return '-'
+  return new Date(datetime).toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 // Helper functions
 const isSepaType = (type) => {
@@ -2282,6 +2812,17 @@ onMounted(() => {
   // Initial payments laden
   if (props.member?.payments) {
     updateLocalPayments(props.member.payments)
+  }
+
+  // Load access logs if available
+  if (props.member?.access_logs) {
+    accessLogs.value = props.member.access_logs
+  }
+
+  // Initialize NFC value with proper formatting
+  if (props.member?.access_config?.nfc_uid) {
+    accessForm.nfc_uid = props.member.access_config.nfc_uid
+    nfcInputValue.value = formatNfcIdForDisplay(props.member.access_config.nfc_uid)
   }
 
   // Initial filter anwenden
