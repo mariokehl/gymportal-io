@@ -155,7 +155,15 @@
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-gray-200">
+                <div class="pt-4 border-t border-gray-200 space-y-3">
+                    <button
+                        type="button"
+                        @click="openWidgetPreview"
+                        class="w-full flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                        <component :is="ExternalLink" class="w-4 h-4 mr-2" />
+                        Vorschau anzeigen
+                    </button>
                     <button
                         type="submit"
                         :disabled="isSaving"
@@ -400,7 +408,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { Code, Globe, Layers, Settings, Copy, Eye, EyeOff, Palette, ToggleLeft, Save, Key, ToyBrick, RefreshCw, Type } from 'lucide-vue-next'
+import { Code, Globe, Layers, Settings, Copy, Eye, EyeOff, Palette, ToggleLeft, Save, Key, ToyBrick, RefreshCw, Type, ExternalLink } from 'lucide-vue-next'
 
 // Props
 const props = defineProps({
@@ -536,6 +544,11 @@ async function createMembership(membershipData) {
 <` + `/script>`)
 
 // Methods
+const openWidgetPreview = () => {
+    const previewUrl = `${window.location.origin}/widget-test`
+    window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+}
+
 const saveWidgetConfig = async () => {
     isSaving.value = true
     try {

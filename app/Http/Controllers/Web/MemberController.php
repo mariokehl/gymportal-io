@@ -169,15 +169,7 @@ class MemberController extends Controller
             $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
 
             // Create membership
-            $newMembership = Membership::create([
-                'member_id' => $newMember->id,
-                'membership_plan_id' => $request->membership_plan_id,
-                'start_date' => $validated['joined_date'],
-                'end_date' => Carbon::parse($validated['joined_date'])
-                    ->addMonths($membershipPlan->commitment_months)
-                    ->subDay(), // Einen Tag abziehen für korrektes Vertragsende
-                'status' => 'pending' // bis erste Zahlung erfolgt
-            ]);
+            $newMembership = app(MemberService::class)->createMembership($newMember, $membershipPlan, 'pending');
 
             // Select payment method
             $paymentMethodData = [

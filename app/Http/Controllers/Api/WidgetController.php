@@ -244,13 +244,14 @@ class WidgetController extends Controller
             'postal_code' => 'nullable|string|max:20',
             'plan_id' => 'required|exists:membership_plans,id',
             'payment_method' => 'required|string',
+            'iban' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string|min:15|max:34',
             'sepa_mandate_acknowledged' => 'sometimes|boolean',
         ]);
 
         // Spezielle SEPA-Validierung
-        if ($request->payment_method === 'sepa_direct_debit') {
+        if ($request->payment_method === 'sepa_direct_debit' || $request->payment_method === 'mollie_directdebit') {
             $validator->sometimes('sepa_mandate_acknowledged', 'required|accepted', function ($input) {
-                return $input->payment_method === 'sepa_direct_debit';
+                return in_array($input->payment_method, ['sepa_direct_debit', 'mollie_directdebit']);
             });
         }
 
@@ -312,7 +313,8 @@ class WidgetController extends Controller
             ];
 
             // SEPA-spezifische Daten hinzufügen
-            if ($request->payment_method === 'sepa_direct_debit') {
+            if ($request->payment_method === 'sepa_direct_debit' || $request->payment_method === 'mollie_directdebit') {
+                $registrationData['iban'] = $request->iban;
                 $registrationData['sepa_mandate_acknowledged'] = $request->boolean('sepa_mandate_acknowledged');
             }
 

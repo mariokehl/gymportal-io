@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Dto\PaymentCreationResult;
+use App\Events\MemberRegistered;
 use App\Mail\SepaMandateRequiredMail;
 use App\Mail\WelcomeMemberMail;
 use App\Models\Gym;
@@ -38,7 +39,6 @@ class WidgetService
             'started_at' => Carbon::now(),
         ]);
 
-        // Analytics-Event tracken
         $this->trackEvent($gym, 'registration_started', 'form', [
             'plan_id' => $data['plan_id'],
             'registration_id' => $registration->id,
@@ -55,10 +55,8 @@ class WidgetService
         DB::beginTransaction();
 
         try {
-            // Prüfen ob Mollie-Payment-Method gewählt wurde
-            $isMolliePayment = $this->isMolliePaymentMethod($data['payment_method']);
+            $requiresMollieCheckout = $this->requiresMollieCheckout($data['payment_method']);
 
-            // Geburtsdatum parsen
             try {
                 $birthDate = Carbon::parse($data['birth_date']);
             } catch (InvalidFormatException $e) {
@@ -68,7 +66,6 @@ class WidgetService
                 ];
             }
 
-            // Member erstellen
             $member = Member::create([
                 'gym_id' => $gym->id,
                 'member_number' => MemberService::generateMemberNumber($gym, 'W'),
@@ -91,23 +88,18 @@ class WidgetService
                 'widget_data' => [
                     'session_id' => $data['widget_session'] ?? null,
                     'payment_method' => $data['payment_method'] ?? null,
-                    'sepa_mandate_acknowledged' => $data['sepa_mandate_acknowledged'] ?? false,
                     'registration_ip' => request()->ip(),
                     'user_agent' => request()->userAgent(),
                     'registered_at' => now()->toISOString(),
                 ],
             ]);
 
-            // Plan laden
             $plan = MembershipPlan::findOrFail($data['plan_id']);
 
-            // PaymentMethod erstellen basierend auf gewählter Zahlungsart
             $paymentMethod = $this->createPaymentMethod($member, $data);
 
-            // Membership erstellen
             $membership = $this->createMembership($member, $plan, $data['payment_method']);
 
-            // Widget-Registrierung aktualisieren
             $registration = WidgetRegistration::where('gym_id', $gym->id)
                 ->where('session_id', session()->getId())
                 ->where('status', 'pending')
@@ -117,13 +109,12 @@ class WidgetService
             if ($registration) {
                 $registration->update([
                     'member_id' => $member->id,
-                    'status' => $isMolliePayment ? 'pending' : 'completed',
-                    'completed_at' => $isMolliePayment ? null : Carbon::now(),
+                    'status' => $requiresMollieCheckout ? 'pending' : 'completed',
+                    'completed_at' => $requiresMollieCheckout ? null : Carbon::now(),
                 ]);
             }
 
-            // Bei Mollie-Zahlungen: Checkout-URL erstellen
-            if ($isMolliePayment) {
+            if ($requiresMollieCheckout) {
                 $mollieResult = $this->createMolliePayment($member, $plan, $membership, $data);
 
                 DB::commit();
@@ -163,10 +154,8 @@ class WidgetService
                 ];
             }
 
-            // Standard-Verarbeitung für Nicht-Mollie-Zahlungen
             $paymentResult = $this->createPayment($member, $plan, $membership, $paymentMethod);
 
-            // Analytics-Event tracken
             $this->trackEvent($gym, 'registration_completed', 'checkout', [
                 'member_id' => $member->id,
                 'membership_id' => $membership->id,
@@ -177,15 +166,25 @@ class WidgetService
 
             DB::commit();
 
-            // E-Mails versenden
+            MemberRegistered::dispatch(
+                $member,
+                $membership,
+                $gym,
+                'widget',
+                [
+                    'payment_method' => $paymentMethod,
+                    'session_id' => $data['session_id'] ?? null,
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]
+            );
+
             $this->sendWelcomeEmail($member, $gym, $plan);
 
-            // SEPA-spezifische Behandlung
             if ($paymentMethod && $paymentMethod->requiresSepaMandate()) {
                 $this->handleSepaMandate($member, $paymentMethod, $gym);
             }
 
-            // Response-Daten vorbereiten
             $response = [
                 'success' => true,
                 'requires_payment' => false,
@@ -213,12 +212,10 @@ class WidgetService
                 'next_steps' => $this->getNextSteps($data['payment_method'], $member, $paymentMethod),
             ];
 
-            // PaymentMethod ID für Analytics hinzufügen
             if ($paymentMethod) {
                 $response['payment_method_id'] = $paymentMethod->id;
             }
 
-            // SEPA-Informationen zur Antwort hinzufügen
             if ($paymentMethod && $paymentMethod->requiresSepaMandate()) {
                 $response['sepa_mandate'] = [
                     'reference' => $paymentMethod->sepa_mandate_reference,
@@ -241,7 +238,6 @@ class WidgetService
                 'data' => $data,
             ]);
 
-            // Fehler-Event tracken
             $this->trackEvent($gym, 'registration_failed', 'form', [
                 'error' => $e->getMessage(),
                 'data' => $data,
@@ -252,11 +248,11 @@ class WidgetService
     }
 
     /**
-     * Prüft ob es sich um eine Mollie-Zahlungsmethode handelt
+     * Prüft ob die Zahlungsmethode einen Mollie-Checkout benötigt (Weiterleitung)
      */
-    private function isMolliePaymentMethod(string $paymentMethod): bool
+    private function requiresMollieCheckout(string $paymentMethod): bool
     {
-        return str_starts_with($paymentMethod, 'mollie_');
+        return str_starts_with($paymentMethod, 'mollie_') && $paymentMethod !== 'mollie_directdebit';
     }
 
     /**
@@ -267,13 +263,10 @@ class WidgetService
         $mollieService = app(MollieService::class);
         $gym = $member->gym;
 
-        // Einrichten der ersten Zahlung
         $mollieCustomer = $mollieService->createCustomer($gym, $member->fullName(), $member->email);
 
-        // Zahlungsart erstellen
         $mollieService->storeMolliePaymentMethod($member, $data['payment_method'], $mollieCustomer->id, null);
 
-        // Betrag berechnen (Setup-Fee + erste Monatsgebühr)
         $amount = $plan->price;
         $description = "1. Mitgliedsbeitrag: {$plan->name}";
 
@@ -282,7 +275,6 @@ class WidgetService
             $description = "Aktivierungsgebühr + " . $description;
         }
 
-        // Mollie-Payment erstellen
         $paymentData = [
             'amount' => number_format($amount, 2, '.', ''),
             'description' => $description,
@@ -304,7 +296,6 @@ class WidgetService
 
         $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"' . $data['widget_session'] . '"%')->latest()->first();
 
-        // Widget-Registrierung für Weiterleitung markieren
         WidgetRegistration::where('id', $widgetRegistration->id)
             ->update([
                 'payment_data' => [
@@ -314,7 +305,6 @@ class WidgetService
                 'updated_at' => now()
             ]);
 
-        // Analytics-Event für Mollie-Payment
         $this->trackEvent($gym, 'mollie_payment_created', 'payment', [
             'member_id' => $member->id,
             'membership_id' => $membership->id,
@@ -339,10 +329,8 @@ class WidgetService
         $mollieService = app(MollieService::class);
 
         try {
-            // Mollie-Payment-Status abrufen
             $molliePayment = $mollieService->getPayment($gym, $paymentId);
 
-            // Lokale Payment-Referenz finden
             $localPayment = Payment::where('mollie_payment_id', $paymentId)
                 ->where('gym_id', $gym->id)
                 ->first();
@@ -355,18 +343,15 @@ class WidgetService
             $membership = $localPayment->membership;
             $plan = $localPayment->membership->membershipPlan;
 
-            // Status aktualisieren
             $localPayment->update([
                 'mollie_status' => $molliePayment->status,
                 'paid_date' => $molliePayment->isPaid() ? now() : null
             ]);
 
             if ($molliePayment->isPaid()) {
-                // Payment erfolgreich - Member und Membership aktivieren
                 $member->update(['status' => 'active']);
                 $membership->update(['status' => 'active']);
 
-                // Widget-Registrierung als abgeschlossen markieren
                 WidgetRegistration::where('gym_id', $gym->id)
                     ->where('session_id', $sessionId)
                     ->update([
@@ -374,13 +359,10 @@ class WidgetService
                         'completed_at' => now()
                     ]);
 
-                // PaymentMethod aktualisieren
                 $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
 
-                // Welcome-Email senden
                 $this->sendWelcomeEmail($member, $gym, $plan);
 
-                // Analytics
                 $this->trackEvent($gym, 'mollie_payment_completed', 'payment_success', [
                     'member_id' => $member->id,
                     'membership_id' => $membership->id,
@@ -410,7 +392,6 @@ class WidgetService
                 ];
 
             } elseif ($molliePayment->isCanceled() || $molliePayment->isExpired()) {
-                // Payment abgebrochen/abgelaufen
                 $this->trackEvent($gym, 'mollie_payment_failed', 'payment_failed', [
                     'member_id' => $member->id,
                     'reason' => $molliePayment->status,
@@ -425,7 +406,6 @@ class WidgetService
                 ];
 
             } else {
-                // Payment noch pending
                 return [
                     'success' => true,
                     'status' => 'pending',
@@ -459,24 +439,29 @@ class WidgetService
         $paymentMethod = $data['payment_method'];
         $createdPaymentMethod = null;
 
-        // Mollie-Payments werden später durch Webhook/Return erstellt
-        if ($this->isMolliePaymentMethod($paymentMethod)) {
+        if ($this->requiresMollieCheckout($paymentMethod)) {
             return null;
         }
 
         switch ($paymentMethod) {
             case 'sepa_direct_debit':
+            case 'mollie_directdebit':
                 $createdPaymentMethod = PaymentMethod::createSepaPaymentMethod(
                     $member,
-                    $data['sepa_mandate_acknowledged'] ?? false
+                    $data['sepa_mandate_acknowledged'] ?? false,
+                    $paymentMethod,
+                    $data['iban'] ?? null
                 );
+                if ($data['sepa_mandate_acknowledged']) {
+                    $createdPaymentMethod->markSepaMandateAsSigned();
+                    $createdPaymentMethod->activateSepaMandate();
+                }
                 break;
 
             case 'cash':
             case 'banktransfer':
             case 'invoice':
             case 'standingorder':
-                // Standard-Zahlungsmethoden erstellen
                 $createdPaymentMethod = PaymentMethod::create([
                     'member_id' => $member->id,
                     'type' => $paymentMethod,
@@ -486,11 +471,9 @@ class WidgetService
                 break;
 
             default:
-                // Unbekannte Zahlungsmethoden
                 break;
         }
 
-        // Analytics tracking für erstellte PaymentMethod
         if ($createdPaymentMethod) {
             $this->trackPaymentMethodCreation($data['widget_session'], $createdPaymentMethod, $member->gym);
         }
@@ -503,32 +486,16 @@ class WidgetService
      */
     private function createMembership(Member $member, MembershipPlan $plan, string $paymentMethod): Membership
     {
-        $startDate = Carbon::now();
+        $memberService = app(MemberService::class);
 
-        // Probezeit berücksichtigen
-        if ($plan->trial_period_days > 0) {
-            $trialEndDate = $startDate->copy()->addDays($plan->trial_period_days);
-            $endDate = $plan->commitment_months
-                ? $trialEndDate->copy()->addMonths($plan->commitment_months)
-                : null;
-        } else {
-            $endDate = $plan->commitment_months
-                ? $startDate->copy()->addMonths($plan->commitment_months)
-                : null;
-        }
+        $membership = $memberService
+            ->createMembership(
+                $member,
+                $plan,
+                $this->determineMembershipStatus($paymentMethod, null)
+            );
 
-        return Membership::create([
-                'member_id' => $member->id,
-                'membership_plan_id' => $plan->id,
-                'status' => $this->determineMembershipStatus($paymentMethod, null),
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'payment_method' => $paymentMethod,
-                'monthly_fee' => $plan->price,
-                'setup_fee' => $plan->setup_fee ?? 0,
-                'commitment_months' => $plan->commitment_months ?? 0,
-                'cancellation_period_days' => $plan->cancellation_period_days ?? 30,
-        ]);
+        return $membership;
     }
 
     private function createPayment(
@@ -566,10 +533,10 @@ class WidgetService
     private function determineMemberStatus(string $paymentMethod): string
     {
         return match($paymentMethod) {
-            'sepa_direct_debit' => 'pending', // Wartet auf SEPA-Mandat
-            'banktransfer', 'invoice', 'standingorder' => 'pending', // Wartet auf Zahlung
-            'cash' => 'active', // Sofort aktiv
-            default => $this->isMolliePaymentMethod($paymentMethod) ? 'pending' : 'active',
+            'sepa_direct_debit', 'mollie_directdebit' => 'pending',
+            'banktransfer', 'invoice', 'standingorder' => 'pending',
+            'cash' => 'active',
+            default => $this->requiresMollieCheckout($paymentMethod) ? 'pending' : 'active',
         };
     }
 
@@ -579,10 +546,10 @@ class WidgetService
     private function determineMembershipStatus(string $paymentMethod, ?PaymentMethod $paymentMethodModel): string
     {
         return match($paymentMethod) {
-            'sepa_direct_debit' => 'pending', // Wartet auf SEPA-Mandat
-            'cash' => 'active', // Sofort aktiv
-            'banktransfer', 'invoice', 'standingorder' => 'pending', // Wartet auf Zahlung
-            default => $this->isMolliePaymentMethod($paymentMethod) ? 'pending' : 'active',
+            'sepa_direct_debit', 'mollie_directdebit' => 'pending',
+            'cash' => 'active',
+            'banktransfer', 'invoice', 'standingorder' => 'pending',
+            default => $this->requiresMollieCheckout($paymentMethod) ? 'pending' : 'active',
         };
     }
 
@@ -591,7 +558,7 @@ class WidgetService
      */
     private function getNextSteps(string $paymentMethod, Member $member, ?PaymentMethod $paymentMethodModel): array
     {
-        if ($this->isMolliePaymentMethod($paymentMethod)) {
+        if ($this->requiresMollieCheckout($paymentMethod)) {
             return [
                 'title' => 'Zahlung abschließen',
                 'description' => 'Schließen Sie die Zahlung über Mollie ab.',
@@ -612,6 +579,18 @@ class WidgetService
                     'E-Mail mit SEPA-Formular prüfen',
                     'Formular ausdrucken und unterschreiben',
                     'Unterschriebenes Mandat an das Studio senden',
+                ]
+            ],
+            'mollie_directdebit' => [
+                'title' => 'SEPA-Lastschrift über Mollie',
+                'description' => 'Ihre SEPA-Lastschrift wurde über Mollie eingerichtet und ist sofort aktiv.',
+                'action_required' => false,
+                'mandate_reference' => $paymentMethodModel?->sepa_mandate_reference,
+                'provider' => 'mollie',
+                'info' => [
+                    'Die Lastschrift erfolgt automatisch zum Fälligkeitsdatum',
+                    'Sie können die Lastschrift jederzeit in Ihrem Banking widerrufen',
+                    'Eine Bestätigung erhalten Sie per E-Mail',
                 ]
             ],
             'cash' => [
@@ -643,8 +622,6 @@ class WidgetService
             ]
         };
     }
-
-    // ... Rest der ursprünglichen Methoden bleibt unverändert ...
 
     /**
      * Analytics-Event tracken
@@ -682,13 +659,15 @@ class WidgetService
                 'payment_method_id' => $paymentMethod->id,
                 'type' => $paymentMethod->type,
                 'member_id' => $paymentMethod->member_id,
+                'provider' => $paymentMethod->provider ?? 'standard',
             ];
 
-            // SEPA-spezifische Analytics
             if ($paymentMethod->requiresSepaMandate()) {
                 $analyticsData['sepa_mandate_reference'] = $paymentMethod->sepa_mandate_reference;
                 $analyticsData['sepa_mandate_status'] = $paymentMethod->sepa_mandate_status;
                 $analyticsData['sepa_mandate_acknowledged'] = $paymentMethod->sepa_mandate_acknowledged;
+                $analyticsData['account_holder'] = $paymentMethod->account_holder;
+                $analyticsData['iban'] = substr($paymentMethod->iban ?? '', 0, 8) . '***';
             }
 
             WidgetAnalytics::create([
@@ -702,7 +681,6 @@ class WidgetService
                 'created_at' => now(),
             ]);
         } catch (\Exception $e) {
-            // Analytics-Fehler nicht weiterleiten
             logger()->warning('Payment method analytics tracking failed', [
                 'error' => $e->getMessage(),
                 'payment_method_id' => $paymentMethod->id
@@ -715,10 +693,7 @@ class WidgetService
      */
     private function handleSepaMandate(Member $member, PaymentMethod $paymentMethod, Gym $gym): void
     {
-        // E-Mail mit SEPA-Informationen senden
         $this->sendSepaMandateEmail($member, $paymentMethod, $gym);
-
-        // Interne Benachrichtigung an Gym-Team
         $this->notifyGymAboutSepaMandate($member, $paymentMethod, $gym);
     }
 
@@ -758,7 +733,6 @@ class WidgetService
      */
     private function notifyGymAboutSepaMandate(Member $member, PaymentMethod $paymentMethod, Gym $gym): void
     {
-        // Hier könnte eine interne Benachrichtigung oder Slack-Nachricht gesendet werden
         logger()->info('New SEPA mandate requires processing', [
             'gym_id' => $gym->id,
             'member_id' => $member->id,
@@ -766,6 +740,7 @@ class WidgetService
             'mandate_reference' => $paymentMethod->sepa_mandate_reference,
             'member_name' => $member->full_name,
             'member_email' => $member->email,
+            'provider' => $paymentMethod->provider ?? 'standard',
         ]);
     }
 
@@ -789,8 +764,6 @@ class WidgetService
         return ['valid' => true];
     }
 
-    // Weitere nicht mehr verwendete Methoden bleiben für Kompatibilität...
-
     /**
      * Widget-Statistiken abrufen
      *
@@ -808,7 +781,6 @@ class WidgetService
             ->whereYear('created_at', Carbon::now()->year)
             ->count();
 
-        // Conversion Rate berechnen
         $totalViews = WidgetAnalytics::where('gym_id', $gym->id)
             ->where('event_type', 'view')
             ->whereMonth('created_at', Carbon::now()->month)
@@ -818,7 +790,6 @@ class WidgetService
             ? round(($thisMonthRegistrations / $totalViews) * 100, 2)
             : 0;
 
-        // Beliebtesten Plan ermitteln
         $popularPlan = DB::table('members')
             ->join('memberships', 'members.id', '=', 'memberships.member_id')
             ->join('membership_plans', 'memberships.membership_plan_id', '=', 'membership_plans.id')
@@ -846,18 +817,15 @@ class WidgetService
     {
         $errors = [];
 
-        // Mindestens ein aktiver Plan erforderlich
         $activePlans = $gym->membershipPlans()->where('is_active', true)->count();
         if ($activePlans === 0) {
             $errors[] = 'Mindestens ein aktiver Mitgliedschaftsplan ist erforderlich.';
         }
 
-        // API-Key erforderlich
         if (!$gym->api_key) {
             $errors[] = 'API-Key ist erforderlich.';
         }
 
-        // Widget-Einstellungen validieren
         $settings = $gym->widget_settings;
 
         if (empty($settings['texts']['title'])) {
@@ -907,14 +875,10 @@ class WidgetService
      */
     public function validateVoucherCode(Gym $gym, string $code): array
     {
-        // Hier würde die Gutschein-Validierung implementiert werden
-        // Beispiel-Implementierung:
-
         if (empty($code)) {
             return ['valid' => true, 'discount' => 0];
         }
 
-        // Einfache Validierung - in der Praxis würde hier eine Voucher-Tabelle abgefragt
         $validCodes = [
             'WELCOME2024' => ['discount' => 10, 'type' => 'percent'],
             'STUDENT' => ['discount' => 5, 'type' => 'euro'],
@@ -943,7 +907,6 @@ class WidgetService
      */
     public function validateIban(string $iban): array
     {
-        // Einfache IBAN-Validierung
         $iban = strtoupper(str_replace(' ', '', $iban));
 
         if (strlen($iban) < 15 || strlen($iban) > 34) {
@@ -960,7 +923,6 @@ class WidgetService
             ];
         }
 
-        // Für eine vollständige Validierung würde hier der MOD-97-Algorithmus implementiert
         return ['valid' => true];
     }
 
@@ -1000,7 +962,6 @@ class WidgetService
                 ->count(),
         ];
 
-        // Conversion-Rates berechnen
         $metrics['plan_to_form_rate'] = $metrics['plan_selections'] > 0
             ? round(($metrics['form_starts'] / $metrics['plan_selections']) * 100, 2)
             : 0;
@@ -1047,13 +1008,11 @@ class WidgetService
         try {
             DB::beginTransaction();
 
-            // Widget-Einstellungen aktualisieren
             $gym->update([
                 'widget_enabled' => $config['widget_enabled'] ?? false,
                 'widget_settings' => $config['widget_settings'] ?? [],
             ]);
 
-            // Optional: Membership-Pläne aktualisieren
             if (isset($config['membership_plans'])) {
                 foreach ($config['membership_plans'] as $planData) {
                     $plan = $gym->membershipPlans()->find($planData['id']);

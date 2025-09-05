@@ -336,9 +336,9 @@ class MollieService
         $mandate = $client->customers->get($customerId)->createMandate([
             'method' => MandateMethod::getForFirstPaymentMethod(str_replace('mollie_', '', $paymentMethod->type)),
             'consumerName' => $consumerName,
-            'consumerAccount' => str_replace(' ', '', $paymentMethod->iban),
-            //'consumerBic' => 'INGBNL2A',
-            //'signatureDate' => '2023-05-07',
+            'consumerAccount' => $paymentMethod->iban,
+            'consumerBic' => '',
+            'signatureDate' => $paymentMethod->sepa_mandate_signed_at?->toDateString() ?? Carbon::now()->toDateString(),
             'mandateReference' => $paymentMethod->sepa_mandate_reference,
         ]);
 
