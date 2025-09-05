@@ -1693,7 +1693,10 @@
                     "X-API-Key": this.config.apiKey,
                     "X-Studio-ID": this.config.studioId,
                     "X-Widget-Session": this.sessionId,
+                    // KEINE Authorization mit Bearer Token
                 },
+                // Wichtig: keine Credentials senden
+                credentials: 'omit'
             };
 
             const finalOptions = { ...defaultOptions, ...options };

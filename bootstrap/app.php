@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle:api',
             SubstituteBindings::class,
         ]);
+        $middleware->group('widget', [
+            WidgetAuthMiddleware::class,
+            'throttle:api',
+            SubstituteBindings::class,
+        ]);
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
             'widget.auth' => WidgetAuthMiddleware::class,

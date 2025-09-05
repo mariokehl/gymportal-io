@@ -634,7 +634,7 @@ class WidgetService
                 'event_type' => $eventType,
                 'step' => $step,
                 'data' => $data,
-                'session_id' => session()->getId(),
+                'session_id' => request()->header('X-Widget-Session'),
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
                 'referrer' => request()->header('referer'),

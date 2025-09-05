@@ -82,7 +82,7 @@ Route::prefix('scanner')->group(function () {
 /*
 | Widget API Routes
 */
-Route::group(['prefix' => 'widget', 'middleware' => ['api', 'widget.auth']], function () {
+Route::group(['prefix' => 'widget', 'middleware' => ['widget']], function () {
     Route::get('/markup/plans', [WidgetController::class, 'getPlansMarkup']);
     Route::get('/markup/form', [WidgetController::class, 'getFormMarkup']);
     Route::get('/markup/checkout', [WidgetController::class, 'getCheckoutMarkup']);
