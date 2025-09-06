@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\Membership;
+use App\Models\MembershipPlan;
+use Carbon\Carbon;
 
 class MemberService
 {
@@ -28,5 +31,21 @@ class MemberService
         }
 
         return $prefix . $year . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Mitgliedschaft erstellen
+     */
+    public function createMembership(Member $member, MembershipPlan $plan, string $status = 'active'): Membership
+    {
+        return Membership::create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'start_date' => $member->joined_date,
+            'end_date' => Carbon::parse($member->joined_date)
+                ->addMonths($plan->commitment_months)
+                ->subDay(), // Einen Tag abziehen für korrektes Vertragsende
+            'status' => $status
+        ]);
     }
 }

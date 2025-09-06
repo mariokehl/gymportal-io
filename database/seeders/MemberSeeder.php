@@ -17,6 +17,7 @@ class MemberSeeder extends Seeder
             DB::table('members')->insert([
                 'gym_id' => 1,
                 'member_number' => 'FZ' . str_pad($i, 5, '0', STR_PAD_LEFT),
+                'salutation' => $this->getRandomSalutation(),
                 'first_name' => $this->getRandomFirstName(),
                 'last_name' => $this->getRandomLastName(),
                 'email' => 'member' . $i . '@example.com',
@@ -40,6 +41,7 @@ class MemberSeeder extends Seeder
             DB::table('members')->insert([
                 'gym_id' => 2,
                 'member_number' => 'PF' . str_pad($i, 5, '0', STR_PAD_LEFT),
+                'salutation' => $this->getRandomSalutation(),
                 'first_name' => $this->getRandomFirstName(),
                 'last_name' => $this->getRandomLastName(),
                 'email' => 'pfmember' . $i . '@example.com',
@@ -55,6 +57,12 @@ class MemberSeeder extends Seeder
                 'updated_at' => $joinedDate,
             ]);
         }
+    }
+
+    private function getRandomSalutation()
+    {
+        $salutations = ['Herr', 'Frau', 'Divers'];
+        return $salutations[array_rand($salutations)];
     }
 
     private function getRandomFirstName()

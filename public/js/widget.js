@@ -1,7 +1,6 @@
 (function() {
     'use strict';
 
-    // Widget-Klasse
     class GymportalWidget {
         constructor(config) {
             this.config = {
@@ -18,7 +17,7 @@
             this.selectedPlan = null;
             this.formData = {};
             this.sessionId = this.generateSessionId();
-            this.mollieWindow = null; // Referenz zum Mollie-Fenster
+            this.mollieWindow = null;
 
             this.config.cssUrl = this.config.cssUrl || `${this.config.apiEndpoint}/embed/gymportal-widget.css`;
             this.log('Widget initialized with config:', this.config);
@@ -149,6 +148,15 @@
                     padding: 20px;
                     margin: 20px 0;
                 }
+                .iban-details-section {
+                    margin-top: 20px;
+                    padding: 20px;
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    display: none;
+                }
+                .iban-details-section.show { display: block; }
             `;
             this.shadowRoot.appendChild(style);
         }
@@ -171,7 +179,6 @@
                 this.applyTheme();
                 this.bindStepEvents();
 
-                // Form-Daten wiederherstellen, wenn wir zum Form-Step zurückkehren
                 if (this.currentStep === 'form' && Object.keys(this.formData).length > 0) {
                     this.restoreFormData();
                 }
@@ -204,7 +211,6 @@
         loadThemeFromJSON() {
             let themeConfig = {};
 
-            // Versuche Theme aus JSON-Script-Tag zu laden
             const themeScript = this.shadowRoot.getElementById('gymportal-widget-theme');
             if (themeScript) {
                 try {
@@ -215,12 +221,10 @@
                 }
             }
 
-            // Basis-Farben mit Fallbacks
             const primaryColor = themeConfig.primaryColor || '#3b82f6';
             const secondaryColor = themeConfig.secondaryColor || '#f8fafc';
             const textColor = themeConfig.textColor || '#1f2937';
 
-            // Vollständiges Theme-Objekt mit abgeleiteten Farben erstellen
             this.config.theme = {
                 primaryColor: primaryColor,
                 secondaryColor: secondaryColor,
@@ -253,7 +257,6 @@
                 return;
             }
 
-            // Vorausgewählten Plan wiederherstellen
             if (this.selectedPlan) {
                 const selectedPlanInput = this.shadowRoot.querySelector(`input[value="${this.selectedPlan}"]`);
                 if (selectedPlanInput) {
@@ -309,33 +312,35 @@
                 return;
             }
 
-            // Back-Button - JavaScript-Navigation statt history.back()
             if (backBtn) {
                 backBtn.addEventListener("click", async (e) => {
                     e.preventDefault();
-                    // Aktuelle Formulardaten vor dem Verlassen sammeln
                     this.saveCurrentFormData();
                     await this.goToStep('plans');
                 });
             }
 
-            // Zahlungsmethoden-Handler
             this.setupPaymentMethodHandlers();
+            this.setupIbanInputHandlers();
 
-            // Echtzeit-Validierung
             const inputs = form.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
-                input.addEventListener('blur', () => this.validateField(input));
+                // Add trimming on blur for text-based inputs
+                input.addEventListener('blur', () => {
+                    this.trimInputValue(input);
+                    this.validateField(input);
+                });
                 input.addEventListener('input', () => this.clearFieldError(input));
             });
 
-            // E-Mail-Bestätigung validieren
             const emailConfirm = this.shadowRoot.getElementById('email_confirmation');
             if (emailConfirm) {
-                emailConfirm.addEventListener('blur', () => this.validateEmailConfirmation());
+                emailConfirm.addEventListener('blur', () => {
+                    this.trimInputValue(emailConfirm);
+                    this.validateEmailConfirmation();
+                });
             }
 
-            // Fitness-Ziele Button-Events
             const goalButtons = this.shadowRoot.querySelectorAll('.goal-btn');
             goalButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -344,20 +349,67 @@
                 });
             });
 
-            // Formular-Submit
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 await this.processFormData();
             });
         }
 
-        // Neue Methode für Zahlungsmethoden-Handler
+        /**
+         * Trims the value of input fields (except for certain types that shouldn't be trimmed)
+         * @param {HTMLElement} input - The input element to trim
+         */
+        trimInputValue(input) {
+            if (!input || !input.value) return;
+
+            // Don't trim certain input types
+            const nonTrimmableTypes = ['password', 'checkbox', 'radio', 'file', 'range', 'color'];
+            if (nonTrimmableTypes.includes(input.type)) return;
+
+            // Don't trim select elements
+            if (input.tagName.toLowerCase() === 'select') return;
+
+            // Special handling for IBAN (already formatted)
+            if (input.id === 'iban' || input.name === 'iban') {
+                // IBAN has special formatting, just trim leading/trailing spaces
+                input.value = input.value.trim();
+                return;
+            }
+
+            // Trim the value for all other text inputs
+            const trimmedValue = input.value.trim();
+            if (input.value !== trimmedValue) {
+                input.value = trimmedValue;
+                this.log(`Trimmed input ${input.name || input.id}: "${input.value}"`);
+            }
+        }
+
+        setupIbanInputHandlers() {
+            const ibanInput = this.shadowRoot.getElementById('iban');
+            if (ibanInput) {
+                ibanInput.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/\s/g, '').toUpperCase();
+                    let formatted = value.replace(/(.{4})/g, '$1 ').trim();
+                    e.target.value = formatted;
+                    this.clearFieldError(e.target);
+                });
+
+                ibanInput.addEventListener('blur', () => {
+                    this.trimInputValue(ibanInput);
+                    this.validateIban();
+                });
+            }
+        }
+
         setupPaymentMethodHandlers() {
             const paymentRadios = this.shadowRoot.querySelectorAll('input[name="payment_method"]');
             const infoContainer = this.shadowRoot.getElementById('payment-method-info');
             const infoText = infoContainer?.querySelector('.info-text');
             const sepaMandateSection = this.shadowRoot.getElementById('sepa-mandate-section');
             const sepaMandateCheckbox = this.shadowRoot.getElementById('sepa_mandate_acknowledged');
+            const ibanDetailsSection = this.shadowRoot.getElementById('iban-details-section');
+            const accountHolderInput = this.shadowRoot.getElementById('account_holder');
+            const ibanInput = this.shadowRoot.getElementById('iban');
 
             if (!paymentRadios.length) {
                 this.log('No payment method radios found');
@@ -368,12 +420,34 @@
                 const selectedRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${selectedMethod}"]`);
                 const methodType = selectedRadio?.getAttribute('data-method-type');
                 const requiresMandate = selectedRadio?.getAttribute('data-requires-mandate') === 'true';
+                const requiresIban = selectedRadio?.getAttribute('data-requires-iban') === 'true';
 
-                // Radio-Label Styling aktualisieren
                 this.updateRadioLabelStyling(selectedMethod);
 
-                // SEPA-Mandat-Bereich ein-/ausblenden
-                if (sepaMandateSection) {
+                if (ibanDetailsSection) {
+                    if (requiresIban) {
+                        ibanDetailsSection.classList.add('show');
+                        if (accountHolderInput) accountHolderInput.required = true;
+                        if (ibanInput) ibanInput.required = true;
+                        if (sepaMandateCheckbox) sepaMandateCheckbox.required = true;
+                    } else {
+                        ibanDetailsSection.classList.remove('show');
+                        if (accountHolderInput) {
+                            accountHolderInput.required = false;
+                            accountHolderInput.value = '';
+                        }
+                        if (ibanInput) {
+                            ibanInput.required = false;
+                            ibanInput.value = '';
+                        }
+                        if (sepaMandateCheckbox) {
+                            sepaMandateCheckbox.required = false;
+                            sepaMandateCheckbox.checked = false;
+                        }
+                    }
+                }
+
+                if (sepaMandateSection && !requiresIban) {
                     if (requiresMandate) {
                         sepaMandateSection.classList.add('show');
                         if (sepaMandateCheckbox) {
@@ -390,7 +464,7 @@
 
                 if (!infoContainer || !infoText) return;
 
-                if (methodType === 'mollie') {
+                if (methodType === 'mollie' && !requiresIban) {
                     infoText.textContent = 'Nach der Registrierung werden Sie zur sicheren Zahlungsabwicklung weitergeleitet, um Ihre Zahlungsdaten einzugeben.';
                     infoContainer.style.display = 'block';
                     infoContainer.className = 'payment-info mollie-info';
@@ -399,17 +473,26 @@
                         method: selectedMethod,
                         type: 'mollie'
                     });
+                } else if (requiresIban) {
+                    if (selectedMethod === 'mollie_directdebit') {
+                        infoText.textContent = 'Die Zahlung erfolgt per SEPA-Lastschrift direkt von Ihrem Bankkonto. Eine Weiterleitung an einen externen Zahlungsdienstleister ist nicht erforderlich.';
+                        infoContainer.className = 'payment-info sepa-info';
+                    } else {
+                        infoText.textContent = 'Die Zahlung erfolgt per SEPA-Lastschrift. Bitte geben Sie Ihre Bankverbindung ein.';
+                        infoContainer.className = 'payment-info sepa-info';
+                    }
+                    infoContainer.style.display = 'block';
+
+                    this.trackEvent('payment_method_info_shown', 'form', {
+                        method: selectedMethod,
+                        type: 'sepa',
+                        requires_iban: true
+                    });
                 } else if (methodType === 'standard') {
                     const message = this.getStandardPaymentMethodMessage(selectedMethod);
                     infoText.textContent = message;
                     infoContainer.style.display = 'block';
-
-                    // Spezielle Styling für SEPA-Lastschrift
-                    if (selectedMethod === 'sepa_direct_debit') {
-                        infoContainer.className = 'payment-info sepa-info';
-                    } else {
-                        infoContainer.className = 'payment-info standard-info';
-                    }
+                    infoContainer.className = 'payment-info standard-info';
 
                     this.trackEvent('payment_method_info_shown', 'form', {
                         method: selectedMethod,
@@ -421,11 +504,9 @@
                 }
             };
 
-            // Event-Listener für Zahlungsmethoden-Auswahl
             paymentRadios.forEach(radio => {
                 const label = radio.closest('.radio-label');
 
-                // Click-Handler für das Label
                 if (label) {
                     label.addEventListener('click', (e) => {
                         if (e.target === radio) return;
@@ -436,7 +517,8 @@
                         this.trackEvent('payment_method_selected', 'form', {
                             method: radio.value,
                             type: radio.getAttribute('data-method-type'),
-                            requires_mandate: radio.getAttribute('data-requires-mandate') === 'true'
+                            requires_mandate: radio.getAttribute('data-requires-mandate') === 'true',
+                            requires_iban: radio.getAttribute('data-requires-iban') === 'true'
                         });
                     });
                 }
@@ -448,7 +530,8 @@
                         this.trackEvent('payment_method_selected', 'form', {
                             method: radio.value,
                             type: radio.getAttribute('data-method-type'),
-                            requires_mandate: radio.getAttribute('data-requires-mandate') === 'true'
+                            requires_mandate: radio.getAttribute('data-requires-mandate') === 'true',
+                            requires_iban: radio.getAttribute('data-requires-iban') === 'true'
                         });
                     }
                 });
@@ -458,7 +541,6 @@
                 }
             });
 
-            // SEPA-Mandat Checkbox Event-Handler
             if (sepaMandateCheckbox) {
                 sepaMandateCheckbox.addEventListener('change', () => {
                     this.trackEvent('sepa_mandate_acknowledged', 'form', {
@@ -468,7 +550,6 @@
             }
         }
 
-        // Hilfsmethode für Standard-Zahlungsmethoden-Nachrichten
         getStandardPaymentMethodMessage(methodKey) {
             const messages = {
                 'banktransfer': 'Sie erhalten nach der Registrierung die Bankverbindung für die Überweisung.',
@@ -481,18 +562,15 @@
             return messages[methodKey] || 'Weitere Informationen zur Zahlungsabwicklung erhalten Sie nach der Registrierung.';
         }
 
-        // Neue Hilfsmethode für Radio-Label Styling
         updateRadioLabelStyling(selectedValue) {
             const allLabels = this.shadowRoot.querySelectorAll('.radio-label');
             const selectedRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${selectedValue}"]`);
             const selectedLabel = selectedRadio?.closest('.radio-label');
 
-            // Alle Labels zurücksetzen
             allLabels.forEach(label => {
                 label.classList.remove('selected');
             });
 
-            // Ausgewähltes Label markieren
             if (selectedLabel) {
                 selectedLabel.classList.add('selected');
             }
@@ -506,7 +584,6 @@
 
             const backBtn = this.shadowRoot.querySelector(".back-btn");
 
-            // Back-Button - zurück zum Formular
             if (backBtn) {
                 backBtn.addEventListener("click", async (e) => {
                     e.preventDefault();
@@ -514,7 +591,6 @@
                 });
             }
 
-            // JETZT KAUFEN Button - Mollie-Fenster wird SOFORT geöffnet
             if (purchaseBtn) {
                 purchaseBtn.addEventListener("click", async () => {
                     await this.initiatePaymentProcess();
@@ -545,7 +621,6 @@
             await this.render();
         }
 
-        // NEUE METHODE: Zahlungsprozess initiieren - Fenster wird SOFORT geöffnet
         async initiatePaymentProcess() {
             const purchaseBtn = this.shadowRoot.getElementById("purchase-button") ||
                             this.shadowRoot.querySelector('[id*="purchase"]') ||
@@ -566,25 +641,21 @@
                     throw new Error('Formulardaten oder Plan fehlen');
                 }
 
-                // Prüfen ob Mollie-Zahlungsmethode gewählt wurde
                 const selectedPaymentRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${this.formData.payment_method}"]`);
                 const methodType = selectedPaymentRadio?.getAttribute('data-method-type');
+                const requiresIban = selectedPaymentRadio?.getAttribute('data-requires-iban') === 'true';
 
-                if (methodType === 'mollie') {
-                    // SOFORT Mollie-Fenster öffnen mit Platzhalter-URL
+                if (methodType === 'mollie' && !requiresIban) {
                     this.mollieWindow = this.openMollieWindow('about:blank');
 
                     if (!this.mollieWindow) {
-                        // Fallback: Zeige Popup-Blocker Warnung
                         this.showPopupBlockerWarning();
                         return;
                     }
 
-                    // Zeige "Laden..." UI im Mollie-Fenster
                     this.showMollieLoading();
                 }
 
-                // API-Aufruf für Vertragserstellung
                 const response = await this.apiRequest("/widget/contracts", {
                     method: "POST",
                     body: JSON.stringify({
@@ -595,17 +666,17 @@
                 });
 
                 if (response && response.success) {
-                    // MOLLIE CHECKOUT ERFORDERLICH
-                    if (response.requires_payment && response.payment_provider === 'mollie' && response.checkout_url) {
+                    if (response.requires_payment &&
+                        response.payment_provider === 'mollie' &&
+                        response.checkout_url &&
+                        !requiresIban) {
                         this.handleMollieCheckout(response);
                     } else {
-                        // Mollie-Fenster schließen falls offen
                         if (this.mollieWindow && !this.mollieWindow.closed) {
                             this.mollieWindow.close();
                             this.mollieWindow = null;
                         }
 
-                        // Direkte Registrierung ohne Payment
                         this.showContractSuccess(response);
                     }
                 } else {
@@ -613,7 +684,6 @@
                 }
 
             } catch (error) {
-                // Mollie-Fenster schließen bei Fehler
                 if (this.mollieWindow && !this.mollieWindow.closed) {
                     this.mollieWindow.close();
                     this.mollieWindow = null;
@@ -632,12 +702,10 @@
             }
         }
 
-        // GEÄNDERTE Mollie Checkout Handler - verwendet bereits geöffnetes Fenster
         handleMollieCheckout(contractResponse) {
             this.log('Continuing Mollie checkout process with existing window', contractResponse);
 
             if (!this.mollieWindow || this.mollieWindow.closed) {
-                // Fallback: Neues Fenster öffnen falls das ursprüngliche geschlossen wurde
                 this.log('Original Mollie window was closed, opening new one');
                 this.mollieWindow = this.openMollieWindow(contractResponse.checkout_url);
 
@@ -646,20 +714,14 @@
                     return;
                 }
             } else {
-                // Bestehende Mollie-Fenster zur echten Checkout-URL weiterleiten
                 this.mollieWindow.location.href = contractResponse.checkout_url;
             }
 
-            // Payment Status überwachen
             this.monitorPaymentStatus(this.mollieWindow, contractResponse);
-
-            // UI für "Zahlung läuft" anzeigen
             this.showPaymentInProgress();
         }
 
-        // Mollie Fenster öffnen (TAB, NICHT iFrame)
         openMollieWindow(checkoutUrl) {
-            // Öffne neuen Tab
             const newTab = window.open(
                 checkoutUrl,
                 '_blank'
@@ -670,13 +732,10 @@
                 return null;
             }
 
-            // Fokus auf neuen Tab setzen
             newTab.focus();
-
             return newTab;
         }
 
-        // Zeige Laden-Screen im Mollie-Fenster
         showMollieLoading() {
             if (!this.mollieWindow || this.mollieWindow.closed) return;
 
@@ -724,7 +783,6 @@
             }
         }
 
-        // Popup-Blocker Warnung
         showPopupBlockerWarning() {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -765,7 +823,6 @@
 
             if (redirectBtn) {
                 redirectBtn.addEventListener('click', async () => {
-                    // API-Aufruf um Checkout-URL zu bekommen und dann direkt weiterleiten
                     try {
                         const response = await this.apiRequest("/widget/contracts", {
                             method: "POST",
@@ -788,11 +845,8 @@
             }
         }
 
-        // Payment Status überwachen
         monitorPaymentStatus(tab, contractResponse) {
-            // PostMessage Listener für Redirect-Seite
             const messageHandler = (event) => {
-                // Sicherheitscheck: Nur Messages von eigener Domain
                 const allowedOrigins = [
                     window.location.origin,
                     this.config.apiEndpoint
@@ -818,14 +872,12 @@
 
             window.addEventListener('message', messageHandler);
 
-            // Fallback: Tab Polling + API Status Check
             let pollCount = 0;
-            const maxPolls = 180; // 15 Minuten (alle 5 Sekunden)
+            const maxPolls = 180;
 
             const pollStatus = setInterval(async () => {
                 pollCount++;
 
-                // Tab geschlossen oder Max-Polls erreicht
                 if (!tab || tab.closed || pollCount >= maxPolls) {
                     clearInterval(pollStatus);
                     window.removeEventListener('message', messageHandler);
@@ -833,13 +885,11 @@
                     if (pollCount >= maxPolls) {
                         this.handlePaymentTimeout(contractResponse);
                     } else {
-                        // Tab wurde geschlossen - finalen Status prüfen
                         await this.checkFinalPaymentStatus(contractResponse);
                     }
                     return;
                 }
 
-                // Alle 20 Sekunden Status via API prüfen
                 if (pollCount % 4 === 0) {
                     try {
                         const statusResponse = await this.apiRequest("/widget/mollie/check-status", {
@@ -876,7 +926,6 @@
             }, 5000);
         }
 
-        // Redirect Fallback (wenn Tab blockiert)
         showRedirectFallback(checkoutUrl) {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -903,7 +952,6 @@
                 </div>
             `;
 
-            // Event-Listener
             const redirectBtn = this.shadowRoot.getElementById('redirect-to-payment');
             const cancelBtn = this.shadowRoot.getElementById('cancel-payment');
 
@@ -920,7 +968,6 @@
             }
         }
 
-        // Payment Result Handler
         handlePaymentResult(paymentData, contractResponse) {
             this.log('Processing payment result:', paymentData);
 
@@ -929,26 +976,22 @@
             } else if (paymentData.status === 'failed' || paymentData.status === 'canceled') {
                 this.handlePaymentFailure(paymentData, contractResponse);
             } else {
-                // Unbekannter Status - API-Check durchführen
                 this.checkFinalPaymentStatus(contractResponse);
             }
         }
 
-        // Payment Success Handler
         handlePaymentSuccess(contractResponse) {
             this.trackEvent('payment_completed', 'payment', {
                 session_id: contractResponse.session_id,
                 member_id: contractResponse.member_id
             });
 
-            // Erfolgreiche Registrierung anzeigen
             this.showContractSuccess({
                 ...contractResponse,
                 payment_completed: true
             });
         }
 
-        // Payment Failure Handler
         handlePaymentFailure(paymentData, contractResponse) {
             this.trackEvent('payment_failed', 'payment', {
                 session_id: contractResponse.session_id,
@@ -958,7 +1001,6 @@
             this.showPaymentError(paymentData);
         }
 
-        // Payment Timeout Handler
         handlePaymentTimeout(contractResponse) {
             this.trackEvent('payment_timeout', 'payment', {
                 session_id: contractResponse.session_id
@@ -967,7 +1009,6 @@
             this.showPaymentTimeout(contractResponse);
         }
 
-        // Finalen Payment Status prüfen
         async checkFinalPaymentStatus(contractResponse) {
             try {
                 const statusResponse = await this.apiRequest("/widget/mollie/check-status", {
@@ -991,7 +1032,6 @@
             }
         }
 
-        // Payment in Progress UI
         showPaymentInProgress() {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -1027,7 +1067,6 @@
             }
         }
 
-        // Payment Error UI
         showPaymentError(paymentData) {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -1066,7 +1105,6 @@
             }
         }
 
-        // Payment Timeout UI
         showPaymentTimeout(contractResponse) {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -1105,7 +1143,6 @@
             }
         }
 
-        // Payment Pending UI
         showPaymentPending(contractResponse) {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -1137,25 +1174,22 @@
             }
         }
 
-        // Neue Methode: Aktuelle Formulardaten sammeln und zwischenspeichern
         saveCurrentFormData() {
             const form = this.shadowRoot.getElementById("member-form");
             if (!form) return;
 
             const formData = new FormData(form);
 
-            // Alle Formularfelder durchgehen und in this.formData speichern
             for (let [key, value] of formData.entries()) {
-                this.formData[key] = value;
+                // Trim the value when saving form data
+                this.formData[key] = typeof value === 'string' ? value.trim() : value;
             }
 
-            // Checkboxen separat behandeln (nur boolean-Werte)
             const checkboxes = form.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
                 this.formData[checkbox.name] = checkbox.checked;
             });
 
-            // Radio-Buttons: Nur den Wert des ausgewählten Buttons speichern
             const radioGroups = {};
             const radios = form.querySelectorAll('input[type="radio"]');
             radios.forEach(radio => {
@@ -1165,16 +1199,13 @@
                 radioGroups[radio.name].push(radio);
             });
 
-            // Für jede Radio-Button-Gruppe den ausgewählten Wert finden
             Object.keys(radioGroups).forEach(groupName => {
                 const selectedRadio = radioGroups[groupName].find(radio => radio.checked);
                 if (selectedRadio) {
                     this.formData[groupName] = selectedRadio.value;
                 }
-                // Wenn kein Radio-Button ausgewählt ist, wird der Schlüssel nicht gesetzt
             });
 
-            // Fitness-Ziele sammeln
             const selectedGoals = this.shadowRoot.querySelectorAll('.goal-btn.active');
             if (selectedGoals.length > 0) {
                 this.formData.fitness_goals = Array.from(selectedGoals).map(btn => btn.dataset.goal).join(',');
@@ -1183,7 +1214,6 @@
             this.log('Current form data saved:', this.formData);
         }
 
-        // Neue Methode: Gespeicherte Formulardaten wiederherstellen
         restoreFormData() {
             if (!this.formData || Object.keys(this.formData).length === 0) {
                 this.log('No form data to restore');
@@ -1192,7 +1222,6 @@
 
             this.log('Restoring form data:', this.formData);
 
-            // Standard-Eingabefelder wiederherstellen
             Object.keys(this.formData).forEach(key => {
                 const field = this.shadowRoot.getElementById(key) ||
                             this.shadowRoot.querySelector(`[name="${key}"]`);
@@ -1212,33 +1241,49 @@
                 }
             });
 
-            // Zahlungsmethoden-Wiederherstellung mit SEPA-Handling
             if (this.formData.payment_method) {
                 const paymentRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${this.formData.payment_method}"]`);
                 if (paymentRadio) {
                     paymentRadio.checked = true;
                     this.updateRadioLabelStyling(this.formData.payment_method);
 
-                    // SEPA-Mandat-Bereich anzeigen falls nötig
-                    const requiresMandate = paymentRadio.getAttribute('data-requires-mandate') === 'true';
-                    const sepaMandateSection = this.shadowRoot.getElementById('sepa-mandate-section');
+                    const requiresIban = paymentRadio.getAttribute('data-requires-iban') === 'true';
+                    const ibanDetailsSection = this.shadowRoot.getElementById('iban-details-section');
+                    const accountHolderInput = this.shadowRoot.getElementById('account_holder');
+                    const ibanInput = this.shadowRoot.getElementById('iban');
                     const sepaMandateCheckbox = this.shadowRoot.getElementById('sepa_mandate_acknowledged');
 
-                    if (requiresMandate && sepaMandateSection) {
-                        sepaMandateSection.classList.add('show');
+                    if (requiresIban && ibanDetailsSection) {
+                        ibanDetailsSection.classList.add('show');
+                        if (accountHolderInput) {
+                            accountHolderInput.required = true;
+                            accountHolderInput.value = this.formData.account_holder || '';
+                        }
+                        if (ibanInput) {
+                            ibanInput.required = true;
+                            ibanInput.value = this.formData.iban || '';
+                        }
                         if (sepaMandateCheckbox) {
                             sepaMandateCheckbox.required = true;
                             sepaMandateCheckbox.checked = this.formData.sepa_mandate_acknowledged || false;
                         }
                     }
 
-                    // Payment Info aktualisieren
                     const methodType = paymentRadio.getAttribute('data-method-type');
                     const infoContainer = this.shadowRoot.getElementById('payment-method-info');
                     const infoText = infoContainer?.querySelector('.info-text');
 
                     if (infoContainer && infoText) {
-                        if (methodType === 'mollie') {
+                        if (requiresIban) {
+                            if (this.formData.payment_method === 'mollie_directdebit') {
+                                infoText.textContent = 'Die Zahlung erfolgt per SEPA-Lastschrift direkt von Ihrem Bankkonto. Eine Weiterleitung an einen externen Zahlungsdienstleister ist nicht erforderlich.';
+                                infoContainer.className = 'payment-info sepa-info';
+                            } else {
+                                infoText.textContent = 'Die Zahlung erfolgt per SEPA-Lastschrift. Bitte geben Sie Ihre Bankverbindung ein.';
+                                infoContainer.className = 'payment-info sepa-info';
+                            }
+                            infoContainer.style.display = 'block';
+                        } else if (methodType === 'mollie') {
                             infoText.textContent = 'Nach der Registrierung werden Sie zur sicheren Zahlungsabwicklung weitergeleitet, um Ihre Zahlungsdaten einzugeben.';
                             infoContainer.style.display = 'block';
                             infoContainer.className = 'payment-info mollie-info';
@@ -1257,7 +1302,6 @@
                 }
             }
 
-            // Fitness-Ziele wiederherstellen
             if (this.formData.fitness_goals) {
                 const goals = this.formData.fitness_goals.split(',');
                 goals.forEach(goal => {
@@ -1271,7 +1315,6 @@
             this.log('Form data restored successfully');
         }
 
-        // Formulardaten verarbeiten (ohne API-Call)
         async processFormData() {
             const nextBtn = this.shadowRoot.getElementById("next-button");
 
@@ -1281,17 +1324,14 @@
                     nextBtn.textContent = "Wird verarbeitet...";
                 }
 
-                // Formulardaten sammeln
                 const formData = this.collectFormData();
 
-                // Validierung
                 const validation = this.validateFormData(formData);
                 if (!validation.valid) {
                     this.showErrors(validation.errors);
                     return;
                 }
 
-                // Daten speichern für Checkout
                 this.formData = formData;
 
                 const response = await this.apiRequest("/widget/save-form-data", {
@@ -1308,7 +1348,6 @@
                     throw new Error(response?.message || 'Zwischenspeichern der Formulardaten fehlgeschlagen');
                 }
 
-                // Zu Checkout wechseln (ohne API-Call)
                 await this.goToStep('checkout');
 
             } catch (error) {
@@ -1325,7 +1364,6 @@
             }
         }
 
-        // Erfolgreiche Vertragserstellung anzeigen
         showContractSuccess(response) {
             const container = this.shadowRoot.querySelector('.widget-container');
             if (!container) return;
@@ -1359,7 +1397,6 @@
 
             const restartBtn = this.shadowRoot.getElementById("restart-button");
 
-            // Restart-Button
             if (restartBtn) {
                 restartBtn.addEventListener("click", async () => {
                     this.selectedPlan = null;
@@ -1377,29 +1414,27 @@
             const formData = new FormData(form);
             const data = {};
 
-            // Standard-Formularfelder
             for (let [key, value] of formData.entries()) {
-                data[key] = value;
+                // Trim string values when collecting form data
+                data[key] = typeof value === 'string' ? value.trim() : value;
             }
 
-            // Checkboxen separat behandeln
             const checkboxes = form.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
                 data[checkbox.name] = checkbox.checked;
             });
 
-            // Fitness-Ziele sammeln
             const selectedGoals = this.shadowRoot.querySelectorAll('.goal-btn.active');
             if (selectedGoals.length > 0) {
                 data.fitness_goals = Array.from(selectedGoals).map(btn => btn.dataset.goal).join(',');
             }
 
-            // Zahlungsmethoden-Informationen
             const selectedPaymentMethod = this.shadowRoot.querySelector('input[name="payment_method"]:checked');
             if (selectedPaymentMethod) {
                 data.payment_method = selectedPaymentMethod.value;
                 data.payment_method_type = selectedPaymentMethod.getAttribute('data-method-type');
                 data.requires_mandate = selectedPaymentMethod.getAttribute('data-requires-mandate') === 'true';
+                data.requires_iban = selectedPaymentMethod.getAttribute('data-requires-iban') === 'true';
             }
 
             return data;
@@ -1423,16 +1458,31 @@
                 errors.push('E-Mail-Adressen stimmen nicht überein');
             }
 
-            // Zahlungsmethoden-Validierung
             if (!data.payment_method) {
                 errors.push('Bitte wählen Sie eine Zahlungsmethode aus');
             }
 
-            // SEPA-Mandat Validierung
+            if (data.requires_iban) {
+                if (!data.account_holder || data.account_holder.trim() === '') {
+                    errors.push('Kontoinhaber ist erforderlich');
+                }
+
+                if (!data.iban || data.iban.trim() === '') {
+                    errors.push('IBAN ist erforderlich');
+                } else if (!this.isValidIban(data.iban)) {
+                    errors.push('Bitte geben Sie eine gültige IBAN ein');
+                }
+
+                if (!data.sepa_mandate_acknowledged) {
+                    errors.push('Bitte bestätigen Sie das SEPA-Lastschriftmandat');
+                }
+            }
+
             const selectedPaymentRadio = this.shadowRoot.querySelector(`input[name="payment_method"][value="${data.payment_method}"]`);
             const requiresMandate = selectedPaymentRadio?.getAttribute('data-requires-mandate') === 'true';
+            const requiresIban = selectedPaymentRadio?.getAttribute('data-requires-iban') === 'true';
 
-            if (requiresMandate && !data.sepa_mandate_acknowledged) {
+            if (requiresMandate && !requiresIban && !data.sepa_mandate_acknowledged) {
                 errors.push('Bitte bestätigen Sie, dass Sie die SEPA-Lastschriftmandat-Informationen gelesen haben');
             }
 
@@ -1452,6 +1502,8 @@
                 address: 'Adresse',
                 city: 'Stadt',
                 postal_code: 'Postleitzahl',
+                account_holder: 'Kontoinhaber',
+                iban: 'IBAN'
             };
             return labels[field] || field;
         }
@@ -1462,8 +1514,34 @@
         }
 
         isValidIban(iban) {
-            const cleaned = iban.replace(/\s/g, '').toUpperCase();
-            return /^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(cleaned) && cleaned.length >= 15 && cleaned.length <= 34;
+            const cleanedIban = iban.replace(/\s/g, '').toUpperCase();
+
+            if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(cleanedIban)) {
+                return false;
+            }
+
+            if (cleanedIban.length < 15 || cleanedIban.length > 34) {
+                return false;
+            }
+
+            const rearranged = cleanedIban.slice(4) + cleanedIban.slice(0, 4);
+
+            let numericString = '';
+            for (let i = 0; i < rearranged.length; i++) {
+                const char = rearranged[i];
+                if (/[A-Z]/.test(char)) {
+                    numericString += (char.charCodeAt(0) - 55).toString();
+                } else {
+                    numericString += char;
+                }
+            }
+
+            let remainder = 0;
+            for (let i = 0; i < numericString.length; i++) {
+                remainder = (remainder * 10 + parseInt(numericString[i])) % 97;
+            }
+
+            return remainder === 1;
         }
 
         validateField(field) {
@@ -1479,6 +1557,11 @@
 
             if (fieldName === 'email' && value && !this.isValidEmail(value)) {
                 this.showFieldError(field, 'Bitte gib eine gültige E-Mail-Adresse ein');
+                return false;
+            }
+
+            if (fieldName === 'iban' && value && !this.isValidIban(value)) {
+                this.showFieldError(field, 'Bitte gib eine gültige IBAN ein');
                 return false;
             }
 
@@ -1649,7 +1732,10 @@
                     "X-API-Key": this.config.apiKey,
                     "X-Studio-ID": this.config.studioId,
                     "X-Widget-Session": this.sessionId,
+                    // KEINE Authorization mit Bearer Token
                 },
+                // Wichtig: keine Credentials senden
+                credentials: 'omit'
             };
 
             const finalOptions = { ...defaultOptions, ...options };
@@ -1681,7 +1767,6 @@
             this.showError(userMessage);
 
             if (context.includes('Payment initiation')) {
-                // Bei Payment-Initialisierungs-Fehlern nicht fallback UI zeigen
                 return;
             }
 
@@ -1730,7 +1815,6 @@
         }
     }
 
-    // Globale API
     window.GymportalWidget = {
         init: function(config) {
             try {
@@ -1746,7 +1830,6 @@
         version: '1.0.0'
     };
 
-    // Auto-Initialisierung wenn data-Attribute vorhanden
     document.addEventListener('DOMContentLoaded', function() {
         const autoInitElements = document.querySelectorAll('[data-gymportal-widget]');
 

@@ -42,18 +42,51 @@ class WidgetController extends Controller
             'widget_settings' => $gym->widget_settings,
         ];
 
-        $plans = MembershipPlan::where('gym_id', $gymId)
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('price', 'asc')
-            ->get();
+        // Hole die konfigurierten Verträge aus den Widget-Einstellungen
+        $selectedContractIds = $gym->widget_settings['contracts']['selected_ids'] ?? [];
+        $autoSort = $gym->widget_settings['contracts']['auto_sort'] ?? false;
+
+        // Query Builder für die Verträge
+        $plansQuery = MembershipPlan::where('gym_id', $gymId)
+            ->where('is_active', true);
+
+        // Wenn Verträge in den Einstellungen ausgewählt wurden
+        if (!empty($selectedContractIds)) {
+            // Nur die ausgewählten Verträge laden
+            $plansQuery->whereIn('id', $selectedContractIds);
+
+            if ($autoSort) {
+                // Automatische Sortierung nach Preis (aufsteigend)
+                $plans = $plansQuery
+                    ->orderBy('price', 'asc')
+                    ->get();
+            } else {
+                // Manuelle Sortierung: Behalte die Reihenfolge aus den Einstellungen
+                $plans = $plansQuery->get();
+
+                // Sortiere die Collection basierend auf der Reihenfolge in selected_ids
+                $plans = $plans->sortBy(function ($plan) use ($selectedContractIds) {
+                    return array_search($plan->id, $selectedContractIds);
+                })->values();
+            }
+        } else {
+            // Fallback: Wenn keine Verträge konfiguriert sind, zeige alle aktiven
+            // (oder die ersten 3, je nach Business-Logik)
+            $plans = $plansQuery
+                ->orderBy('sort_order')
+                ->orderBy('price', 'asc')
+                ->limit(3) // Limitiere auf 3 wie in der UI definiert
+                ->get();
+        }
 
         $html = view('widget.plans', compact('plans', 'gymData'))->render();
 
         return response()->json([
             'html' => $html,
             'success' => true,
-            'session_cleaned' => true
+            'session_cleaned' => true,
+            'plans_count' => $plans->count(),
+            'using_configured_plans' => !empty($selectedContractIds)
         ]);
     }
 
@@ -244,13 +277,14 @@ class WidgetController extends Controller
             'postal_code' => 'nullable|string|max:20',
             'plan_id' => 'required|exists:membership_plans,id',
             'payment_method' => 'required|string',
+            'iban' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string|min:15|max:34',
             'sepa_mandate_acknowledged' => 'sometimes|boolean',
         ]);
 
         // Spezielle SEPA-Validierung
-        if ($request->payment_method === 'sepa_direct_debit') {
+        if ($request->payment_method === 'sepa_direct_debit' || $request->payment_method === 'mollie_directdebit') {
             $validator->sometimes('sepa_mandate_acknowledged', 'required|accepted', function ($input) {
-                return $input->payment_method === 'sepa_direct_debit';
+                return in_array($input->payment_method, ['sepa_direct_debit', 'mollie_directdebit']);
             });
         }
 
@@ -312,7 +346,8 @@ class WidgetController extends Controller
             ];
 
             // SEPA-spezifische Daten hinzufügen
-            if ($request->payment_method === 'sepa_direct_debit') {
+            if ($request->payment_method === 'sepa_direct_debit' || $request->payment_method === 'mollie_directdebit') {
+                $registrationData['iban'] = $request->iban;
                 $registrationData['sepa_mandate_acknowledged'] = $request->boolean('sepa_mandate_acknowledged');
             }
 

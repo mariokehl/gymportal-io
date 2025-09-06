@@ -856,6 +856,220 @@ class Member extends Authenticatable
     }
 
     /**
+     * Get the access configuration for the member
+     */
+    public function accessConfig()
+    {
+        return $this->hasOne(MemberAccessConfig::class);
+    }
+
+    /**
+     * Get access logs for the member
+     */
+    public function accessLogs()
+    {
+        return $this->hasMany(MemberAccessLog::class);
+    }
+
+    /**
+     * Get or create access configuration
+     */
+    public function getOrCreateAccessConfig(): MemberAccessConfig
+    {
+        return $this->accessConfig()->firstOrCreate([
+            'member_id' => $this->id
+        ], [
+            'qr_code_enabled' => true,
+            'nfc_enabled' => false,
+        ]);
+    }
+
+    /**
+     * Check if member has any active access method
+     */
+    public function hasActiveAccessMethod(): bool
+    {
+        $config = $this->accessConfig;
+
+        if (!$config) {
+            return true; // QR is enabled by default
+        }
+
+        return $config->qr_code_enabled || $config->nfc_enabled;
+    }
+
+    /**
+     * Check if member can access a specific service
+     */
+    public function canAccessService(string $service): bool
+    {
+        // Check member status first
+        if ($this->status !== 'active') {
+            return false;
+        }
+
+        // Check for active membership
+        if (!$this->activeMembership()) {
+            return false;
+        }
+
+        $config = $this->accessConfig;
+
+        // Gym access is allowed by default if member is active
+        if ($service === 'gym') {
+            return true;
+        }
+
+        // Other services require configuration
+        if (!$config) {
+            return false;
+        }
+
+        return $config->canAccessService($service);
+    }
+
+    /**
+     * Generate QR code data for member
+     */
+    public function generateQrCodeData(): string
+    {
+        $timestamp = time();
+        $gym = $this->gym;
+
+        if (!$gym->scanner_secret_key) {
+            $gym->generateScannerSecretKey();
+        }
+
+        $message = "{$this->member_number}:{$timestamp}";
+        $hash = hash_hmac('sha256', $message, $gym->scanner_secret_key);
+
+        return "{$this->member_number}:{$timestamp}:{$hash}";
+    }
+
+    /**
+     * Get recent access attempts
+     */
+    public function getRecentAccessAttempts(int $limit = 10)
+    {
+        return $this->accessLogs()
+            ->where('action', MemberAccessLog::ACTION_ACCESS_ATTEMPT)
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Get access statistics
+     */
+    public function getAccessStatistics(?string $period = '30d'): array
+    {
+        return MemberAccessLog::getMemberStatistics($this->id, $period);
+    }
+
+    /**
+     * Log successful access
+     */
+    public function logSuccessfulAccess(string $service, string $method, ?string $deviceId = null): void
+    {
+        MemberAccessLog::create([
+            'member_id' => $this->id,
+            'action' => MemberAccessLog::ACTION_ACCESS_ATTEMPT,
+            'service' => $service,
+            'method' => $method,
+            'success' => true,
+            'device_id' => $deviceId,
+            'accessed_at' => now(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        // Update last check-in if it's gym access
+        if ($service === 'gym') {
+            CheckIn::create([
+                'member_id' => $this->id,
+                'gym_id' => $this->gym_id,
+                'check_in_time' => now(),
+                'check_in_method' => $method,
+            ]);
+        }
+    }
+
+    /**
+     * Log failed access attempt
+     */
+    public function logFailedAccess(string $service, string $method, string $reason, ?string $deviceId = null): void
+    {
+        MemberAccessLog::create([
+            'member_id' => $this->id,
+            'action' => MemberAccessLog::ACTION_ACCESS_ATTEMPT,
+            'service' => $service,
+            'method' => $method,
+            'success' => false,
+            'device_id' => $deviceId,
+            'accessed_at' => now(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => [
+                'reason' => $reason,
+            ],
+        ]);
+    }
+
+    /**
+     * Check if member has NFC configured
+     */
+    public function hasNfcConfigured(): bool
+    {
+        return $this->accessConfig &&
+               $this->accessConfig->nfc_enabled &&
+               $this->accessConfig->nfc_uid;
+    }
+
+    /**
+     * Check if member has valid QR code
+     */
+    public function hasValidQrCode(): bool
+    {
+        if (!$this->accessConfig) {
+            return true; // QR is enabled by default
+        }
+
+        return $this->accessConfig->hasValidQrCode();
+    }
+
+    /**
+     * Scope: Members with access configuration
+     */
+    public function scopeWithAccessConfig($query)
+    {
+        return $query->with('accessConfig');
+    }
+
+    /**
+     * Scope: Members with specific access method
+     */
+    public function scopeWithAccessMethod($query, string $method)
+    {
+        return $query->whereHas('accessConfig', function ($q) use ($method) {
+            if ($method === 'qr') {
+                $q->where('qr_code_enabled', true);
+            } elseif ($method === 'nfc') {
+                $q->where('nfc_enabled', true)->whereNotNull('nfc_uid');
+            }
+        });
+    }
+
+    /**
+     * Scope: Members with service access
+     */
+    public function scopeWithServiceAccess($query, string $service)
+    {
+        return $query->whereHas('accessConfig', function ($q) use ($service) {
+            $q->withServiceEnabled($service);
+        });
+    }
+
+    /**
      * Scope für Mitglieder die inaktiviert werden können
      */
     public function scopeCanBeInactivated($query)

@@ -49,8 +49,8 @@
             <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
           </div>
 
-          <!-- Price and Billing Cycle -->
-          <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Price, Setup Fee and Billing Cycle -->
+          <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
                 Preis (€) <span class="text-red-500">*</span>
@@ -68,6 +68,25 @@
                 required
               />
               <p v-if="errors.price" class="mt-1 text-sm text-red-600">{{ errors.price }}</p>
+            </div>
+
+            <div>
+              <label for="setup_fee" class="block text-sm font-medium text-gray-700 mb-2">
+                Aktivierungsgebühr (€)
+              </label>
+              <input
+                id="setup_fee"
+                v-model="form.setup_fee"
+                type="number"
+                step="0.01"
+                min="0"
+                max="999.99"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                :class="{ 'border-red-500': errors.setup_fee }"
+                placeholder="0.00"
+              />
+              <p v-if="errors.setup_fee" class="mt-1 text-sm text-red-600">{{ errors.setup_fee }}</p>
+              <p class="mt-1 text-xs text-gray-500">Einmalige Gebühr bei Vertragsabschluss</p>
             </div>
 
             <div>
@@ -183,6 +202,7 @@ const form = useForm({
   name: '',
   description: '',
   price: '',
+  setup_fee: '',
   billing_cycle: '',
   is_active: true,
   commitment_months: '',

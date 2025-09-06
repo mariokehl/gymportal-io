@@ -66,6 +66,11 @@
             <span class="font-medium">{{ formatPrice(plan.price) }} / {{ formatBillingCycle(plan.billing_cycle) }}</span>
           </div>
 
+          <div v-if="plan.setup_fee && plan.setup_fee > 0" class="flex justify-between">
+            <span class="text-gray-600 text-sm">Aktivierungsgebühr:</span>
+            <span class="font-medium text-orange-600">{{ formatPrice(plan.setup_fee) }}</span>
+          </div>
+
           <div v-if="plan.commitment_months" class="flex justify-between">
             <span class="text-gray-600 text-sm">Mindestlaufzeit:</span>
             <span class="font-medium">{{ plan.commitment_months }} Monat{{ plan.commitment_months !== 1 ? 'e' : '' }}</span>

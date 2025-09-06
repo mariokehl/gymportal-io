@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\MemberAccessConfig;
 use App\Models\ScannerAccessLog;
 use App\Services\ScannerValidationService;
 use Exception;
@@ -43,7 +44,8 @@ class ScannerController extends Controller
                 $member = Member::find($memberId);
             } elseif ($scanType === 'nfc_card') {
                 $nfcCardId = $request->input('nfc_card_id');
-                $member = Member::where('nfc_card_id', $nfcCardId)->first();
+                $accessConfig = MemberAccessConfig::where('nfc_uid', $nfcCardId)->first();
+                $member = $accessConfig?->member;
             }
 
             // Mitglied nicht gefunden
@@ -75,6 +77,9 @@ class ScannerController extends Controller
                     'membership_id' => $activeMembership->id,
                     'scan_type' => $scanType
                 ]);
+
+                // TODO: Check-In protokollieren
+                //...
 
                 return response()->json([
                     'member_id' => $member->id,

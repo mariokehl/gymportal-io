@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -79,6 +80,13 @@ class PaymentMethod extends Model
             'requires_mandate' => true,
         ],
     ];
+
+    protected function iban(): Attribute
+    {
+        return Attribute::make(
+            set: fn ($value) => strtoupper(str_replace(' ', '', $value))
+        );
+    }
 
     public function member()
     {
@@ -281,21 +289,21 @@ class PaymentMethod extends Model
     }
 
     // Static Methods
-    public static function createSepaPaymentMethod(Member $member, bool $acknowledgedOnline = false): self
+    public static function createSepaPaymentMethod(Member $member, bool $acknowledgedOnline = false, string $type = 'sepa_direct_debit', ?string $iban = null): self
     {
         $paymentMethod = self::create([
             'member_id' => $member->id,
-            'type' => 'sepa_direct_debit',
+            'type' => $type,
             'status' => 'pending',
             'is_default' => true,
             'requires_mandate' => true,
             'sepa_mandate_acknowledged' => $acknowledgedOnline,
             'sepa_mandate_status' => 'pending',
             'sepa_mandate_data' => [
-                'created_via' => 'widget_registration',
                 'acknowledged_online' => $acknowledgedOnline,
                 'created_at' => now()->toISOString(),
-            ]
+            ],
+            'iban' => $iban
         ]);
 
         // Generiere Mandatsreferenz

@@ -71,10 +71,17 @@ Route::prefix('scanner')->group(function () {
     });
 });
 
+// API Routes for scanner devices
+//Route::prefix('api/v1')->group(function () {
+//    Route::post('/access/validate', [MemberAccessController::class, 'validateAccess'])
+//        ->middleware('throttle:60,1')
+//        ->name('api.access.validate');
+//});
+
 /*
 | Widget API Routes
 */
-Route::group(['prefix' => 'widget', 'middleware' => ['api', 'widget.auth']], function () {
+Route::group(['prefix' => 'widget', 'middleware' => ['widget']], function () {
     Route::get('/markup/plans', [WidgetController::class, 'getPlansMarkup']);
     Route::get('/markup/form', [WidgetController::class, 'getFormMarkup']);
     Route::get('/markup/checkout', [WidgetController::class, 'getCheckoutMarkup']);

@@ -112,6 +112,149 @@
                     </div>
                 </div>
 
+                <!-- Vertragsauswahl -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <component :is="ListOrdered" class="w-5 h-5 mr-2" />
+                        Vertragsauswahl
+                    </h4>
+                    <p class="text-sm text-gray-500 mb-4">
+                        Wähle bis zu 3 Verträge aus und bestimme ihre Anzeigereihenfolge im Widget
+                    </p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Verfügbare Verträge -->
+                        <div>
+                            <h5 class="text-sm font-medium text-gray-700 mb-3">Verfügbare Verträge</h5>
+                            <div class="bg-gray-50 rounded-lg p-4 min-h-[200px]">
+                                <!-- Loading State -->
+                                <div v-if="contractsLoading" class="text-center py-8">
+                                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                                    <p class="mt-2 text-sm text-gray-600">Verträge werden geladen...</p>
+                                </div>
+
+                                <!-- Empty State -->
+                                <div v-else-if="availableContracts.length === 0" class="text-center text-gray-400 py-8">
+                                    <component :is="Package" class="w-8 h-8 mx-auto mb-2" />
+                                    <p class="text-sm">Keine Verträge verfügbar</p>
+                                    <button @click="loadAvailableContracts"
+                                            class="mt-2 text-xs text-indigo-600 hover:text-indigo-500">
+                                        Erneut versuchen
+                                    </button>
+                                </div>
+
+                                <!-- Contracts List -->
+                                <div v-else class="space-y-2">
+                                    <div v-for="contract in availableContracts"
+                                        :key="contract.id"
+                                        @click="selectContract(contract)"
+                                        :class="[
+                                            'p-3 bg-white rounded-md border cursor-pointer transition-all',
+                                            isContractSelected(contract.id)
+                                                ? 'border-gray-300 opacity-50 cursor-not-allowed'
+                                                : 'border-gray-200 hover:border-indigo-300 hover:shadow-sm'
+                                        ]"
+                                        :disabled="isContractSelected(contract.id) || selectedContracts.length >= 3">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <input type="checkbox"
+                                                    :checked="isContractSelected(contract.id)"
+                                                    :disabled="!isContractSelected(contract.id) && selectedContracts.length >= 3"
+                                                    class="mr-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    @click.stop="toggleContract(contract)">
+                                                <div>
+                                                    <p class="font-medium text-sm text-gray-900">{{ contract.name }}</p>
+                                                    <p class="text-xs text-gray-500">
+                                                        {{ contract.formatted_price }} / {{ contract.billing_cycle_text || contract.billing_cycle }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span v-if="contract.is_active" class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                                Aktiv
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ausgewählte Verträge -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h5 class="text-sm font-medium text-gray-700">
+                                    Ausgewählte Verträge ({{ selectedContracts.length }}/3)
+                                </h5>
+                                <button v-if="selectedContracts.length > 0"
+                                        @click="clearSelection"
+                                        class="text-xs text-gray-500 hover:text-gray-700">
+                                    Alle entfernen
+                                </button>
+                            </div>
+                            <div class="bg-indigo-50 rounded-lg p-4 min-h-[200px]">
+                                <div v-if="selectedContracts.length === 0"
+                                    class="text-center text-indigo-400 py-8">
+                                    <component :is="MousePointerClick" class="w-8 h-8 mx-auto mb-2" />
+                                    <p class="text-sm">Wähle Verträge aus der linken Liste</p>
+                                </div>
+
+                                <draggable v-else
+                                        v-model="selectedContracts"
+                                        item-key="id"
+                                        handle=".drag-handle"
+                                        :animation="200"
+                                        class="space-y-2">
+                                    <template #item="{element, index}">
+                                        <div class="p-3 bg-white rounded-md border border-indigo-200 shadow-sm">
+                                            <div class="flex items-center">
+                                                <div class="drag-handle cursor-move mr-3 text-gray-400 hover:text-gray-600">
+                                                    <component :is="GripVertical" class="w-5 h-5" />
+                                                </div>
+                                                <div class="flex items-center justify-between flex-1">
+                                                    <div class="flex items-center">
+                                                        <span class="inline-flex items-center justify-center w-6 h-6 bg-indigo-600 text-white text-xs font-bold rounded-full mr-3">
+                                                            {{ index + 1 }}
+                                                        </span>
+                                                        <div>
+                                                            <p class="font-medium text-sm text-gray-900">{{ element.name }}</p>
+                                                            <p class="text-xs text-gray-500">
+                                                                {{ element.formatted_price }} / {{ element.billing_cycle_text || element.billing_cycle }}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button @click="removeContract(element.id)"
+                                                            class="ml-3 text-gray-400 hover:text-red-600 transition-colors">
+                                                        <component :is="X" class="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </draggable>
+
+                                <!-- Hinweis -->
+                                <div v-if="selectedContracts.length === 3"
+                                    class="mt-3 p-2 bg-indigo-100 rounded text-xs text-indigo-700">
+                                    <component :is="Info" class="w-3 h-3 inline mr-1" />
+                                    Maximale Anzahl erreicht
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zusätzliche Optionen -->
+                    <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Automatische Sortierung</span>
+                                <p class="text-xs text-gray-500">Verträge nach Preis aufsteigend sortieren</p>
+                            </div>
+                            <input type="checkbox"
+                                v-model="settings.contracts.auto_sort"
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Funktionen -->
                 <div>
                     <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -155,7 +298,15 @@
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-gray-200">
+                <div class="pt-4 border-t border-gray-200 space-y-3">
+                    <button
+                        type="button"
+                        @click="openWidgetPreview"
+                        class="w-full flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                        <component :is="ExternalLink" class="w-4 h-4 mr-2" />
+                        Vorschau anzeigen
+                    </button>
                     <button
                         type="submit"
                         :disabled="isSaving"
@@ -400,7 +551,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { Code, Globe, Layers, Settings, Copy, Eye, EyeOff, Palette, ToggleLeft, Save, Key, ToyBrick, RefreshCw, Type } from 'lucide-vue-next'
+import {
+    Code, Globe, Layers, Settings, Copy, Eye,
+    EyeOff, Palette, ToggleLeft, Save, Key,
+    ToyBrick, RefreshCw, Type, ExternalLink,
+    ListOrdered, Package, MousePointerClick,
+    GripVertical, X, Info
+} from 'lucide-vue-next'
+import draggable from 'vuedraggable'
 
 // Props
 const props = defineProps({
@@ -412,6 +570,9 @@ const page = usePage()
 const activeMethod = ref('script')
 const showPrivateKey = ref(false)
 const isSaving = ref(false)
+const availableContracts = ref([])
+const selectedContracts = ref([])
+const contractsLoading = ref(false)
 
 const settings = ref({
     widget_enabled: props.currentGym.widget_enabled || false,
@@ -430,6 +591,10 @@ const settings = ref({
         show_goals_selection: true,
         require_birth_date: true,
         require_phone: true
+    },
+    contracts: {
+        selected_ids: [],
+        auto_sort: false
     },
     integrations: {
         google_recaptcha: false
@@ -536,15 +701,99 @@ async function createMembership(membershipData) {
 <` + `/script>`)
 
 // Methods
+const isContractSelected = (contractId) => {
+    return selectedContracts.value.some(c => c.id === contractId)
+}
+
+const selectContract = (contract) => {
+    if (isContractSelected(contract.id) || selectedContracts.value.length >= 3) {
+        return
+    }
+    selectedContracts.value.push({...contract})
+    updateSelectedIds()
+}
+
+const toggleContract = (contract) => {
+    if (isContractSelected(contract.id)) {
+        removeContract(contract.id)
+    } else {
+        selectContract(contract)
+    }
+}
+
+const removeContract = (contractId) => {
+    selectedContracts.value = selectedContracts.value.filter(c => c.id !== contractId)
+    updateSelectedIds()
+}
+
+const clearSelection = () => {
+    selectedContracts.value = []
+    updateSelectedIds()
+}
+
+const updateSelectedIds = () => {
+    settings.value.contracts.selected_ids = selectedContracts.value.map(c => c.id)
+}
+
+const loadAvailableContracts = async () => {
+    contractsLoading.value = true
+    try {
+        const response = await axios.get(route('admin.widget.contracts'))
+        availableContracts.value = response.data.contracts
+
+        // Nach dem Laden der verfügbaren Verträge, lade die bereits ausgewählten
+        loadSelectedContracts()
+    } catch (error) {
+        console.error('Fehler beim Laden der Verträge:', error)
+        page.props.flash.error = 'Verträge konnten nicht geladen werden'
+    } finally {
+        contractsLoading.value = false
+    }
+}
+
+const loadSelectedContracts = () => {
+    // Prüfe ob es bereits gespeicherte Vertragsauswahlen gibt
+    if (props.currentGym?.widget_settings?.contracts?.selected_ids &&
+        Array.isArray(props.currentGym.widget_settings.contracts.selected_ids) &&
+        props.currentGym.widget_settings.contracts.selected_ids.length > 0) {
+
+        const savedIds = props.currentGym.widget_settings.contracts.selected_ids
+
+        // Filtere die verfügbaren Verträge nach den gespeicherten IDs
+        const contractsToSelect = availableContracts.value
+            .filter(contract => savedIds.includes(contract.id))
+
+        // Sortiere sie in der gespeicherten Reihenfolge
+        selectedContracts.value = contractsToSelect.sort((a, b) => {
+            return savedIds.indexOf(a.id) - savedIds.indexOf(b.id)
+        })
+
+        // Setze auch die auto_sort Option
+        if (props.currentGym.widget_settings.contracts.auto_sort !== undefined) {
+            settings.value.contracts.auto_sort = props.currentGym.widget_settings.contracts.auto_sort
+        }
+    }
+}
+
+const openWidgetPreview = () => {
+    const previewUrl = `${window.location.origin}/widget-test`
+    window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+}
+
 const saveWidgetConfig = async () => {
     isSaving.value = true
     try {
         await axios.put(route('admin.widget.update'), {
             widget_enabled: settings.value.widget_enabled,
-            widget_settings: settings.value
+            widget_settings: {
+                ...settings.value,
+                contracts: {
+                    selected_ids: selectedContracts.value.map(c => c.id),
+                    auto_sort: settings.value.contracts.auto_sort
+                }
+            }
         })
 
-        // Success-Nachricht
         page.props.flash.message = 'Einstellungen erfolgreich gespeichert!'
     } catch (error) {
         console.error('Fehler beim Speichern:', error)
@@ -611,6 +860,9 @@ onMounted(() => {
     if (settings.value.widget_enabled) {
         loadApiKeys()
     }
+
+    // Lade verfügbare Verträge
+    loadAvailableContracts()
 })
 </script>
 
@@ -637,5 +889,15 @@ pre {
     .grid-cols-1.md\\:grid-cols-2 {
         grid-template-columns: 1fr;
     }
+}
+
+/* Styles for Drag & Drop */
+.sortable-ghost {
+    opacity: 0.5;
+}
+
+.sortable-drag {
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 </style>

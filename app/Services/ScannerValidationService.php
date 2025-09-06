@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\MemberAccessConfig;
 use Carbon\Carbon;
 
 class ScannerValidationService
@@ -90,7 +91,8 @@ class ScannerValidationService
 
     public function validateNfcCard(string $cardId): array
     {
-        $member = Member::where('nfc_card_id', $cardId)->first();
+        $accessConfig = MemberAccessConfig::where('nfc_uid', $cardId)->first();
+        $member = $accessConfig?->member;
 
         return [
             'valid' => $member ? true : false,
