@@ -1792,7 +1792,7 @@ const accessLogs = ref([])
 // Access form for managing permissions
 const accessForm = useForm({
   // Primary access methods
-  qr_code_enabled: props.member.access_config?.qr_code_enabled,
+  qr_code_enabled: props.member.access_config?.qr_code_enabled ?? props.member?.gym?.pwa_enabled,
   nfc_enabled: props.member.access_config?.nfc_enabled,
   nfc_uid: props.member.access_config?.nfc_uid || '',
 
