@@ -15,8 +15,10 @@ use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
+use App\Models\MembershipPlan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -140,8 +142,20 @@ Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
 
 // Zusätzliche Widget-Admin-Routes für AJAX-Calls
 Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(function() {
+    Route::get('/contracts', function () {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $contracts = MembershipPlan::where('gym_id', $user->current_gym_id)
+            ->where('is_active', true)
+            ->get(['id', 'name', 'price', 'billing_cycle', 'is_active']);
+
+        return response()->json(['contracts' => $contracts]);
+    })->name('contracts');
+
     Route::put('/update', function(Request $request) {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
         $currentGym = $user?->currentGym;
 
         if (!$currentGym) {
@@ -187,10 +201,13 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
     })->name('update');
 
     Route::post('/regenerate-api-key', function() {
+        /** @var User $user */
+        $user = Auth::user();
+
         try {
             return response()->json([
                 'success' => true,
-                'api_key' => auth()->user()->currentGym->regenerateApiKey(),
+                'api_key' => $user->currentGym->regenerateApiKey(),
             ]);
 
         } catch (\Exception $e) {
@@ -202,10 +219,13 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
     })->name('regenerate-api-key');
 
     Route::get('/api-keys', function() {
+        /** @var User $user */
+        $user = Auth::user();
+
         try {
             return response()->json([
                 'success' => true,
-                'public_key' => auth()->user()->currentGym->api_key,
+                'public_key' => $user->currentGym->api_key,
                 'private_key' => 'sk_live_notimplementedyet',
             ]);
 

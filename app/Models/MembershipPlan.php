@@ -39,6 +39,8 @@ class MembershipPlan extends Model
         'widget_display_options' => 'array',
     ];
 
+    protected $appends = ['formatted_price', 'billing_cycle_text'];
+
     public function gym()
     {
         return $this->belongsTo(Gym::class);

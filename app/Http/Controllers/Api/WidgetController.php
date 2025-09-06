@@ -42,18 +42,51 @@ class WidgetController extends Controller
             'widget_settings' => $gym->widget_settings,
         ];
 
-        $plans = MembershipPlan::where('gym_id', $gymId)
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('price', 'asc')
-            ->get();
+        // Hole die konfigurierten Verträge aus den Widget-Einstellungen
+        $selectedContractIds = $gym->widget_settings['contracts']['selected_ids'] ?? [];
+        $autoSort = $gym->widget_settings['contracts']['auto_sort'] ?? false;
+
+        // Query Builder für die Verträge
+        $plansQuery = MembershipPlan::where('gym_id', $gymId)
+            ->where('is_active', true);
+
+        // Wenn Verträge in den Einstellungen ausgewählt wurden
+        if (!empty($selectedContractIds)) {
+            // Nur die ausgewählten Verträge laden
+            $plansQuery->whereIn('id', $selectedContractIds);
+
+            if ($autoSort) {
+                // Automatische Sortierung nach Preis (aufsteigend)
+                $plans = $plansQuery
+                    ->orderBy('price', 'asc')
+                    ->get();
+            } else {
+                // Manuelle Sortierung: Behalte die Reihenfolge aus den Einstellungen
+                $plans = $plansQuery->get();
+
+                // Sortiere die Collection basierend auf der Reihenfolge in selected_ids
+                $plans = $plans->sortBy(function ($plan) use ($selectedContractIds) {
+                    return array_search($plan->id, $selectedContractIds);
+                })->values();
+            }
+        } else {
+            // Fallback: Wenn keine Verträge konfiguriert sind, zeige alle aktiven
+            // (oder die ersten 3, je nach Business-Logik)
+            $plans = $plansQuery
+                ->orderBy('sort_order')
+                ->orderBy('price', 'asc')
+                ->limit(3) // Limitiere auf 3 wie in der UI definiert
+                ->get();
+        }
 
         $html = view('widget.plans', compact('plans', 'gymData'))->render();
 
         return response()->json([
             'html' => $html,
             'success' => true,
-            'session_cleaned' => true
+            'session_cleaned' => true,
+            'plans_count' => $plans->count(),
+            'using_configured_plans' => !empty($selectedContractIds)
         ]);
     }
 

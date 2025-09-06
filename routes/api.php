@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\Pwa\AuthController;
 use App\Http\Controllers\Pwa\GymController;
 use App\Http\Controllers\Pwa\MemberController;
-use App\Http\Controllers\Web\MemberAccessController;
 use App\Http\Controllers\Web\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
