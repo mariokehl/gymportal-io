@@ -59,6 +59,14 @@
                   <div class="text-sm text-gray-600">
                     pro {{ formatBillingCycle(membershipPlan.billing_cycle) }}
                   </div>
+                  <div v-if="membershipPlan.setup_fee && membershipPlan.setup_fee > 0" class="mt-2">
+                    <div class="text-lg font-semibold text-orange-600">
+                      {{ formatPrice(membershipPlan.setup_fee) }}
+                    </div>
+                    <div class="text-sm text-gray-600">
+                      Aktivierungsgebühr (einmalig)
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -146,6 +154,12 @@
               <span class="text-gray-600">Monatlicher Umsatz</span>
               <span class="text-lg font-semibold text-green-600">
                 {{ formatMonthlyRevenue() }}
+              </span>
+            </div>
+            <div v-if="membershipPlan.setup_fee && membershipPlan.setup_fee > 0" class="flex justify-between items-center">
+              <span class="text-gray-600">Aktivierungsgebühr</span>
+              <span class="text-lg font-semibold text-orange-600">
+                {{ formatPrice(membershipPlan.setup_fee) }}
               </span>
             </div>
           </div>

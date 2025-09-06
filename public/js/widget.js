@@ -325,13 +325,20 @@
 
             const inputs = form.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
-                input.addEventListener('blur', () => this.validateField(input));
+                // Add trimming on blur for text-based inputs
+                input.addEventListener('blur', () => {
+                    this.trimInputValue(input);
+                    this.validateField(input);
+                });
                 input.addEventListener('input', () => this.clearFieldError(input));
             });
 
             const emailConfirm = this.shadowRoot.getElementById('email_confirmation');
             if (emailConfirm) {
-                emailConfirm.addEventListener('blur', () => this.validateEmailConfirmation());
+                emailConfirm.addEventListener('blur', () => {
+                    this.trimInputValue(emailConfirm);
+                    this.validateEmailConfirmation();
+                });
             }
 
             const goalButtons = this.shadowRoot.querySelectorAll('.goal-btn');
@@ -348,6 +355,35 @@
             });
         }
 
+        /**
+         * Trims the value of input fields (except for certain types that shouldn't be trimmed)
+         * @param {HTMLElement} input - The input element to trim
+         */
+        trimInputValue(input) {
+            if (!input || !input.value) return;
+
+            // Don't trim certain input types
+            const nonTrimmableTypes = ['password', 'checkbox', 'radio', 'file', 'range', 'color'];
+            if (nonTrimmableTypes.includes(input.type)) return;
+
+            // Don't trim select elements
+            if (input.tagName.toLowerCase() === 'select') return;
+
+            // Special handling for IBAN (already formatted)
+            if (input.id === 'iban' || input.name === 'iban') {
+                // IBAN has special formatting, just trim leading/trailing spaces
+                input.value = input.value.trim();
+                return;
+            }
+
+            // Trim the value for all other text inputs
+            const trimmedValue = input.value.trim();
+            if (input.value !== trimmedValue) {
+                input.value = trimmedValue;
+                this.log(`Trimmed input ${input.name || input.id}: "${input.value}"`);
+            }
+        }
+
         setupIbanInputHandlers() {
             const ibanInput = this.shadowRoot.getElementById('iban');
             if (ibanInput) {
@@ -359,6 +395,7 @@
                 });
 
                 ibanInput.addEventListener('blur', () => {
+                    this.trimInputValue(ibanInput);
                     this.validateIban();
                 });
             }
@@ -1144,7 +1181,8 @@
             const formData = new FormData(form);
 
             for (let [key, value] of formData.entries()) {
-                this.formData[key] = value;
+                // Trim the value when saving form data
+                this.formData[key] = typeof value === 'string' ? value.trim() : value;
             }
 
             const checkboxes = form.querySelectorAll('input[type="checkbox"]');
@@ -1377,7 +1415,8 @@
             const data = {};
 
             for (let [key, value] of formData.entries()) {
-                data[key] = value;
+                // Trim string values when collecting form data
+                data[key] = typeof value === 'string' ? value.trim() : value;
             }
 
             const checkboxes = form.querySelectorAll('input[type="checkbox"]');

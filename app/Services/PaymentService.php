@@ -107,11 +107,12 @@ class PaymentService
                 'member_id' => $member->id,
                 'amount' => $plan->setup_fee,
                 'currency' => 'EUR',
-                'description' => "Einrichtungsgebühr - {$plan->name}",
+                'description' => "Aktivierungsgebühr",
                 'status' => $this->determineInitialPaymentStatus($paymentMethod?->type),
                 'payment_method' => $paymentMethod?->type,
-                'due_date' => $this->calculateSetupFeeDueDate($paymentMethod?->type),
-                'notes' => 'Einmalige Einrichtungsgebühr bei Vertragsabschluss',
+                'execution_date' => $this->calculateInitialExecutionDate($membership, $paymentMethod?->type),
+                'due_date' => $membership->start_date,
+                'notes' => 'Einmalige Aktivierungsgebühr bei Vertragsabschluss',
                 'metadata' => [
                     'membership_plan_id' => $plan->id,
                     'payment_type' => 'setup_fee',
@@ -297,22 +298,6 @@ class PaymentService
             'standingorder' => $baseDate->copy()->addDays(30),
             'mollie_directdebit' => $baseDate->copy()->addDays(5),
             default => $baseDate->copy()->addDays(1),
-        };
-    }
-
-    /**
-     * Calculates execution date for setup fee
-     */
-    private function calculateSetupFeeDueDate(string $paymentMethod): Carbon
-    {
-        return match($paymentMethod) {
-            'cash' => now(),
-            'sepa_direct_debit' => now()->addDays(3),
-            'banktransfer' => now()->addDays(7),
-            'invoice' => now()->addDays(14),
-            'standingorder' => now()->addDays(30),
-            'mollie_directdebit' => now()->addDays(5),
-            default => now()->addDay(),
         };
     }
 
