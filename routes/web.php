@@ -244,14 +244,14 @@ Route::prefix('embed')->name('embed.')->group(function () {
         $response->headers->set('Content-Type', 'text/css');
         $response->headers->set('Cache-Control', 'public, max-age=3600');
         return $response;
-    })->name('widget.css');
+    })->name('widget.css')->withoutMiddleware(['web']);
 
     Route::get('widget.js', function () {
         $response = response()->file(public_path('js/widget.js'));
         $response->headers->set('Content-Type', 'application/javascript');
         $response->headers->set('Cache-Control', 'public, max-age=3600');
         return $response;
-    })->name('widget.js');
+    })->name('widget.js')->withoutMiddleware(['web']);
 });
 
 Route::get('/debug/widget-assets', function () {
