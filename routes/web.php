@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\SettingController;
+use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
 use Illuminate\Http\Request;
@@ -132,6 +133,28 @@ Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
         Route::prefix('mollie')->name('mollie.')->group(function () {
             Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');
             Route::delete('/remove', [PaymentMethodsController::class, 'removeMollieConfig'])->name('remove');
+        });
+        // Email Templates Routes
+        Route::prefix('email-templates')->name('email-templates.')->group(function () {
+            // Basic CRUD operations
+            Route::get('/', [EmailTemplateController::class, 'index'])->name('index');
+            Route::get('/{emailTemplate}', [EmailTemplateController::class, 'show'])->name('show');
+            Route::post('/', [EmailTemplateController::class, 'store'])->name('store');
+            Route::put('/{emailTemplate}', [EmailTemplateController::class, 'update'])->name('update');
+            Route::delete('/{emailTemplate}', [EmailTemplateController::class, 'destroy'])->name('destroy');
+
+            // Additional operations
+            Route::post('/{emailTemplate}/duplicate', [EmailTemplateController::class, 'duplicate'])->name('duplicate');
+            Route::get('/{emailTemplate}/preview', [EmailTemplateController::class, 'preview'])->name('preview');
+            Route::post('/{emailTemplate}/render', [EmailTemplateController::class, 'render'])->name('render');
+
+            // Bulk operations
+            Route::post('/bulk-update', [EmailTemplateController::class, 'bulkUpdate'])->name('bulk-update');
+
+            // Utility routes
+            Route::get('/placeholders/all', [EmailTemplateController::class, 'placeholders'])->name('placeholders');
+            Route::get('/type/{type}', [EmailTemplateController::class, 'byType'])->name('by-type');
+            Route::get('/type/{type}/default', [EmailTemplateController::class, 'getDefault'])->name('get-default');
         });
     });
     Route::post('/gyms', [GymController::class, 'store'])->name('gyms.store');

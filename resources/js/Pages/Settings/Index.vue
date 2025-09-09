@@ -436,6 +436,11 @@
                 </div>
             </div>
 
+            <!-- Email Templates -->
+            <div v-if="activeTab === 'emails'">
+                <EmailTemplatesWidget :current-gym="currentGym" />
+            </div>
+
             <!-- Contracts -->
             <div v-if="activeTab === 'contracts'" class="space-y-6">
                 <ContractWidget :current-gym="currentGym" />
@@ -499,12 +504,13 @@ import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
     Building2, Users, Plus, Trash2, Signature, CreditCard,
-    Wallet, DollarSign, FileText, HandCoins
+    Wallet, DollarSign, FileText, HandCoins, Mail
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
 import ContractWidget from '@/Components/ContractWidget.vue'
 import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
+import EmailTemplatesWidget from '@/Components/EmailTemplatesWidget.vue'
 
 // Props
 const props = defineProps({
@@ -540,6 +546,7 @@ const tabs = [
     { key: 'gym', label: 'Gym-Einstellungen', icon: Building2 },
     { key: 'team', label: 'Team', icon: Users },
     { key: 'payments', label: 'Zahlungsarten', icon: CreditCard },
+    { key: 'emails', label: 'E-Mail-Vorlagen', icon: Mail },
     { key: 'contracts', label: 'Online-Verträge', icon: Signature },
 ]
 

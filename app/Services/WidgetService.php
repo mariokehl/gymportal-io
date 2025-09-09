@@ -703,7 +703,7 @@ class WidgetService
     public function sendWelcomeEmail(Member $member, Gym $gym, MembershipPlan $plan): void
     {
         try {
-            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym, $plan));
+            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym));
         } catch (\Exception $e) {
             logger()->error('Failed to send welcome email', [
                 'member_id' => $member->id,
