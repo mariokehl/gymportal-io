@@ -185,7 +185,7 @@ class PaymentMethod extends Model
     // SEPA-spezifische Methoden
     public function requiresSepaMandate(): bool
     {
-        return $this->requires_mandate;
+        return $this->requires_mandate ?? false;
     }
 
     public function hasActiveSepaMandateRequired(): bool

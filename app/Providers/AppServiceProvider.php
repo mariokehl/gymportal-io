@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\EmailTemplateService;
 use App\Services\SchedulerHealthCheckService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,6 +16,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SchedulerHealthCheckService::class);
+        $this->app->bind(EmailTemplateService::class, function ($app) {
+            return new EmailTemplateService();
+        });
     }
 
     /**
