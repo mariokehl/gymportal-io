@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
             CheckInSeeder::class,
             NotificationSeeder::class,
             NotificationRecipientSeeder::class,
-            UpdateUsersCurrentGymSeeder::class,
+            UpdateUsersCurrentGymSeeder::class
         ]);
 
         Schema::enableForeignKeyConstraints();

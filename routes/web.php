@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\SettingController;
+use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
 use Illuminate\Http\Request;
@@ -133,6 +134,28 @@ Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
             Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');
             Route::delete('/remove', [PaymentMethodsController::class, 'removeMollieConfig'])->name('remove');
         });
+        // Email Templates Routes
+        Route::prefix('email-templates')->name('email-templates.')->group(function () {
+            // Basic CRUD operations
+            Route::get('/', [EmailTemplateController::class, 'index'])->name('index');
+            Route::get('/{emailTemplate}', [EmailTemplateController::class, 'show'])->name('show');
+            Route::post('/', [EmailTemplateController::class, 'store'])->name('store');
+            Route::put('/{emailTemplate}', [EmailTemplateController::class, 'update'])->name('update');
+            Route::delete('/{emailTemplate}', [EmailTemplateController::class, 'destroy'])->name('destroy');
+
+            // Additional operations
+            Route::post('/{emailTemplate}/duplicate', [EmailTemplateController::class, 'duplicate'])->name('duplicate');
+            Route::get('/{emailTemplate}/preview', [EmailTemplateController::class, 'preview'])->name('preview');
+            Route::post('/{emailTemplate}/render', [EmailTemplateController::class, 'render'])->name('render');
+
+            // Bulk operations
+            Route::post('/bulk-update', [EmailTemplateController::class, 'bulkUpdate'])->name('bulk-update');
+
+            // Utility routes
+            Route::get('/placeholders/all', [EmailTemplateController::class, 'placeholders'])->name('placeholders');
+            Route::get('/type/{type}', [EmailTemplateController::class, 'byType'])->name('by-type');
+            Route::get('/type/{type}/default', [EmailTemplateController::class, 'getDefault'])->name('get-default');
+        });
     });
     Route::post('/gyms', [GymController::class, 'store'])->name('gyms.store');
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');
@@ -244,14 +267,14 @@ Route::prefix('embed')->name('embed.')->group(function () {
         $response->headers->set('Content-Type', 'text/css');
         $response->headers->set('Cache-Control', 'public, max-age=3600');
         return $response;
-    })->name('widget.css');
+    })->name('widget.css')->withoutMiddleware(['web']);
 
     Route::get('widget.js', function () {
         $response = response()->file(public_path('js/widget.js'));
         $response->headers->set('Content-Type', 'application/javascript');
         $response->headers->set('Cache-Control', 'public, max-age=3600');
         return $response;
-    })->name('widget.js');
+    })->name('widget.js')->withoutMiddleware(['web']);
 });
 
 Route::get('/debug/widget-assets', function () {
