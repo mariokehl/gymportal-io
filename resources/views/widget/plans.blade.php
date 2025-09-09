@@ -33,10 +33,17 @@
                 <p class="plan-description">{{ $plan->description }}</p>
             </div>
 
-
             <div class="plan-features">
                 <div class="feature-list">
-                    {{-- <div class="feature">&nbsp;</div> --}}
+                    {{--
+                    <div class="feature">✔️ EGYM</div>
+                    <div class="feature">✔️ Kostenlos Parken</div>
+                    <div class="feature">✔️ Kostenlos Duschen</div>
+                    <div class="feature">✔️ Freies WLAN</div>
+                    --}}
+                    @if($plan->setup_fee > 0)
+                        <div class="feature-addon">Aktivierungsgebühr <span class="addon-price">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($plan->setup_fee, 'EUR') }}</span></div>
+                    @endif
                 </div>
             </div>
 
