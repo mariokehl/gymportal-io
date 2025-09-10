@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
 
                     return array_merge([
                         'id' => $user->id,
+                        'role_id' => $user->role_id,
                         'first_name' => $user->first_name,
                         'last_name' => $user->last_name,
                         'email' => $user->email, // E-Mail hinzugefügt für Verifizierungsseite
@@ -66,6 +67,12 @@ class HandleInertiaRequests extends Middleware
                     ]));
                 },
                 'verified' => $request->user()?->hasVerifiedEmail(),
+            ],
+            'impersonation' => [
+                'active' => session()->has('impersonator_id'),
+                'impersonator_name' => session('impersonator_name'),
+                'impersonated_user_name' => session('impersonated_user_name'),
+                'impersonated_user_email' => session('impersonated_user_email'),
             ],
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),

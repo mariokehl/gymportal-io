@@ -1,12 +1,11 @@
 <?php
-// app/Http/Controllers/Web/DashboardController.php
 
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\User;
-use Carbon\Carbon;
+use App\Services\MemberService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -14,6 +13,13 @@ use Inertia\Inertia;
 class DashboardController extends Controller
 {
     use AuthorizesRequests;
+
+    protected MemberService $memberService;
+
+    public function __construct(MemberService $memberService)
+    {
+        $this->memberService = $memberService;
+    }
 
     public function index()
     {
@@ -67,68 +73,14 @@ class DashboardController extends Controller
             });
 
         // Calculate statistics
-        $totalMembers = Member::query()
-            ->where('gym_id', $user->current_gym_id)
-            ->count();
-        $activeMembers = Member::active()
-            ->where('gym_id', $user->current_gym_id)
-            ->count();
-        $newMembersThisMonth = Member::whereMonth('created_at', Carbon::now()->month)
-                                   ->whereYear('created_at', Carbon::now()->year)
-                                   ->count();
-        //$expiringThisMonth = Member::expiringThisMonth()->count();
-        //$monthlyRevenue = Member::active()->sum('monthly_fee');
-
-        $stats = [
-            [
-                'title' => 'Aktive Mitglieder',
-                'value' => 248,
-                'change' => '+12%',
-                'icon' => 'users'
-            ],
-            [
-                'title' => 'Neue Verträge',
-                'value' => 18,
-                'change' => '+5%',
-                'icon' => 'file-plus'
-            ],
-            [
-                'title' => 'Monatsumsatz',
-                'value' => '14,250 €',
-                'change' => '+8%',
-                'icon' => 'dollar-sign'
-            ],
-            [
-                'title' => 'Vertragserneuerungen',
-                'value' => 12,
-                'change' => '-3%',
-                'icon' => 'bar-chart'
-            ]
-        ];
-
-        $notifications = [
-            [
-                'id' => 1,
-                'text' => 'Neues Mitglied registriert: Laura Müller',
-                'time' => 'Heute'
-            ],
-            [
-                'id' => 2,
-                'text' => '5 Verträge laufen diesen Monat aus',
-                'time' => 'Gestern'
-            ],
-            [
-                'id' => 3,
-                'text' => 'Zahlungserinnerung für ID #2458 versandt',
-                'time' => 'Gestern'
-            ]
-        ];
+        $stats = $this->memberService->getDashboardStats($user->current_gym_id);
 
         return Inertia::render('Dashboard/Index', [
+            'user' => $user,
             'members' => $members,
             'stats' => $stats,
-            'notifications' => $notifications,
-            'totalMembers' => $totalMembers,
+            'notifications' => [], // tbd
+            'totalMembers' => $stats['detailed_stats']['total_members'],
             'filters' => [
                 'search' => request('search'),
                 'status' => request('status'),

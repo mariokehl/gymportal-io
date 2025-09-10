@@ -366,7 +366,7 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.joined_date }"
                 :min="today"
-                @blur="validateStep2"
+                @blur="handleJoinedDateBlur"
               />
               <p v-if="errors.joined_date" class="mt-1 text-sm text-red-600">
                 {{ errors.joined_date }}
@@ -684,6 +684,36 @@ const handleFieldBlur = (fieldName, errorMessage) => {
   validateRequiredField(fieldName, form[fieldName], errorMessage)
 }
 
+// Validierung für Startdatum der Mitgliedschaft
+const validateJoinedDate = () => {
+  if (!isFieldTouched('joined_date')) {
+    return true // Keine Validierung wenn nicht berührt
+  }
+
+  if (!form.joined_date || form.joined_date.trim() === '') {
+    form.setError('joined_date', 'Startdatum der Mitgliedschaft ist erforderlich')
+    return false
+  }
+
+  const selectedDate = new Date(form.joined_date)
+  const todayDate = new Date(today.value)
+
+  if (selectedDate < todayDate) {
+    form.setError('joined_date', 'Das Startdatum darf nicht in der Vergangenheit liegen')
+    return false
+  }
+
+  // Fehler löschen wenn Datum gültig ist
+  form.clearErrors('joined_date')
+  return true
+}
+
+// Event Handler für das joined_date Feld
+const handleJoinedDateBlur = () => {
+  markFieldAsTouched('joined_date')
+  validateJoinedDate()
+}
+
 // Step validation
 const validateStep1 = () => {
   const step1Fields = ['salutation', 'first_name', 'last_name', 'phone', 'address', 'city', 'postal_code', 'country']
@@ -765,6 +795,14 @@ const nextStep = () => {
       validateRequiredField(field, form[field], message)
     })
     validateEmail(form.email)
+  } else if (currentStep.value === 1) {
+    // Validierung für Schritt 2: Mitgliedschaftsdatum
+    markFieldAsTouched('joined_date')
+    validateJoinedDate()
+
+    if (!form.membership_plan_id) {
+      form.setError('membership_plan_id', 'Bitte wählen Sie einen Mitgliedschaftsplan aus')
+    }
   }
 
   if (currentStep.value < steps.length - 1 && isCurrentStepValid()) {

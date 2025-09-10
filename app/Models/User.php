@@ -35,6 +35,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
     ];
 
+    protected $appends = ['full_name'];
+
     // Überschreibe die Standard-Verifizierungs-E-Mail
     public function sendEmailVerificationNotification()
     {
@@ -75,6 +77,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function fullName()
     {
         return trim($this->first_name . ' ' . $this->last_name);
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
     }
 
     public function isAdmin()
