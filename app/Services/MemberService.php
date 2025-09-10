@@ -91,24 +91,24 @@ class MemberService
                 'color' => 'green'
             ],
             [
-                'title' => 'Neue Mitglieder',
+                'title' => 'Neue Verträge',
                 'value' => $newMembersThisMonth,
                 'change' => $this->calculatePercentageChange($newMembersThisMonth, $newMembersLastMonth),
-                'icon' => 'user-plus',
+                'icon' => 'file-plus',
                 'color' => 'blue'
             ],
             [
                 'title' => 'Monatsumsatz',
                 'value' => number_format($monthlyRevenue, 2, ',', '.') . ' €',
                 'change' => $this->calculatePercentageChange($monthlyRevenue, $lastMonthRevenue),
-                'icon' => 'euro',
+                'icon' => 'dollar-sign',
                 'color' => 'green'
             ],
             [
-                'title' => 'Auslaufende Verträge',
+                'title' => 'Vertragserneuerungen',
                 'value' => $expiring,
                 'change' => $this->calculatePercentageChange($expiring, $expiredLastMonth),
-                'icon' => 'calendar-x',
+                'icon' => 'bar-chart',
                 'color' => $expiring > 5 ? 'red' : 'gray'
             ]
         ];
