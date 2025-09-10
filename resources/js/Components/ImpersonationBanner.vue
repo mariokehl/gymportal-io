@@ -1,5 +1,5 @@
 <template>
-  <div v-if="$page.props.impersonation.active" class="relative mb-6 z-50">
+  <div v-if="$page.props.impersonation.active" class="relative mb-6">
     <div class="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 shadow-lg">
       <div class="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between flex-wrap">

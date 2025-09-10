@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CheckIn;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\ScannerAccessLog;
@@ -78,8 +79,12 @@ class ScannerController extends Controller
                     'scan_type' => $scanType
                 ]);
 
-                // TODO: Check-In protokollieren
-                //...
+                CheckIn::create([
+                    'member_id' => $member->id,
+                    'gym_id' => $member->gym_id,
+                    'check_in_time' => now(),
+                    'check_in_method' => $scanType,
+                ]);
 
                 return response()->json([
                     'member_id' => $member->id,

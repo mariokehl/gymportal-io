@@ -716,7 +716,7 @@
                       <td class="px-4 py-3 text-sm">
                         {{ checkin.check_out_time ? calculateDuration(checkin.check_in_time, checkin.check_out_time) : '-' }}
                       </td>
-                      <td class="px-4 py-3 text-sm">{{ checkin.check_in_method || 'Unbekannt' }}</td>
+                      <td class="px-4 py-3 text-sm">{{ checkin.check_in_method_text || 'Unbekannt' }}</td>
                     </tr>
                   </tbody>
                 </table>
