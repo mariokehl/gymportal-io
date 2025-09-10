@@ -23,6 +23,8 @@ class CheckIn extends Model
         'check_out_time' => 'datetime',
     ];
 
+    protected $appends = ['check_in_method_text'];
+
     public function member()
     {
         return $this->belongsTo(Member::class);
@@ -63,6 +65,7 @@ class CheckIn extends Model
     {
         return [
             'qr_code' => 'QR-Code',
+            'nfc_card' => 'NFC-Tag',
             'manual' => 'Manuell',
         ][$this->check_in_method] ?? $this->check_in_method;
     }
