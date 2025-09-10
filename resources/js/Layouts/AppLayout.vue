@@ -37,7 +37,6 @@
           :href="route('finances.index')"
           :disabled="!canAccessPremiumFeatures"
         />
-
         <SidebarItem
           :icon="Bell"
           label="Benachrichtigungen"
@@ -45,18 +44,37 @@
           :href="route('notifications.index')"
           :disabled="!canAccessPremiumFeatures"
         />
+
+        <!-- Admin-Bereich Trenner -->
+        <div v-if="isAdmin" class="my-4 px-4">
+          <div class="border-t border-gray-200"></div>
+          <p class="text-xs text-gray-500 uppercase tracking-wider mt-4 mb-2">Administration</p>
+        </div>
+
+        <!-- Benutzersimulation - nur für Admins sichtbar -->
         <SidebarItem
-          :icon="Settings"
-          label="Einstellungen"
-          :active="route().current('settings.index')"
-          :href="route('settings.index')"
+          v-if="isAdmin"
+          :icon="UserCheck"
+          label="Benutzersimulation"
+          :active="route().current('impersonate.*')"
+          :href="route('impersonate.index')"
         />
-        <SidebarItem
-          :icon="LogOut"
-          label="Abmelden"
-          :active="false"
-          @click="handleLogout"
-        />
+
+        <!-- Einstellungen - mit Abstand wenn Admin -->
+        <div :class="{ 'mt-auto': !isAdmin }">
+          <SidebarItem
+            :icon="Settings"
+            label="Einstellungen"
+            :active="route().current('settings.index')"
+            :href="route('settings.index')"
+          />
+          <SidebarItem
+            :icon="LogOut"
+            label="Abmelden"
+            :active="false"
+            @click="handleLogout"
+          />
+        </div>
       </nav>
 
       <OrganizationSwitcher />
@@ -112,6 +130,12 @@
         </h1>
 
         <div class="flex items-center space-x-4">
+          <!-- Admin Badge -->
+          <div v-if="isAdmin" class="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+            <Shield class="h-3 w-3 mr-1" />
+            <span class="text-xs font-medium">Admin</span>
+          </div>
+
           <!-- Notification Popup Component -->
           <NotificationPopup ref="notificationPopup" />
 
@@ -127,6 +151,7 @@
 
       <!-- Page Content -->
       <main class="p-6">
+        <ImpersonationBanner />
         <slot />
       </main>
 
@@ -146,11 +171,12 @@ import { router, usePage, Head, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
-  FilePlus
+  FilePlus, UserCheck, Shield
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
 
 // Shared data
@@ -192,6 +218,11 @@ const canAccessPremiumFeatures = computed(() => {
 
   return subscriptionStatus.value.trial.is_active ||
          subscriptionStatus.value.subscription.is_active
+})
+
+// Admin Check
+const isAdmin = computed(() => {
+  return user.value?.role_id === 1
 })
 
 // Methods

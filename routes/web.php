@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FinancesController;
@@ -161,6 +162,14 @@ Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');
     Route::delete('/gyms/remove/{gym}', [GymController::class, 'remove'])->name('gyms.remove');
     Route::post('/user/switch-organization', [GymController::class, 'switchOrganization'])->name('user.switch-organization');
+});
+
+// Benutzer-Simulation
+Route::middleware(['auth:web'])->prefix('admin')->group(function () {
+    Route::get('/impersonate', [ImpersonationController::class, 'index'])->name('impersonate.index');
+    Route::post('/impersonate/{user}', [ImpersonationController::class, 'impersonate'])->name('impersonate.start');
+    Route::delete('/impersonate/stop', [ImpersonationController::class, 'stopImpersonating'])->name('impersonate.stop');
+    Route::get('/impersonate/status', [ImpersonationController::class, 'status'])->name('impersonate.status');
 });
 
 // Zusätzliche Widget-Admin-Routes für AJAX-Calls

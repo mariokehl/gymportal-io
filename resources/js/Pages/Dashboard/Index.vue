@@ -6,14 +6,14 @@
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div v-for="(stat, index) in stats" :key="index" class="bg-white p-6 rounded-lg shadow-sm">
+            <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-white p-6 rounded-lg shadow-sm">
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-sm text-gray-500">{{ stat.title }}</p>
                         <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
                         <span :class="[
                             'text-sm',
-                            stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'
+                            `text-${stat.color}-500`
                         ]">
                             {{ stat.change }} gegenüber letztem Monat
                         </span>
@@ -29,74 +29,13 @@
             <!-- Members Overview -->
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-semibold">Mitgliederübersicht</h2>
-                    <button
-                        class="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-indigo-600 transition-colors"
-                        @click="showNewContract = !showNewContract">
-                        <component :is="Plus" class="w-4 h-4 mr-1" />
+                    <h2 class="text-lg font-semibold">Zuletzt angelegte Mitglieder</h2>
+                    <Link
+                        :href="route('members.create')"
+                        class="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-indigo-600 transition-colors">
+                        <Plus class="w-4 h-4 mr-1" />
                         Neuer Vertrag
-                    </button>
-                </div>
-
-                <!-- New Contract Form -->
-                <div v-if="showNewContract" class="mb-6 bg-indigo-50 p-4 rounded-lg">
-                    <h3 class="font-medium mb-3">Neuen Online-Vertrag erstellen</h3>
-                    <form @submit.prevent="submitContract">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
-                                    <input v-model="contractForm.first_name" type="text"
-                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Max" required />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nachname</label>
-                                    <input v-model="contractForm.last_name" type="text"
-                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Mustermann" required />
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
-                                <input v-model="contractForm.email" type="email"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="max@example.com" required />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Mitgliedschaft</label>
-                                <select v-model="contractForm.membership"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    required>
-                                    <option value="Basic">Basic (29,99 €/Monat)</option>
-                                    <option value="Standard">Standard (49,99 €/Monat)</option>
-                                    <option value="Premium">Premium (69,99 €/Monat)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Vertragsdauer</label>
-                                <select v-model="contractForm.duration"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    required>
-                                    <option value="12 Monate">12 Monate</option>
-                                    <option value="24 Monate">24 Monate</option>
-                                    <option value="Flexibel (monatlich)">Flexibel (monatlich)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex justify-end space-x-2">
-                            <button type="button"
-                                class="px-4 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
-                                @click="showNewContract = false">
-                                Abbrechen
-                            </button>
-                            <button type="submit"
-                                class="px-4 py-2 text-sm bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
-                                :disabled="isSubmitting">
-                                {{ isSubmitting ? 'Wird erstellt...' : 'Vertrag erstellen' }}
-                            </button>
-                        </div>
-                    </form>
+                    </Link>
                 </div>
 
                 <!-- Search Bar -->
@@ -107,15 +46,6 @@
                         <input v-model="searchTerm" type="text" placeholder="Mitglied suchen..."
                             class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
-                    <button
-                        class="p-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors">
-                        <component :is="Filter" class="w-4 h-4 text-gray-500 mr-1" />
-                        <span class="text-sm">Filter</span>
-                    </button>
-                    <button
-                        class="p-2 border border-gray-300 rounded-md flex items-center hover:bg-gray-50 transition-colors">
-                        <component :is="ChevronDown" class="w-4 h-4 text-gray-500" />
-                    </button>
                 </div>
 
                 <!-- Members Table -->
@@ -180,20 +110,6 @@
                 <!-- Pagination -->
                 <div class="mt-4 flex justify-between items-center">
                     <p class="text-sm text-gray-500">Zeige 1-{{ filteredMembers.length }} von {{ totalMembers }} Mitgliedern</p>
-                    <div class="flex items-center space-x-1">
-                        <button class="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                            <component :is="ChevronRight" class="w-4 h-4 text-gray-500 transform rotate-180" />
-                        </button>
-                        <button
-                            class="w-8 h-8 bg-indigo-500 text-white rounded-md flex items-center justify-center">1</button>
-                        <button
-                            class="w-8 h-8 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 transition-colors">2</button>
-                        <button
-                            class="w-8 h-8 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 transition-colors">3</button>
-                        <button class="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                            <component :is="ChevronRight" class="w-4 h-4 text-gray-500" />
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -208,13 +124,16 @@
                             <span class="text-xs text-gray-500">{{ notification.time }}</span>
                         </div>
                     </div>
+                    <span v-if="notifications.length === 0" class="text-center">Keine Benachrichtigungen vorhanden.</span>
                 </div>
 
-                <button
-                    class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors">
+                <Link
+                    :href="route('notifications.index')"
+                    class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors"
+                >
                     Alle anzeigen
-                    <component :is="ChevronRight" class="w-4 h-4 ml-1" />
-                </button>
+                    <ChevronRight class="w-4 h-4 ml-1" />
+                </Link>
             </div>
         </div>
 
@@ -223,23 +142,15 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router, Link } from '@inertiajs/vue3'
+import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
-    Users, FilePlus, DollarSign, BarChart, Plus, Search,
-    Filter, ChevronDown, Edit, Trash2, ChevronRight, Eye
+    Users, FilePlus, DollarSign, BarChart,
+    Plus, Search, Edit, ChevronRight, Eye
 } from 'lucide-vue-next'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 
 // Reactive data
-const showNewContract = ref(false)
-const contractForm = ref({
-    first_name: '',
-    last_name: '',
-    email: '',
-    membership: 'Basic',
-    duration: '12 Monate'
-})
 const searchTerm = ref('')
 
 // Computed properties
@@ -277,28 +188,5 @@ const getIcon = (iconName) => {
         'bar-chart': BarChart
     }
     return icons[iconName] || BarChart
-}
-
-const submitContract = async () => {
-    isSubmitting.value = true
-
-    try {
-        await router.post('/contracts', contractForm.value, {
-            onSuccess: () => {
-                showNewContract.value = false
-                contractForm.value = {
-                    first_name: '',
-                    last_name: '',
-                    email: '',
-                    membership: 'Basic',
-                    duration: '12 Monate'
-                }
-            }
-        })
-    } catch (error) {
-        console.error('Error creating contract:', error)
-    } finally {
-        isSubmitting.value = false
-    }
 }
 </script>
