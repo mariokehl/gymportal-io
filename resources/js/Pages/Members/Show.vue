@@ -252,7 +252,7 @@
                   ></textarea>
                 </div>
               </div>
-              <div v-if="editMode" class="mt-6 flex justify-end space-x-3">
+              <div v-if="editMode" class="mt-6 flex space-x-3">
                 <button
                   type="button"
                   @click="cancelEdit"
