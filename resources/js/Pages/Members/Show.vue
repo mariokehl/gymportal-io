@@ -252,7 +252,7 @@
                   ></textarea>
                 </div>
               </div>
-              <div v-if="editMode" class="mt-6 flex justify-end space-x-3">
+              <div v-if="editMode" class="mt-6 flex space-x-3">
                 <button
                   type="button"
                   @click="cancelEdit"
@@ -1314,11 +1314,10 @@
                 <template v-if="isSepaType(paymentMethodForm.type)">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
-                    <input
+                    <IbanInput
                       v-model="paymentMethodForm.iban"
-                      type="text"
                       placeholder="DE89 3704 0044 0532 0130 00"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      @validation-change="(validation) => handleIbanValidation(validation, 'editPaymentMethod')"
                     />
                   </div>
                   <div>
@@ -1419,7 +1418,8 @@
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                :disabled="paymentMethodForm.processing"
+                :disabled="paymentMethodForm.processing ||
+                          (isSepaType(paymentMethodForm.type) && !ibanValidation.editPaymentMethod.isValid)"
                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
               >
                 {{ paymentMethodForm.processing ? 'Speichern...' : 'Speichern' }}
@@ -1472,11 +1472,11 @@
                 <template v-if="isSepaType(newPaymentMethodForm.type)">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">IBAN <span class="text-red-500">*</span></label>
-                    <input
+                    <IbanInput
                       v-model="newPaymentMethodForm.iban"
-                      type="text"
                       placeholder="DE89 3704 0044 0532 0130 00"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      :required="true"
+                      @validation-change="(validation) => handleIbanValidation(validation, 'newPaymentMethod')"
                     />
                   </div>
                   <div>
@@ -1503,8 +1503,14 @@
                         v-model="newPaymentMethodForm.sepa_mandate_acknowledged"
                         type="checkbox"
                         class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        :disabled="!ibanValidation.newPaymentMethod.isValid"
                       />
-                      <span class="ml-2 text-sm text-gray-700">SEPA-Mandat wurde zur Kenntnis genommen</span>
+                      <span class="ml-2 text-sm text-gray-700">
+                        SEPA-Mandat wurde zur Kenntnis genommen
+                        <span v-if="!ibanValidation.newPaymentMethod.isValid" class="text-gray-400">
+                          (erst nach gültiger IBAN verfügbar)
+                        </span>
+                      </span>
                     </label>
                   </div>
                 </template>
@@ -1600,7 +1606,9 @@
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                :disabled="newPaymentMethodForm.processing || !newPaymentMethodForm.type"
+                :disabled="newPaymentMethodForm.processing ||
+                          !newPaymentMethodForm.type ||
+                          (isSepaType(newPaymentMethodForm.type) && !ibanValidation.newPaymentMethod.isValid)"
                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ newPaymentMethodForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
@@ -1751,6 +1759,7 @@ import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
+import IbanInput from '@/Components/IbanInput.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
@@ -2157,6 +2166,18 @@ const newPaymentForm = useForm({
   status: 'pending',
   notes: ''
 })
+
+// IBAN validation state für beide Forms
+const ibanValidation = ref({
+  newPaymentMethod: { isValid: false },
+  editPaymentMethod: { isValid: false }
+})
+
+// IBAN validation handlers
+const handleIbanValidation = (validation, context) => {
+  ibanValidation.value[context] = validation
+  console.log(`IBAN validation for ${context}:`, validation)
+}
 
 // Status-Change Handler
 const handleStatusChanged = (newStatus) => {

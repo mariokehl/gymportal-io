@@ -30,15 +30,6 @@ onMounted(() => {
     launcherTitle: 'Feedback'
   }
 
-  // User-Daten hinzufügen falls eingeloggt
-  if (page.props.auth?.user) {
-    window.chatwootSettings.user = {
-      email: page.props.auth.user.email,
-      name: page.props.auth.user.name,
-      id: page.props.auth.user.id
-    }
-  }
-
   // SDK laden
   const script = document.createElement('script')
   script.src = `${props.baseUrl}/packs/js/sdk.js`
@@ -49,6 +40,13 @@ onMounted(() => {
       websiteToken: props.websiteToken,
       baseUrl: props.baseUrl
     })
+    // User-Daten hinzufügen falls eingeloggt
+    if (page.props.auth?.user) {
+      window.$chatwoot.setUser(`${page.props.auth.user.id}`, {
+          email: page.props.auth.user.email,
+          name: `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`
+      });
+    }
   }
   document.body.appendChild(script)
 })
