@@ -123,7 +123,7 @@
 
             <div>
               <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Mobilfunknummer <span class="text-red-500">*</span>
+                Mobilfunknummer
               </label>
               <input
                 id="phone"
@@ -131,7 +131,6 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.phone }"
-                @blur="handleFieldBlur('phone', 'Mobilfunknummer ist erforderlich')"
               />
               <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
                 {{ errors.phone }}
@@ -693,7 +692,7 @@ const handleJoinedDateBlur = () => {
 
 // Step validation
 const validateStep1 = () => {
-  const step1Fields = ['salutation', 'first_name', 'last_name', 'phone', 'address', 'city', 'postal_code', 'country']
+  const step1Fields = ['salutation', 'first_name', 'last_name', 'address', 'city', 'postal_code', 'country']
 
   let isValid = true
 
@@ -761,7 +760,6 @@ const nextStep = () => {
       { field: 'salutation', message: 'Anrede ist erforderlich' },
       { field: 'first_name', message: 'Vorname ist erforderlich' },
       { field: 'last_name', message: 'Nachname ist erforderlich' },
-      { field: 'phone', message: 'Mobilfunknummer ist erforderlich' },
       { field: 'address', message: 'Straße und Hausnummer ist erforderlich' },
       { field: 'city', message: 'Stadt ist erforderlich' },
       { field: 'postal_code', message: 'PLZ ist erforderlich' },
