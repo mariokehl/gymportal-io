@@ -6,13 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\MemberStatusHistory;
-use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Services\MemberService;
 use App\Services\PaymentService;
-use Carbon\Carbon;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -498,6 +496,91 @@ class MemberController extends Controller
                     ]
                 ]);
             }
+        }
+    }
+
+    /**
+     * Prüft ob eine E-Mail-Adresse bereits für dieses Gym existiert
+     * Ignoriert gelöschte Mitglieder (soft deleted)
+     */
+    public function checkEmail(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => [
+                    'required',
+                    'email:rfc,dns', // Strengere E-Mail-Validierung
+                    'max:255'
+                ],
+            ], [
+                'email.required' => 'E-Mail ist erforderlich',
+                'email.email' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
+                'email.max' => 'E-Mail-Adresse ist zu lang (maximal 255 Zeichen)'
+            ]);
+
+            // Aktuelles Gym des Benutzers ermitteln
+            $gym = auth()->user()->currentGym ?? auth()->user()->ownedGyms()->first();
+
+            if (!$gym) {
+                return response()->json([
+                    'error' => 'Kein Fitnessstudio gefunden'
+                ], 400);
+            }
+
+            $email = trim(strtolower($request->email));
+
+            // Prüfen ob E-Mail bereits existiert (nur aktive, nicht-gelöschte Mitglieder)
+            $existingMember = $gym->members()
+                // withTrashed() ENTFERNT - gelöschte Mitglieder werden ignoriert
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first();
+
+            if ($existingMember) {
+                $statusMessages = [
+                    'active' => 'E-Mail-Adresse ist bereits für ein aktives Mitglied registriert.',
+                    'inactive' => 'E-Mail-Adresse ist bereits für ein inaktives Mitglied registriert.',
+                    'pending' => 'E-Mail-Adresse ist bereits für ein Mitglied mit ausstehender Aktivierung registriert.',
+                    'paused' => 'E-Mail-Adresse ist bereits für ein pausiertes Mitglied registriert.',
+                    'overdue' => 'E-Mail-Adresse ist bereits für ein Mitglied mit überfälligen Zahlungen registriert.'
+                ];
+
+                $message = $statusMessages[$existingMember->status] ?? 'E-Mail-Adresse ist bereits registriert.';
+
+                return response()->json([
+                    'exists' => true,
+                    'message' => $message,
+                    'member_status' => $existingMember->status,
+                    'member_name' => $existingMember->full_name,
+                    'member_id' => $existingMember->id
+                ], 200);
+            }
+
+            // Keine aktiven Mitglieder mit dieser E-Mail gefunden - E-Mail ist verfügbar
+            return response()->json([
+                'exists' => false,
+                'message' => 'E-Mail-Adresse ist verfügbar',
+                'email' => $email
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validierungsfehler',
+                'errors' => $e->errors(),
+                'error' => $e->validator->errors()->first('email')
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Email check failed', [
+                'email' => $request->email ?? 'unknown',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+                'debug' => app()->isLocal() ? $e->getMessage() : null
+            ], 500);
         }
     }
 
