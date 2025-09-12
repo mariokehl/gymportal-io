@@ -40,15 +40,18 @@ onMounted(() => {
       websiteToken: props.websiteToken,
       baseUrl: props.baseUrl
     })
-    // User-Daten hinzufügen falls eingeloggt
+  }
+  document.body.appendChild(script)
+
+  // User-Daten hinzufügen falls eingeloggt
+  window.addEventListener('chatwoot:ready', function() {
     if (page.props.auth?.user) {
       window.$chatwoot.setUser(`${page.props.auth.user.id}`, {
           email: page.props.auth.user.email,
           name: `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`
       });
     }
-  }
-  document.body.appendChild(script)
+  })
 })
 
 onUnmounted(() => {

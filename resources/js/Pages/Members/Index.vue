@@ -32,6 +32,7 @@
               <option value="active">Aktiv</option>
               <option value="inactive">Inaktiv</option>
               <option value="paused">Pausiert</option>
+              <option value="pending">Ausstehend</option>
               <option value="overdue">Überfällig</option>
             </select>
 

@@ -111,27 +111,19 @@
 
           <!-- E-Mail und Telefon in zweiter Zeile -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
-            <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                E-Mail <span class="text-red-500">*</span>
-              </label>
-              <input
-                id="email"
-                v-model.trim="form.email"
-                type="email"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.email }"
-                @blur="handleEmailBlur"
-                autocomplete="email"
-              />
-              <p v-if="errors.email" class="mt-1 text-sm text-red-600">
-                {{ errors.email }}
-              </p>
-            </div>
+            <EmailInput
+              v-model="form.email"
+              label="E-Mail"
+              :required="true"
+              :check-url="route('members.check-email')"
+              help-text="Wir prüfen automatisch, ob diese E-Mail bereits registriert ist"
+              placeholder="max@mustermann.de"
+              @validation-change="handleEmailValidationChange"
+            />
 
             <div>
               <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Mobilfunknummer <span class="text-red-500">*</span>
+                Mobilfunknummer
               </label>
               <input
                 id="phone"
@@ -139,7 +131,6 @@
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.phone }"
-                @blur="handleFieldBlur('phone', 'Mobilfunknummer ist erforderlich')"
               />
               <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
                 {{ errors.phone }}
@@ -553,6 +544,7 @@ import { ref, computed } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
 import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EmailInput from '@/Components/EmailInput.vue'
 
 const props = defineProps({
     membershipPlans: {
@@ -613,6 +605,15 @@ const selectedPlan = computed(() => {
 
 const errors = computed(() => form.errors)
 
+// Email validation state
+const emailValidationState = ref({
+  isValid: false,
+  hasError: false,
+  isChecking: false,
+  errorMessage: '',
+  email: ''
+})
+
 // Touch-Status für Felder verfolgen
 const touchedFields = ref(new Set())
 
@@ -626,35 +627,16 @@ const isFieldTouched = (fieldName) => {
   return touchedFields.value.has(fieldName)
 }
 
-// Email-Validierung (nur wenn Feld berührt wurde)
-const validateEmail = (email) => {
-  if (!isFieldTouched('email')) {
-    return true // Keine Validierung wenn nicht berührt
+// Email validation handler
+const handleEmailValidationChange = (state) => {
+  emailValidationState.value = state
+
+  // Synchronize form errors with email component
+  if (state.hasError && state.errorMessage) {
+    form.setError('email', state.errorMessage)
+  } else {
+    form.clearErrors('email')
   }
-
-  const trimmedEmail = email.trim()
-
-  // Email-Regex für Grundvalidierung
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-  if (!trimmedEmail) {
-    form.setError('email', 'E-Mail ist erforderlich')
-    return false
-  }
-
-  if (!emailRegex.test(trimmedEmail)) {
-    form.setError('email', 'Bitte geben Sie eine gültige E-Mail-Adresse ein')
-    return false
-  }
-
-  if (trimmedEmail.length > 255) {
-    form.setError('email', 'E-Mail-Adresse ist zu lang (maximal 255 Zeichen)')
-    return false
-  }
-
-  // Fehler löschen wenn E-Mail gültig ist
-  form.clearErrors('email')
-  return true
 }
 
 // Feldvalidierung für Pflichtfelder
@@ -670,12 +652,6 @@ const validateRequiredField = (fieldName, fieldValue, errorMessage) => {
 
   form.clearErrors(fieldName)
   return true
-}
-
-// Email-Feld Event Handler
-const handleEmailBlur = () => {
-  markFieldAsTouched('email')
-  validateEmail(form.email)
 }
 
 // Generische Handler für andere Felder
@@ -716,19 +692,19 @@ const handleJoinedDateBlur = () => {
 
 // Step validation
 const validateStep1 = () => {
-  const step1Fields = ['salutation', 'first_name', 'last_name', 'phone', 'address', 'city', 'postal_code', 'country']
+  const step1Fields = ['salutation', 'first_name', 'last_name', 'address', 'city', 'postal_code', 'country']
 
   let isValid = true
 
-  // Prüfe alle Pflichtfelder
+  // Check all required fields
   step1Fields.forEach(field => {
     if (!form[field] || form[field].toString().trim() === '') {
       isValid = false
     }
   })
 
-  // Email separat prüfen
-  if (!form.email || form.email.trim() === '' || form.errors.email) {
+  // Check email validation state
+  if (!emailValidationState.value.isValid || emailValidationState.value.isChecking) {
     isValid = false
   }
 
@@ -784,7 +760,6 @@ const nextStep = () => {
       { field: 'salutation', message: 'Anrede ist erforderlich' },
       { field: 'first_name', message: 'Vorname ist erforderlich' },
       { field: 'last_name', message: 'Nachname ist erforderlich' },
-      { field: 'phone', message: 'Mobilfunknummer ist erforderlich' },
       { field: 'address', message: 'Straße und Hausnummer ist erforderlich' },
       { field: 'city', message: 'Stadt ist erforderlich' },
       { field: 'postal_code', message: 'PLZ ist erforderlich' },
@@ -794,7 +769,6 @@ const nextStep = () => {
     requiredFields.forEach(({ field, message }) => {
       validateRequiredField(field, form[field], message)
     })
-    validateEmail(form.email)
   } else if (currentStep.value === 1) {
     // Validierung für Schritt 2: Mitgliedschaftsdatum
     markFieldAsTouched('joined_date')

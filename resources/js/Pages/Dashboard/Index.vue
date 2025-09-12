@@ -170,7 +170,7 @@ const props = defineProps({
     },
     members: Array,
     totalMembers: Number,
-    stats: Array,
+    stats: Object,
     notifications: Array
 })
 
