@@ -505,10 +505,6 @@ class WidgetController extends Controller
                     'mollie_payment_id' => $paymentId
                 ]);
 
-                // Welcome-Email senden (falls noch nicht gesendet)
-                $plan = $membership->membershipPlan;
-                $this->widgetService->sendWelcomeEmail($member, $gym, $plan);
-
                 Log::info('Mollie webhook: Payment completed', [
                     'gym_id' => $gym->id,
                     'member_id' => $member->id,
