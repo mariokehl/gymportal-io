@@ -50,6 +50,7 @@ class PaymentMethodController extends Controller
 
             $paymentMethod->update([
                 'iban' => $validated['iban'],
+                'account_holder' => $validated['account_holder'] ?? null,
                 'bank_name' => $validated['bank_name'] ?? null,
                 'is_default' => $validated['is_default'] ?? false,
             ]);
@@ -96,6 +97,7 @@ class PaymentMethodController extends Controller
             'is_default' => 'boolean',
             // SEPA fields
             'iban' => 'nullable|string',
+            'account_holder' => 'nullable|string',
             'bank_name' => 'nullable|string',
             'sepa_mandate_status' => 'nullable|in:pending,signed,active,revoked,expired',
             'sepa_mandate_reference' => 'nullable|string',

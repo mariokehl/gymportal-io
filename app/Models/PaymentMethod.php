@@ -21,6 +21,7 @@ class PaymentMethod extends Model
         'cardholder_name',
         'bank_name',
         'iban',
+        'account_holder',
         'is_default',
         'status',
         'requires_mandate',

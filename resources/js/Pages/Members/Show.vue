@@ -1313,6 +1313,14 @@
                 <!-- SEPA-spezifische Felder -->
                 <template v-if="isSepaType(paymentMethodForm.type)">
                   <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kontoinhaber</label>
+                    <input
+                      v-model="paymentMethodForm.account_holder"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
                     <IbanInput
                       v-model="paymentMethodForm.iban"
@@ -2130,6 +2138,7 @@ const paymentMethodForm = useForm({
   is_default: false,
   // SEPA fields
   iban: '',
+  account_holder: '',
   bank_name: '',
   sepa_mandate_status: 'pending',
   sepa_mandate_reference: '',
@@ -2506,6 +2515,7 @@ const openEditPaymentMethod = (paymentMethod) => {
   // SEPA fields
   if (isSepaType(paymentMethod.type)) {
     paymentMethodForm.iban = paymentMethod.iban || ''
+    paymentMethodForm.account_holder = paymentMethod.account_holder || ''
     paymentMethodForm.bank_name = paymentMethod.bank_name || ''
     paymentMethodForm.sepa_mandate_status = paymentMethod.sepa_mandate_status || 'pending'
     paymentMethodForm.sepa_mandate_reference = paymentMethod.sepa_mandate_reference || ''

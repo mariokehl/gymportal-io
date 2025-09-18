@@ -332,10 +332,9 @@ class MollieService
     public function createMandate(Gym $gym, string $customerId, PaymentMethod $paymentMethod, string $consumerName): Mandate
     {
         $client = $this->initializeClient($gym);
-
         $mandate = $client->customers->get($customerId)->createMandate([
             'method' => MandateMethod::getForFirstPaymentMethod(str_replace('mollie_', '', $paymentMethod->type)),
-            'consumerName' => $consumerName,
+            'consumerName' => $paymentMethod->account_holder ?? $consumerName,
             'consumerAccount' => $paymentMethod->iban,
             'consumerBic' => '',
             'signatureDate' => $paymentMethod->sepa_mandate_signed_at?->toDateString() ?? Carbon::now()->toDateString(),
