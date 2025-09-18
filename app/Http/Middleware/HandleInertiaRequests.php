@@ -87,16 +87,13 @@ class HandleInertiaRequests extends Middleware
 
         // Subscription Status für alle authentifizierten Benutzer
         if ($request->user()) {
+            /** @var Gym $gym */
             $gym = $request->user()->currentGym;
 
             if ($gym) {
                 $trialEndsAt = $gym->trial_ends_at ?: $gym->created_at->addDays(30);
                 $isInTrial = now()->lt($trialEndsAt);
                 $trialDaysLeft = $isInTrial ? now()->diffInDays($trialEndsAt) : 0;
-
-                $hasActiveSubscription = $gym->subscription_status === 'active' &&
-                                        $gym->subscription_ends_at &&
-                                        $gym->subscription_ends_at->gt(now());
 
                 $shared['subscription_status'] = [
                     'trial' => [
@@ -105,12 +102,12 @@ class HandleInertiaRequests extends Middleware
                         'days_left' => round($trialDaysLeft),
                     ],
                     'subscription' => [
-                        'is_active' => $hasActiveSubscription,
+                        'is_active' => $gym->hasActiveSubscription(),
                         'plan' => $gym->subscription_plan ?? 'SaaS Hosted',
                         'status' => $gym->subscription_status,
                         'ends_at' => $gym->subscription_ends_at?->format('d.m.Y'),
                     ],
-                    'can_access_premium' => $isInTrial || $hasActiveSubscription,
+                    'can_access_premium' => $isInTrial || $gym->hasActiveSubscription(),
                 ];
             }
         }
