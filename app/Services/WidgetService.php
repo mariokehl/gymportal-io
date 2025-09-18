@@ -450,7 +450,8 @@ class WidgetService
                     $member,
                     $data['sepa_mandate_acknowledged'] ?? false,
                     $paymentMethod,
-                    $data['iban'] ?? null
+                    $data['iban'] ?? null,
+                    $data['account_holder'] ?? null
                 );
                 if ($data['sepa_mandate_acknowledged']) {
                     $createdPaymentMethod->markSepaMandateAsSigned();

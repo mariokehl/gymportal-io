@@ -276,6 +276,7 @@ class WidgetController extends Controller
             'plan_id' => 'required|exists:membership_plans,id',
             'payment_method' => 'required|string',
             'iban' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string|min:15|max:34',
+            'account_holder' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string',
             'sepa_mandate_acknowledged' => 'sometimes|boolean',
         ]);
 
@@ -346,6 +347,7 @@ class WidgetController extends Controller
             // SEPA-spezifische Daten hinzufügen
             if ($request->payment_method === 'sepa_direct_debit' || $request->payment_method === 'mollie_directdebit') {
                 $registrationData['iban'] = $request->iban;
+                $registrationData['account_holder'] = $request->account_holder;
                 $registrationData['sepa_mandate_acknowledged'] = $request->boolean('sepa_mandate_acknowledged');
             }
 
