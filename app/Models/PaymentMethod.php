@@ -21,6 +21,7 @@ class PaymentMethod extends Model
         'cardholder_name',
         'bank_name',
         'iban',
+        'account_holder',
         'is_default',
         'status',
         'requires_mandate',
@@ -289,8 +290,13 @@ class PaymentMethod extends Model
     }
 
     // Static Methods
-    public static function createSepaPaymentMethod(Member $member, bool $acknowledgedOnline = false, string $type = 'sepa_direct_debit', ?string $iban = null): self
-    {
+    public static function createSepaPaymentMethod(
+        Member $member,
+        bool $acknowledgedOnline = false,
+        string $type = 'sepa_direct_debit',
+        ?string $iban = null,
+        ?string $accountHolder = null
+    ): self {
         $paymentMethod = self::create([
             'member_id' => $member->id,
             'type' => $type,
@@ -303,7 +309,8 @@ class PaymentMethod extends Model
                 'acknowledged_online' => $acknowledgedOnline,
                 'created_at' => now()->toISOString(),
             ],
-            'iban' => $iban
+            'iban' => $iban,
+            'account_holder' => $accountHolder
         ]);
 
         // Generiere Mandatsreferenz

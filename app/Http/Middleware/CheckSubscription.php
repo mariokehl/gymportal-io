@@ -7,7 +7,6 @@ use App\Models\Gym;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class CheckSubscription
 {
@@ -37,11 +36,6 @@ class CheckSubscription
         $trialEndsAt = $gym->trial_ends_at;
         $isInTrial = now()->lt($trialEndsAt);
 
-        // Prüfe aktive Subscription
-        $hasActiveSubscription = $gym->subscription_status === 'active' &&
-                                $gym->subscription_ends_at &&
-                                $gym->subscription_ends_at->gt(now());
-
         // Erlaubte Routen während abgelaufener Testphase/Subscription
         $allowedRoutes = [
             'billing.index',
@@ -54,7 +48,7 @@ class CheckSubscription
         ];
 
         // Wenn weder Testphase noch aktive Subscription
-        if (!$isInTrial && !$hasActiveSubscription) {
+        if (!$isInTrial && !$gym->hasActiveSubscription()) {
             $routeName = $request->route()->getName();
 
             // Redirect zu Billing-Seite wenn Route nicht erlaubt

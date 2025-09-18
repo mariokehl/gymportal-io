@@ -411,6 +411,7 @@ class ProcessMembershipPayments extends Command
             $exists = Payment::where('membership_id', $membership->id)
                 ->where('metadata->membership_plan_id', $plan->id)
                 ->whereDate('due_date', $nextPaymentDate)
+                ->whereNotNull('metadata->billing_cycle')  // Prüft ob billing_cycle existiert und nicht null ist
                 ->exists();
 
             if (!$exists) {
