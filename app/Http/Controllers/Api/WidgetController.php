@@ -71,11 +71,9 @@ class WidgetController extends Controller
             }
         } else {
             // Fallback: Wenn keine Verträge konfiguriert sind, zeige alle aktiven
-            // (oder die ersten 3, je nach Business-Logik)
             $plans = $plansQuery
                 ->orderBy('sort_order')
                 ->orderBy('price', 'asc')
-                ->limit(3) // Limitiere auf 3 wie in der UI definiert
                 ->get();
         }
 
