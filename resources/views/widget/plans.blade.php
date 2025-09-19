@@ -28,7 +28,7 @@
         <label class="plan-card"
                data-plan="{{ $plan->id }}"
                data-duration="{{ $plan->commitment_months }}"
-               style="display: {{ $plan->commitment_months == 12 ? 'block' : 'none' }}">
+               style="display: {{ $plan->commitment_months == 12 ? 'flex' : 'none' }}">
             <input type="radio" name="plan" value="{{ $plan->id }}" style="display: none;">
 
             <div class="plan-header">
@@ -36,15 +36,17 @@
                 <p class="plan-description">{{ $plan->description }}</p>
 
                 {{-- Laufzeit-Anzeige --}}
-                <div class="plan-duration">
-                    <span class="duration-badge">
-                        @if($plan->commitment_months == 1)
-                            Monatlich kündbar
-                        @else
-                            {{ $plan->commitment_months }} Monate Laufzeit
-                        @endif
-                    </span>
-                </div>
+                @if($plan->commitment_months > 0)
+                    <div class="plan-duration">
+                        <span class="duration-badge">
+                            @if($plan->commitment_months == 1)
+                                Monatlich kündbar
+                            @else
+                                {{ $plan->commitment_months }} Monate Laufzeit
+                            @endif
+                        </span>
+                    </div>
+                @endif
             </div>
 
             <div class="plan-features">

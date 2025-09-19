@@ -269,7 +269,7 @@
             } else {
                 // If no duration selector, show all plans
                 plans.forEach((plan) => {
-                    plan.style.display = 'block';
+                    plan.style.display = 'flex';
                 });
             }
 
@@ -363,7 +363,7 @@
                 const planDuration = parseInt(plan.dataset.duration);
 
                 if (planDuration === selectedDuration) {
-                    plan.style.display = 'block';
+                    plan.style.display = 'flex';
                     visiblePlansCount++;
 
                     // Check if this plan was previously selected
