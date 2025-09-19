@@ -251,24 +251,53 @@
         setupPlanSelection() {
             const plans = this.shadowRoot.querySelectorAll("label[data-plan]");
             const nextBtn = this.shadowRoot.getElementById("next-button");
+            const durationButtons = this.shadowRoot.querySelectorAll(".duration-btn");
+            const noPlansMessage = this.shadowRoot.querySelector(".no-plans-message");
+            const durationSelector = this.shadowRoot.querySelector(".duration-selector");
 
             if (!nextBtn) {
                 this.log('Next button not found in plans step');
                 return;
             }
 
+            // Duration filter functionality - only if duration selector is present
+            if (durationSelector && durationButtons.length > 0) {
+                this.setupDurationFilter(durationButtons, plans, noPlansMessage, nextBtn);
+
+                // Initial filter to 12 months (already active by default)
+                this.filterPlansByDuration(12, plans, noPlansMessage, nextBtn);
+            } else {
+                // If no duration selector, show all plans
+                plans.forEach((plan) => {
+                    plan.style.display = 'block';
+                });
+            }
+
+            // Existing plan selection logic...
             if (this.selectedPlan) {
                 const selectedPlanInput = this.shadowRoot.querySelector(`input[value="${this.selectedPlan}"]`);
                 if (selectedPlanInput) {
-                    selectedPlanInput.checked = true;
-                    selectedPlanInput.closest('label').classList.add('selected');
-                    nextBtn.disabled = false;
-                    nextBtn.classList.remove('disabled');
+                    const selectedPlanCard = selectedPlanInput.closest('label');
+                    // Check if the selected plan is visible with current duration filter
+                    if (selectedPlanCard && selectedPlanCard.style.display !== 'none') {
+                        selectedPlanInput.checked = true;
+                        selectedPlanCard.classList.add('selected');
+                        nextBtn.disabled = false;
+                        nextBtn.classList.remove('disabled');
+                    } else {
+                        // If selected plan is not visible, reset selection
+                        this.selectedPlan = null;
+                        nextBtn.disabled = true;
+                        nextBtn.classList.add('disabled');
+                    }
                 }
             }
 
             plans.forEach((plan) => {
                 plan.addEventListener("click", () => {
+                    // Only allow selection if plan is visible
+                    if (plan.style.display === 'none') return;
+
                     plans.forEach((p) => p.classList.remove("selected"));
                     plan.classList.add("selected");
                     const input = plan.querySelector("input");
@@ -282,7 +311,8 @@
 
                     this.trackEvent('plan_selected', 'plans', {
                         plan_id: this.selectedPlan,
-                        plan_name: plan.querySelector('.plan-name')?.textContent
+                        plan_name: plan.querySelector('.plan-name')?.textContent,
+                        duration: plan.dataset.duration
                     });
                 });
             });
@@ -300,6 +330,86 @@
 
                 await this.goToStep('form');
             });
+        }
+
+        setupDurationFilter(durationButtons, plans, noPlansMessage, nextBtn) {
+            durationButtons.forEach((button) => {
+                button.addEventListener("click", (e) => {
+                    e.preventDefault();
+
+                    // Update button states
+                    durationButtons.forEach((btn) => btn.classList.remove("active"));
+                    button.classList.add("active");
+
+                    const selectedDuration = parseInt(button.dataset.duration);
+
+                    // Filter plans and reset selection
+                    this.filterPlansByDuration(selectedDuration, plans, noPlansMessage, nextBtn);
+
+                    // Track duration filter usage
+                    this.trackEvent('duration_filter_selected', 'plans', {
+                        selected_duration: selectedDuration,
+                        available_plans: this.getVisiblePlansCount(plans)
+                    });
+                });
+            });
+        }
+
+        filterPlansByDuration(selectedDuration, plans, noPlansMessage, nextBtn) {
+            let visiblePlansCount = 0;
+            let hasSelectedPlan = false;
+
+            plans.forEach((plan) => {
+                const planDuration = parseInt(plan.dataset.duration);
+
+                if (planDuration === selectedDuration) {
+                    plan.style.display = 'block';
+                    visiblePlansCount++;
+
+                    // Check if this plan was previously selected
+                    const input = plan.querySelector('input[name="plan"]');
+                    if (input && input.checked) {
+                        hasSelectedPlan = true;
+                    }
+                } else {
+                    plan.style.display = 'none';
+
+                    // Uncheck hidden plans
+                    const input = plan.querySelector('input[name="plan"]');
+                    if (input && input.checked) {
+                        input.checked = false;
+                        plan.classList.remove('selected');
+                    }
+                }
+            });
+
+            // Show/hide no plans message
+            if (noPlansMessage) {
+                if (visiblePlansCount === 0) {
+                    noPlansMessage.style.display = 'block';
+                } else {
+                    noPlansMessage.style.display = 'none';
+                }
+            }
+
+            // Reset next button if no plan selected or selected plan is hidden
+            if (!hasSelectedPlan) {
+                this.selectedPlan = null;
+                nextBtn.disabled = true;
+                nextBtn.classList.add('disabled');
+            }
+
+            this.log(`Filtered plans by duration ${selectedDuration}: ${visiblePlansCount} visible`);
+        }
+
+        getVisiblePlansCount(plans) {
+            let count = 0;
+            plans.forEach((plan) => {
+                if (plan.style.display !== 'none') {
+                    count++;
+                }
+            });
+            return count;
         }
 
         setupFormEvents() {
