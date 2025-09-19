@@ -108,7 +108,9 @@ class PaymentMethodController extends Controller
         ]);
 
         if ($validated['is_default']) {
-            $member->paymentMethods()->update(['is_default' => false]);
+            $member->paymentMethods()
+                ->where('id', '!=', $paymentMethod->id)
+                ->update(['is_default' => false]);
         }
 
         // Typ kann nicht geändert werden

@@ -265,7 +265,7 @@
                         <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
                             <div>
                                 <span class="text-sm font-medium text-gray-900">Laufzeit-Auswahl</span>
-                                <p class="text-xs text-gray-500">12/24 Monate Auswahl anzeigen</p>
+                                <p class="text-xs text-gray-500">12 Monate/Monatlich Auswahl anzeigen</p>
                             </div>
                             <input
                                 type="checkbox"
