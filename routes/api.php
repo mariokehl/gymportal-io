@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\ScannerController;
 use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\Pwa\AuthController;
+use App\Http\Controllers\Pwa\CheckInController;
 use App\Http\Controllers\Pwa\GymController;
 use App\Http\Controllers\Pwa\MemberController;
 use App\Http\Controllers\Web\NotificationController;
@@ -57,6 +58,10 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::get('contract', [MemberController::class, 'contract']);
         Route::put('contract', [MemberController::class, 'updateContract']);
         Route::get('qr-code', [MemberController::class, 'generateQrCode']);
+        Route::prefix('checkin')->group(function () {
+            Route::get('latest', [CheckInController::class, 'getLatest']);
+            Route::post('{id}/end', [CheckInController::class, 'endCheckin'])->where('id', '[0-9]+');
+        });
     });
 });
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Pwa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class GymController extends Controller
