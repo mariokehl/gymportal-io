@@ -57,7 +57,6 @@
                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Mitgliedschaft</th>
                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
                                 <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Letzter Besuch</th>
-                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Vertragsende</th>
                                 <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">Aktionen</th>
                             </tr>
                         </thead>
@@ -82,9 +81,6 @@
                                 </td>
                                 <td class="py-3 px-4 text-sm">
                                     {{ member.last_check_in ? formatDate(member.last_check_in.check_in_time) : 'Noch nie' }}
-                                </td>
-                                <td class="py-3 px-4 text-sm">
-                                    {{ member.contract_end_date ? formatDate(member.contract_end_date) : '-' }}
                                 </td>
                                 <td class="py-3 px-4 text-right">
                                     <div class="flex items-center justify-end space-x-2">

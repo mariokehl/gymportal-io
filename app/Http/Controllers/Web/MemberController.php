@@ -59,22 +59,14 @@ class MemberController extends Controller
 
         // Add additional data to each member
         $members->getCollection()->transform(function ($member) {
-            // Get last visit from visits table (assuming you have a visits table)
-            //$member->last_visit = $member->visits()->latest()->first()?->visited_at;
-
-            // Get contract end date from contracts table (assuming you have a contracts table)
-            //$member->contract_end_date = $member->contracts()
-            //    ->where('status', 'active')
-            //    ->first()?->end_date;
-
-            // Füge Lösch-Informationen hinzu
+            $member->last_check_in = $member->last_check_in;
+            $member->contract_end_date = $member->activeMembership()?->cancellation_date;
             $member->can_delete = $member->canBeDeleted();
             if (!$member->can_delete) {
                 $deleteBlockInfo = $member->getDeleteBlockReason();
                 $member->delete_block_reason = $deleteBlockInfo['reason'] ?? 'Löschen nicht möglich';
                 $member->delete_block_type = $deleteBlockInfo['type'] ?? 'unknown';
             }
-
             return $member;
         });
 
