@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class LoginCode extends Model
 {
@@ -15,6 +14,7 @@ class LoginCode extends Model
         'code',
         'expires_at',
         'used',
+        'used_at',
         'ip_address',
         'user_agent'
     ];
@@ -22,6 +22,7 @@ class LoginCode extends Model
     protected $casts = [
         'expires_at' => 'datetime',
         'used' => 'boolean',
+        'used_at' => 'datetime'
     ];
 
     protected $hidden = [
