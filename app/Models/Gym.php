@@ -808,8 +808,8 @@ class Gym extends Model
                 'success_message' => 'Vielen Dank für deine Registrierung!',
             ],
             'features' => [
-                'show_duration_selector' => true,
-                'show_goals_selection' => true,
+                'show_duration_selector' => false,
+                'show_goals_selection' => false,
                 'require_birth_date' => true,
                 'require_phone' => true,
             ],

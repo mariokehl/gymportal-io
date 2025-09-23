@@ -109,7 +109,7 @@
                   <MemberStatusBadge :status="member.status" />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ member.last_visit ? formatDate(member.last_visit) : 'Noch nie' }}
+                    {{ member.last_check_in ? formatDate(member.last_check_in.check_in_time) : 'Noch nie' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ member.contract_end_date ? formatDate(member.contract_end_date) : '-' }}

@@ -64,7 +64,6 @@
     font-size: 12px;
     color: #666;
     text-align: center;
-    max-width: 80px;
 }
 
 .step.active .step-label {
@@ -836,6 +835,5 @@ span.mandatory {
 
     .step-label {
         font-size: 10px;
-        max-width: 60px;
     }
 }
