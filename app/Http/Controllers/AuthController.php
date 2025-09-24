@@ -39,6 +39,12 @@ class AuthController extends Controller
             /** @var User $user */
             $user = Auth::user();
 
+            if ($user->isBlocked()) {
+                $request->session()->put('blocked_user_id', $user->id);
+                Auth::logout();
+                return redirect()->route('blocked');
+            }
+
             if (!$user->hasVerifiedEmail()) {
                 return redirect()->route('verification.notice');
             }
@@ -61,7 +67,7 @@ class AuthController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|indisposable|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'terms_accepted' => ['required', 'accepted'],
         ], [
@@ -163,7 +169,6 @@ class AuthController extends Controller
     public function sendResetLinkEmail(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-        $email = $request->only('email');
         $status = Password::sendResetLink(
             $request->only('email')
         );
@@ -205,6 +210,26 @@ class AuthController extends Controller
         return $status === Password::PASSWORD_RESET
                     ? redirect()->route('login')->with('status', 'Ihr Passwort wurde erfolgreich zurückgesetzt!')
                     : back()->withErrors(['email' => [__($status)]]);
+    }
+
+    public function blocked(Request $request)
+    {
+        // Check if we have a blocked user in session or get the last blocked user info
+        $user = null;
+        $blockedReason = 'Ihr Account wurde gesperrt.';
+
+        // Try to get the user from session if they were just logged out
+        if ($request->session()->has('blocked_user_id')) {
+            $user = User::find($request->session()->get('blocked_user_id'));
+            if ($user && $user->isBlocked() && $user->blocked_reason) {
+                $blockedReason = $user->blocked_reason;
+            }
+            $request->session()->forget('blocked_user_id');
+        }
+
+        return Inertia::render('Auth/Blocked', [
+            'reason' => $blockedReason,
+        ]);
     }
 
     public function logout(Request $request)

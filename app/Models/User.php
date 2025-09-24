@@ -24,6 +24,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'role_id',
         'phone',
         'current_gym_id',
+        'is_blocked',
+        'blocked_reason',
     ];
 
     protected $hidden = [
@@ -33,6 +35,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_blocked' => 'boolean',
     ];
 
     protected $appends = ['full_name'];
@@ -107,6 +110,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isMember()
     {
         return $this->role->slug === 'member';
+    }
+
+    public function isBlocked()
+    {
+        return $this->is_blocked;
     }
 
     public function courses()

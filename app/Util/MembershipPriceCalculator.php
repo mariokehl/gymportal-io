@@ -24,7 +24,7 @@ class MembershipPriceCalculator
         string $billingCycle,
         int $minimumDurationMonths,
         float $activationFee = 0.0,
-        int $customDurationMonths = null
+        ?int $customDurationMonths = null
     ): array {
         // Validierung
         if ($regularPrice < 0) {

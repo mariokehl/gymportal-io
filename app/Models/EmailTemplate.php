@@ -168,7 +168,7 @@ class EmailTemplate extends Model
     /**
      * Create a duplicate of this template.
      */
-    public function duplicate(string $newName = null): self
+    public function duplicate(?string $newName = null): self
     {
         $newName = $newName ?: ($this->name . ' (Kopie)');
 
