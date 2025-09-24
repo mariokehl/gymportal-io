@@ -45,8 +45,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// Blocked user route (accessible without auth)
+Route::get('/blocked', [AuthController::class, 'blocked'])->name('blocked');
+
 // Email verification
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'blocked.check'])->group(function () {
     Route::get('/email/verify', [AuthController::class, 'showVerifyEmail'])->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware('throttle:6,1')->name('verification.send');
@@ -54,7 +57,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Billing-Routen
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'blocked.check'])->group(function () {
     // Billing Management
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe', [BillingController::class, 'subscribeToProfessional'])->name('billing.subscribe');
@@ -65,7 +68,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook'])->name('billing.webhook')->middleware('paddleIp');
 
 // Protected routes
-Route::middleware(['auth:web', 'verified', 'subscription'])->group(function () {
+Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('members', MemberController::class);
     Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');

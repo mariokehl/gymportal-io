@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateScanner;
+use App\Http\Middleware\CheckIfUserBlocked;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PaddleIpMiddleware;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription' => CheckSubscription::class,
             'paddleIp' => PaddleIpMiddleware::class,
             'scanner.auth' => AuthenticateScanner::class,
+            'blocked.check' => CheckIfUserBlocked::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/pwa/*',
