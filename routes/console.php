@@ -1,8 +1,6 @@
 <?php
 
 use App\Services\SchedulerHealthCheckService;
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
@@ -25,7 +23,7 @@ Schedule::command('memberships:daily-process', ['--verbose-log'])
         app(SchedulerHealthCheckService::class)->notifyAdministrators('Membership processing failed');
     })
     ->appendOutputTo(storage_path('logs/scheduler-memberships.log'))
-    ->emailOutputTo(config('scheduler.notifications.admin_email', 'webmaster@gymportal.io'), false);
+    ->emailOutputTo(config('scheduler.notifications.admin_email', 'webmaster@gymportal.io'));
 
 // ===================================
 // MEMBERSHIP PAYMENT PROCESSING
@@ -79,3 +77,6 @@ Schedule::call(function () {
 })->hourly()
   ->name('health-check')
   ->withoutOverlapping();
+
+// Update Laravel Disposable Email
+Schedule::command('disposable:update')->daily();

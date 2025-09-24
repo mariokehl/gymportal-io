@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/framework/disposable_domains.json
 /vendor
 .env
 .env.backup
