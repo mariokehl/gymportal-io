@@ -565,7 +565,7 @@ class MollieService
     /**
      * Takes care of manually adding or updating Mollie payment methods in the member file
      */
-    public function handleMolliePaymentMethod(Member $member, PaymentMethod $paymentMethod): void
+    public function handleMolliePaymentMethod(Member $member, PaymentMethod $paymentMethod): bool|null
     {
         //$paymentMethod->type = 'mollie_directdebit'; // For testing purposes
         $mandateType = $member->gym->getMollieMandateType(str_replace('mollie_', '', $paymentMethod->type));
@@ -573,7 +573,7 @@ class MollieService
         if (
             !str_starts_with($paymentMethod->type, 'mollie_') ||
             !$mandateType
-        ) return;
+        ) return null;
 
         if (!$paymentMethod->mollie_customer_id) {
             /** @var Customer $customer */
@@ -602,6 +602,8 @@ class MollieService
 
         DB::beginTransaction();
 
+        $paymentMethod->markSepaMandateAsSigned();
+
         try {
             // Authorise a first credit card payment for subscription payments.
             if ($mandateType === MandateMethod::CREDITCARD) {
@@ -623,16 +625,24 @@ class MollieService
                 $member->update(['status' => 'active']);
                 $membership = $member->memberships->first();
                 $membership->update(['status' => 'active']);
+
+                $paymentMethod->update([
+                    'status' => $status,
+                    'mollie_customer_id' => $customerId,
+                    'mollie_mandate_id' => $mandateId,
+                    'iban' => ''
+                ]);
+                $paymentMethod->activateSepaMandate();
+            } else {
+                $paymentMethod->update([
+                    'status' => $status,
+                    'mollie_customer_id' => $customerId,
+                ]);
             }
 
-            $paymentMethod->update([
-                'status' => $status,
-                'mollie_customer_id' => $customerId,
-                'mollie_mandate_id' => $mandateId,
-                'iban' => ''
-            ]);
-
             DB::commit();
+
+            return true;
 
         } catch (Exception $e) {
             DB::rollback();
@@ -640,6 +650,8 @@ class MollieService
             // Log the error for debugging
             Log::error('Handling of mollie payment method failed: ' . $e->getMessage());
         }
+
+        return false;
     }
 
     /**

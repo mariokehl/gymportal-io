@@ -62,8 +62,6 @@ class PaymentMethodController extends Controller
 
             // Wenn SEPA-Mandat anerkannt wurde, aktiviere es und sende an Mollie
             if ($validated['sepa_mandate_acknowledged']) {
-                $paymentMethod->markSepaMandateAsSigned();
-                $paymentMethod->activateSepaMandate();
                 app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
             }
         } else {
@@ -174,13 +172,15 @@ class PaymentMethodController extends Controller
             return back()->with('error', 'Das SEPA-Mandat muss erst unterschrieben sein, bevor es aktiviert werden kann.');
         }
 
-        // Hole Creditor ID aus den Gym-Einstellungen (falls vorhanden)
-        $creditorId = $member->gym->sepa_creditor_id ?? null;
-
-        $success = $paymentMethod->activateSepaMandate($creditorId);
-
-        // Mandat ggf. bei Mollie anlegen
-        app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
+        if ($paymentMethod->type == 'mollie_directdebit') {
+            // Mandat ggf. bei Mollie anlegen
+            $success = app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
+        } else {
+            // Hole Creditor ID aus den Gym-Einstellungen (falls vorhanden)
+            $creditorId = $member->gym->sepa_creditor_id ?? null;
+            // Mandat intern aktivieren
+            $success = $paymentMethod->activateSepaMandate($creditorId);
+        }
 
         if ($success) {
             return back()->with('success', 'SEPA-Mandat wurde aktiviert und kann nun für Lastschriften verwendet werden.');
