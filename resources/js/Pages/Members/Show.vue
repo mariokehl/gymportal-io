@@ -149,12 +149,23 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">E-Mail <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="form.email"
-                    :disabled="!editMode"
-                    type="email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
+                  <div class="flex rounded-md shadow-sm">
+                    <input
+                      v-model="form.email"
+                      :disabled="!editMode"
+                      type="email"
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                    />
+                    <button
+                      v-if="props.member.memberships.length && props.member.memberships[0].status == 'active'"
+                      @click="sendWelcomeToMember"
+                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md text-sm text-indigo-600 hover:text-indigo-800 hover:bg-gray-100 flex items-center gap-1"
+                      type="button"
+                    >
+                      <Mail class="w-4 h-4" />
+                      Willkommen
+                    </button>
+                  </div>
                   <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
                 </div>
                 <div>
@@ -1760,7 +1771,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useForm, Link, router, usePage } from '@inertiajs/vue3'
+import { useForm, Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
@@ -1775,8 +1786,6 @@ import {
   XCircle, RotateCcw, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail
 } from 'lucide-vue-next'
-
-const page = usePage()
 
 const props = defineProps({
   member: Object,
@@ -1914,6 +1923,27 @@ const selectedPendingPaymentIds = computed(() => {
 const hasPendingPaymentsSelected = computed(() => {
   return selectedPendingPaymentIds.value.length > 0
 })
+
+const sendWelcomeToMember = () => {
+  if (confirm(`Möchten Sie dem Mitglied eine Willkommensnachricht per E-Mail an ${props.member.email} senden?`)) {
+    router.post(route('members.send-welcome', props.member.id), {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        alert('E-Mail wurde erfolgreich versendet.')
+      },
+      onError: (errors) => {
+        console.error('Send welcome email error:', errors)
+        alert('Fehler beim Versenden der E-Mail. Bitte versuchen Sie es erneut.')
+      },
+      onCancel: () => {
+        console.log('Request was cancelled')
+      },
+      onFinish: () => {
+        console.log('Request finished')
+      }
+    })
+  }
+}
 
 // Access Control functions
 const getActiveAccessCount = () => {

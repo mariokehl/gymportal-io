@@ -633,4 +633,28 @@ class MemberController extends Controller
             ]);
         }
     }
+
+    /**
+     * Send welcome email to member
+     */
+    public function sendWelcome(Member $member)
+    {
+        $this->authorize('update', $member);
+
+        try {
+            app(MemberService::class)->sendWelcomeEmail($member, $member->gym);
+
+            return back()->with('success', 'E-Mail wurde erfolgreich versendet.');
+
+        } catch (Exception $e) {
+            Log::error('Failed to send welcome email to member', [
+                'member_id' => $member->id,
+                'member_email' => $member->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Fehler beim Versenden der E-Mail. Bitte versuchen Sie es erneut.');
+        }
+    }
 }

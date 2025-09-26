@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Mail\WelcomeMemberMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
 
 class MemberService
 {
@@ -47,6 +49,21 @@ class MemberService
                 ->subDay(), // Einen Tag abziehen für korrektes Vertragsende
             'status' => $status
         ]);
+    }
+
+    /**
+     * Welcome E-Mail senden
+     */
+    public function sendWelcomeEmail(Member $member, Gym $gym): void
+    {
+        try {
+            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym));
+        } catch (\Exception $e) {
+            logger()->error('Failed to send welcome email', [
+                'member_id' => $member->id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
