@@ -588,7 +588,16 @@ class MollieService
          * @var Mandate $mandate
          */
         if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && !$paymentMethod->mollie_mandate_id) {
-            $mandate = $this->createMandate($member->gym, $customerId, $paymentMethod, $member->fullName());
+            try {
+                $mandate = $this->createMandate($member->gym, $customerId, $paymentMethod, $member->fullName());
+            } catch (ApiException $e) {
+                Log::warning('Mollie mandate not immediately available, mandate creation postponed', [
+                    'customer_id' => $customerId,
+                    'member_id' => $member->id,
+                    'error' => $e->getMessage(),
+                    'time' => now()->format('H:i:s')
+                ]);
+            }
         }
 
         DB::beginTransaction();
