@@ -443,7 +443,6 @@ class WidgetService
 
         switch ($paymentMethod) {
             case 'sepa_direct_debit':
-            case 'mollie_directdebit':
                 $createdPaymentMethod = PaymentMethod::createSepaPaymentMethod(
                     $member,
                     $data['sepa_mandate_acknowledged'] ?? false,
@@ -455,6 +454,16 @@ class WidgetService
                     $createdPaymentMethod->markSepaMandateAsSigned();
                     $createdPaymentMethod->activateSepaMandate();
                 }
+                break;
+
+            case 'mollie_directdebit':
+                $createdPaymentMethod = PaymentMethod::createSepaPaymentMethod(
+                    $member,
+                    $data['sepa_mandate_acknowledged'] ?? false,
+                    $paymentMethod,
+                    $data['iban'] ?? null,
+                    $data['account_holder'] ?? null
+                );
                 break;
 
             case 'cash':
