@@ -823,12 +823,12 @@ class Member extends Authenticatable
         }
 
         $pendingPayments = $this->payments()
-            ->where('status', 'pending')
+            ->where('payments.status', 'pending')
             ->count();
 
         if ($pendingPayments > 0) {
             $totalAmount = $this->payments()
-                ->where('status', 'pending')
+                ->where('payments.status', 'pending')
                 ->sum('amount');
 
             return [
@@ -1091,7 +1091,7 @@ class Member extends Authenticatable
                 $q->whereIn('status', ['active', 'pending']);
             })
             ->whereDoesntHave('payments', function($q) {
-                $q->where('status', 'pending');
+                $q->where('payments.status', 'pending');
             })
             ->whereDoesntHave('sepaPaymentMethods', function($q) {
                 $q->whereIn('sepa_mandate_status', ['pending', 'active']);

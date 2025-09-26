@@ -29,6 +29,7 @@ class ImpersonationController extends Controller
 
         $users = User::where('id', '!=', Auth::id())
             ->where('role_id', '!=', self::ADMIN_ROLE_ID)
+            ->where('is_blocked', '!=', 1)
             ->select('id', 'first_name', 'last_name', 'email', 'created_at')
             ->orderBy('last_name')
             ->orderBy('first_name')

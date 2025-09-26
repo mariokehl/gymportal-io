@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Dto\PaymentCreationResult;
 use App\Events\MemberRegistered;
 use App\Mail\SepaMandateRequiredMail;
-use App\Mail\WelcomeMemberMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
@@ -179,7 +178,7 @@ class WidgetService
                 ]
             );
 
-            $this->sendWelcomeEmail($member, $gym, $plan);
+            app(MemberService::class)->sendWelcomeEmail($member, $gym);
 
             if ($paymentMethod && $paymentMethod->requiresSepaMandate()) {
                 $this->handleSepaMandate($member, $paymentMethod, $gym);
@@ -341,7 +340,6 @@ class WidgetService
 
             $member = $localPayment->member;
             $membership = $localPayment->membership;
-            $plan = $localPayment->membership->membershipPlan;
 
             $localPayment->update([
                 'mollie_status' => $molliePayment->status,
@@ -361,7 +359,7 @@ class WidgetService
 
                 $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
 
-                $this->sendWelcomeEmail($member, $gym, $plan);
+                app(MemberService::class)->sendWelcomeEmail($member, $gym);
 
                 $this->trackEvent($gym, 'mollie_payment_completed', 'payment_success', [
                     'member_id' => $member->id,
@@ -696,21 +694,6 @@ class WidgetService
     {
         $this->sendSepaMandateEmail($member, $paymentMethod, $gym);
         $this->notifyGymAboutSepaMandate($member, $paymentMethod, $gym);
-    }
-
-    /**
-     * Welcome E-Mail senden
-     */
-    public function sendWelcomeEmail(Member $member, Gym $gym, MembershipPlan $plan): void
-    {
-        try {
-            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym));
-        } catch (\Exception $e) {
-            logger()->error('Failed to send welcome email', [
-                'member_id' => $member->id,
-                'error' => $e->getMessage()
-            ]);
-        }
     }
 
     /**
