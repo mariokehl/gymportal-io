@@ -49,6 +49,22 @@ class Member extends Authenticatable
 
     protected $appends = ['initials', 'full_name', 'status_text', 'status_color'];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($member) {
+            // Capitalize first letter of specific fields
+            $fieldsToCapitalize = ['first_name', 'last_name', 'address', 'city'];
+
+            foreach ($fieldsToCapitalize as $field) {
+                if ($member->$field) {
+                    $member->$field = ucfirst(mb_strtolower($member->$field));
+                }
+            }
+        });
+    }
+
     public function gym()
     {
         return $this->belongsTo(Gym::class);
