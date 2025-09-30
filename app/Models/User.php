@@ -40,6 +40,22 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $appends = ['full_name'];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($user) {
+            // Capitalize first letter of specific fields
+            $fieldsToCapitalize = ['first_name', 'last_name'];
+
+            foreach ($fieldsToCapitalize as $field) {
+                if ($user->$field) {
+                    $user->$field = ucfirst(mb_strtolower($user->$field));
+                }
+            }
+        });
+    }
+
     // Überschreibe die Standard-Verifizierungs-E-Mail
     public function sendEmailVerificationNotification()
     {

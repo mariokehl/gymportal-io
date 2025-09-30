@@ -150,7 +150,7 @@
       </header>
 
       <!-- Page Content -->
-      <main class="p-6">
+      <main class="p-6 mb-20">
         <ImpersonationBanner />
         <slot />
       </main>

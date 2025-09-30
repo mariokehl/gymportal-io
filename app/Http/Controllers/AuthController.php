@@ -64,6 +64,11 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        // E-Mail zu Kleinbuchstaben konvertieren
+        $request->merge([
+            'email' => strtolower($request->email)
+        ]);
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',

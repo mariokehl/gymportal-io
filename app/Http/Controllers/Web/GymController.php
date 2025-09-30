@@ -106,7 +106,7 @@ class GymController extends Controller
         // Set current gym in user
         $user->update(['current_gym_id' => $request->gym_id]);
 
-        return redirect()->back();
+        return redirect()->route('dashboard');
     }
 
     /**
