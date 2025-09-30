@@ -54,20 +54,32 @@
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('name')">
+                  <div class="flex items-center">
+                    Name
+                    <ArrowUpDown class="w-4 h-4 ml-1" />
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mitgliedsnummer
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('member_number')">
+                  <div class="flex items-center">
+                    Mitgliedsnummer
+                    <ArrowUpDown class="w-4 h-4 ml-1" />
+                  </div>
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Letzter Besuch
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('last_check_in')">
+                  <div class="flex items-center">
+                    Letzter Besuch
+                    <ArrowUpDown class="w-4 h-4 ml-1" />
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vertragsende
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('contract_end_date')">
+                  <div class="flex items-center">
+                    Vertragsende
+                    <ArrowUpDown class="w-4 h-4 ml-1" />
+                  </div>
                 </th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Aktionen
@@ -287,7 +299,7 @@ import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import {
-  Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2
+  Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown
 } from 'lucide-vue-next'
 
 // Props
@@ -299,7 +311,9 @@ const props = defineProps({
 // Reactive data
 const filters = reactive({
   search: props.filters?.search || '',
-  status: props.filters?.status || ''
+  status: props.filters?.status || '',
+  sortBy: props.filters?.sortBy || 'member_number',
+  sortDirection: props.filters?.sortDirection || 'asc'
 })
 
 const showDeleteModal = ref(false)
@@ -316,6 +330,20 @@ const handleSearch = debounce(() => {
 }, 300)
 
 const handleFilter = () => {
+  router.get(route('members.index'), filters, {
+    preserveState: true,
+    replace: true
+  })
+}
+
+const handleSort = (column) => {
+  if (filters.sortBy === column) {
+    filters.sortDirection = filters.sortDirection === 'asc' ? 'desc' : 'asc'
+  } else {
+    filters.sortBy = column
+    filters.sortDirection = 'asc'
+  }
+
   router.get(route('members.index'), filters, {
     preserveState: true,
     replace: true

@@ -52,10 +52,122 @@ class MemberController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Order by latest joined
-        $query->orderBy('joined_date', 'desc');
+        // Sorting logic
+        $sortBy = $request->get('sortBy', 'member_number');
+        $sortDirection = $request->get('sortDirection', 'asc');
 
-        $members = $query->paginate(15)->withQueryString();
+        // Validate sort parameters
+        $allowedSortColumns = ['name', 'member_number', 'last_check_in', 'contract_end_date'];
+        $allowedDirections = ['asc', 'desc'];
+
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'member_number';
+        }
+
+        if (!in_array($sortDirection, $allowedDirections)) {
+            $sortDirection = 'asc';
+        }
+
+        // Apply sorting based on column using database-agnostic approach
+        switch ($sortBy) {
+            case 'name':
+                $query->orderBy('first_name', $sortDirection)
+                      ->orderBy('last_name', $sortDirection);
+                break;
+            case 'member_number':
+                $query->orderBy('member_number', $sortDirection);
+                break;
+            case 'last_check_in':
+                // Load members with their last check-in and sort in PHP for database compatibility
+                $members = $query->with(['checkIns' => function($q) {
+                    $q->orderBy('check_in_time', 'desc')->limit(1);
+                }])->get();
+
+                // Sort by last check-in time
+                $members = $members->sort(function($a, $b) use ($sortDirection) {
+                    $aTime = $a->checkIns->first()?->check_in_time;
+                    $bTime = $b->checkIns->first()?->check_in_time;
+
+                    // Handle nulls - put them at the end regardless of sort direction
+                    if ($aTime === null && $bTime === null) return 0;
+                    if ($aTime === null) return 1;
+                    if ($bTime === null) return -1;
+
+                    if ($sortDirection === 'desc') {
+                        return $bTime <=> $aTime;
+                    } else {
+                        return $aTime <=> $bTime;
+                    }
+                });
+
+                // Convert back to paginated collection
+                $perPage = 15;
+                $currentPage = request()->get('page', 1);
+                $offset = ($currentPage - 1) * $perPage;
+                $total = $members->count();
+
+                $members = $members->slice($offset, $perPage)->values();
+
+                // Create a manual paginator
+                $members = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $members,
+                    $total,
+                    $perPage,
+                    $currentPage,
+                    ['path' => request()->url(), 'pageName' => 'page']
+                );
+                $members->withQueryString();
+                break;
+            case 'contract_end_date':
+                // Load members with their active membership and sort in PHP for database compatibility
+                $members = $query->with(['memberships' => function($q) {
+                    $q->where('status', 'active')->orderBy('cancellation_date', 'desc')->limit(1);
+                }])->get();
+
+                // Sort by contract end date (cancellation_date)
+                $members = $members->sort(function($a, $b) use ($sortDirection) {
+                    $aDate = $a->memberships->first()?->cancellation_date;
+                    $bDate = $b->memberships->first()?->cancellation_date;
+
+                    // Handle nulls - put them at the end regardless of sort direction
+                    if ($aDate === null && $bDate === null) return 0;
+                    if ($aDate === null) return 1;
+                    if ($bDate === null) return -1;
+
+                    if ($sortDirection === 'desc') {
+                        return $bDate <=> $aDate;
+                    } else {
+                        return $aDate <=> $bDate;
+                    }
+                });
+
+                // Convert back to paginated collection
+                $perPage = 15;
+                $currentPage = request()->get('page', 1);
+                $offset = ($currentPage - 1) * $perPage;
+                $total = $members->count();
+
+                $members = $members->slice($offset, $perPage)->values();
+
+                // Create a manual paginator
+                $members = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $members,
+                    $total,
+                    $perPage,
+                    $currentPage,
+                    ['path' => request()->url(), 'pageName' => 'page']
+                );
+                $members->withQueryString();
+                break;
+            default:
+                $query->orderBy('member_number', 'asc');
+                break;
+        }
+
+        // Only paginate if we haven't already done manual pagination above
+        if (!in_array($sortBy, ['last_check_in', 'contract_end_date'])) {
+            $members = $query->paginate(15)->withQueryString();
+        }
 
         // Add additional data to each member
         $members->getCollection()->transform(function ($member) {
@@ -72,7 +184,7 @@ class MemberController extends Controller
 
         return Inertia::render('Members/Index', [
             'members' => $members,
-            'filters' => $request->only(['search', 'status'])
+            'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection'])
         ]);
     }
 
