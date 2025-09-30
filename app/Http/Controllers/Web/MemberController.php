@@ -614,6 +614,7 @@ class MemberController extends Controller
                 'email' => [
                     'required',
                     'email:rfc,dns', // Strengere E-Mail-Validierung
+                    'indisposable',
                     'max:255'
                 ],
             ], [
@@ -668,9 +669,9 @@ class MemberController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => 'Validierungsfehler',
-                'errors' => $e->errors(),
-                'error' => $e->validator->errors()->first('email')
+                'message' => $e->validator->errors()->first('email'),
+                'errors' => $e->validator->errors()->getMessages(),
+                'error' => 'Validierungsfehler'
             ], 422);
 
         } catch (\Exception $e) {
