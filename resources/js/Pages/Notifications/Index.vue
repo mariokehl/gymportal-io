@@ -33,28 +33,21 @@
 
         <div v-else>
           <div
-            v-for="(recipient, index) in notifications.data"
-            :key="recipient.id"
+            v-for="(notification, index) in notifications.data"
+            :key="notification.id"
             class="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
             :class="[
-              !recipient.is_read ? 'bg-indigo-50 border-l-4 border-indigo-500' : '',
+              !notification.read_at ? 'bg-indigo-50 border-l-4 border-indigo-500' : '',
               index !== notifications.data.length - 1 ? 'border-b border-gray-200' : ''
             ]"
-            @click="handleNotificationClick(recipient)"
+            @click="handleNotificationClick(notification)"
           >
-            <!-- Debug Info (temporär) -->
-            <div class="text-xs text-gray-400 mb-2 font-mono">
-              DEBUG: Type: {{ recipient.notification?.type || 'undefined' }} |
-              ID: {{ recipient.id }} |
-              Content: {{ recipient.notification?.content || 'undefined' }}
-            </div>
-
             <div class="flex items-start space-x-4">
               <!-- Status Indicator -->
               <div class="flex-shrink-0 mt-1">
                 <div
                   class="w-3 h-3 rounded-full"
-                  :class="recipient.is_read ? 'bg-gray-300' : 'bg-indigo-500'"
+                  :class="notification.read_at ? 'bg-gray-300' : 'bg-indigo-500'"
                 ></div>
               </div>
 
@@ -62,24 +55,24 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between">
                   <h4 class="text-lg font-medium text-gray-900">
-                    {{ recipient.notification.title }}
+                    {{ notification.data.title || 'Benachrichtigung' }}
                   </h4>
                   <span class="text-sm text-gray-500">
-                    {{ formatDate(recipient.created_at) }}
+                    {{ formatDate(notification.created_at) }}
                   </span>
                 </div>
 
                 <p class="text-gray-600 mt-1">
-                  {{ recipient.notification.content }}
+                  {{ notification.data.message || '' }}
                 </p>
 
                 <!-- Type Badge -->
                 <div class="mt-3">
                   <span
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    :class="getTypeBadgeClass(recipient.notification.type)"
+                    :class="getTypeBadgeClass(notification.data.type)"
                   >
-                    {{ getTypeText(recipient.notification.type) }}
+                    {{ getTypeText(notification.data.type) }}
                   </span>
                 </div>
               </div>
@@ -87,8 +80,8 @@
               <!-- Actions -->
               <div class="flex-shrink-0">
                 <button
-                  v-if="!recipient.is_read"
-                  @click.stop="markAsRead(recipient)"
+                  v-if="!notification.read_at"
+                  @click.stop="markAsRead(notification)"
                   class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                 >
                   Als gelesen markieren
@@ -117,7 +110,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Bell } from 'lucide-vue-next'
-import { Link, router } from '@inertiajs/vue3'
+import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import axios from 'axios'
@@ -130,14 +123,13 @@ const props = defineProps({
 })
 
 const unreadCount = computed(() => {
-  return props.notifications.data.filter(recipient => !recipient.is_read).length
+  return props.notifications.data.filter(notification => !notification.read_at).length
 })
 
-const markAsRead = async (recipient) => {
+const markAsRead = async (notification) => {
   try {
-    await axios.post(route('v1.notifications.mark-read', { recipient: recipient.id }))
-    recipient.is_read = true
-    recipient.read_at = new Date().toISOString()
+    await axios.post(route('v1.notifications.mark-read', { notification: notification.id }))
+    notification.read_at = new Date().toISOString()
   } catch (error) {
     console.error('Fehler beim Markieren als gelesen:', error)
   }
@@ -146,24 +138,23 @@ const markAsRead = async (recipient) => {
 const markAllAsRead = async () => {
   try {
     await axios.post(route('v1.notifications.mark-all-read'))
-    props.notifications.data.forEach(recipient => {
-      recipient.is_read = true
-      recipient.read_at = new Date().toISOString()
+    props.notifications.data.forEach(notification => {
+      notification.read_at = new Date().toISOString()
     })
   } catch (error) {
     console.error('Fehler beim Markieren als gelesen:', error)
   }
 }
 
-const handleNotificationClick = async (recipient) => {
+const handleNotificationClick = async (notification) => {
   try {
     // Markiere als gelesen
-    if (!recipient.is_read) {
-      await markAsRead(recipient)
+    if (!notification.read_at) {
+      await markAsRead(notification)
     }
 
     // Navigiere zum entsprechenden Link
-    const link = getNotificationLink(recipient.notification)
+    const link = getNotificationLink(notification)
 
     if (link) {
       router.visit(link)
@@ -185,47 +176,44 @@ const handleNotificationClick = async (recipient) => {
 
 const getNotificationLink = (notification) => {
   try {
-    switch (notification.type) {
-      case 'member_registered':
-        const memberMatch = notification.content.match(/ID #(\d+)/)
+    const data = notification.data
+    const type = data.type
 
-        if (memberMatch && route().has('members.show')) {
-          const memberRoute = route('members.show', memberMatch[1])
-          return memberRoute
+    switch (type) {
+      case 'member_registered':
+        const memberId = data.member_id
+
+        if (memberId && route().has('members.show')) {
+          return route('members.show', memberId)
         }
         if (route().has('members.index')) {
-          const memberIndexRoute = route('members.index')
-          return memberIndexRoute
+          return route('members.index')
         }
         break
 
       case 'contract_expiring':
         if (route().has('contracts.index')) {
-          const contractRoute = route('contracts.index')
-          return contractRoute
+          return route('contracts.index')
         }
         break
 
       case 'payment_reminder':
-        const paymentMatch = notification.content.match(/ID #(\d+)/)
+        const paymentId = data.payment_id
 
-        if (paymentMatch && route().has('finances.show')) {
-          const financeShowRoute = route('finances.show', paymentMatch[1])
-          return financeShowRoute
+        if (paymentId && route().has('finances.show')) {
+          return route('finances.show', paymentId)
         }
         if (route().has('finances.index')) {
-          const financeIndexRoute = route('finances.index')
-          return financeIndexRoute
+          return route('finances.index')
         }
         break
 
       default:
-        console.log('Using default notifications route for type:', notification.type)
+        console.log('Using default notifications route for type:', type)
     }
 
     // Fallback zur Notifications-Seite
-    const fallbackRoute = route('notifications.index')
-    return fallbackRoute
+    return route('notifications.index')
 
   } catch (error) {
     console.error('Route generation failed:', error)

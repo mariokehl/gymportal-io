@@ -20,7 +20,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
     ])->group(static function (): void {
         Route::name('notifications.')->group(static function (): void {
             Route::get('/notifications/unread', [NotificationController::class, 'unread'])->name('unread');
-            Route::post('/notifications/{recipient}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
             Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
         });
         Route::name('mollie.')->group(static function (): void {

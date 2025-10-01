@@ -20,4 +20,5 @@ class MemberRegistered
         public string $registrationSource = 'unknown',
         public array $additionalData = []
     ) {}
+
 }

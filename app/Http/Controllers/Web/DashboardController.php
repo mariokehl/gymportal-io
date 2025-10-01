@@ -7,7 +7,9 @@ use App\Models\Member;
 use App\Models\User;
 use App\Services\MemberService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -75,11 +77,27 @@ class DashboardController extends Controller
         // Calculate statistics
         $stats = $this->memberService->getDashboardStats($user->current_gym_id);
 
+        // Get latest notifications
+        $notifications = $user->notifications()
+            ->limit(5)
+            ->get()
+            ->map(function (DatabaseNotification $notification) {
+                $data = $notification->data;
+                return [
+                    'id' => $notification->id,
+                    'title' => $data['title'] ?? 'Benachrichtigung',
+                    'message' => $data['message'] ?? '',
+                    'type' => $data['type'] ?? 'system',
+                    'created_at' => $notification->created_at->diffForHumans(),
+                    'read_at' => $notification->read_at,
+                ];
+            });
+
         return Inertia::render('Dashboard/Index', [
             'user' => $user,
             'members' => $members,
             'stats' => $stats,
-            'notifications' => [], // tbd
+            'notifications' => $notifications,
             'totalMembers' => $stats['detailed_stats']['total_members'],
             'filters' => [
                 'search' => request('search'),

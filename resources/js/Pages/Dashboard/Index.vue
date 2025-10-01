@@ -113,17 +113,33 @@
             <div class="bg-white p-6 rounded-lg shadow-sm">
                 <h2 class="text-lg font-semibold mb-4">Benachrichtigungen</h2>
                 <div class="space-y-4">
-                    <div v-for="notification in notifications" :key="notification.id"
-                        class="border-b border-gray-100 pb-3 last:border-b-0">
-                        <div class="flex justify-between items-start">
-                            <p class="text-sm">{{ notification.text }}</p>
-                            <span class="text-xs text-gray-500">{{ notification.time }}</span>
+                    <component :is="notification.link ? Link : 'div'"
+                        v-for="notification in notifications"
+                        :key="notification.id"
+                        :href="notification.link"
+                        class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
+                        :class="{ 'hover:bg-gray-50 -mx-2 px-2 py-2 rounded transition-colors cursor-pointer': notification.link }"
+                    >
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium" :class="notification.read_at ? 'text-gray-600' : 'text-gray-900'">
+                                    {{ notification.title }}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1 truncate">{{ notification.message }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span class="text-xs text-gray-400">{{ notification.created_at }}</span>
+                                <div v-if="!notification.read_at" class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                            </div>
                         </div>
+                    </component>
+                    <div v-if="notifications.length === 0" class="text-center text-sm text-gray-500 py-4">
+                        Keine Benachrichtigungen vorhanden.
                     </div>
-                    <span v-if="notifications.length === 0" class="text-center">Keine Benachrichtigungen vorhanden.</span>
                 </div>
 
                 <Link
+                    v-if="notifications.length > 0"
                     :href="route('notifications.index')"
                     class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors"
                 >

@@ -26,8 +26,6 @@ class DatabaseSeeder extends Seeder
             CourseScheduleSeeder::class,
             CourseBookingSeeder::class,
             CheckInSeeder::class,
-            NotificationSeeder::class,
-            NotificationRecipientSeeder::class,
             UpdateUsersCurrentGymSeeder::class
         ]);
 
