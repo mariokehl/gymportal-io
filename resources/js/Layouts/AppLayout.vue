@@ -31,6 +31,7 @@
           :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
+          v-if="isOwnerOrAdmin"
           :icon="DollarSign"
           label="Finanzen"
           :active="route().current('finances.index')"
@@ -38,6 +39,7 @@
           :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
+          v-if="isOwnerOrAdmin"
           :icon="Bell"
           label="Benachrichtigungen"
           :active="route().current('notifications.index')"
@@ -55,7 +57,7 @@
         <SidebarItem
           v-if="isAdmin"
           :icon="UserCheck"
-          label="Benutzersimulation"
+          label="Benutzer"
           :active="route().current('impersonate.*')"
           :href="route('impersonate.index')"
         />
@@ -63,6 +65,7 @@
         <!-- Einstellungen - mit Abstand wenn Admin -->
         <div :class="{ 'mt-auto': !isAdmin }">
           <SidebarItem
+            v-if="isOwnerOrAdmin"
             :icon="Settings"
             label="Einstellungen"
             :active="route().current('settings.index')"
@@ -223,6 +226,11 @@ const canAccessPremiumFeatures = computed(() => {
 // Admin Check
 const isAdmin = computed(() => {
   return user.value?.role_id === 1
+})
+
+// Owner or Admin Check
+const isOwnerOrAdmin = computed(() => {
+  return user.value?.role_id === 1 || user.value?.role_id === 2
 })
 
 // Methods

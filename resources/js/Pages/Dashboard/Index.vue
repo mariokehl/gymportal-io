@@ -8,7 +8,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-white p-6 rounded-lg shadow-sm">
                 <div class="flex justify-between items-start">
-                    <div>
+                    <div :class="{ 'blur-sm select-none': !isOwnerOrAdmin && stat.title === 'Monatsumsatz' }">
                         <p class="text-sm text-gray-500">{{ stat.title }}</p>
                         <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
                         <span :class="[
@@ -138,7 +138,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Link } from '@inertiajs/vue3'
+import { Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
@@ -148,6 +148,7 @@ import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 
 // Reactive data
 const searchTerm = ref('')
+const page = usePage()
 
 // Computed properties
 const filteredMembers = computed(() => {
@@ -156,6 +157,11 @@ const filteredMembers = computed(() => {
         member.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         member.email.toLowerCase().includes(searchTerm.value.toLowerCase())
     )
+})
+
+const isOwnerOrAdmin = computed(() => {
+    const user = page.props.auth.user
+    return user?.role_id === 1 || user?.role_id === 2
 })
 
 // Props

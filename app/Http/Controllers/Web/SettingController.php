@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\GymUser;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -168,12 +171,49 @@ class SettingController extends Controller
         // Überprüfen ob der Benutzer berechtigt ist, Team-Mitglieder hinzuzufügen
         $this->authorize('update', $currentGym);
 
+        // E-Mail zu Kleinbuchstaben konvertieren
+        $request->merge([
+            'email' => strtolower($request->email)
+        ]);
+
         $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email|indisposable|max:255',
+            'first_name' => 'required_without:user_exists|string|max:255',
+            'last_name' => 'required_without:user_exists|string|max:255',
             'role' => 'required|in:admin,staff,trainer'
         ]);
 
+        // Versuche, den Benutzer zu finden oder zu erstellen
         $targetUser = User::where('email', $validated['email'])->first();
+
+        if (!$targetUser) {
+            // Validierung für neue Benutzer
+            $request->validate([
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+            ]);
+
+            // Hole die entsprechende Role basierend auf der Gym-Rolle
+            $role = Role::where('slug', $validated['role'])->first();
+
+            if (!$role) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ungültige Rolle.'
+                ], 422);
+            }
+
+            // Neuen Benutzer erstellen
+            $targetUser = User::create([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'email_verified_at' => now(),
+                'password' => Hash::make(Str::random(32)), // Zufälliges temporäres Passwort
+                'role_id' => $role->id,
+                'current_gym_id' => $currentGym->id,
+            ]);
+        }
 
         // Überprüfen ob der Benutzer bereits im Team ist
         $existingGymUser = GymUser::where('gym_id', $currentGym->id)
@@ -195,7 +235,19 @@ class SettingController extends Controller
 
         return response()->json([
             'success' => true,
-            'gym_user' => $gymUser,
+            'gym_user' => [
+                'id' => $gymUser->id,
+                'gym_id' => $gymUser->gym_id,
+                'user_id' => $gymUser->user_id,
+                'role' => $gymUser->role,
+                'created_at' => $gymUser->created_at,
+                'user' => [
+                    'id' => $targetUser->id,
+                    'first_name' => $targetUser->first_name,
+                    'last_name' => $targetUser->last_name,
+                    'email' => $targetUser->email,
+                ]
+            ],
             'message' => 'Benutzer wurde erfolgreich zum Team hinzugefügt.'
         ]);
     }
