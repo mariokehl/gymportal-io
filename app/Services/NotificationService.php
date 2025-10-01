@@ -7,6 +7,9 @@ use App\Models\NotificationRecipient;
 use App\Events\NewNotificationEvent;
 use App\Models\User;
 
+/**
+ * @deprecated since v0.0.29
+ */
 class NotificationService
 {
     public function createNotification(array $data)
