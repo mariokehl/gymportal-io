@@ -90,22 +90,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { Bell } from 'lucide-vue-next'
 import { Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
+import { useNotifications } from '@/composables/useNotifications'
 
 const isOpen = ref(false)
 const notifications = ref([])
 const loading = ref(false)
 const popupContainer = ref(null)
 
+// Use the WebSocket notifications composable
+const {
+  notifications: realtimeNotifications,
+  markAsRead: markRealtimeAsRead,
+  markAllAsRead: markAllRealtimeAsRead
+} = useNotifications()
+
 const unreadCount = computed(() => {
   return notifications.value.filter(n => !n.is_read).length
 })
-
-// WebSocket connection
-let echo = null
 
 const togglePopup = async () => {
   isOpen.value = !isOpen.value
@@ -137,6 +142,7 @@ const markAllAsRead = async () => {
     notifications.value.forEach(notification => {
       notification.is_read = true
     })
+    markAllRealtimeAsRead()
   } catch (error) {
     console.error('Fehler beim Markieren als gelesen:', error)
   }
@@ -146,8 +152,13 @@ const handleNotificationClick = async (notification) => {
   // Markiere als gelesen
   if (!notification.is_read) {
     try {
-      await axios.post(route('v1.notifications.mark-read', { recipient: notification.id }))
+      await axios.post(route('v1.notifications.mark-read', { notification: notification.id }))
       notification.is_read = true
+
+      // Mark realtime notification as read if it exists
+      if (notification.id) {
+        markRealtimeAsRead(notification.id)
+      }
     } catch (error) {
       console.error('Fehler beim Markieren als gelesen:', error)
     }
@@ -168,26 +179,37 @@ const handleClickOutside = (event) => {
   }
 }
 
-onMounted(() => {
-  // WebSocket ist für Deployment deaktiviert
-  if (import.meta.env.DEV && window.Echo && window.Laravel && window.Laravel.user) {
-    try {
-      echo = window.Echo.private(`notifications.${window.Laravel.user.id}`)
-        .listen('NewNotificationEvent', (e) => {
-          notifications.value.unshift(e.notification)
+// Watch for new realtime notifications and merge them
+watch(realtimeNotifications, (newNotifications) => {
+  if (newNotifications.length > 0) {
+    // Get the latest realtime notification
+    const latestNotification = newNotifications[0]
 
-          // Limit to 10 notifications in popup
-          if (notifications.value.length > 10) {
-            notifications.value = notifications.value.slice(0, 10)
-          }
-        })
-    } catch (error) {
-      console.error('WebSocket connection failed:', error)
+    // Check if notification already exists in the list
+    const exists = notifications.value.some(n => n.id === latestNotification.id)
+
+    if (!exists) {
+      // Transform realtime notification to match API format
+      const transformedNotification = {
+        id: latestNotification.id || `realtime-${Date.now()}`,
+        title: latestNotification.title || 'Neue Benachrichtigung',
+        content: latestNotification.message || '',
+        is_read: false,
+        created_at: latestNotification.created_at || new Date().toISOString(),
+        link: latestNotification.data?.link || null,
+      }
+
+      notifications.value.unshift(transformedNotification)
+
+      // Limit to 10 notifications in popup
+      if (notifications.value.length > 10) {
+        notifications.value = notifications.value.slice(0, 10)
+      }
     }
-  } else {
-    console.log('WebSocket disabled for production deployment')
   }
+}, { deep: true })
 
+onMounted(() => {
   // Add click outside listener
   document.addEventListener('mousedown', handleClickOutside)
 
@@ -196,10 +218,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (echo) {
-    echo.stopListening('NewNotificationEvent')
-  }
-
   document.removeEventListener('mousedown', handleClickOutside)
 })
 

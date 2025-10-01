@@ -8,7 +8,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-white p-6 rounded-lg shadow-sm">
                 <div class="flex justify-between items-start">
-                    <div>
+                    <div :class="{ 'blur-sm select-none': !isOwnerOrAdmin && stat.title === 'Monatsumsatz' }">
                         <p class="text-sm text-gray-500">{{ stat.title }}</p>
                         <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
                         <span :class="[
@@ -113,17 +113,33 @@
             <div class="bg-white p-6 rounded-lg shadow-sm">
                 <h2 class="text-lg font-semibold mb-4">Benachrichtigungen</h2>
                 <div class="space-y-4">
-                    <div v-for="notification in notifications" :key="notification.id"
-                        class="border-b border-gray-100 pb-3 last:border-b-0">
-                        <div class="flex justify-between items-start">
-                            <p class="text-sm">{{ notification.text }}</p>
-                            <span class="text-xs text-gray-500">{{ notification.time }}</span>
+                    <component :is="notification.link ? Link : 'div'"
+                        v-for="notification in notifications"
+                        :key="notification.id"
+                        :href="notification.link"
+                        class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
+                        :class="{ 'hover:bg-gray-50 -mx-2 px-2 py-2 rounded transition-colors cursor-pointer': notification.link }"
+                    >
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium" :class="notification.read_at ? 'text-gray-600' : 'text-gray-900'">
+                                    {{ notification.title }}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1 truncate">{{ notification.message }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span class="text-xs text-gray-400">{{ notification.created_at }}</span>
+                                <div v-if="!notification.read_at" class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                            </div>
                         </div>
+                    </component>
+                    <div v-if="notifications.length === 0" class="text-center text-sm text-gray-500 py-4">
+                        Keine Benachrichtigungen vorhanden.
                     </div>
-                    <span v-if="notifications.length === 0" class="text-center">Keine Benachrichtigungen vorhanden.</span>
                 </div>
 
                 <Link
+                    v-if="notifications.length > 0"
                     :href="route('notifications.index')"
                     class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors"
                 >
@@ -138,7 +154,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Link } from '@inertiajs/vue3'
+import { Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
@@ -148,6 +164,7 @@ import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 
 // Reactive data
 const searchTerm = ref('')
+const page = usePage()
 
 // Computed properties
 const filteredMembers = computed(() => {
@@ -156,6 +173,11 @@ const filteredMembers = computed(() => {
         member.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         member.email.toLowerCase().includes(searchTerm.value.toLowerCase())
     )
+})
+
+const isOwnerOrAdmin = computed(() => {
+    const user = page.props.auth.user
+    return user?.role_id === 1 || user?.role_id === 2
 })
 
 // Props

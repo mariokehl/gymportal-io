@@ -3,20 +3,20 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
-use App\Models\NotificationRecipient;
-use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 class NotificationController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
-        $notifications = NotificationRecipient::with(['notification'])
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
+        $notifications = $user->notifications()
             ->paginate(20);
 
         return Inertia::render('Notifications/Index', [
@@ -26,74 +26,91 @@ class NotificationController extends Controller
 
     public function unread()
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
-        $notifications = NotificationRecipient::with(['notification'])
-            ->where('user_id', $user->id)
-            ->unread()
-            ->orderBy('created_at', 'desc')
+        $notifications = $user->unreadNotifications()
             ->limit(10)
             ->get()
-            ->map(function ($recipient) {
+            ->map(function (DatabaseNotification $notification) {
+                $data = $notification->data;
                 return [
-                    'id' => $recipient->id,
-                    'title' => $recipient->notification->title,
-                    'content' => $recipient->notification->content,
-                    'type' => $recipient->notification->type,
-                    'created_at' => $recipient->created_at->diffForHumans(),
-                    'link' => $this->getNotificationLink($recipient->notification),
-                    'is_read' => $recipient->is_read,
+                    'id' => $notification->id,
+                    'title' => $data['title'] ?? 'Benachrichtigung',
+                    'message' => $data['message'] ?? '',
+                    'type' => $data['type'] ?? 'system',
+                    'created_at' => $notification->created_at->diffForHumans(),
+                    'link' => $this->getNotificationLink($notification),
+                    'read_at' => $notification->read_at,
                 ];
             });
 
         return response()->json($notifications);
     }
 
-    public function markAsRead(NotificationRecipient $recipient)
+    public function markAsRead(DatabaseNotification $notification)
     {
-        if ($recipient->user_id !== auth()->id()) {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($notification->notifiable_id !== $user->id) {
             abort(403);
         }
 
-        $recipient->markAsRead();
+        $notification->markAsRead();
 
         return response()->json(['success' => true]);
     }
 
     public function markAllAsRead()
     {
-        NotificationRecipient::where('user_id', auth()->id())
-            ->unread()
-            ->update([
-                'is_read' => true,
-                'read_at' => now()
-            ]);
+        /** @var User $user */
+        $user = Auth::user();
+
+        $user->unreadNotifications->markAsRead();
 
         return response()->json(['success' => true]);
     }
 
-    private function getNotificationLink($notification)
+    private function getNotificationLink(DatabaseNotification $notification)
     {
-        // Beispiel-Logik für Links basierend auf Notification-Typ
-        switch ($notification->type) {
+        $data = $notification->data;
+        $type = $data['type'] ?? null;
+
+        // Handle different notification types
+        switch ($type) {
             case 'member_registered':
-                // Extrahiere Member-ID aus Content oder verwende eine andere Methode
-                if (preg_match('/ID #(\d+)/', $notification->content, $matches)) {
-                    return route('members.show', $matches[1]);
+                $memberId = $data['member']['id'] ?? null;
+                if ($memberId && Route::has('members.show')) {
+                    return route('members.show', $memberId);
                 }
-                return route('members.index');
+                if (Route::has('members.index')) {
+                    return route('members.index');
+                }
+                break;
 
             case 'contract_expiring':
-                return route('contracts.index');
+                if (Route::has('contracts.index')) {
+                    return route('contracts.index');
+                }
+                break;
 
             case 'payment_reminder':
-                if (preg_match('/ID #(\d+)/', $notification->content, $matches)) {
-                    return route('payments.show', $matches[1]);
+                $paymentId = $data['payment_id'] ?? null;
+                if ($paymentId && Route::has('payments.show')) {
+                    return route('payments.show', $paymentId);
                 }
-                return route('finances.index');
+                if (Route::has('finances.index')) {
+                    return route('finances.index');
+                }
+                break;
 
             default:
-                return route('notifications.index');
+                if (Route::has('notifications.index')) {
+                    return route('notifications.index');
+                }
         }
+
+        return null;
     }
 }

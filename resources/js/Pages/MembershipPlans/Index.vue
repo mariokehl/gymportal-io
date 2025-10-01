@@ -25,6 +25,7 @@
         <p class="text-gray-600 mt-1">Verwalten Sie die Vertragsoptionen für Ihr Fitnessstudio</p>
       </div>
       <Link
+        v-if="isOwnerOrAdmin"
         :href="route('contracts.create')"
         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
       >
@@ -91,17 +92,20 @@
         <div class="flex space-x-2">
           <Link
             :href="route('contracts.show', plan.id)"
-            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
+            :class="isOwnerOrAdmin ? 'flex-1' : 'w-full'"
+            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
           >
             Anzeigen
           </Link>
           <Link
+            v-if="isOwnerOrAdmin"
             :href="route('contracts.edit', plan.id)"
             class="flex-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
           >
             Bearbeiten
           </Link>
           <button
+            v-if="isOwnerOrAdmin"
             @click="confirmDelete(plan)"
             class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
           >
@@ -115,8 +119,9 @@
     <div v-else class="text-center py-12">
       <FilePlus class="w-16 h-16 text-gray-400 mx-auto mb-4" />
       <h3 class="text-lg font-medium text-gray-900 mb-2">Keine Verträge vorhanden</h3>
-      <p class="text-gray-600 mb-6">Erstellen Sie Ihren ersten Mitgliedschaftsplan für Ihr Fitnessstudio.</p>
+      <p class="text-gray-600 mb-6">{{ isOwnerOrAdmin ? 'Erstellen Sie Ihren ersten Mitgliedschaftsplan für Ihr Fitnessstudio.' : 'Es wurden noch keine Mitgliedschaftspläne erstellt.' }}</p>
       <Link
+        v-if="isOwnerOrAdmin"
         :href="route('contracts.create')"
         class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
       >
@@ -180,15 +185,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Plus, FilePlus, AlertTriangle } from 'lucide-vue-next'
+
+const page = usePage()
 
 // Props
 const props = defineProps({
   membershipPlans: Array,
   flash: Object
+})
+
+// Computed properties
+const isOwnerOrAdmin = computed(() => {
+  const user = page.props.auth.user
+  return user?.role_id === 1 || user?.role_id === 2
 })
 
 // Reactive data

@@ -17,7 +17,7 @@ Broadcast::channel('notifications.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
-// Optional: Gym-wide notifications
+// Gym-wide notifications
 Broadcast::channel('gym.{gymId}', function ($user, $gymId) {
-    return $user->gym_id === (int) $gymId;
+    return $user->current_gym_id === (int) $gymId;
 });

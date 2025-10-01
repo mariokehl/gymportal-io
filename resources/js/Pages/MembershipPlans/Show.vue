@@ -36,7 +36,7 @@
                 {{ membershipPlan.description }}
               </p>
             </div>
-            <div class="flex space-x-2">
+            <div v-if="isOwnerOrAdmin" class="flex space-x-2">
               <Link
                 :href="route('contracts.edit', membershipPlan.id)"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
@@ -152,7 +152,7 @@
             </div>
             <div class="flex justify-between items-center">
               <span class="text-gray-600">Monatlicher Umsatz</span>
-              <span class="text-lg font-semibold text-green-600">
+              <span class="text-lg font-semibold text-green-600" :class="{ 'blur-sm select-none': !isOwnerOrAdmin }">
                 {{ formatMonthlyRevenue() }}
               </span>
             </div>
@@ -166,7 +166,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div v-if="isOwnerOrAdmin" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Aktionen</h3>
           <div class="space-y-3">
             <Link
@@ -252,16 +252,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Edit, Trash2, Users, AlertTriangle } from 'lucide-vue-next'
+
+const page = usePage()
 
 // Props
 const props = defineProps({
   membershipPlan: Object,
   activeMemberships: Array,
   activeMembersCount: Number
+})
+
+// Computed properties
+const isOwnerOrAdmin = computed(() => {
+  const user = page.props.auth.user
+  return user?.role_id === 1 || user?.role_id === 2
 })
 
 // Reactive data
