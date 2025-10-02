@@ -59,7 +59,7 @@ class Member extends Authenticatable
 
             foreach ($fieldsToCapitalize as $field) {
                 if ($member->$field) {
-                    $member->$field = ucfirst(mb_strtolower($member->$field));
+                    $member->$field = ucfirst($member->$field);
                 }
             }
         });

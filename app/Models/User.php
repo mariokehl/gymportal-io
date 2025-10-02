@@ -50,7 +50,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
             foreach ($fieldsToCapitalize as $field) {
                 if ($user->$field) {
-                    $user->$field = ucfirst(mb_strtolower($user->$field));
+                    $user->$field = ucfirst($user->$field);
                 }
             }
         });
