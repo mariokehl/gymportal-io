@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\CreateMollieMandate;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Payment;
@@ -314,10 +315,21 @@ class MollieService
     {
         $client = $this->initializeClient($gym);
 
-        $mandates = $client->customers->get($customerId)->mandates();
-        $mandate = collect($mandates)->firstWhere('status', 'valid');
+        try {
+            $mandates = $client->customers->get($customerId)->mandates();
+            $mandate = collect($mandates)->firstWhere('status', 'valid');
 
-        return $mandate;
+            return $mandate;
+
+        } catch (ApiException $e) {
+            Log::error('Failed to retrieve Mollie mandate for customer', [
+                'customer_id' => $customerId,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+            ]);
+        }
+
+        return null;
     }
 
     /**
@@ -588,16 +600,17 @@ class MollieService
          * @var Mandate $mandate
          */
         if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && !$paymentMethod->mollie_mandate_id) {
-            try {
-                $mandate = $this->createMandate($member->gym, $customerId, $paymentMethod, $member->fullName());
-            } catch (ApiException $e) {
-                Log::warning('Mollie mandate not immediately available, mandate creation postponed', [
-                    'customer_id' => $customerId,
-                    'member_id' => $member->id,
-                    'error' => $e->getMessage(),
-                    'time' => now()->format('H:i:s')
-                ]);
-            }
+            // Dispatch job to create mandate asynchronously with retry logic
+            // This handles race conditions where Mollie customer might not be immediately available
+            CreateMollieMandate::dispatch($member, $paymentMethod, $customerId)
+                ->onQueue('mollie')
+                ->delay(now()->addSeconds(5)); // Initial delay to allow customer to be fully created
+
+            Log::info('Mollie mandate creation job dispatched', [
+                'customer_id' => $customerId,
+                'member_id' => $member->id,
+                'payment_method_id' => $paymentMethod->id,
+            ]);
         }
 
         DB::beginTransaction();
@@ -619,7 +632,8 @@ class MollieService
                 $this->createFirstPayment($member->gym, $customerId, $paymentData);
             }
 
-            $mandateId = $mandate->id ?? $this->getMandate($member->gym, $customerId)?->id;
+            // Check if mandate already exists (not dispatched to queue)
+            $mandateId = $this->getMandate($member->gym, $customerId)?->id;
             $status = $mandateId ? 'active' : 'pending';
             if ($status === 'active') {
                 $member->update(['status' => 'active']);
