@@ -142,6 +142,20 @@ class MollieService
     }
 
     /**
+     * Get customer
+     *
+     * @param Gym $gym
+     * @param string $customerId
+     * @return Customer
+     */
+    public function getCustomer(Gym $gym, string $customerId)
+    {
+        $client = $this->initializeClient($gym);
+
+        return $client->customers->get($customerId);
+    }
+
+    /**
      * Create a new first payment
      */
     public function createFirstPayment(Gym $gym, string $customerId, array $paymentData): MolliePayment
@@ -336,15 +350,16 @@ class MollieService
      * Create a mandate for a specific customer
      *
      * @param Gym $gym
-     * @param string $customerId Provide the ID of the related customer.
+     * @param Customer $customerId Provide the ID of the related customer.
      * @param PaymentMethod $method Payment method of the mandate. SEPA Direct Debit and PayPal mandates can be created directly. Possible values: creditcard directdebit paypal
      * @param string $consumerName The customer's name.
      * @return void
      */
-    public function createMandate(Gym $gym, string $customerId, PaymentMethod $paymentMethod, string $consumerName): Mandate
+    public function createMandate(Gym $gym, Customer $customer, PaymentMethod $paymentMethod, string $consumerName): Mandate
     {
         $client = $this->initializeClient($gym);
-        $mandate = $client->customers->get($customerId)->createMandate([
+
+        $mandate = $client->mandates->createFor($customer, [
             'method' => MandateMethod::getForFirstPaymentMethod(str_replace('mollie_', '', $paymentMethod->type)),
             'consumerName' => $paymentMethod->account_holder ?? $consumerName,
             'consumerAccount' => $paymentMethod->iban,
@@ -354,6 +369,20 @@ class MollieService
         ]);
 
         return $mandate;
+    }
+
+    /**
+     * Revoke a mandate
+     *
+     * @param Gym $gym
+     * @param Customer $customer
+     * @param string $mandateId
+     * @return void
+     */
+    public function revokeMandate(Gym $gym, Customer $customer, string $mandateId): void
+    {
+        $client = $this->initializeClient($gym);
+        $client->mandates->revokeFor($customer, $mandateId);
     }
 
     /**
@@ -576,10 +605,12 @@ class MollieService
 
     /**
      * Takes care of manually adding or updating Mollie payment methods in the member file
+     *
+     * This method is fail-safe: after execution, there will be both a customer and (where applicable) a mandate.
+     * For mandate types that require asynchronous creation, the mandate will be dispatched to a queue job.
      */
     public function handleMolliePaymentMethod(Member $member, PaymentMethod $paymentMethod): bool|null
     {
-        //$paymentMethod->type = 'mollie_directdebit'; // For testing purposes
         $mandateType = $member->gym->getMollieMandateType(str_replace('mollie_', '', $paymentMethod->type));
 
         if (
@@ -587,11 +618,24 @@ class MollieService
             !$mandateType
         ) return null;
 
+        // Ensure customer exists - create if not present
         if (!$paymentMethod->mollie_customer_id) {
             /** @var Customer $customer */
             $customer = $this->createCustomer($member->gym, $member->fullName(), $member->email);
+            $customerId = $customer->id;
+        } else {
+            $customerId = $paymentMethod->mollie_customer_id;
         }
-        $customerId = $customer->id ?? $paymentMethod->mollie_customer_id;
+
+        // Verify customer exists with retry logic
+        $customer = retry(5, function () use ($member, $customerId) {
+            return $this->getCustomer($member->gym, $customerId);
+        }, 2000);
+
+        // Fail-safe check: customer must exist
+        if (!$customer) {
+            throw new Exception("Failed to create or retrieve Mollie customer for member {$member->id}");
+        }
 
         /**
          * It is only possible to create mandates for IBANs and PayPal billing agreements with this endpoint.
@@ -599,18 +643,36 @@ class MollieService
          *
          * @var Mandate $mandate
          */
-        if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && !$paymentMethod->mollie_mandate_id) {
-            // Dispatch job to create mandate asynchronously with retry logic
-            // This handles race conditions where Mollie customer might not be immediately available
-            CreateMollieMandate::dispatch($member, $paymentMethod, $customerId)
-                ->onQueue('mollie')
-                ->delay(now()->addSeconds(5)); // Initial delay to allow customer to be fully created
+        $mandate = null;
+        if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL])) {
+            try {
+                // Revoke any existing mandate before creating a new one
+                if ($paymentMethod->mollie_mandate_id) {
+                    $this->revokeMandate($member->gym, $customer, $paymentMethod->mollie_mandate_id);
 
-            Log::info('Mollie mandate creation job dispatched', [
-                'customer_id' => $customerId,
-                'member_id' => $member->id,
-                'payment_method_id' => $paymentMethod->id,
-            ]);
+                    Log::info('Existing Mollie mandate revoked', [
+                        'customer_id' => $customer->id,
+                        'member_id' => $member->id,
+                        'mandate_id' => $paymentMethod->mollie_mandate_id,
+                    ]);
+                }
+
+                // Create a mandate for a customer
+                $mandate = $this->createMandate($member->gym, $customer, $paymentMethod, $member->fullName());
+
+            } catch (ApiException $e) {
+                // Dispatch job to create mandate asynchronously with retry logic
+                // This handles race conditions where Mollie customer might not be immediately available
+                CreateMollieMandate::dispatch($member, $paymentMethod, $customer)
+                    ->onQueue('mollie')
+                    ->delay(now()->addSeconds(5)); // Initial delay to allow customer to be fully created
+
+                Log::info('Mollie mandate creation job dispatched', [
+                    'customer_id' => $customer->id,
+                    'member_id' => $member->id,
+                    'payment_method_id' => $paymentMethod->id,
+                ]);
+            }
         }
 
         DB::beginTransaction();
@@ -629,11 +691,11 @@ class MollieService
                         'member_id' => $member->id
                     ]
                 ];
-                $this->createFirstPayment($member->gym, $customerId, $paymentData);
+                $this->createFirstPayment($member->gym, $customer->id, $paymentData);
             }
 
             // Check if mandate already exists (not dispatched to queue)
-            $mandateId = $this->getMandate($member->gym, $customerId)?->id;
+            $mandateId = $mandate?->id ?? $this->getMandate($member->gym, $customer->id)?->id;
             $status = $mandateId ? 'active' : 'pending';
             if ($status === 'active') {
                 $member->update(['status' => 'active']);
@@ -642,19 +704,35 @@ class MollieService
 
                 $paymentMethod->update([
                     'status' => $status,
-                    'mollie_customer_id' => $customerId,
+                    'mollie_customer_id' => $customer->id,
                     'mollie_mandate_id' => $mandateId,
                     'iban' => ''
                 ]);
                 $paymentMethod->activateSepaMandate();
             } else {
+                // Even if mandate is pending, ensure customer ID is stored
                 $paymentMethod->update([
                     'status' => $status,
-                    'mollie_customer_id' => $customerId,
+                    'mollie_customer_id' => $customer->id,
                 ]);
             }
 
             DB::commit();
+
+            // Fail-safe verification: ensure customer is stored in payment method
+            $paymentMethod->refresh();
+            if (!$paymentMethod->mollie_customer_id) {
+                throw new Exception("Payment method customer ID not saved for member {$member->id}");
+            }
+
+            // For mandate types that require synchronous creation, verify mandate exists
+            if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && !$mandateId && !$mandate) {
+                Log::warning('Mandate was dispatched to queue for asynchronous creation', [
+                    'member_id' => $member->id,
+                    'customer_id' => $customer->id,
+                    'payment_method_id' => $paymentMethod->id,
+                ]);
+            }
 
             return true;
 
@@ -662,10 +740,15 @@ class MollieService
             DB::rollback();
 
             // Log the error for debugging
-            Log::error('Handling of mollie payment method failed: ' . $e->getMessage());
-        }
+            Log::error('Handling of mollie payment method failed: ' . $e->getMessage(), [
+                'member_id' => $member->id,
+                'customer_id' => $customer->id ?? null,
+                'payment_method_id' => $paymentMethod->id,
+                'exception' => $e,
+            ]);
 
-        return false;
+            throw $e;
+        }
     }
 
     /**
