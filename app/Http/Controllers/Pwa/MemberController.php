@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Pwa;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CancellationConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class MemberController extends Controller
 {
@@ -81,6 +85,47 @@ class MemberController extends Controller
             'success' => true,
             'data' => $contract,
             'message' => 'Zahlungsdaten erfolgreich aktualisiert'
+        ]);
+    }
+
+    public function cancelContract(): JsonResponse
+    {
+        /** @var Member $member */
+        $member = request()->user();
+        $membership = $member->activeMembership();
+
+        if (!$membership) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Keine aktive Mitgliedschaft gefunden'
+            ], 404);
+        }
+
+        $membership->update([
+            'cancellation_date' => now(),
+        ]);
+
+        // Send cancellation confirmation email
+        try {
+            Mail::to($member->email)->send(
+                new CancellationConfirmationMail(
+                    $member,
+                    $membership->fresh(),
+                    $member->gym
+                )
+            );
+        } catch (Exception $e) {
+            Log::error('Failed to send cancellation confirmation email', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vertrag erfolgreich gekündigt',
+            'data' => $membership->fresh()
         ]);
     }
 
