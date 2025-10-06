@@ -57,6 +57,7 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::put('profile', [MemberController::class, 'updateProfile']);
         Route::get('contract', [MemberController::class, 'contract']);
         Route::put('contract', [MemberController::class, 'updateContract']);
+        Route::delete('contract', [MemberController::class, 'cancelContract']);
         Route::get('qr-code', [MemberController::class, 'generateQrCode']);
         Route::prefix('checkin')->group(function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);

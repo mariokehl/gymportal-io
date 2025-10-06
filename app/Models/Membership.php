@@ -31,6 +31,11 @@ class Membership extends Model
         'cancellation_date' => 'date',
     ];
 
+    protected $appends = [
+        'min_cancellation_date',
+        'default_cancellation_date',
+    ];
+
     public function member()
     {
         return $this->belongsTo(Member::class);
@@ -134,5 +139,42 @@ class Membership extends Model
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+    }
+
+    public function getMinCancellationDateAttribute()
+    {
+        if (!$this->start_date || !$this->membershipPlan) {
+            return null;
+        }
+
+        $date = $this->start_date->copy();
+
+        // Add commitment months if defined
+        if ($this->membershipPlan->commitment_months) {
+            $date->addMonths($this->membershipPlan->commitment_months);
+        }
+
+        // Subtract cancellation period days (user must cancel before commitment ends)
+        if ($this->membershipPlan->cancellation_period_days) {
+            $date->subDays($this->membershipPlan->cancellation_period_days);
+        }
+
+        return $date->format('Y-m-d');
+    }
+
+    public function getDefaultCancellationDateAttribute()
+    {
+        // If membership is already cancelled, return the existing cancellation_date
+        if ($this->status === 'cancelled' && $this->cancellation_date) {
+            return $this->cancellation_date->format('Y-m-d');
+        }
+
+        // Always use end_date if available
+        if ($this->end_date) {
+            return $this->end_date->format('Y-m-d');
+        }
+
+        // Fallback to min_cancellation_date if no end_date exists
+        return $this->min_cancellation_date ? $this->min_cancellation_date->format('Y-m-d') : null;
     }
 }

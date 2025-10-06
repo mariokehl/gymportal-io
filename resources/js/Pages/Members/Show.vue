@@ -1879,7 +1879,22 @@ const paymentTableColumns = ref([
 ])
 
 const formatDateForInput = (dateString) => {
-  return dateString ? dateString.split('T')[0] : '';
+  if (!dateString) return '';
+
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+    return dateString.split('T')[0];
+  }
+
+  // Parse the date using UTC methods to avoid timezone issues
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 };
 
 // Computed properties
@@ -2312,41 +2327,8 @@ const resumeMembership = (membership) => {
 const openCancelMembership = (membership) => {
   selectedMembership.value = membership
   cancelMembershipForm.membership_id = membership.id
-
-  // Mindestlaufzeit und Kündigungsfrist berücksichtigen
-  let minCancellationDate = new Date()
-
-  // Kündigungsfrist berücksichtigen
-  if (membership.membership_plan.cancellation_period_days) {
-    minCancellationDate.setDate(minCancellationDate.getDate() + membership.membership_plan.cancellation_period_days)
-  }
-
-  // Mindestlaufzeit berücksichtigen
-  if (membership.membership_plan.commitment_months) {
-    const startDate = new Date(membership.start_date)
-    const minEndDate = new Date(startDate)
-    minEndDate.setMonth(minEndDate.getMonth() + membership.membership_plan.commitment_months)
-
-    if (minEndDate > minCancellationDate) {
-      minCancellationDate = minEndDate
-    }
-  }
-
-  // Standardmäßig zum Ende der Laufzeit oder Mindestlaufzeit kündigen
-  if (membership.end_date) {
-    const endDate = new Date(membership.end_date)
-    if (endDate > minCancellationDate) {
-      cancelMembershipForm.cancellation_date = formatDateForInput(membership.end_date)
-    } else {
-      cancelMembershipForm.cancellation_date = minCancellationDate.toISOString().split('T')[0]
-    }
-  } else {
-    cancelMembershipForm.cancellation_date = minCancellationDate.toISOString().split('T')[0]
-  }
-
-  // Store minimum date for validation
-  cancelMembershipForm.min_cancellation_date = minCancellationDate.toISOString().split('T')[0]
-
+  cancelMembershipForm.cancellation_date = formatDateForInput(membership.default_cancellation_date)
+  cancelMembershipForm.min_cancellation_date = formatDateForInput(membership.min_cancellation_date)
   showCancelMembershipModal.value = true
 }
 
