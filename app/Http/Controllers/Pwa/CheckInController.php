@@ -29,6 +29,7 @@ class CheckInController extends Controller
             // Find the latest check-in that hasn't been checked out yet
             $latestCheckin = CheckIn::where('member_id', $member->id)
                 ->whereNull('check_out_time')
+                ->where('check_in_time', '>=', now()->subDay())
                 ->with(['gym', 'member', 'checkedInBy'])
                 ->orderBy('check_in_time', 'desc')
                 ->first();
