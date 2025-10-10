@@ -256,6 +256,7 @@ import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Edit, Trash2, Users, AlertTriangle } from 'lucide-vue-next'
+import { formatPrice, formatDateLong as formatDate, formatBillingCycle } from '@/utils/formatters'
 
 const page = usePage()
 
@@ -277,30 +278,6 @@ const showDeleteModal = ref(false)
 const deleteInfo = ref({ canDelete: true, activeMembersCount: 0, activeMemberships: [] })
 
 // Methods
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(price)
-}
-
-const formatBillingCycle = (cycle) => {
-  const cycles = {
-    monthly: 'Monat',
-    quarterly: 'Quartal',
-    yearly: 'Jahr'
-  }
-  return cycles[cycle] || cycle
-}
-
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
 const getUserInitials = (user) => {
   const first = user.first_name?.charAt(0) || ''
   const last = user.last_name?.charAt(0) || ''

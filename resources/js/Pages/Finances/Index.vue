@@ -199,6 +199,7 @@ import {
   ChevronDown
 } from 'lucide-vue-next'
 import { debounce } from 'lodash'
+import { formatCurrency } from '@/utils/formatters'
 
 // Props
 const props = defineProps({
@@ -276,13 +277,5 @@ const handleSort = (column) => {
     preserveState: true,
     preserveScroll: true
   })
-}
-
-// Utility functions
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount)
 }
 </script>

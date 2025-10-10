@@ -189,6 +189,7 @@ import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Plus, FilePlus, AlertTriangle } from 'lucide-vue-next'
+import { formatPrice, formatBillingCycle } from '@/utils/formatters'
 
 const page = usePage()
 
@@ -210,22 +211,6 @@ const planToDelete = ref(null)
 const deleteInfo = ref({ canDelete: true, activeMembersCount: 0, activeMembers: [] })
 
 // Methods
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(price)
-}
-
-const formatBillingCycle = (cycle) => {
-  const cycles = {
-    monthly: 'Monat',
-    quarterly: 'Quartal',
-    yearly: 'Jahr'
-  }
-  return cycles[cycle] || cycle
-}
-
 const confirmDelete = async (plan) => {
   planToDelete.value = plan
 

@@ -161,6 +161,7 @@ import {
     Plus, Search, Edit, ChevronRight, Eye
 } from 'lucide-vue-next'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import { formatDate } from '@/utils/formatters'
 
 // Reactive data
 const searchTerm = ref('')
@@ -193,11 +194,6 @@ const props = defineProps({
 })
 
 // Methods
-const formatDate = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('de-DE')
-}
-
 const getIcon = (iconName) => {
     const icons = {
         users: Users,

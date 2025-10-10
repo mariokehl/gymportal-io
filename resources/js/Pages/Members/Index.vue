@@ -301,6 +301,7 @@ import Tooltip from '@/Components/Tooltip.vue'
 import {
   Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown
 } from 'lucide-vue-next'
+import { formatDate } from '@/utils/formatters'
 
 // Props
 const props = defineProps({
@@ -362,12 +363,6 @@ const getInitials = (firstName, lastName) => {
   const first = firstName?.charAt(0) || ''
   const last = lastName?.charAt(0) || ''
   return (first + last).toUpperCase()
-}
-
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('de-DE')
 }
 
 const confirmDelete = (member) => {

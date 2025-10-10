@@ -386,6 +386,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import {
     Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor
 } from 'lucide-vue-next'
+import { formatDate } from '@/utils/formatters'
 
 // Props
 const props = defineProps({
@@ -796,11 +797,6 @@ const getTypeColor = (type) => {
         general: 'bg-gray-100 text-gray-800'
     }
     return colors[type] || 'bg-gray-100 text-gray-800'
-}
-
-const formatDate = (dateString) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('de-DE')
 }
 
 // Lifecycle

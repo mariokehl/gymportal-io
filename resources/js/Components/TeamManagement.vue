@@ -144,6 +144,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Plus, Trash2 } from 'lucide-vue-next'
+import { formatDate } from '@/utils/formatters'
 
 // Props
 const props = defineProps({
@@ -182,11 +183,6 @@ const getUserInitials = (user) => {
     const first = user.first_name?.charAt(0) || ''
     const last = user.last_name?.charAt(0) || ''
     return (first + last).toUpperCase() || '??'
-}
-
-const formatDate = (dateString) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('de-DE')
 }
 
 const addUser = async () => {

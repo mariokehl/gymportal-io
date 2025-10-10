@@ -4,6 +4,7 @@
 import {
   UserCheck, UserX, Pause, Clock, AlertTriangle
 } from 'lucide-vue-next'
+import { formatDate, formatDateTime, formatTime, formatRelativeTime } from './formatters'
 
 /**
  * Status-Konfiguration mit allen relevanten Daten
@@ -82,61 +83,6 @@ export function getStatusDescription(status) {
 }
 
 /**
- * Formatiert ein Datum im deutschen Format
- */
-export function formatDate(date) {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
-}
-
-/**
- * Formatiert ein Datum mit Uhrzeit im deutschen Format
- */
-export function formatDateTime(datetime) {
-  if (!datetime) return '-'
-  return new Date(datetime).toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-/**
- * Formatiert eine Uhrzeit
- */
-export function formatTime(datetime) {
-  if (!datetime) return '-'
-  return new Date(datetime).toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-/**
- * Gibt einen relativen Zeitstring zurück (z.B. "vor 2 Tagen")
- */
-export function formatRelativeTime(date) {
-  if (!date) return ''
-
-  const now = new Date()
-  const past = new Date(date)
-  const diffInSeconds = Math.floor((now - past) / 1000)
-
-  if (diffInSeconds < 60) return 'gerade eben'
-  if (diffInSeconds < 3600) return `vor ${Math.floor(diffInSeconds / 60)} Minuten`
-  if (diffInSeconds < 86400) return `vor ${Math.floor(diffInSeconds / 3600)} Stunden`
-  if (diffInSeconds < 2592000) return `vor ${Math.floor(diffInSeconds / 86400)} Tagen`
-  if (diffInSeconds < 31536000) return `vor ${Math.floor(diffInSeconds / 2592000)} Monaten`
-  return `vor ${Math.floor(diffInSeconds / 31536000)} Jahren`
-}
-
-/**
  * Validiert ob ein Status-Übergang erlaubt ist
  */
 export function canTransitionStatus(fromStatus, toStatus, memberData = {}) {
@@ -182,10 +128,9 @@ export default {
   getStatusIcon,
   getStatusColor,
   getStatusDescription,
-  formatDate,
-  formatDateTime,
-  formatTime,
-  formatRelativeTime,
   canTransitionStatus,
   getAllStatusOptions
 }
+
+// Re-export formatter functions for backward compatibility
+export { formatDate, formatDateTime, formatTime, formatRelativeTime }

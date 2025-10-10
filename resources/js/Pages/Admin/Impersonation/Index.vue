@@ -202,6 +202,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-vue-next'
+import { formatDateShort as formatDate } from '@/utils/formatters'
 
 const props = defineProps({
   users: Object,
@@ -221,14 +222,6 @@ const filteredUsers = computed(() => {
     return fullName.includes(query) || user.email.toLowerCase().includes(query)
   })
 })
-
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
 
 const getInitials = (firstName, lastName) => {
   const first = firstName ? firstName.charAt(0).toUpperCase() : ''

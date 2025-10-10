@@ -44,6 +44,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { CheckCircle, XCircle } from 'lucide-vue-next'
+import { formatIbanDisplay } from '@/utils/formatters'
 
 // Props
 const props = defineProps({
@@ -119,16 +120,6 @@ const formattedValue = computed(() => {
   if (!props.modelValue) return ''
   return formatIbanDisplay(props.modelValue)
 })
-
-/**
- * Formatiert eine IBAN mit Leerzeichen alle 4 Zeichen
- */
-const formatIbanDisplay = (iban) => {
-  if (!iban) return ''
-
-  const cleanIban = iban.replace(/\s/g, '').toUpperCase()
-  return cleanIban.replace(/(.{4})/g, '$1 ').trim()
-}
 
 /**
  * Entfernt alle Leerzeichen aus einer IBAN
