@@ -143,10 +143,10 @@
                 <template v-else-if="column.key === 'description'">
                   <div class="text-sm text-gray-900">{{ payment.description }}</div>
                   <div v-if="payment.transaction_id" class="text-sm text-gray-500">
-                    TXN: {{ payment.transaction_id }}
+                    Tx: {{ payment.transaction_id }}
                   </div>
                   <div v-else-if="payment.mollie_payment_id" class="text-sm text-gray-500">
-                    Mollie-TXN: {{ payment.mollie_payment_id }}
+                    Tx: {{ payment.mollie_payment_id }}
                   </div>
                 </template>
 
