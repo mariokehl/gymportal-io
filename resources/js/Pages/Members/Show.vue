@@ -1786,6 +1786,7 @@ import {
   XCircle, RotateCcw, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail
 } from 'lucide-vue-next'
+import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
 const props = defineProps({
   member: Object,
@@ -1877,25 +1878,6 @@ const paymentTableColumns = ref([
   { key: 'payment_method', label: 'Zahlungsmethode', sortable: false, nowrap: true },
   { key: 'due_date', label: 'Fälligkeitsdatum', sortable: false, nowrap: true }
 ])
-
-const formatDateForInput = (dateString) => {
-  if (!dateString) return '';
-
-  // If already in YYYY-MM-DD format, return as is
-  if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) {
-    return dateString.split('T')[0];
-  }
-
-  // Parse the date using UTC methods to avoid timezone issues
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
 
 // Computed properties
 const availablePaymentMethodTypes = computed(() => {
@@ -2107,17 +2089,6 @@ const getAccessMethodIcon = (method) => {
     'Manual': Key
   }
   return icons[method] || Key
-}
-
-const formatDateTime = (datetime) => {
-  if (!datetime) return '-'
-  return new Date(datetime).toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 // Helper functions
@@ -2777,34 +2748,6 @@ const getSepaMandateStatusText = (status) => {
     'expired': 'Abgelaufen'
   }
   return texts[status] || status
-}
-
-const formatDate = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('de-DE')
-}
-
-const formatTime = (datetime) => {
-  if (!datetime) return '-'
-  return new Date(datetime).toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-const formatMonthYear = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('de-DE', {
-    month: '2-digit',
-    year: '2-digit'
-  })
-}
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount)
 }
 
 const calculateDuration = (checkIn, checkOut) => {

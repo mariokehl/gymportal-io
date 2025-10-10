@@ -545,6 +545,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EmailInput from '@/Components/EmailInput.vue'
+import { formatCurrency, formatDate } from '@/utils/formatters'
 
 const props = defineProps({
     membershipPlans: {
@@ -794,13 +795,6 @@ const selectMembershipPlan = (planId) => {
   form.membership_plan_id = planId
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount)
-}
-
 const getBillingCycleText = (cycle) => {
   const cycles = {
     'monthly': 'Monat',
@@ -808,11 +802,6 @@ const getBillingCycleText = (cycle) => {
     'yearly': 'Jahr'
   }
   return cycles[cycle] || cycle
-}
-
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  return new Date(dateString).toLocaleDateString('de-DE')
 }
 
 const getEndDate = () => {

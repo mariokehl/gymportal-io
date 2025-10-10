@@ -119,7 +119,7 @@
 
                 <!-- Date Column -->
                 <template v-else-if="column.key === 'created_at'">
-                  <span class="text-sm text-gray-900">{{ formatDate(payment.execution_date || payment.created_at) }}</span>
+                  <span class="text-sm text-gray-900">{{ formatDate(payment.created_at) }}</span>
                 </template>
 
                 <!-- Member Column -->
@@ -144,6 +144,9 @@
                   <div class="text-sm text-gray-900">{{ payment.description }}</div>
                   <div v-if="payment.transaction_id" class="text-sm text-gray-500">
                     TXN: {{ payment.transaction_id }}
+                  </div>
+                  <div v-else-if="payment.mollie_payment_id" class="text-sm text-gray-500">
+                    Mollie-TXN: {{ payment.mollie_payment_id }}
                   </div>
                 </template>
 
@@ -372,6 +375,7 @@ import {
   XCircle,
   X
 } from 'lucide-vue-next'
+import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 
 // Props
 const props = defineProps({
@@ -646,33 +650,6 @@ const performCancelPayment = async (payment) => {
 }
 
 // Utility functions
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount)
-}
-
-const formatDate = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
-}
-
-const formatDateTime = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 const getMemberInitials = (member) => {
   if (!member) return '??'
   const first = member.first_name?.charAt(0) || ''

@@ -56,7 +56,7 @@ class MembershipPlanController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0|max:9999.99',
-            'setup_fee' => 'numeric|min:0|max:999.99',
+            'setup_fee' => 'nullable|numeric|min:0|max:999.99',
             'billing_cycle' => 'required|in:monthly,quarterly,yearly',
             'is_active' => 'boolean',
             'commitment_months' => 'nullable|integer|min:0|max:36',
@@ -68,6 +68,7 @@ class MembershipPlanController extends Controller
 
         $validated['gym_id'] = $user->current_gym_id;
         $validated['is_active'] = $request->boolean('is_active');
+        $validated['setup_fee'] = $request->setup_fee ?? 0;
         $validated['commitment_months'] = $request->commitment_months ?? 0;
 
         MembershipPlan::create($validated);

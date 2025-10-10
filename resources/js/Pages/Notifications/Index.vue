@@ -114,6 +114,7 @@ import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import axios from 'axios'
+import { formatDateRelative as formatDate } from '@/utils/formatters'
 
 const props = defineProps({
   notifications: {
@@ -246,26 +247,5 @@ const getTypeBadgeClass = (type) => {
     'reminder': 'bg-orange-100 text-orange-800'
   }
   return classes[type] || 'bg-gray-100 text-gray-800'
-}
-
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = Math.abs(now - date)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 1) {
-    return 'Heute'
-  } else if (diffDays === 2) {
-    return 'Gestern'
-  } else if (diffDays <= 7) {
-    return `Vor ${diffDays - 1} Tagen`
-  } else {
-    return date.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
 }
 </script>

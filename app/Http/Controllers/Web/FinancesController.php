@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
-use App\Models\Invoice;
-use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -61,6 +59,7 @@ class FinancesController extends Controller
         // Apply sorting
         $sortBy = $request->input('sort_by', 'created_at');
         $sortOrder = $request->input('sort_order', 'desc');
+
         $query->orderBy($sortBy, $sortOrder);
 
         $payments = $query->paginate(20)->withQueryString();
