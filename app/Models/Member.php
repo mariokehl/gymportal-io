@@ -42,8 +42,8 @@ class Member extends Authenticatable
     ];
 
     protected $casts = [
-        'birth_date' => 'date',
-        'joined_date' => 'date',
+        'birth_date' => 'date:Y-m-d',
+        'joined_date' => 'date:Y-m-d',
         'widget_data' => 'array',
     ];
 
