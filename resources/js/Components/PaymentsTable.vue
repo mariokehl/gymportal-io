@@ -119,7 +119,7 @@
 
                 <!-- Date Column -->
                 <template v-else-if="column.key === 'created_at'">
-                  <span class="text-sm text-gray-900">{{ formatDate(payment.execution_date || payment.created_at) }}</span>
+                  <span class="text-sm text-gray-900">{{ formatDate(payment.created_at) }}</span>
                 </template>
 
                 <!-- Member Column -->
