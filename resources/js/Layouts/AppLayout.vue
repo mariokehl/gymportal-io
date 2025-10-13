@@ -163,6 +163,7 @@
         v-if="chatwootEnabled"
         :website-token="chatwootToken"
         :base-url="chatwootUrl"
+        :identity-hash="chatwootIdentityHash"
       />
     </div>
   </div>
@@ -190,6 +191,7 @@ const notificationPopup = ref(null)
 const chatwootEnabled = page.props.chatwoot?.enabled ?? false
 const chatwootToken = page.props.chatwoot?.token
 const chatwootUrl = page.props.chatwoot?.baseUrl
+const chatwootIdentityHash = page.props.chatwoot?.identityHash
 
 // Props
 const props = defineProps({

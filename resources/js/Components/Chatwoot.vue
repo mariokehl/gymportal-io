@@ -12,6 +12,7 @@ const props = defineProps({
     type: String,
     default: 'https://app.chatwoot.com'
   },
+  identityHash: String,
   locale: {
     type: String,
     default: 'de'
@@ -46,10 +47,17 @@ onMounted(() => {
   // User-Daten hinzufügen falls eingeloggt
   window.addEventListener('chatwoot:ready', function() {
     if (page.props.auth?.user) {
-      window.$chatwoot.setUser(`${page.props.auth.user.id}`, {
+      const userData = {
           email: page.props.auth.user.email,
-          name: `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`
-      });
+          name: `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`,
+      };
+
+      // Add HMAC hash for identity validation if provided
+      if (props.identityHash) {
+        userData.identifier_hash = props.identityHash;
+      }
+
+      window.$chatwoot.setUser(`${page.props.auth.user.id}`, userData);
     }
   })
 })
