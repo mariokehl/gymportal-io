@@ -233,6 +233,14 @@ class MemberController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->whereNull('deleted_at')],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
+            'custom_member_number' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('members', 'member_number')
+                    ->where('gym_id', $user->current_gym_id)
+                    ->whereNull('deleted_at')
+            ],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
@@ -245,9 +253,13 @@ class MemberController extends Controller
             'payment_method' => ['required', Rule::in($enabledPaymentMethods)],
         ]);
 
-        // Next member number
+        // Member number - use custom if provided, otherwise generate
         $memberData = [];
-        $memberData['member_number'] = MemberService::generateMemberNumber($gym, 'M');
+        if (!empty($validated['custom_member_number'])) {
+            $memberData['member_number'] = $validated['custom_member_number'];
+        } else {
+            $memberData['member_number'] = MemberService::generateMemberNumber($gym, 'M');
+        }
 
         // Add gym_id to the validated data
         $memberData['gym_id'] = $user->current_gym_id;
@@ -365,8 +377,14 @@ class MemberController extends Controller
         $this->authorize('update', $member);
 
         $validated = $request->validate([
-            'member_number' => ['required', 'string', 'max:50',
-                Rule::unique('members', 'member_number')->ignore($member->id)
+            'member_number' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('members', 'member_number')
+                    ->ignore($member->id)
+                    ->where('gym_id', $member->gym_id)
+                    ->whereNull('deleted_at')
             ],
             'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
@@ -600,6 +618,91 @@ class MemberController extends Controller
                     ]
                 ]);
             }
+        }
+    }
+
+    /**
+     * Prüft ob eine Mitgliedsnummer bereits für dieses Gym existiert
+     * Ignoriert gelöschte Mitglieder (soft deleted)
+     */
+    public function checkMemberNumber(Request $request)
+    {
+        try {
+            $request->validate([
+                'member_number' => [
+                    'required',
+                    'string',
+                    'max:50'
+                ],
+                'member_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:members,id'
+                ],
+            ], [
+                'member_number.required' => 'Mitgliedsnummer ist erforderlich',
+                'member_number.string' => 'Mitgliedsnummer muss eine Zeichenkette sein',
+                'member_number.max' => 'Mitgliedsnummer ist zu lang (maximal 50 Zeichen)'
+            ]);
+
+            // Aktuelles Gym des Benutzers ermitteln
+            $gym = auth()->user()->currentGym ?? auth()->user()->ownedGyms()->first();
+
+            if (!$gym) {
+                return response()->json([
+                    'error' => 'Kein Fitnessstudio gefunden'
+                ], 400);
+            }
+
+            $memberNumber = trim($request->member_number);
+            $memberId = $request->member_id;
+
+            // Prüfen ob Mitgliedsnummer bereits existiert (nur aktive, nicht-gelöschte Mitglieder)
+            // Exclude the current member if member_id is provided (for edit mode)
+            $query = $gym->members()
+                ->where('member_number', $memberNumber);
+
+            if ($memberId) {
+                $query->where('id', '!=', $memberId);
+            }
+
+            $existingMember = $query->first();
+
+            if ($existingMember) {
+                return response()->json([
+                    'exists' => true,
+                    'message' => 'Mitgliedsnummer ist bereits vergeben.',
+                    'member_name' => $existingMember->full_name,
+                    'member_id' => $existingMember->id
+                ], 200);
+            }
+
+            // Keine Mitglieder mit dieser Nummer gefunden - Nummer ist verfügbar
+            return response()->json([
+                'exists' => false,
+                'message' => 'Mitgliedsnummer ist verfügbar',
+                'member_number' => $memberNumber
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->validator->errors()->first('member_number'),
+                'errors' => $e->validator->errors()->getMessages(),
+                'error' => 'Validierungsfehler'
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Member number check failed', [
+                'member_number' => $request->member_number ?? 'unknown',
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+                'debug' => app()->isLocal() ? $e->getMessage() : null
+            ], 500);
         }
     }
 

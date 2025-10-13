@@ -121,24 +121,18 @@
               @validation-change="handleEmailValidationChange"
             />
 
-            <div>
-              <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Mobilfunknummer
-              </label>
-              <input
-                id="phone"
-                v-model="form.phone"
-                type="tel"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.phone }"
-              />
-              <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
-                {{ errors.phone }}
-              </p>
-            </div>
+            <MemberNumberInput
+              v-model="form.custom_member_number"
+              label="Mitgliedsnummer (optional)"
+              :required="false"
+              :check-url="route('members.check-member-number')"
+              help-text="Wenn leer, wird automatisch eine Nummer generiert"
+              placeholder="Leer lassen für automatische Nummer"
+              @validation-change="handleMemberNumberValidationChange"
+            />
           </div>
 
-          <!-- Geburtsdatum in eigener Zeile -->
+          <!-- Geburtsdatum und Mitgliedsnummer in eigener Zeile -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">
@@ -153,6 +147,22 @@
               />
               <p v-if="errors.birth_date" class="mt-1 text-sm text-red-600">
                 {{ errors.birth_date }}
+              </p>
+            </div>
+
+            <div>
+              <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                Mobilfunknummer
+              </label>
+              <input
+                id="phone"
+                v-model="form.phone"
+                type="tel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.phone }"
+              />
+              <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
+                {{ errors.phone }}
               </p>
             </div>
           </div>
@@ -455,6 +465,8 @@
                 <div><span class="font-medium">E-Mail:</span> {{ form.email }}</div>
                 <div><span class="font-medium">Telefon:</span> {{ form.phone }}</div>
                 <div v-if="form.birth_date"><span class="font-medium">Geburtsdatum:</span> {{ formatDate(form.birth_date) }}</div>
+                <div v-if="form.custom_member_number"><span class="font-medium">Mitgliedsnummer:</span> {{ form.custom_member_number }}</div>
+                <div v-else class="text-gray-500 italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
                 <div><span class="font-medium">Adresse:</span> {{ form.address }}, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
                 <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
               </div>
@@ -545,6 +557,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EmailInput from '@/Components/EmailInput.vue'
+import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
 const props = defineProps({
@@ -576,6 +589,7 @@ const form = useForm({
   email: '',
   phone: '',
   birth_date: '',
+  custom_member_number: '',
   address: '',
   city: '',
   postal_code: '',
@@ -615,6 +629,15 @@ const emailValidationState = ref({
   email: ''
 })
 
+// Member number validation state
+const memberNumberValidationState = ref({
+  isValid: true, // Start as valid since it's optional
+  hasError: false,
+  isChecking: false,
+  errorMessage: '',
+  value: ''
+})
+
 // Touch-Status für Felder verfolgen
 const touchedFields = ref(new Set())
 
@@ -637,6 +660,18 @@ const handleEmailValidationChange = (state) => {
     form.setError('email', state.errorMessage)
   } else {
     form.clearErrors('email')
+  }
+}
+
+// Member number validation handler
+const handleMemberNumberValidationChange = (state) => {
+  memberNumberValidationState.value = state
+
+  // Synchronize form errors with member number component
+  if (state.hasError && state.errorMessage) {
+    form.setError('custom_member_number', state.errorMessage)
+  } else {
+    form.clearErrors('custom_member_number')
   }
 }
 
@@ -707,6 +742,13 @@ const validateStep1 = () => {
   // Check email validation state
   if (!emailValidationState.value.isValid || emailValidationState.value.isChecking) {
     isValid = false
+  }
+
+  // Check member number validation state (only if a value is provided)
+  if (form.custom_member_number && form.custom_member_number.trim()) {
+    if (!memberNumberValidationState.value.isValid || memberNumberValidationState.value.isChecking) {
+      isValid = false
+    }
   }
 
   return isValid
