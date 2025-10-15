@@ -24,7 +24,20 @@
               <h2 class="text-2xl font-bold text-gray-900">
                 {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }}
               </h2>
-              <p class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
+
+              <!-- Member Number - Editable in edit mode -->
+              <div v-if="editMode" class="mt-2 max-w-xs">
+                <MemberNumberInput
+                  v-model="form.member_number"
+                  label="Mitgliedsnummer"
+                  :required="true"
+                  :check-url="route('members.check-member-number')"
+                  :member-id="member.id"
+                  help-text="Eindeutige Mitgliedsnummer"
+                  :validate-on-mount="false"
+                />
+              </div>
+              <p v-else class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
 
               <div class="mt-2">
                 <!-- Im Bearbeitungsmodus: Editierbare Status-Komponente -->
@@ -55,10 +68,16 @@
             </Link>
             <button
               @click="editMode = !editMode"
-              class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2"
+              :disabled="editMode"
+              :class="[
+                'px-4 py-2 rounded-lg flex items-center gap-2',
+                editMode
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-gray-600 text-white hover:bg-gray-700'
+              ]"
             >
               <Edit class="w-4 h-4" />
-              {{ editMode ? 'Bearbeitung beenden' : 'Bearbeiten' }}
+              {{ editMode ? 'Bearbeitung aktiv' : 'Bearbeiten' }}
             </button>
           </div>
         </div>
@@ -1779,6 +1798,7 @@ import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
 import IbanInput from '@/Components/IbanInput.vue'
+import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,

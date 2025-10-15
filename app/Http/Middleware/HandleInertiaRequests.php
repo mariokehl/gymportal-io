@@ -82,6 +82,16 @@ class HandleInertiaRequests extends Middleware
                 'enabled' => config('chatwoot.enabled'),
                 'token' => config('chatwoot.website_token'),
                 'baseUrl' => config('chatwoot.base_url'),
+                'identityHash' => function () use ($request) {
+                    $user = $request->user();
+                    $secret = config('chatwoot.identity_validation_secret');
+
+                    if ($user && $secret) {
+                        return hash_hmac('sha256', (string) $user->id, $secret);
+                    }
+
+                    return null;
+                },
             ],
         ]);
 

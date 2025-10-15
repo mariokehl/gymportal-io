@@ -21,12 +21,20 @@ class PaymentService
     public function createPendingPayment(
         Member $member,
         Membership $membership,
-        ?PaymentMethod $paymentMethod
+        ?PaymentMethod $paymentMethod,
+        ?Carbon $billingAnchorDate = null
     ): ?Payment {
         $plan = $membership->membershipPlan;
 
+        // Keine Zahlung erstellen, wenn Startdatum in der Vergangenheit liegt
+        // und kein billing_anchor_date angegeben wurde
+        $today = Carbon::today();
+        if ($membership->start_date->lt($today) && !$billingAnchorDate) {
+            return null;
+        }
+
         // Specify payment details based on plan and payment method
-        $paymentDetails = $this->calculatePaymentDetails($plan, $membership, $paymentMethod);
+        $paymentDetails = $this->calculatePaymentDetails($plan, $membership, $paymentMethod, $billingAnchorDate);
 
         if (!$paymentDetails) {
             return null;
@@ -54,6 +62,7 @@ class PaymentService
                     'billing_cycle' => $plan->billing_cycle,
                     'created_via' => $member->registration_source ?? 'manual',
                     'payment_method_id' => $paymentMethod?->id,
+                    'billing_anchor_date' => $billingAnchorDate?->toDateString(),
                 ],
             ]);
 
@@ -97,6 +106,12 @@ class PaymentService
         $plan = $membership->membershipPlan;
 
         if (!$plan->setup_fee || $plan->setup_fee <= 0) {
+            return null;
+        }
+
+        // Keine Aktivierungsgebühr berechnen, wenn Startdatum in der Vergangenheit liegt
+        $today = Carbon::today();
+        if ($membership->start_date->lt($today)) {
             return null;
         }
 
@@ -242,9 +257,13 @@ class PaymentService
     private function calculatePaymentDetails(
         MembershipPlan $plan,
         Membership $membership,
-        ?PaymentMethod $paymentMethod
+        ?PaymentMethod $paymentMethod,
+        ?Carbon $billingAnchorDate = null
     ): ?array {
         $paymentMethodType = $paymentMethod?->type ?? 'unknown';
+
+        // Use billing_anchor_date if provided, otherwise use start_date
+        $dueDate = $billingAnchorDate ?? $membership->start_date;
 
         // First payment (may include trial period)
         $amount = $plan->trial_period_days > 0 && $plan->trial_price !== null
@@ -255,14 +274,19 @@ class PaymentService
             ? "Probezeitraum ({$plan->trial_period_days} Tage): {$plan->name}"
             : "1. Mitgliedsbeitrag: {$plan->name}";
 
-        $executionDate = $this->calculateInitialExecutionDate($membership, $paymentMethodType);
+        // If billing anchor date is different from start date, adjust description
+        if ($billingAnchorDate && !$billingAnchorDate->isSameDay($membership->start_date)) {
+            $description = "1. Mitgliedsbeitrag (ab " . $billingAnchorDate->format('d.m.Y') . "): {$plan->name}";
+        }
+
+        $executionDate = $this->calculateInitialExecutionDate($membership, $paymentMethodType, $billingAnchorDate);
         $notes = $this->generatePaymentNotes($membership, $paymentMethod?->type_text);
 
         return [
             'amount' => $amount,
             'description' => $description,
             'execution_date' => $executionDate,
-            'due_date' => $membership->start_date,
+            'due_date' => $dueDate,
             'notes' => $notes,
             'type' => $plan->trial_period_days > 0 ? 'trial' : 'initial',
         ];
@@ -286,9 +310,10 @@ class PaymentService
     /**
      * Calculates execution date for initial payment
      */
-    private function calculateInitialExecutionDate(Membership $membership, string $paymentMethod): Carbon
+    private function calculateInitialExecutionDate(Membership $membership, string $paymentMethod, ?Carbon $billingAnchorDate = null): Carbon
     {
-        $baseDate = $membership->start_date;
+        // Use billing anchor date if provided, otherwise use start_date
+        $baseDate = $billingAnchorDate ?? $membership->start_date;
 
         return match($paymentMethod) {
             'cash' => $baseDate,

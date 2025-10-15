@@ -73,6 +73,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::resource('members', MemberController::class);
     Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
     Route::post('/members/check-email', [MemberController::class, 'checkEmail'])->name('members.check-email');
+    Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {
         Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');

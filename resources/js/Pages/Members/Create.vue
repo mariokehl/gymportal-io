@@ -121,24 +121,18 @@
               @validation-change="handleEmailValidationChange"
             />
 
-            <div>
-              <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Mobilfunknummer
-              </label>
-              <input
-                id="phone"
-                v-model="form.phone"
-                type="tel"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.phone }"
-              />
-              <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
-                {{ errors.phone }}
-              </p>
-            </div>
+            <MemberNumberInput
+              v-model="form.custom_member_number"
+              label="Mitgliedsnummer (optional)"
+              :required="false"
+              :check-url="route('members.check-member-number')"
+              help-text="Wenn leer, wird automatisch eine Nummer generiert"
+              placeholder="Leer lassen für automatische Nummer"
+              @validation-change="handleMemberNumberValidationChange"
+            />
           </div>
 
-          <!-- Geburtsdatum in eigener Zeile -->
+          <!-- Geburtsdatum und Mitgliedsnummer in eigener Zeile -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">
@@ -153,6 +147,22 @@
               />
               <p v-if="errors.birth_date" class="mt-1 text-sm text-red-600">
                 {{ errors.birth_date }}
+              </p>
+            </div>
+
+            <div>
+              <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+                Mobilfunknummer
+              </label>
+              <input
+                id="phone"
+                v-model="form.phone"
+                type="tel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.phone }"
+              />
+              <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
+                {{ errors.phone }}
               </p>
             </div>
           </div>
@@ -345,31 +355,71 @@
             </div>
           </div>
 
-          <div v-if="membershipPlans && Array.isArray(membershipPlans) && membershipPlans.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label for="joined_date" class="block text-sm font-medium text-gray-700 mb-2">
-                Startdatum der Mitgliedschaft <span class="text-red-500">*</span>
+          <div v-if="membershipPlans && Array.isArray(membershipPlans) && membershipPlans.length > 0">
+            <!-- Checkbox to allow past start dates -->
+            <div class="mb-4">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  v-model="form.allow_past_start_date"
+                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <span class="ml-2 text-sm text-gray-700">
+                  Mitgliedschaft in der Vergangenheit beginnen lassen
+                </span>
               </label>
-              <input
-                id="joined_date"
-                v-model="form.joined_date"
-                type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.joined_date }"
-                :min="today"
-                @blur="handleJoinedDateBlur"
-              />
-              <p v-if="errors.joined_date" class="mt-1 text-sm text-red-600">
-                {{ errors.joined_date }}
-              </p>
             </div>
 
-            <div v-if="selectedPlan">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Vertragslaufzeit bis
-              </label>
-              <div class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-600">
-                {{ getEndDate() }}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="joined_date" class="block text-sm font-medium text-gray-700 mb-2">
+                  Startdatum der Mitgliedschaft <span class="text-red-500">*</span>
+                </label>
+                <input
+                  id="joined_date"
+                  v-model="form.joined_date"
+                  type="date"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  :class="{ 'border-red-500': errors.joined_date }"
+                  :min="form.allow_past_start_date ? null : today"
+                  @blur="handleJoinedDateBlur"
+                />
+                <p v-if="errors.joined_date" class="mt-1 text-sm text-red-600">
+                  {{ errors.joined_date }}
+                </p>
+              </div>
+
+              <div v-if="selectedPlan">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Vertragslaufzeit bis
+                </label>
+                <div class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-600">
+                  {{ getEndDate() }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Billing Anchor Date -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div>
+                <label for="billing_anchor_date" class="block text-sm font-medium text-gray-700 mb-2">
+                  Erste Abrechnung am (optional)
+                </label>
+                <input
+                  id="billing_anchor_date"
+                  v-model="form.billing_anchor_date"
+                  type="date"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  :class="{ 'border-red-500': errors.billing_anchor_date }"
+                  :min="today"
+                  @blur="handleBillingAnchorDateBlur"
+                />
+                <p v-if="errors.billing_anchor_date" class="mt-1 text-sm text-red-600">
+                  {{ errors.billing_anchor_date }}
+                </p>
+                <p class="mt-1 text-xs text-gray-500">
+                  Wenn angegeben, wird die erste Abrechnung zu diesem Datum erstellt. Muss am gleichen Tag des Monats liegen wie das Startdatum.
+                </p>
               </div>
             </div>
           </div>
@@ -453,8 +503,10 @@
                 <div v-if="form.salutation"><span class="font-medium">Anrede:</span> {{ form.salutation }}</div>
                 <div><span class="font-medium">Name:</span> {{ form.first_name }} {{ form.last_name }}</div>
                 <div><span class="font-medium">E-Mail:</span> {{ form.email }}</div>
-                <div><span class="font-medium">Telefon:</span> {{ form.phone }}</div>
+                <div v-if="form.phone"><span class="font-medium">Telefon:</span> {{ form.phone }}</div>
                 <div v-if="form.birth_date"><span class="font-medium">Geburtsdatum:</span> {{ formatDate(form.birth_date) }}</div>
+                <div v-if="form.custom_member_number"><span class="font-medium">Mitgliedsnummer:</span> {{ form.custom_member_number }}</div>
+                <div v-else class="text-gray-500 italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
                 <div><span class="font-medium">Adresse:</span> {{ form.address }}, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
                 <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
               </div>
@@ -467,6 +519,7 @@
                 <div><span class="font-medium">Tarif:</span> {{ selectedPlan.name }}</div>
                 <div><span class="font-medium">Preis:</span> {{ formatCurrency(selectedPlan.price) }} / {{ getBillingCycleText(selectedPlan.billing_cycle) }}</div>
                 <div><span class="font-medium">Startdatum:</span> {{ formatDate(form.joined_date) }}</div>
+                <div v-if="form.billing_anchor_date"><span class="font-medium">Erste Abrechnung am:</span> {{ formatDate(form.billing_anchor_date) }}</div>
                 <div><span class="font-medium">Laufzeit: </span>
                   <span v-if="selectedPlan.commitment_months > 0">
                     {{ selectedPlan.commitment_months }} Monate (bis {{ getEndDate() }})
@@ -545,6 +598,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EmailInput from '@/Components/EmailInput.vue'
+import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
 const props = defineProps({
@@ -576,6 +630,7 @@ const form = useForm({
   email: '',
   phone: '',
   birth_date: '',
+  custom_member_number: '',
   address: '',
   city: '',
   postal_code: '',
@@ -588,6 +643,8 @@ const form = useForm({
   // Mitgliedschaft
   membership_plan_id: null,
   joined_date: '',
+  allow_past_start_date: false,
+  billing_anchor_date: '',
 
   // Zahlungsmethode
   payment_method: '',
@@ -615,6 +672,15 @@ const emailValidationState = ref({
   email: ''
 })
 
+// Member number validation state
+const memberNumberValidationState = ref({
+  isValid: true, // Start as valid since it's optional
+  hasError: false,
+  isChecking: false,
+  errorMessage: '',
+  value: ''
+})
+
 // Touch-Status für Felder verfolgen
 const touchedFields = ref(new Set())
 
@@ -637,6 +703,18 @@ const handleEmailValidationChange = (state) => {
     form.setError('email', state.errorMessage)
   } else {
     form.clearErrors('email')
+  }
+}
+
+// Member number validation handler
+const handleMemberNumberValidationChange = (state) => {
+  memberNumberValidationState.value = state
+
+  // Synchronize form errors with member number component
+  if (state.hasError && state.errorMessage) {
+    form.setError('custom_member_number', state.errorMessage)
+  } else {
+    form.clearErrors('custom_member_number')
   }
 }
 
@@ -675,7 +753,8 @@ const validateJoinedDate = () => {
   const selectedDate = new Date(form.joined_date)
   const todayDate = new Date(today.value)
 
-  if (selectedDate < todayDate) {
+  // Only check if date is in the past if allow_past_start_date is not checked
+  if (!form.allow_past_start_date && selectedDate < todayDate) {
     form.setError('joined_date', 'Das Startdatum darf nicht in der Vergangenheit liegen')
     return false
   }
@@ -685,10 +764,73 @@ const validateJoinedDate = () => {
   return true
 }
 
+// Validierung für Billing Anchor Date
+const validateBillingAnchorDate = () => {
+  if (!isFieldTouched('billing_anchor_date')) {
+    return true // Keine Validierung wenn nicht berührt
+  }
+
+  // Billing anchor date is optional, so it's valid if empty
+  if (!form.billing_anchor_date || form.billing_anchor_date.trim() === '') {
+    form.clearErrors('billing_anchor_date')
+    return true
+  }
+
+  const billingDate = new Date(form.billing_anchor_date)
+  const todayDate = new Date(today.value)
+
+  // Billing anchor date must not be in the past
+  if (billingDate < todayDate) {
+    form.setError('billing_anchor_date', 'Das Abrechnungsdatum darf nicht in der Vergangenheit liegen')
+    return false
+  }
+
+  // If joined_date is set, validate relationship
+  if (form.joined_date) {
+    const startDate = new Date(form.joined_date)
+
+    // Billing anchor date must be after or equal to start date
+    if (billingDate < startDate) {
+      form.setError('billing_anchor_date', 'Das Abrechnungsdatum muss nach dem Startdatum liegen')
+      return false
+    }
+
+    // Check if billing anchor date is between start_date and end_date
+    if (selectedPlan.value && selectedPlan.value.commitment_months > 0) {
+      if (billingDate > getEndDate()) {
+        form.setError('billing_anchor_date', 'Das Abrechnungsdatum muss vor dem Vertragsende liegen')
+        return false
+      }
+    }
+
+    // Check if day of month matches
+    const startDay = startDate.getDate()
+    const billingDay = billingDate.getDate()
+
+    if (startDay !== billingDay) {
+      form.setError('billing_anchor_date', `Das Abrechnungsdatum muss am ${startDay}. des Monats liegen (wie das Startdatum)`)
+      return false
+    }
+  }
+
+  form.clearErrors('billing_anchor_date')
+  return true
+}
+
 // Event Handler für das joined_date Feld
 const handleJoinedDateBlur = () => {
   markFieldAsTouched('joined_date')
   validateJoinedDate()
+  // Re-validate billing anchor date if it's set (in case joined_date changed)
+  if (form.billing_anchor_date && isFieldTouched('billing_anchor_date')) {
+    validateBillingAnchorDate()
+  }
+}
+
+// Event Handler für das billing_anchor_date Feld
+const handleBillingAnchorDateBlur = () => {
+  markFieldAsTouched('billing_anchor_date')
+  validateBillingAnchorDate()
 }
 
 // Step validation
@@ -709,6 +851,13 @@ const validateStep1 = () => {
     isValid = false
   }
 
+  // Check member number validation state (only if a value is provided)
+  if (form.custom_member_number && form.custom_member_number.trim()) {
+    if (!memberNumberValidationState.value.isValid || memberNumberValidationState.value.isChecking) {
+      isValid = false
+    }
+  }
+
   return isValid
 }
 
@@ -718,7 +867,7 @@ const touchAllStep1Fields = () => {
 }
 
 const validateStep2 = () => {
-  return form.membership_plan_id && form.joined_date && !form.errors.membership_plan_id && !form.errors.joined_date
+  return form.membership_plan_id && form.joined_date && !form.errors.membership_plan_id && !form.errors.joined_date && !form.errors.billing_anchor_date
 }
 
 const validateStep3 = () => {
@@ -775,6 +924,11 @@ const nextStep = () => {
     markFieldAsTouched('joined_date')
     validateJoinedDate()
 
+    if (form.billing_anchor_date) {
+      markFieldAsTouched('billing_anchor_date')
+      validateBillingAnchorDate()
+    }
+
     if (!form.membership_plan_id) {
       form.setError('membership_plan_id', 'Bitte wählen Sie einen Mitgliedschaftsplan aus')
     }
@@ -808,11 +962,42 @@ const getEndDate = () => {
     if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
 
     const startDate = new Date(form.joined_date)
-    const endDate = new Date(startDate)
-    endDate.setMonth(endDate.getMonth() + selectedPlan.value.commitment_months)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-    // Einen Tag abziehen für korrektes Vertragsende
-    endDate.setDate(endDate.getDate() - 1)
+    // Berechne das Enddatum: Einen Tag vor dem Startdatum im Zielmonat
+    // Beispiel: Start 1.1.2025 + 12 Monate = 31.12.2025 (einen Tag vor 1.1.2026)
+    // Beispiel: Start 15.3.2025 + 12 Monate = 14.3.2026 (einen Tag vor 15.3.2026)
+    // Beispiel: Start 31.1.2025 + 1 Monat = 28.2.2025 (Monatsende, da 31.2. nicht existiert)
+    let multiplier = 1
+    let endDate
+
+    // Wenn das berechnete Enddatum in der Vergangenheit liegt,
+    // multipliziere commitment_months bis es in der Zukunft liegt
+    while (true) {
+        // Berechne Zielmonat und -jahr
+        const targetMonth = startDate.getMonth() + (selectedPlan.value.commitment_months * multiplier)
+        const targetYear = startDate.getFullYear() + Math.floor(targetMonth / 12)
+        const adjustedMonth = targetMonth % 12
+
+        // Erstelle Datum mit dem gleichen Tag im Zielmonat
+        // Wenn der Tag nicht existiert (z.B. 31.2.), nimmt JS automatisch den nächsten gültigen Tag
+        const tempDate = new Date(targetYear, adjustedMonth, startDate.getDate())
+
+        // Prüfe, ob wir im richtigen Monat gelandet sind
+        // Falls nicht (z.B. 31.1. + 1 Monat = 3.3.), gehe zum letzten Tag des Zielmonats
+        if (tempDate.getMonth() !== adjustedMonth) {
+            // Setze auf Tag 0 des Folgemonats = letzter Tag des Zielmonats
+            endDate = new Date(targetYear, adjustedMonth + 1, 0)
+        } else {
+            // Tag existiert im Zielmonat, subtrahiere 1 Tag
+            endDate = new Date(tempDate)
+            endDate.setDate(endDate.getDate() - 1)
+        }
+
+        if (endDate >= today) break
+        multiplier++
+    }
 
     return endDate.toLocaleDateString('de-DE')
 }
