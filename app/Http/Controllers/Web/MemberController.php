@@ -247,11 +247,25 @@ class MemberController extends Controller
             'country' => ['nullable', 'string', 'max:100'],
             'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
             'joined_date' => ['required', 'date'],
+            'allow_past_start_date' => ['nullable', 'boolean'],
+            'billing_anchor_date' => ['nullable', 'date', 'after_or_equal:joined_date'],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
             'payment_method' => ['required', Rule::in($enabledPaymentMethods)],
         ]);
+
+        // Custom validation for billing_anchor_date - must be on the same day of month as joined_date
+        if (!empty($validated['billing_anchor_date']) && !empty($validated['joined_date'])) {
+            $joinedDate = \Carbon\Carbon::parse($validated['joined_date']);
+            $billingDate = \Carbon\Carbon::parse($validated['billing_anchor_date']);
+
+            if ($joinedDate->day !== $billingDate->day) {
+                return back()
+                    ->withErrors(['billing_anchor_date' => "Das Abrechnungsdatum muss am {$joinedDate->day}. des Monats liegen (wie das Startdatum)."])
+                    ->withInput();
+            }
+        }
 
         // Member number - use custom if provided, otherwise generate
         $memberData = [];
@@ -307,7 +321,12 @@ class MemberController extends Controller
             // Create Payment
             $paymentService = app(PaymentService::class);
             $paymentService->createSetupFeePayment($newMember, $newMembership, $newPaymentMethod);
-            $paymentService->createPendingPayment($newMember, $newMembership, $newPaymentMethod);
+
+            // Pass billing_anchor_date to payment service if provided
+            $billingAnchorDate = !empty($validated['billing_anchor_date'])
+                ? \Carbon\Carbon::parse($validated['billing_anchor_date'])
+                : null;
+            $paymentService->createPendingPayment($newMember, $newMembership, $newPaymentMethod, $billingAnchorDate);
 
             DB::commit();
 
