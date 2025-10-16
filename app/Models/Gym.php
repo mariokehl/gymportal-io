@@ -644,7 +644,7 @@ class Gym extends Model
     {
         return $this->subscription_status === 'active' &&
                $this->subscription_ends_at &&
-               $this->subscription_ends_at->gt(now()->endOfDay()->addHours(2));
+               $this->subscription_ends_at->gt(now()->subHours(2));
     }
 
     public function canAccessPremiumFeatures(): bool
