@@ -50,6 +50,7 @@ class SettingController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'display_name' => 'nullable|string|max:255',
             'slug' => [
                 'required',
                 'string',
@@ -72,7 +73,7 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'gym' => $gym,
-            'message' => 'Gym-Einstellungen wurden erfolgreich aktualisiert.'
+            'message' => 'Organisation wurde erfolgreich aktualisiert.'
         ]);
     }
 

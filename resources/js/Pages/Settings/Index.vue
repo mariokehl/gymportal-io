@@ -34,7 +34,7 @@
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                            Gym-Informationen
+                            Stammdaten der Organisation
                         </h3>
 
                         <form @submit.prevent="saveGymSettings" class="space-y-6">
@@ -42,6 +42,17 @@
                                 <div>
                                     <label class="block text-sm/6 font-medium text-gray-700">Name <span class="text-red-500">*</span></label>
                                     <input v-model="gymForm.name" type="text" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" required />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Änderungen am Namen werden nach außen kommuniziert und beeinflussen die URL des Mitglieder-Bereichs und der PWA.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm/6 font-medium text-gray-700">Anzeigename (optional)</label>
+                                    <input v-model="gymForm.display_name" type="text" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Wird nur intern im System und im Organisations-Wechsler angezeigt. Bei leerem Feld wird der Name verwendet.
+                                    </p>
                                 </div>
 
                                 <div class="md:col-span-2">
@@ -410,7 +421,7 @@ const mollieStatus = ref({
 })
 
 const tabs = [
-    { key: 'gym', label: 'Gym-Einstellungen', icon: Building2 },
+    { key: 'gym', label: 'Organisation', icon: Building2 },
     { key: 'team', label: 'Team', icon: Users },
     { key: 'payments', label: 'Zahlungsarten', icon: CreditCard },
     { key: 'emails', label: 'E-Mail-Vorlagen', icon: Mail },
@@ -419,6 +430,7 @@ const tabs = [
 
 const gymForm = ref({
     name: props.currentGym?.name || '',
+    display_name: props.currentGym?.display_name || '',
     slug: props.currentGym?.slug || '',
     description: props.currentGym?.description || '',
     address: props.currentGym?.address || '',
@@ -477,10 +489,10 @@ const saveGymSettings = async () => {
             Object.assign(gymForm.value, response.data.gym)
         }
 
-        successMessage.value = 'Gym-Einstellungen erfolgreich gespeichert!'
+        successMessage.value = 'Organisation erfolgreich gespeichert!'
         setTimeout(() => successMessage.value = '', 3000)
     } catch (error) {
-        errorMessage.value = 'Fehler beim Speichern der Gym-Einstellungen'
+        errorMessage.value = 'Fehler beim Speichern der Organisation'
         setTimeout(() => errorMessage.value = '', 3000)
     } finally {
         isSubmittingGym.value = false

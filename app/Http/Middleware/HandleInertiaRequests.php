@@ -55,13 +55,13 @@ class HandleInertiaRequests extends Middleware
                         'email' => $user->email, // E-Mail hinzugefügt für Verifizierungsseite
                         'current_gym' => $user->currentGym !== null ? [
                             'id' => $user->currentGym->id,
-                            'name' => $user->currentGym->name,
+                            'name' => $user->currentGym->getDisplayName(),
                         ] : null,
                     ], array_filter([
                         'all_gyms' => $user->ownedGyms->map(function (Gym $organization): array {
                             return [
                                 'id' => $organization->id,
-                                'name' => $organization->name,
+                                'name' => $organization->getDisplayName(),
                             ];
                         })->all(),
                     ]));

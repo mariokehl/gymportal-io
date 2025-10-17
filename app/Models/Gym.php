@@ -17,6 +17,7 @@ class Gym extends Model
 
     protected $fillable = [
         'name',
+        'display_name',
         'slug',
         'description',
         'address',
@@ -882,5 +883,14 @@ class Gym extends Model
     public function scopePwaEnabled($query)
     {
         return $query->where('pwa_enabled', true);
+    }
+
+    /**
+     * Get the display name for the gym
+     * Returns display_name if set, otherwise falls back to name
+     */
+    public function getDisplayName(): string
+    {
+        return $this->display_name ?: $this->name;
     }
 }
