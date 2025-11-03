@@ -352,7 +352,11 @@ class MemberController extends Controller
         $member->load([
             'user',
             'gym',
-            'memberships.membershipPlan',
+            'memberships' => function ($query) {
+                $query->with(['membershipPlan' => function ($q) {
+                    $q->withTrashed();
+                }]);
+            },
             'paymentMethods',
             'payments',
             'checkIns' => function ($query) {

@@ -308,18 +308,19 @@
                 <div class="flex justify-between items-start">
                   <div>
                     <h4 class="text-lg font-semibold">
-                      {{ membership.membership_plan.name }}
+                      <span v-if="membership.membership_plan?.deleted_at" class="text-red-600">Gelöschter Vertrag: </span>
+                      {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
                       <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
                         {{ getStatusText(membership.status) }}
                       </span>
                     </h4>
-                    <p class="text-gray-600">{{ membership.membership_plan.description }}</p>
+                    <p class="text-gray-600">{{ membership.membership_plan?.description || 'Keine Beschreibung verfügbar' }}</p>
                     <div class="mt-2 space-y-1">
                       <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
-                      <p v-if="membership.membership_plan.commitment_months" class="text-sm">
+                      <p v-if="membership.membership_plan?.commitment_months" class="text-sm">
                         <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
                       </p>
-                      <p v-if="membership.membership_plan.cancellation_period_days" class="text-sm">
+                      <p v-if="membership.membership_plan?.cancellation_period_days" class="text-sm">
                         <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.cancellation_period_days }} Tage
                       </p>
                       <p v-if="membership.cancellation_date" class="text-sm text-red-600">
@@ -400,10 +401,17 @@
 
                     <!-- Price display -->
                     <div class="text-right">
-                      <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan.price) }}</p>
-                      <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan.billing_cycle) }}</p>
+                      <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan?.price || 0) }}</p>
+                      <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan?.billing_cycle || 'monthly') }}</p>
                     </div>
                   </div>
+                </div>
+
+                <div v-if="membership.membership_plan?.deleted_at" class="mt-3 p-3 bg-red-50 rounded-md">
+                  <p class="text-sm text-red-800">
+                    <AlertCircle class="w-4 h-4 inline mr-1" />
+                    Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.
+                  </p>
                 </div>
 
                 <div v-if="membership.status === 'pending'" class="mt-3 p-3 bg-orange-50 rounded-md">
@@ -1217,11 +1225,11 @@
                   </p>
                   <p v-if="selectedMembership?.membership_plan?.commitment_months" class="mt-1 text-sm text-yellow-600">
                     <AlertCircle class="w-3 h-3 inline mr-1" />
-                    Mindestlaufzeit: {{ selectedMembership.membership_plan.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
+                    Mindestlaufzeit: {{ selectedMembership.membership_plan?.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
                   </p>
                   <p v-if="selectedMembership?.membership_plan?.cancellation_period_days" class="mt-1 text-sm text-blue-600">
                     <Clock class="w-3 h-3 inline mr-1" />
-                    Kündigungsfrist: {{ selectedMembership.membership_plan.cancellation_period_days }} Tage
+                    Kündigungsfrist: {{ selectedMembership.membership_plan?.cancellation_period_days }} Tage
                   </p>
                 </div>
 
