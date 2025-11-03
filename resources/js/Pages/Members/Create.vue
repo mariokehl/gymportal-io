@@ -482,7 +482,7 @@
           </p>
 
           <!-- Zusätzliche Informationen für SEPA -->
-          <div v-if="form.payment_method === 'sepa'" class="mt-6 p-4 bg-indigo-50 rounded-lg">
+          <div v-if="form.payment_method === 'sepa_direct_debit'" class="mt-6 p-4 bg-indigo-50 rounded-lg">
             <h4 class="font-medium text-indigo-900 mb-2">SEPA-Lastschrift</h4>
             <p class="text-sm text-indigo-800">
               Die Kontodaten können nach der Registrierung im Mitgliederbereich hinterlegt werden.

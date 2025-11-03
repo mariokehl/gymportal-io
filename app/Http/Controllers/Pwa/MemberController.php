@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\CancellationConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\Membership;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -92,6 +93,7 @@ class MemberController extends Controller
     {
         /** @var Member $member */
         $member = request()->user();
+        /** @var Membership $membership */
         $membership = $member->activeMembership();
 
         if (!$membership) {
@@ -102,7 +104,9 @@ class MemberController extends Controller
         }
 
         $membership->update([
-            'cancellation_date' => now(),
+            'cancellation_date' => $membership->default_cancellation_date,
+            'cancellation_reason' => 'Sonstiges (Ordentliche Kündigung über PWA)',
+            'notes' => 'Gekündigt am ' . now()->format('d.m.Y H:i')
         ]);
 
         // Send cancellation confirmation email

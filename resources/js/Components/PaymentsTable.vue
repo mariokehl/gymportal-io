@@ -141,11 +141,11 @@
 
                 <!-- Description Column -->
                 <template v-else-if="column.key === 'description'">
-                  <div class="text-sm text-gray-900">{{ payment.description }}</div>
-                  <div v-if="payment.transaction_id" class="text-sm text-gray-500">
+                  <div class="text-sm text-gray-900 text-nowrap">{{ payment.description }}</div>
+                  <div v-if="payment.transaction_id" class="text-sm text-gray-500 text-nowrap">
                     Tx: {{ payment.transaction_id }}
                   </div>
-                  <div v-else-if="payment.mollie_payment_id" class="text-sm text-gray-500">
+                  <div v-else-if="payment.mollie_payment_id" class="text-sm text-gray-500 text-nowrap">
                     Tx: {{ payment.mollie_payment_id }}
                   </div>
                 </template>
@@ -366,6 +366,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
 import {
   Download,
@@ -503,7 +504,7 @@ const isAllSelected = computed(() => {
 
 const selectedSepaPayments = computed(() => {
   return props.payments.data.filter(payment =>
-    selectedPayments.value.includes(payment.id) && payment.payment_method === 'sepa'
+    selectedPayments.value.includes(payment.id) && payment.payment_method === 'sepa_direct_debit'
   )
 })
 
@@ -538,10 +539,47 @@ const handleExport = async (type) => {
   if (!beforeExportEvent.preventDefault) {
     // If parent doesn't handle it, use default behavior
     if (props.exportRoute && window.route) {
-      router.post(route(props.exportRoute), {
-        payment_ids: selectedPayments.value,
-        export_type: type
-      })
+      try {
+        // Use axios to download the file as a blob
+        const response = await axios.post(route(props.exportRoute), {
+          payment_ids: selectedPayments.value,
+          export_type: type
+        }, {
+          responseType: 'blob'
+        })
+
+        // Extract filename from Content-Disposition header or create a default one
+        const contentDisposition = response.headers['content-disposition']
+        let filename = `export_${type}_${new Date().toISOString().slice(0, 10)}`
+
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, '')
+          }
+        } else {
+          // Add appropriate file extension based on type
+          if (type === 'csv') filename += '.csv'
+          else if (type === 'pain008') filename += '.xml'
+          else if (type === 'pdf') filename += '.pdf'
+        }
+
+        // Create blob URL and trigger download
+        const blob = new Blob([response.data], { type: response.headers['content-type'] })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+
+        // Cleanup
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('Export failed:', error)
+        alert('Export fehlgeschlagen. Bitte versuchen Sie es erneut.')
+      }
     } else {
       // Emit for parent to handle
       emit('export', {

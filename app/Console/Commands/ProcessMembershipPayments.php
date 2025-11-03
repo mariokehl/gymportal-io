@@ -377,6 +377,14 @@ class ProcessMembershipPayments extends Command
             return 0;
         }
 
+        // Keine Zahlungen für gelöschte Mitglieder
+        if (!$membership->member) {
+            if ($this->verboseLog) {
+                $this->info("→ Skipping payment creation for deleted member in membership #{$membership->id}");
+            }
+            return 0;
+        }
+
         $plan = $membership->membershipPlan;
         $member = $membership->member;
         $created = 0;

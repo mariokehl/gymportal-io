@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Gym;
+use App\Models\Member;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,7 +103,7 @@ class FinancesController extends Controller
 
     public function export(Request $request)
     {
-        $gymId = auth()->user()->current_gym->id;
+        $gymId = Auth::user()->currentGym->id;
         $paymentIds = $request->input('payment_ids', []);
         $exportType = $request->input('export_type', 'csv');
 
@@ -125,11 +127,14 @@ class FinancesController extends Controller
     private function exportPain008($payments)
     {
         // Filter nur SEPA-Lastschriften
-        $sepaPayments = $payments->where('payment_method', 'sepa');
+        $sepaPayments = $payments->where('payment_method', 'sepa_direct_debit');
 
         if ($sepaPayments->isEmpty()) {
             return response()->json(['error' => 'Keine SEPA-Lastschriften ausgewählt'], 400);
         }
+
+        /** @var Gym $gym */
+        $gym = Auth::user()->currentGym;
 
         // PAIN.008 XML Generation
         $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></Document>');
@@ -142,7 +147,7 @@ class FinancesController extends Controller
         $grpHdr->addChild('CtrlSum', $sepaPayments->sum('amount'));
 
         $initgPty = $grpHdr->addChild('InitgPty');
-        $initgPty->addChild('Nm', auth()->user()->current_gym->name);
+        $initgPty->addChild('Nm', $gym->name);
 
         $pmtInf = $cstmrDrctDbtInitn->addChild('PmtInf');
         $pmtInf->addChild('PmtInfId', 'SEPA-' . date('YmdHis'));
@@ -160,18 +165,32 @@ class FinancesController extends Controller
         $pmtInf->addChild('ReqdColltnDt', date('Y-m-d'));
 
         $cdtr = $pmtInf->addChild('Cdtr');
-        $cdtr->addChild('Nm', auth()->user()->current_gym->name);
+        $cdtr->addChild('Nm', $gym->name);
 
         $cdtrAcct = $pmtInf->addChild('CdtrAcct');
-        $cdtrAcct->addChild('Id')->addChild('IBAN', 'DE89370400440532013000'); // Beispiel IBAN
+        $cdtrAcct->addChild('Id')->addChild('IBAN', $gym->iban);
 
         $cdtrAgt = $pmtInf->addChild('CdtrAgt');
-        $cdtrAgt->addChild('FinInstnId')->addChild('BIC', 'COBADEFFXXX'); // Beispiel BIC
+        $cdtrAgt->addChild('FinInstnId')->addChild('BICFI', $gym->bic);
 
         $cdtrSchmeId = $pmtInf->addChild('CdtrSchmeId');
-        $cdtrSchmeId->addChild('Id')->addChild('PrvtId')->addChild('Othr')->addChild('Id', 'DE98ZZZ09999999999'); // Beispiel Gläubiger-ID
+        $cdtrSchmeId->addChild('Id')->addChild('PrvtId')->addChild('Othr')->addChild('Id', $gym->creditor_identifier);
 
         foreach ($sepaPayments as $payment) {
+            /** @var Member $member */
+            $member = $payment->membership->member;
+
+            // Hole die aktive SEPA-Zahlungsmethode des Mitglieds
+            $sepaPaymentMethod = $member->paymentMethods()
+                ->where('status', 'active')
+                ->where('type', $payment->payment_method)
+                ->first();
+
+            // Überspringe Zahlung, wenn keine IBAN vorhanden ist
+            if (!$sepaPaymentMethod || !$sepaPaymentMethod->iban) {
+                continue;
+            }
+
             $drctDbtTxInf = $pmtInf->addChild('DrctDbtTxInf');
             $pmtId = $drctDbtTxInf->addChild('PmtId');
             $pmtId->addChild('EndToEndId', 'PAYMENT-' . $payment->id);
@@ -181,17 +200,18 @@ class FinancesController extends Controller
 
             $drctDbtTx = $drctDbtTxInf->addChild('DrctDbtTx');
             $mndtRltdInf = $drctDbtTx->addChild('MndtRltdInf');
-            $mndtRltdInf->addChild('MndtId', 'MANDATE-' . $payment->membership->member->id);
-            $mndtRltdInf->addChild('DtOfSgntr', $payment->membership->start_date->format('Y-m-d'));
+            $mndtRltdInf->addChild('MndtId', $sepaPaymentMethod->sepa_mandate_reference ?? 'MANDATE-' . $member->id);
+            $mndtRltdInf->addChild('DtOfSgntr', $sepaPaymentMethod->sepa_mandate_signed_at ? $sepaPaymentMethod->sepa_mandate_signed_at->format('Y-m-d') : $payment->membership->start_date->format('Y-m-d'));
 
             $dbtrAgt = $drctDbtTxInf->addChild('DbtrAgt');
-            $dbtrAgt->addChild('FinInstnId')->addChild('BIC', 'DEUTDEFFXXX'); // Beispiel BIC
+            $dbtrAgtFfinInstnId = $dbtrAgt->addChild('FinInstnId')->addChild('Othr');
+            $dbtrAgtFfinInstnId->addChild('Id', 'NOTPROVIDED');
 
             $dbtr = $drctDbtTxInf->addChild('Dbtr');
-            $dbtr->addChild('Nm', $payment->membership->member->first_name . ' ' . $payment->membership->member->last_name);
+            $dbtr->addChild('Nm', $sepaPaymentMethod->account_holder ?? ($member->first_name . ' ' . $member->last_name));
 
             $dbtrAcct = $drctDbtTxInf->addChild('DbtrAcct');
-            $dbtrAcct->addChild('Id')->addChild('IBAN', 'DE89370400440532013000'); // Beispiel - sollte aus Mitgliedsdaten kommen
+            $dbtrAcct->addChild('Id')->addChild('IBAN', $sepaPaymentMethod->iban);
 
             $rmtInf = $drctDbtTxInf->addChild('RmtInf');
             $rmtInf->addChild('Ustrd', $payment->description);

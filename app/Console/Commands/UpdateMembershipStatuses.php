@@ -61,19 +61,19 @@ class UpdateMembershipStatuses extends Command
             $this->info("$expiredCount Mitgliedschaft(en) sind abgelaufen.");
         }
 
-        // 5. Pending Mitgliedschaften prüfen (z.B. nach 30 Tagen automatisch canceln)
+        // 5. Ausstehende Mitgliedschaften prüfen (z.B. nach 30 Tagen automatisch stornieren)
         $pendingTimeout = Membership::where('status', 'pending')
             ->where('created_at', '<=', $now->subDays(30))
             ->get();
 
         foreach ($pendingTimeout as $membership) {
             $membership->update([
-                'status' => 'cancelled',
+                'status' => 'expired',
                 'cancellation_reason' => 'Automatisch storniert - Aktivierung nicht abgeschlossen'
             ]);
             $updated++;
 
-            Log::info("Pending Mitgliedschaft #{$membership->id} wurde automatisch storniert.");
+            Log::info("Ausstehende Mitgliedschaft #{$membership->id} wurde automatisch storniert.");
         }
 
         $this->info("Aktualisierung abgeschlossen. $updated Mitgliedschaft(en) wurden aktualisiert.");

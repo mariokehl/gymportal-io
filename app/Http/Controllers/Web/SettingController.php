@@ -50,6 +50,7 @@ class SettingController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'display_name' => 'nullable|string|max:255',
             'slug' => [
                 'required',
                 'string',
@@ -64,6 +65,9 @@ class SettingController extends Controller
             'country' => 'required|string|max:2',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
+            'iban' => 'nullable|string|max:34',
+            'bic' => 'nullable|string|max:11',
+            'creditor_identifier' => 'nullable|string|max:35',
             'website' => 'nullable|url|max:255'
         ]);
 
@@ -72,7 +76,7 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'gym' => $gym,
-            'message' => 'Gym-Einstellungen wurden erfolgreich aktualisiert.'
+            'message' => 'Organisation wurde erfolgreich aktualisiert.'
         ]);
     }
 
