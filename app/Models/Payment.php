@@ -98,14 +98,13 @@ class Payment extends Model
     public function getPaymentMethodTextAttribute()
     {
         return [
-            'sepa' => 'SEPA-Lastschrift',
             'sepa_direct_debit' => 'SEPA-Lastschrift',
             'creditcard' => 'Kreditkarte',
             'banktransfer' => 'Banküberweisung',
             'cash' => 'Barzahlung',
             'invoice' => 'Rechnung',
             'mollie_creditcard' => 'Mollie: Kreditkarte',
-            'mollie_directdebit' => 'Mollie: SEPA-Lastschriftverfahren',
+            'mollie_directdebit' => 'Mollie: SEPA-Lastschrift',
             'mollie_paypal' => 'Mollie: PayPal',
             'mollie_klarna' => 'Mollie: Klarna',
             'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
