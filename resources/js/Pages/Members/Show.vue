@@ -2114,7 +2114,6 @@ const getAccessMethodIcon = (method) => {
 // Helper functions
 const isSepaType = (type) => {
   return type === 'sepa_direct_debit' ||
-         type === 'sepa' ||
          type === 'mollie_directdebit'
 }
 
@@ -2723,7 +2722,6 @@ const getBillingCycleText = (cycle) => {
 const getPaymentMethodIcon = (type) => {
   const icons = {
     'sepa_direct_debit': Building2,
-    'sepa': Building2,
     'creditcard': CreditCard,
     'banktransfer': Building2,
     'cash': Banknote,
@@ -2739,7 +2737,6 @@ const getPaymentMethodIcon = (type) => {
 const getPaymentMethodIconClass = (type) => {
   const classes = {
     'sepa_direct_debit': 'bg-blue-100 text-blue-600',
-    'sepa': 'bg-blue-100 text-blue-600',
     'creditcard': 'bg-purple-100 text-purple-600',
     'banktransfer': 'bg-green-100 text-green-600',
     'cash': 'bg-yellow-100 text-yellow-600',

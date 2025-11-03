@@ -97,14 +97,13 @@ class PaymentMethod extends Model
     public function getTypeTextAttribute()
     {
         return [
-            'sepa' => 'SEPA-Lastschrift',
             'sepa_direct_debit' => 'SEPA-Lastschrift',
             'creditcard' => 'Kreditkarte',
             'banktransfer' => 'Banküberweisung',
             'cash' => 'Barzahlung',
             'invoice' => 'Rechnung',
             'mollie_creditcard' => 'Mollie: Kreditkarte',
-            'mollie_directdebit' => 'Mollie: SEPA-Lastschriftverfahren',
+            'mollie_directdebit' => 'Mollie: SEPA-Lastschrift',
             'mollie_paypal' => 'Mollie: PayPal',
             'mollie_klarna' => 'Mollie: Klarna',
             'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
@@ -175,7 +174,7 @@ class PaymentMethod extends Model
 
     public function getIsSepaAttribute()
     {
-        return in_array($this->type, ['sepa', 'sepa_direct_debit']);
+        return in_array($this->type, ['sepa_direct_debit']);
     }
 
     public function getIsCreditCardAttribute()
@@ -361,7 +360,7 @@ class PaymentMethod extends Model
 
     public function scopeSepa($query)
     {
-        return $query->whereIn('type', ['sepa', 'sepa_direct_debit']);
+        return $query->whereIn('type', ['sepa_direct_debit']);
     }
 
     public function scopeWithPendingSepaMandate($query)

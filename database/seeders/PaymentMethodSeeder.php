@@ -15,14 +15,14 @@ class PaymentMethodSeeder extends Seeder
 
         foreach ($members as $member) {
             // Choose randomly between SEPA and credit card
-            $type = rand(0, 1) ? 'sepa' : 'creditcard';
+            $type = rand(0, 1) ? 'sepa_direct_debit' : 'creditcard';
 
-            if ($type === 'sepa') {
+            if ($type === 'sepa_direct_debit') {
                 DB::table('payment_methods')->insert([
                     'member_id' => $member->id,
                     'mollie_customer_id' => 'cst_' . uniqid(),
                     'mollie_mandate_id' => 'mdt_' . uniqid(),
-                    'type' => 'sepa',
+                    'type' => 'sepa_direct_debit',
                     'bank_name' => $this->getRandomBank(),
                     'iban' => $this->generateRandomIBAN(),
                     'is_default' => true,

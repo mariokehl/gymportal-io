@@ -53,7 +53,7 @@ class PaymentSeeder extends Seeder
                     'status' => $status,
                     'due_date' => $dueDate->format('Y-m-d'),
                     'paid_date' => $paidDate ? $paidDate->format('Y-m-d') : null,
-                    'payment_method' => rand(0, 1) ? 'sepa' : 'creditcard',
+                    'payment_method' => rand(0, 1) ? 'sepa_direct_debit' : 'creditcard',
                     'transaction_id' => uniqid(),
                     'created_at' => $dueDate->subDays(5),
                     'updated_at' => $paidDate ?? $dueDate,

@@ -102,6 +102,53 @@
                                 </div>
                             </div>
 
+                            <!-- SEPA Banking Information Section -->
+                            <div v-if="sepaDirectDebitEnabled" class="mt-8 pt-8 border-t border-gray-200">
+                                <h4 class="text-base font-medium text-gray-900 mb-2">
+                                    SEPA-Bankverbindung
+                                </h4>
+                                <p class="text-sm text-gray-600 mb-6">
+                                    Diese Daten werden für Vorkasse, Zahlungserinnerungen und SEPA-Lastschriften per PAIN.008 Export verwendet.
+                                    <strong>Hinweis:</strong> Diese Angaben werden nicht für die Belastung der SaaS-Gebühren verwendet.
+                                </p>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm/6 font-medium text-gray-700 mb-1">IBAN</label>
+                                        <IbanInput
+                                            v-model="gymForm.iban"
+                                            :required="false"
+                                            placeholder="DE89 3704 0044 0532 0130 00" />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm/6 font-medium text-gray-700">BIC</label>
+                                        <input
+                                            v-model="gymForm.bic"
+                                            type="text"
+                                            maxlength="11"
+                                            placeholder="COBADEFFXXX"
+                                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            8 oder 11 Zeichen
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm/6 font-medium text-gray-700">Gläubiger-Identifikationsnummer</label>
+                                        <input
+                                            v-model="gymForm.creditor_identifier"
+                                            type="text"
+                                            maxlength="35"
+                                            placeholder="DE98ZZZ09999999999"
+                                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Wird von der Bundesbank vergeben
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="flex justify-end">
                                 <button
                                     type="submit"
@@ -394,6 +441,7 @@ import ContractWidget from '@/Components/ContractWidget.vue'
 import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
 import EmailTemplatesWidget from '@/Components/EmailTemplatesWidget.vue'
 import TeamManagement from '@/Components/TeamManagement.vue'
+import IbanInput from '@/Components/IbanInput.vue'
 
 // Props
 const props = defineProps({
@@ -428,6 +476,19 @@ const tabs = [
     { key: 'contracts', label: 'Online-Verträge', icon: Signature },
 ]
 
+// Computed property to check if SEPA Direct Debit is enabled
+const sepaDirectDebitEnabled = computed(() => {
+    // Check if SEPA direct debit is enabled in standard methods
+    const hasStandardSepa = standardMethods.value.some(
+        method => method.key === 'sepa_direct_debit' && method.enabled
+    )
+
+    // Check if Mollie direct debit is enabled
+    const hasMollieSepa = mollieStatus.value.enabledMethods.includes('directdebit')
+
+    return hasStandardSepa || hasMollieSepa
+})
+
 const gymForm = ref({
     name: props.currentGym?.name || '',
     display_name: props.currentGym?.display_name || '',
@@ -439,6 +500,9 @@ const gymForm = ref({
     country: props.currentGym?.country || 'DE',
     phone: props.currentGym?.phone || '',
     email: props.currentGym?.email || '',
+    iban: props.currentGym?.iban || '',
+    bic: props.currentGym?.bic || '',
+    creditor_identifier: props.currentGym?.creditor_identifier || '',
     website: props.currentGym?.website || '',
     logo_path: props.currentGym?.logo_path || ''
 })
