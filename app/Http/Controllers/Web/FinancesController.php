@@ -137,20 +137,20 @@ class FinancesController extends Controller
         $gym = Auth::user()->currentGym;
 
         // PAIN.008 XML Generation
-        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></Document>');
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.08" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:pain.008.001.08 pain.008.001.08.xsd"></Document>');
 
         $cstmrDrctDbtInitn = $xml->addChild('CstmrDrctDbtInitn');
         $grpHdr = $cstmrDrctDbtInitn->addChild('GrpHdr');
-        $grpHdr->addChild('MsgId', 'SEPA-' . date('YmdHis'));
+        $grpHdr->addChild('MsgId', 'MSGID-' . bin2hex(random_bytes(14)));
         $grpHdr->addChild('CreDtTm', date('c'));
         $grpHdr->addChild('NbOfTxs', $sepaPayments->count());
         $grpHdr->addChild('CtrlSum', $sepaPayments->sum('amount'));
 
         $initgPty = $grpHdr->addChild('InitgPty');
-        $initgPty->addChild('Nm', $gym->name);
+        $initgPty->addChild('Nm', htmlspecialchars($gym->account_holder, ENT_XML1, 'UTF-8'));
 
         $pmtInf = $cstmrDrctDbtInitn->addChild('PmtInf');
-        $pmtInf->addChild('PmtInfId', 'SEPA-' . date('YmdHis'));
+        $pmtInf->addChild('PmtInfId', 'PMTINFID-' . bin2hex(random_bytes(13)));
         $pmtInf->addChild('PmtMtd', 'DD');
         $pmtInf->addChild('NbOfTxs', $sepaPayments->count());
         $pmtInf->addChild('CtrlSum', $sepaPayments->sum('amount'));
@@ -165,7 +165,7 @@ class FinancesController extends Controller
         $pmtInf->addChild('ReqdColltnDt', date('Y-m-d'));
 
         $cdtr = $pmtInf->addChild('Cdtr');
-        $cdtr->addChild('Nm', $gym->name);
+        $cdtr->addChild('Nm', htmlspecialchars($gym->account_holder, ENT_XML1, 'UTF-8'));
 
         $cdtrAcct = $pmtInf->addChild('CdtrAcct');
         $cdtrAcct->addChild('Id')->addChild('IBAN', $gym->iban);
@@ -174,7 +174,9 @@ class FinancesController extends Controller
         $cdtrAgt->addChild('FinInstnId')->addChild('BICFI', $gym->bic);
 
         $cdtrSchmeId = $pmtInf->addChild('CdtrSchmeId');
-        $cdtrSchmeId->addChild('Id')->addChild('PrvtId')->addChild('Othr')->addChild('Id', $gym->creditor_identifier);
+        $cdtrSchmeIdPrvtIdOthr = $cdtrSchmeId->addChild('Id')->addChild('PrvtId')->addChild('Othr');
+        $cdtrSchmeIdPrvtIdOthr->addChild('Id', $gym->creditor_identifier);
+        $cdtrSchmeIdPrvtIdOthr->addChild('SchmeNm')->addChild('Prtry', 'SEPA');
 
         foreach ($sepaPayments as $payment) {
             /** @var Member $member */

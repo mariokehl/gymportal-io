@@ -65,6 +65,7 @@ class SettingController extends Controller
             'country' => 'required|string|max:2',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
+            'account_holder' => 'nullable|string|max:255',
             'iban' => 'nullable|string|max:34',
             'bic' => 'nullable|string|max:11',
             'creditor_identifier' => 'nullable|string|max:35',

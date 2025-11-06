@@ -113,7 +113,16 @@
                                 </p>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div class="md:col-span-2">
+                                    <div>
+                                        <label class="block text-sm/6 font-medium text-gray-700 mb-1">Kontoinhaber</label>
+                                        <input
+                                            v-model="gymForm.account_holder"
+                                            type="text"
+                                            placeholder="Musterfirma GmbH"
+                                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    </div>
+
+                                    <div>
                                         <label class="block text-sm/6 font-medium text-gray-700 mb-1">IBAN</label>
                                         <IbanInput
                                             v-model="gymForm.iban"
@@ -500,6 +509,7 @@ const gymForm = ref({
     country: props.currentGym?.country || 'DE',
     phone: props.currentGym?.phone || '',
     email: props.currentGym?.email || '',
+    account_holder: props.currentGym?.account_holder || '',
     iban: props.currentGym?.iban || '',
     bic: props.currentGym?.bic || '',
     creditor_identifier: props.currentGym?.creditor_identifier || '',
