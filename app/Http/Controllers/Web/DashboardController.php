@@ -68,7 +68,7 @@ class DashboardController extends Controller
                     'initials' => $member->initials,
                     'name' => $member->full_name,
                     'email' => $member->email,
-                    'membership' => $firstMembership->toArray()['membership_plan']['name'],
+                    'membership' => $firstMembership->toArray()['membership_plan']['name'] ?? 'Gelöschter Vertrag',
                     'status' => $member->status,
                     'last_check_in' => $member->last_check_in,
                 ];
