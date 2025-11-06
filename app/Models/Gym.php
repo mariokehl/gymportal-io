@@ -26,6 +26,7 @@ class Gym extends Model
         'country',
         'phone',
         'email',
+        'account_holder',
         'iban',
         'bic',
         'creditor_identifier',

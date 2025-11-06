@@ -147,7 +147,7 @@ class FinancesController extends Controller
         $grpHdr->addChild('CtrlSum', $sepaPayments->sum('amount'));
 
         $initgPty = $grpHdr->addChild('InitgPty');
-        $initgPty->addChild('Nm', htmlspecialchars($gym->name, ENT_XML1, 'UTF-8'));
+        $initgPty->addChild('Nm', htmlspecialchars($gym->account_holder, ENT_XML1, 'UTF-8'));
 
         $pmtInf = $cstmrDrctDbtInitn->addChild('PmtInf');
         $pmtInf->addChild('PmtInfId', 'PMTINFID-' . bin2hex(random_bytes(13)));
@@ -165,7 +165,7 @@ class FinancesController extends Controller
         $pmtInf->addChild('ReqdColltnDt', date('Y-m-d'));
 
         $cdtr = $pmtInf->addChild('Cdtr');
-        $cdtr->addChild('Nm', htmlspecialchars($gym->name, ENT_XML1, 'UTF-8'));
+        $cdtr->addChild('Nm', htmlspecialchars($gym->account_holder, ENT_XML1, 'UTF-8'));
 
         $cdtrAcct = $pmtInf->addChild('CdtrAcct');
         $cdtrAcct->addChild('Id')->addChild('IBAN', $gym->iban);
