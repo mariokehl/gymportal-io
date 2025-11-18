@@ -21,6 +21,7 @@ class Membership extends Model
         'cancellation_date',
         'cancellation_reason',
         'contract_file_path',
+        'notes',
     ];
 
     protected $casts = [
