@@ -46,38 +46,19 @@
           :href="route('notifications.index')"
           :disabled="!canAccessPremiumFeatures"
         />
-
-        <!-- Admin-Bereich Trenner -->
-        <div v-if="isAdmin" class="my-4 px-4">
-          <div class="border-t border-gray-200"></div>
-          <p class="text-xs text-gray-500 uppercase tracking-wider mt-4 mb-2">Administration</p>
-        </div>
-
-        <!-- Benutzersimulation - nur für Admins sichtbar -->
         <SidebarItem
-          v-if="isAdmin"
-          :icon="UserCheck"
-          label="Benutzer"
-          :active="route().current('impersonate.*')"
-          :href="route('impersonate.index')"
+          v-if="isOwnerOrAdmin"
+          :icon="Settings"
+          label="Einstellungen"
+          :active="route().current('settings.index')"
+          :href="route('settings.index')"
         />
-
-        <!-- Einstellungen - mit Abstand wenn Admin -->
-        <div :class="{ 'mt-auto': !isAdmin }">
-          <SidebarItem
-            v-if="isOwnerOrAdmin"
-            :icon="Settings"
-            label="Einstellungen"
-            :active="route().current('settings.index')"
-            :href="route('settings.index')"
-          />
-          <SidebarItem
-            :icon="LogOut"
-            label="Abmelden"
-            :active="false"
-            @click="handleLogout"
-          />
-        </div>
+        <SidebarItem
+          :icon="LogOut"
+          label="Abmelden"
+          :active="false"
+          @click="handleLogout"
+        />
       </nav>
 
       <OrganizationSwitcher />
@@ -134,10 +115,10 @@
 
         <div class="flex items-center space-x-4">
           <!-- Admin Badge -->
-          <div v-if="isAdmin" class="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+          <Link v-if="isAdmin" :href="route('impersonate.index')" class="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors cursor-pointer">
             <Shield class="h-3 w-3 mr-1" />
             <span class="text-xs font-medium">Admin</span>
-          </div>
+          </Link>
 
           <!-- Notification Popup Component -->
           <NotificationPopup ref="notificationPopup" />
@@ -175,7 +156,7 @@ import { router, usePage, Head, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
-  FilePlus, UserCheck, Shield
+  FilePlus, Shield
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'

@@ -31,8 +31,7 @@ class ImpersonationController extends Controller
             ->where('role_id', '!=', self::ADMIN_ROLE_ID)
             ->where('is_blocked', '!=', 1)
             ->select('id', 'first_name', 'last_name', 'email', 'created_at')
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderBy('id', 'desc')
             ->paginate(20)
             ->withQueryString();
 

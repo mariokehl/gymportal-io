@@ -534,7 +534,10 @@ class ProcessMembershipPayments extends Command
     protected function renewMembership(Membership $membership): void
     {
         $plan = $membership->membershipPlan;
-        $newEndDate = $membership->end_date->copy()->addMonths($plan->commitment_months ?: 12);
+        $newEndDate = $membership->end_date->copy()
+            ->addDay() // 30.11. -> 1.12.
+            ->addMonths($plan->commitment_months ?: 12) // 1.12. -> 1.01.
+            ->subDay(); // 1.01. -> 31.12.
 
         if ($this->testMode) {
             $this->logTestAction('membership_renewal', [

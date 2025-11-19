@@ -171,7 +171,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 });
 
 // Benutzer-Simulation
-Route::middleware(['auth:web'])->prefix('admin')->group(function () {
+Route::middleware(['auth:web', 'basic.auth'])->prefix('admin')->group(function () {
     Route::get('/impersonate', [ImpersonationController::class, 'index'])->name('impersonate.index');
     Route::post('/impersonate/{user}', [ImpersonationController::class, 'impersonate'])->name('impersonate.start');
     Route::delete('/impersonate/stop', [ImpersonationController::class, 'stopImpersonating'])->name('impersonate.stop');

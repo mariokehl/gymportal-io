@@ -119,4 +119,20 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Basic Authentication
+    |--------------------------------------------------------------------------
+    |
+    | These credentials are used for protecting sensitive admin areas with
+    | HTTP Basic Authentication. This provides an additional layer of
+    | security beyond the standard application authentication.
+    |
+    */
+
+    'basic' => [
+        'username' => env('BASIC_AUTH_USERNAME'),
+        'password' => env('BASIC_AUTH_PASSWORD'),
+    ],
+
 ];
