@@ -1,5 +1,4 @@
 <template>
-  <AppLayout title="Benutzer simulieren">
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
@@ -187,13 +186,11 @@
         </div>
       </div>
     </div>
-  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { router, Link } from '@inertiajs/vue3'
-import AppLayout from '@/Layouts/AppLayout.vue'
 import {
   Info,
   Search,
