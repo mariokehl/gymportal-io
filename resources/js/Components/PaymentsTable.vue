@@ -179,8 +179,9 @@
 
                 <!-- Due Date Column -->
                 <template v-else-if="column.key === 'due_date'">
-                  <span v-if="payment.due_date" class="text-sm text-gray-900">{{ formatDate(payment.due_date) }}</span>
+                  <div v-if="payment.due_date" class="text-sm text-gray-900">{{ formatDate(payment.due_date) }}</div>
                   <span v-else class="text-sm text-gray-400">-</span>
+                  <div v-if="payment.execution_date" class="text-sm text-gray-500">{{ formatDate(payment.execution_date) }}</div>
                 </template>
 
                 <!-- Custom Column Slot -->
