@@ -12,20 +12,20 @@
       <nav class="mt-6 h-full">
         <SidebarItem
           :icon="BarChart"
-          label="Dashboard"
+          :label="tNav('dashboard')"
           :active="route().current('dashboard')"
           :href="route('dashboard')"
         />
         <SidebarItem
           :icon="Users"
-          label="Mitglieder"
+          :label="tNav('members')"
           :active="route().current('members.index')"
           :href="route('members.index')"
           :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
           :icon="FilePlus"
-          label="Verträge"
+          :label="tNav('contracts')"
           :active="route().current('contracts.index')"
           :href="route('contracts.index')"
           :disabled="!canAccessPremiumFeatures"
@@ -33,7 +33,7 @@
         <SidebarItem
           v-if="isOwnerOrAdmin"
           :icon="DollarSign"
-          label="Finanzen"
+          :label="tNav('finances')"
           :active="route().current('finances.index')"
           :href="route('finances.index')"
           :disabled="!canAccessPremiumFeatures"
@@ -41,7 +41,7 @@
         <SidebarItem
           v-if="isOwnerOrAdmin"
           :icon="Bell"
-          label="Benachrichtigungen"
+          :label="tNav('notifications')"
           :active="route().current('notifications.index')"
           :href="route('notifications.index')"
           :disabled="!canAccessPremiumFeatures"
@@ -49,13 +49,13 @@
         <SidebarItem
           v-if="isOwnerOrAdmin"
           :icon="Settings"
-          label="Einstellungen"
+          :label="tNav('settings')"
           :active="route().current('settings.index')"
           :href="route('settings.index')"
         />
         <SidebarItem
           :icon="LogOut"
-          label="Abmelden"
+          :label="tNav('logout')"
           :active="false"
           @click="handleLogout"
         />
@@ -110,12 +110,18 @@
       <!-- Header -->
       <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
         <h1 class="text-xl font-semibold">
-          <slot name="header">Dashboard</slot>
+          <slot name="header">
+            {{ tNav('dashboard') }}
+          </slot>
         </h1>
 
         <div class="flex items-center space-x-4">
           <!-- Admin Badge -->
-          <Link v-if="isAdmin" :href="route('impersonate.index')" class="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors cursor-pointer">
+          <Link
+            v-if="isAdmin"
+            :href="route('impersonate.index')"
+            class="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors cursor-pointer"
+          >
             <Shield class="h-3 w-3 mr-1" />
             <span class="text-xs font-medium">Admin</span>
           </Link>
@@ -166,6 +172,10 @@ import Chatwoot from '@/Components/Chatwoot.vue'
 
 // Shared data
 const page = usePage()
+const tNav = (key) => {
+  const nav = page.props.app?.translations?.nav || {}
+  return nav[key] ?? key
+}
 const notificationPopup = ref(null)
 
 // Page
@@ -231,3 +241,4 @@ onMounted(() => {
   }
 })
 </script>
+

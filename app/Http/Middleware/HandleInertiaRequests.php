@@ -6,6 +6,7 @@ use App\Models\Gym;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Lang;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -93,6 +94,14 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 },
             ],
+            'app' => [
+                'locale'          => app()->getLocale(),
+                'fallback_locale' => config('app.fallback_locale'),
+                'translations'    => [
+                    'nav'       => Lang::get('nav'),
+                    'dashboard' => Lang::get('dashboard'),
+                ],
+            ],
         ]);
 
         // Subscription Status für alle authentifizierten Benutzer
@@ -125,3 +134,4 @@ class HandleInertiaRequests extends Middleware
         return $shared;
     }
 }
+
