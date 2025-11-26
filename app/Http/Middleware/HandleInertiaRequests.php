@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Gym;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -122,6 +123,18 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
+        // App info + traducciones compartidas con Inertia (incluye members)
+        $shared['app'] = [
+            'locale'          => app()->getLocale(),
+            'fallback_locale' => config('app.fallback_locale'),
+            'translations'    => [
+                'nav'       => Lang::get('nav'),
+                'dashboard' => Lang::get('dashboard'),
+                'members'   => Lang::get('members'),
+            ],
+        ];
+
         return $shared;
     }
 }
+

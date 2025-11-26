@@ -12,17 +12,41 @@
 
 <script setup>
 import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import { getStatusText, getStatusBadgeClass, getStatusIcon } from '@/utils/memberStatus'
 
 const props = defineProps({
-  status: String,
+  status: {
+    type: String,
+    default: '',
+  },
   showIcon: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
+// Acceso a las props compartidas por Inertia (app.locale, app.translations, etc.)
+const page = usePage()
+
+const membersTranslations = computed(() => {
+  return page.props.app?.translations?.members ?? {}
+})
+
+// Clases e iconos siguen usando la lógica actual
 const statusClasses = computed(() => getStatusBadgeClass(props.status))
-const statusText = computed(() => getStatusText(props.status))
 const statusIcon = computed(() => getStatusIcon(props.status))
+
+// Texto: primero intenta usar traducción, si no existe, usa la lógica antigua
+const statusText = computed(() => {
+  const key = props.status || ''
+
+  const translated =
+    membersTranslations.value?.status?.[key]
+
+  // 1) Usa traducción si existe
+  // 2) Si no existe, fallback a getStatusText (comportamiento actual)
+  return translated ?? getStatusText(key)
+})
 </script>
+
