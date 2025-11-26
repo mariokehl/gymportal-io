@@ -1,7 +1,7 @@
 <template>
-  <AppLayout title="Mitglieder">
+  <AppLayout :title="membersTranslations.page_title ?? 'Mitglieder'">
     <template #header>
-      Mitglieder
+      {{ membersTranslations.page_title ?? 'Mitglieder' }}
     </template>
 
     <div class="space-y-6">
@@ -14,7 +14,7 @@
               <input
                 v-model="filters.search"
                 type="text"
-                placeholder="Mitglieder durchsuchen..."
+                :placeholder="membersTranslations.search?.member_placeholder ?? 'Mitglieder durchsuchen...'"
                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 @input="handleSearch"
               />
@@ -28,12 +28,24 @@
               class="p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               @change="handleFilter"
             >
-              <option value="">Alle Status</option>
-              <option value="active">Aktiv</option>
-              <option value="inactive">Inaktiv</option>
-              <option value="paused">Pausiert</option>
-              <option value="pending">Ausstehend</option>
-              <option value="overdue">Überfällig</option>
+              <option value="">
+                {{ membersTranslations.filters?.all_status ?? 'Alle Status' }}
+              </option>
+              <option value="active">
+                {{ membersTranslations.filters?.active ?? 'Aktiv' }}
+              </option>
+              <option value="inactive">
+                {{ membersTranslations.filters?.inactive ?? 'Inaktiv' }}
+              </option>
+              <option value="paused">
+                {{ membersTranslations.filters?.paused ?? 'Pausiert' }}
+              </option>
+              <option value="pending">
+                {{ membersTranslations.filters?.pending ?? 'Ausstehend' }}
+              </option>
+              <option value="overdue">
+                {{ membersTranslations.filters?.overdue ?? 'Überfällig' }}
+              </option>
             </select>
 
             <!-- Neu anlegen Button -->
@@ -42,7 +54,7 @@
               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
             >
               <Plus class="w-4 h-4 mr-2" />
-              Neues Mitglied
+              {{ membersTranslations.actions?.new_member ?? 'Neues Mitglied' }}
             </Link>
           </div>
         </div>
@@ -54,35 +66,47 @@
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('name')">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('name')"
+                >
                   <div class="flex items-center">
-                    Name
+                    {{ membersTranslations.table?.headers?.name ?? 'Name' }}
                     <ArrowUpDown class="w-4 h-4 ml-1" />
                   </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('member_number')">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('member_number')"
+                >
                   <div class="flex items-center">
-                    Mitgliedsnummer
+                    {{ membersTranslations.table?.headers?.member_number ?? 'Mitgliedsnummer' }}
                     <ArrowUpDown class="w-4 h-4 ml-1" />
                   </div>
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {{ membersTranslations.table?.headers?.status ?? 'Status' }}
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('last_check_in')">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('last_check_in')"
+                >
                   <div class="flex items-center">
-                    Letzter Besuch
+                    {{ membersTranslations.table?.headers?.last_visit ?? 'Letzter Besuch' }}
                     <ArrowUpDown class="w-4 h-4 ml-1" />
                   </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('contract_end_date')">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('contract_end_date')"
+                >
                   <div class="flex items-center">
-                    Vertragsende
+                    {{ membersTranslations.table?.headers?.contract_end ?? 'Vertragsende' }}
                     <ArrowUpDown class="w-4 h-4 ml-1" />
                   </div>
                 </th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Aktionen
+                  {{ membersTranslations.table?.headers?.actions ?? 'Aktionen' }}
                 </th>
               </tr>
             </thead>
@@ -121,7 +145,11 @@
                   <MemberStatusBadge :status="member.status" />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ member.last_check_in ? formatDate(member.last_check_in.check_in_time) : 'Noch nie' }}
+                  {{
+                    member.last_check_in
+                      ? formatDate(member.last_check_in.check_in_time)
+                      : (membersTranslations.table?.never_checked_in ?? 'Noch nie')
+                  }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ member.contract_end_date ? formatDate(member.contract_end_date) : '-' }}
@@ -132,7 +160,7 @@
                     <Link
                       :href="route('members.show', member.id)"
                       class="text-gray-700 hover:text-gray-900 p-1 rounded transition-colors"
-                      title="Anzeigen"
+                      :title="membersTranslations.actions?.show ?? 'Anzeigen'"
                     >
                       <Eye class="w-4 h-4" />
                     </Link>
@@ -141,7 +169,7 @@
                     <Link
                       :href="route('members.show', member.id) + '?edit=true'"
                       class="text-indigo-600 hover:text-indigo-900 p-1 rounded transition-colors"
-                      title="Bearbeiten"
+                      :title="membersTranslations.actions?.edit ?? 'Bearbeiten'"
                     >
                       <Edit class="w-4 h-4" />
                     </Link>
@@ -151,7 +179,7 @@
                       v-if="member.can_delete"
                       @click="confirmDelete(member)"
                       class="text-red-600 hover:text-red-900 p-1 rounded transition-colors"
-                      title="Löschen"
+                      :title="membersTranslations.actions?.delete ?? 'Löschen'"
                     >
                       <Trash2 class="w-4 h-4" />
                     </button>
@@ -171,7 +199,7 @@
                       <template #content>
                         <div class="font-semibold mb-1 flex items-center">
                           <AlertCircle class="w-3 h-3 mr-1" />
-                          Löschen nicht möglich
+                          {{ membersTranslations.delete_tooltip?.title ?? 'Löschen nicht möglich' }}
                         </div>
                         <div class="text-gray-300">
                           {{ member.delete_block_reason }}
@@ -180,7 +208,7 @@
                           v-if="member.status !== 'inactive'"
                           class="mt-2 pt-2 border-t border-gray-700 text-gray-400"
                         >
-                          Tipp: Mitglied muss erst inaktiviert werden
+                          {{ membersTranslations.delete_tooltip?.hint ?? 'Tipp: Mitglied muss erst inaktiviert werden' }}
                         </div>
                       </template>
                     </Tooltip>
@@ -194,18 +222,27 @@
         <!-- Pagination Component -->
         <Pagination
           :data="members"
-          item-label="Mitglieder"
+          :item-label="membersTranslations.pagination?.item_label ?? 'Mitglieder'"
           :is-loading="isProcessing"
           @navigate="handlePaginationEvent"
         />
       </div>
 
       <!-- Keine Ergebnisse -->
-      <div v-if="members.data && members.data.length === 0" class="bg-white rounded-lg shadow p-12 text-center">
+      <div
+        v-if="members.data && members.data.length === 0"
+        class="bg-white rounded-lg shadow p-12 text-center"
+      >
         <Users class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Mitglieder gefunden</h3>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">
+          {{ membersTranslations.table?.no_members_title ?? 'Keine Mitglieder gefunden' }}
+        </h3>
         <p class="mt-1 text-sm text-gray-500">
-          {{ filters.search || filters.status ? 'Keine Mitglieder entsprechen den aktuellen Filtern.' : 'Beginnen Sie mit dem Hinzufügen Ihres ersten Mitglieds.' }}
+          {{
+            (filters.search || filters.status)
+              ? (membersTranslations.table?.no_members_filtered ?? 'Keine Mitglieder entsprechen den aktuellen Filtern.')
+              : (membersTranslations.table?.no_members_default ?? 'Beginnen Sie mit dem Hinzufügen Ihres ersten Mitglieds.')
+          }}
         </p>
         <div class="mt-6">
           <Link
@@ -213,7 +250,7 @@
             class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus class="w-4 h-4 mr-2" />
-            Neues Mitglied
+            {{ membersTranslations.actions?.new_member ?? 'Neues Mitglied' }}
           </Link>
         </div>
       </div>
@@ -226,7 +263,9 @@
           <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
             <AlertTriangle class="h-6 w-6 text-red-600" />
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mt-2">Mitglied löschen</h3>
+          <h3 class="text-lg font-medium text-gray-900 mt-2">
+            {{ membersTranslations.delete_modal?.title ?? 'Mitglied löschen' }}
+          </h3>
 
           <div class="mt-4 px-7 py-3">
             <!-- Mitgliedsinfo -->
@@ -243,23 +282,28 @@
             <div class="text-left space-y-2 mb-4">
               <div class="flex items-center text-sm">
                 <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
-                <span class="text-gray-600">Status: Inaktiv</span>
+                <span class="text-gray-600">
+                  {{ membersTranslations.delete_modal?.status_inactive ?? 'Status: Inaktiv' }}
+                </span>
               </div>
               <div class="flex items-center text-sm">
                 <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
-                <span class="text-gray-600">Keine aktiven Mitgliedschaften</span>
+                <span class="text-gray-600">
+                  {{ membersTranslations.delete_modal?.no_active_memberships ?? 'Keine aktiven Mitgliedschaften' }}
+                </span>
               </div>
               <div class="flex items-center text-sm">
                 <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
-                <span class="text-gray-600">Keine offenen Zahlungen</span>
+                <span class="text-gray-600">
+                  {{ membersTranslations.delete_modal?.no_open_payments ?? 'Keine offenen Zahlungen' }}
+                </span>
               </div>
             </div>
 
             <!-- Warnung -->
             <div class="bg-red-50 border border-red-200 rounded-md p-3">
               <p class="text-sm text-red-800">
-                <strong>Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
-                Alle Daten des Mitglieds werden unwiderruflich gelöscht.
+                {{ membersTranslations.delete_modal?.warning_text ?? 'Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten des Mitglieds werden unwiderruflich gelöscht.' }}
               </p>
             </div>
           </div>
@@ -270,10 +314,12 @@
               :disabled="isDeleting"
               class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <span v-if="!isDeleting">Endgültig löschen</span>
+              <span v-if="!isDeleting">
+                {{ membersTranslations.delete_modal?.confirm_button ?? 'Endgültig löschen' }}
+              </span>
               <span v-else class="flex items-center justify-center">
                 <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-                Wird gelöscht...
+                {{ membersTranslations.delete_modal?.deleting ?? 'Wird gelöscht...' }}
               </span>
             </button>
             <button
@@ -281,7 +327,7 @@
               :disabled="isDeleting"
               class="px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
             >
-              Abbrechen
+              {{ membersTranslations.delete_modal?.cancel_button ?? 'Abbrechen' }}
             </button>
           </div>
         </div>
@@ -291,15 +337,25 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { router, Link } from '@inertiajs/vue3'
+import { ref, reactive, computed } from 'vue'
+import { router, Link, usePage } from '@inertiajs/vue3'
 import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import {
-  Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown
+  Users,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  ArrowUpDown
 } from 'lucide-vue-next'
 import { formatDate } from '@/utils/formatters'
 
@@ -321,6 +377,13 @@ const showDeleteModal = ref(false)
 const memberToDelete = ref(null)
 const isDeleting = ref(false)
 const isProcessing = ref(false)
+
+// Inertia page + translations
+const page = usePage()
+
+const membersTranslations = computed(() => {
+  return page.props.app?.translations?.members ?? {}
+})
 
 // Methods
 const handleSearch = debounce(() => {
@@ -380,9 +443,9 @@ const deleteMember = () => {
         memberToDelete.value = null
         isDeleting.value = false
       },
-      onError: (errors) => {
+      onError: () => {
         isDeleting.value = false
-        // Error wird automatisch von Inertia angezeigt
+        // Fehler werden automatisch von Inertia angezeigt
       }
     })
   }
