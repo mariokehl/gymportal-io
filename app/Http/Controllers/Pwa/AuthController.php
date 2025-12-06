@@ -19,7 +19,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'studio_slug' => 'required|string'
+            'gym_slug' => 'required|string'
         ]);
 
         // Rate Limiting
@@ -32,7 +32,7 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $gym = Gym::where('slug', $request->studio_slug)
+        $gym = Gym::where('slug', $request->gym_slug)
                   ->where('pwa_enabled', true)
                   ->first();
 
@@ -112,7 +112,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'code' => 'required|string|size:6',
-            'studio_slug' => 'required|string'
+            'gym_slug' => 'required|string'
         ]);
 
         // Rate Limiting für Code-Verifikation
@@ -125,7 +125,7 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $gym = Gym::where('slug', $request->studio_slug)
+        $gym = Gym::where('slug', $request->gym_slug)
                   ->where('pwa_enabled', true)
                   ->first();
 
