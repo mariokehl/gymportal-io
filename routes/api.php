@@ -63,6 +63,7 @@ Route::group(['prefix' => 'pwa'], function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);
             Route::post('{id}/end', [CheckInController::class, 'endCheckin'])->where('id', '[0-9]+');
         });
+        Route::get('gyms', [MemberController::class, 'gyms']);
     });
 });
 

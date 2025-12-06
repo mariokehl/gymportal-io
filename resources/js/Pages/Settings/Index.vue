@@ -87,6 +87,22 @@
                                 </div>
 
                                 <div>
+                                    <label class="block text-sm/6 font-medium text-gray-700">Breitengrad (Latitude)</label>
+                                    <input v-model="gymForm.latitude" type="number" step="any" min="-90" max="90" placeholder="z.B. 52.520008" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Geografische Koordinate für Kartenanzeige (-90 bis 90)
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm/6 font-medium text-gray-700">Längengrad (Longitude)</label>
+                                    <input v-model="gymForm.longitude" type="number" step="any" min="-180" max="180" placeholder="z.B. 13.404954" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Geografische Koordinate für Kartenanzeige (-180 bis 180)
+                                    </p>
+                                </div>
+
+                                <div>
                                     <label class="block text-sm/6 font-medium text-gray-700">Telefon <span class="text-red-500">*</span></label>
                                     <input v-model="gymForm.phone" type="tel" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
@@ -507,6 +523,8 @@ const gymForm = ref({
     city: props.currentGym?.city || '',
     postal_code: props.currentGym?.postal_code || '',
     country: props.currentGym?.country || 'DE',
+    latitude: props.currentGym?.latitude || null,
+    longitude: props.currentGym?.longitude || null,
     phone: props.currentGym?.phone || '',
     email: props.currentGym?.email || '',
     account_holder: props.currentGym?.account_holder || '',

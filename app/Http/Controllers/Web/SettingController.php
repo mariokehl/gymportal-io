@@ -63,6 +63,8 @@ class SettingController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'country' => 'required|string|max:2',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'account_holder' => 'nullable|string|max:255',

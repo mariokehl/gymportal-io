@@ -24,6 +24,8 @@ class Gym extends Model
         'city',
         'postal_code',
         'country',
+        'latitude',
+        'longitude',
         'phone',
         'email',
         'account_holder',
