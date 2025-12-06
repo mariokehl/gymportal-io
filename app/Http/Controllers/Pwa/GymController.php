@@ -15,6 +15,7 @@ class GymController extends Controller
     {
         $gym = Gym::where('slug', $slug)
             ->pwaEnabled()
+            ->with('legalUrls')
             ->first();
 
         if (!$gym) {

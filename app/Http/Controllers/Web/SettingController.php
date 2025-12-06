@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
+use App\Models\GymLegalUrl;
 use App\Models\GymUser;
 use App\Models\Role;
 use App\Models\User;
@@ -297,6 +298,100 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Benutzer wurde erfolgreich aus dem Team entfernt.'
+        ]);
+    }
+
+    /**
+     * Legal URLs abrufen
+     */
+    public function getLegalUrls()
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $currentGym = $user->currentGym;
+
+        if (!$currentGym) {
+            return response()->json(['error' => 'Kein Gym gefunden.'], 404);
+        }
+
+        $legalUrls = $currentGym->legalUrls()->get()->map(function ($url) {
+            return [
+                'id' => $url->id,
+                'type' => $url->type,
+                'label' => $url->label,
+                'url' => $url->url,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'legal_urls' => $legalUrls,
+            'available_types' => GymLegalUrl::getTypes(),
+        ]);
+    }
+
+    /**
+     * Legal URL erstellen oder aktualisieren
+     */
+    public function storeLegalUrl(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $currentGym = $user->currentGym;
+
+        if (!$currentGym) {
+            return response()->json(['error' => 'Kein Gym gefunden.'], 404);
+        }
+
+        $this->authorize('update', $currentGym);
+
+        $validated = $request->validate([
+            'type' => 'required|string|in:' . implode(',', array_keys(GymLegalUrl::getTypes())),
+            'url' => 'required|url|max:2048',
+        ]);
+
+        $legalUrl = GymLegalUrl::updateOrCreate(
+            [
+                'gym_id' => $currentGym->id,
+                'type' => $validated['type'],
+            ],
+            [
+                'url' => $validated['url'],
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'legal_url' => [
+                'id' => $legalUrl->id,
+                'type' => $legalUrl->type,
+                'label' => $legalUrl->label,
+                'url' => $legalUrl->url,
+            ],
+            'message' => 'URL wurde erfolgreich gespeichert.',
+        ]);
+    }
+
+    /**
+     * Legal URL löschen
+     */
+    public function destroyLegalUrl(GymLegalUrl $legalUrl)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $currentGym = $user->currentGym;
+
+        if (!$currentGym || $legalUrl->gym_id !== $currentGym->id) {
+            return response()->json(['error' => 'Nicht autorisiert.'], 403);
+        }
+
+        $this->authorize('update', $currentGym);
+
+        $legalUrl->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'URL wurde erfolgreich gelöscht.',
         ]);
     }
 }

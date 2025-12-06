@@ -186,6 +186,12 @@
                     </div>
                 </div>
 
+                <!-- Legal URLs Manager -->
+                <LegalUrlsManager
+                    :current-gym="currentGym"
+                    @success="handleSuccess"
+                    @error="handleError" />
+
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -467,6 +473,7 @@ import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
 import EmailTemplatesWidget from '@/Components/EmailTemplatesWidget.vue'
 import TeamManagement from '@/Components/TeamManagement.vue'
 import IbanInput from '@/Components/IbanInput.vue'
+import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
 
 // Props
 const props = defineProps({
