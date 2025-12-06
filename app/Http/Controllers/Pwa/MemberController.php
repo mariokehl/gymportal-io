@@ -25,8 +25,8 @@ class MemberController extends Controller
             'success' => true,
             'data' => $member->only([
                 'id', 'email', 'first_name', 'last_name',
-                'member_number', 'phone', 'address',
-                'city', 'postal_code', 'status'
+                'member_number', 'birth_date', 'phone', 'address',
+                'city', 'postal_code', 'status', 'gym', 'joined_date'
             ]),
         ]);
     }
