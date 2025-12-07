@@ -178,4 +178,42 @@ class Membership extends Model
         // Fallback to min_cancellation_date if no end_date exists
         return $this->min_cancellation_date ? $this->min_cancellation_date->format('Y-m-d') : null;
     }
+
+    public function canBeCancelled(): bool
+    {
+        if (!$this->start_date || !$this->membershipPlan) {
+            return false;
+        }
+
+        $today = now()->startOfDay();
+        $start = $this->start_date->copy()->startOfDay();
+
+        $commitmentMonths = $this->membershipPlan->commitment_months ?? 0;
+        $renewalMonths = $this->membershipPlan->renewal_months ?? 1;
+        $cancellationPeriodDays = $this->membershipPlan->cancellation_period_days ?? 0;
+
+        // 1. End of minimum term
+        $commitmentEnd = $start->copy()->addMonths($commitmentMonths);
+
+        // If no cancellation is possible during the minimum contract period
+        if ($today->lessThan($commitmentEnd)) {
+            return false;
+        }
+
+        // 2. We are after the minimum term → extension periods apply
+        $periodStart = $commitmentEnd->copy();
+
+        // Find current or next renewal period
+        while ($periodStart->lessThanOrEqualTo($today)) {
+            $periodStart->addMonths($renewalMonths);
+        }
+
+        $periodEnd = $periodStart->copy();
+
+        // 3. Calculate the latest possible termination date for this period.
+        $latestPossibleCancellation = $periodEnd->copy()->subDays($cancellationPeriodDays);
+
+        // 4. Termination is possible if today <= deadline
+        return $today->lessThanOrEqualTo($latestPossibleCancellation);
+    }
 }
