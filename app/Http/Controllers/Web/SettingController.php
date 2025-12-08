@@ -394,4 +394,49 @@ class SettingController extends Controller
             'message' => 'URL wurde erfolgreich gelöscht.',
         ]);
     }
+
+    /**
+     * PWA-Einstellungen aktualisieren
+     */
+    public function updatePwaSettings(Request $request, Gym $gym)
+    {
+        $this->authorize('update', $gym);
+
+        $validated = $request->validate([
+            'pwa_enabled' => 'boolean',
+            'primary_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'secondary_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'accent_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'background_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'text_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'pwa_logo_url' => 'nullable|url|max:2048',
+            'favicon_url' => 'nullable|url|max:2048',
+            'custom_css' => 'nullable|string|max:10000',
+            'member_app_description' => 'nullable|string|max:500',
+            'opening_hours' => 'nullable|array',
+            'opening_hours.*.open' => 'nullable|string',
+            'opening_hours.*.close' => 'nullable|string',
+            'opening_hours.*.closed' => 'nullable|boolean',
+            'social_media' => 'nullable|array',
+            'social_media.instagram' => 'nullable|url|max:255',
+            'social_media.facebook' => 'nullable|url|max:255',
+            'social_media.youtube' => 'nullable|url|max:255',
+            'social_media.twitter' => 'nullable|url|max:255',
+            'social_media.linkedin' => 'nullable|url|max:255',
+            'social_media.tiktok' => 'nullable|url|max:255',
+            'pwa_settings' => 'nullable|array',
+            'pwa_settings.install_prompt_enabled' => 'nullable|boolean',
+            'pwa_settings.offline_support_enabled' => 'nullable|boolean',
+            'pwa_settings.push_notifications_enabled' => 'nullable|boolean',
+            'pwa_settings.background_sync_enabled' => 'nullable|boolean',
+        ]);
+
+        $gym->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'gym' => $gym->fresh(),
+            'message' => 'PWA-Einstellungen wurden erfolgreich aktualisiert.'
+        ]);
+    }
 }

@@ -136,6 +136,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::get('/legal-urls', [SettingController::class, 'getLegalUrls'])->name('legal-urls.index');
         Route::post('/legal-urls', [SettingController::class, 'storeLegalUrl'])->name('legal-urls.store');
         Route::delete('/legal-urls/{legalUrl}', [SettingController::class, 'destroyLegalUrl'])->name('legal-urls.destroy');
+        // PWA Settings
+        Route::put('/pwa/{gym}', [SettingController::class, 'updatePwaSettings'])->name('pwa.update');
         Route::prefix('payment-methods')->name('payment-methods.')->group(function () {
             Route::get('/', [PaymentMethodsController::class, 'index'])->name('index');
             Route::get('/overview', [PaymentMethodsController::class, 'overview'])->name('overview');
