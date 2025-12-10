@@ -18,9 +18,9 @@ class BasicAuthMiddleware
         $username = config('auth.basic.username');
         $password = config('auth.basic.password');
 
-        // Skip if Basic Auth is not configured
+        // Deny if Basic Auth is not configured
         if (empty($username) || empty($password)) {
-            return $next($request);
+            return response('Forbidden', 403);
         }
 
         // Check if Basic Auth credentials are provided
