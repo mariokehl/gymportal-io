@@ -252,16 +252,14 @@ class WidgetController extends Controller
         $gymId = $this->getGymIdFromRequest($request);
         $sessionId = $request->header('X-Widget-Session');
 
-        // Prüfe auf doppelte Submissions
-        if ($this->isDuplicateSubmission($sessionId)) {
+        // Atomically acquire submission lock to prevent duplicate submissions
+        // Cache::add is atomic - only one request can acquire the lock
+        if (!$this->acquireSubmissionLock($sessionId)) {
             return response()->json([
                 'success' => false,
                 'error' => 'Duplicate submission detected'
             ], 429);
         }
-
-        // Markiere Submission als in Bearbeitung
-        $this->markSubmissionInProgress($sessionId);
 
         // Erweiterte Validierung
         $validator = Validator::make($request->all(), [
@@ -636,37 +634,67 @@ class WidgetController extends Controller
     }
 
     /**
-     * Session-Daten cleanup
+     * Session-Daten cleanup mit atomarem Lock.
+     * Stellt sicher, dass alle Session-Daten konsistent gelöscht werden.
      */
-    private function cleanupWidgetSession(string $sessionId): void
+    private function cleanupWidgetSession(string $sessionId): bool
     {
-        if (!$sessionId) return;
+        if (!$sessionId) return false;
 
-        $keys = [
-            "widget_session:{$sessionId}:form_data",
-            "widget_session:{$sessionId}:selected_plan",
-            "widget_session:{$sessionId}:step",
-            "widget_session:{$sessionId}:validation_errors",
-            "widget_session:{$sessionId}:submission_lock",
-        ];
+        $lockKey = "lock:widget_session:{$sessionId}:cleanup";
+        $lock = Cache::lock($lockKey, 10);
 
-        foreach ($keys as $key) {
-            Cache::forget($key);
+        try {
+            if ($lock->block(5)) {
+                $keys = [
+                    "widget_session:{$sessionId}:form_data",
+                    "widget_session:{$sessionId}:selected_plan",
+                    "widget_session:{$sessionId}:step",
+                    "widget_session:{$sessionId}:validation_errors",
+                    "widget_session:{$sessionId}:submission_lock",
+                ];
+
+                foreach ($keys as $key) {
+                    Cache::forget($key);
+                }
+
+                logger()->debug('Widget session cleaned up', ['session_id' => $sessionId]);
+                return true;
+            }
+
+            Log::warning('Failed to acquire cleanup lock for widget session', [
+                'session_id' => $sessionId,
+            ]);
+            return false;
+        } finally {
+            $lock->release();
         }
-
-        logger()->debug('Widget session cleaned up', ['session_id' => $sessionId]);
     }
 
     /**
-     * Widget Session-Daten setzen
+     * Widget Session-Daten setzen mit atomarem Lock.
+     * Verhindert Race Conditions bei gleichzeitigen Schreiboperationen.
      */
-    private function setWidgetSessionData(string $sessionId, string $key, $value): void
+    private function setWidgetSessionData(string $sessionId, string $key, $value): bool
     {
-        Cache::put(
-            "widget_session:{$sessionId}:{$key}",
-            $value,
-            now()->addMinutes(30)
-        );
+        $cacheKey = "widget_session:{$sessionId}:{$key}";
+        $lock = Cache::lock("lock:{$cacheKey}", 10); // 10 second lock timeout
+
+        try {
+            // Block for up to 5 seconds waiting for lock
+            if ($lock->block(5)) {
+                Cache::put($cacheKey, $value, now()->addMinutes(30));
+                return true;
+            }
+
+            Log::warning('Failed to acquire cache lock for widget session', [
+                'session_id' => $sessionId,
+                'key' => $key,
+            ]);
+            return false;
+        } finally {
+            $lock->release();
+        }
     }
 
     /**
@@ -678,21 +706,47 @@ class WidgetController extends Controller
     }
 
     /**
-     * Prüfe auf doppelte Submission
+     * Atomically update widget session data using a callback.
+     * Useful for read-modify-write operations.
      */
-    private function isDuplicateSubmission(string $sessionId): bool
+    private function updateWidgetSessionData(string $sessionId, string $key, callable $callback): bool
     {
-        return Cache::has("widget_session:{$sessionId}:submission_lock");
+        $cacheKey = "widget_session:{$sessionId}:{$key}";
+        $lock = Cache::lock("lock:{$cacheKey}", 10);
+
+        try {
+            if ($lock->block(5)) {
+                $currentValue = Cache::get($cacheKey);
+                $newValue = $callback($currentValue);
+                Cache::put($cacheKey, $newValue, now()->addMinutes(30));
+                return true;
+            }
+
+            Log::warning('Failed to acquire cache lock for widget session update', [
+                'session_id' => $sessionId,
+                'key' => $key,
+            ]);
+            return false;
+        } finally {
+            $lock->release();
+        }
     }
 
     /**
-     * Markiere Submission als in Bearbeitung
+     * Atomically acquire submission lock to prevent duplicate submissions.
+     * Uses Cache::add() which only sets the value if the key doesn't exist (atomic operation).
+     *
+     * @return bool True if lock was acquired (no duplicate), false if already locked (duplicate)
      */
-    private function markSubmissionInProgress(string $sessionId): void
+    private function acquireSubmissionLock(string $sessionId): bool
     {
-        Cache::put(
+        // Cache::add is atomic - returns true only if key didn't exist and was set
+        return Cache::add(
             "widget_session:{$sessionId}:submission_lock",
-            now()->toISOString(),
+            [
+                'locked_at' => now()->toISOString(),
+                'pid' => getmypid(),
+            ],
             now()->addMinutes(5)
         );
     }
