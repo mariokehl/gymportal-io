@@ -62,6 +62,18 @@ class FinancesController extends Controller
         $sortBy = $request->input('sort_by', 'created_at');
         $sortOrder = $request->input('sort_order', 'desc');
 
+        // Validate sort parameters
+        $allowedSortColumns = ['id', 'created_at', 'amount'];
+        $allowedDirections = ['asc', 'desc'];
+
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'created_at';
+        }
+
+        if (!in_array($sortOrder, $allowedDirections)) {
+            $sortOrder = 'desc';
+        }
+
         $query->orderBy($sortBy, $sortOrder);
 
         $payments = $query->paginate(20)->withQueryString();
