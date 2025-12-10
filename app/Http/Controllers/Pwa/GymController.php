@@ -72,36 +72,6 @@ class GymController extends Controller
     }
 
     /**
-     * Alle Gyms eines Owners anhand der owner_id laden
-     */
-    public function byOwner(int $ownerId): JsonResponse
-    {
-        $gyms = Gym::where('owner_id', $ownerId)
-            ->pwaEnabled()
-            ->select('id', 'name', 'slug', 'address', 'postal_code', 'city', 'pwa_logo_url', 'logo_path', 'primary_color')
-            ->orderBy('name')
-            ->get()
-            ->map(function ($gym) {
-                return [
-                    'id' => $gym->id,
-                    'name' => $gym->name,
-                    'slug' => $gym->slug,
-                    'address' => $gym->address,
-                    'postal_code' => $gym->postal_code,
-                    'city' => $gym->city,
-                    'logo_url' => $gym->getPwaLogoUrl(),
-                    'primary_color' => $gym->primary_color,
-                    'website' => $gym->website,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'data' => $gyms
-        ]);
-    }
-
-    /**
      * Gym-Liste für Dropdown/Auswahl (optional, für Admin-Interface)
      */
     public function index(): JsonResponse

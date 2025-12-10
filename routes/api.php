@@ -43,7 +43,6 @@ Route::prefix('v1')->name('v1.')->group(function () {
 Route::group(['prefix' => 'pwa'], function () {
     Route::prefix('gyms')->group(function () {
         Route::get('/', [GymController::class, 'index']);
-        Route::get('owner/{ownerId}', [GymController::class, 'byOwner']);
         Route::get('{slug}', [GymController::class, 'show']);
         Route::get('{slug}/theme', [GymController::class, 'theme']);
         Route::get('{slug}/manifest', [GymController::class, 'manifest']);
