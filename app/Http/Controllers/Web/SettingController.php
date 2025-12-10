@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
+use App\Models\GymLegalUrl;
 use App\Models\GymUser;
 use App\Models\Role;
 use App\Models\User;
@@ -63,6 +64,8 @@ class SettingController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'country' => 'required|string|max:2',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'account_holder' => 'nullable|string|max:255',
@@ -295,6 +298,145 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Benutzer wurde erfolgreich aus dem Team entfernt.'
+        ]);
+    }
+
+    /**
+     * Legal URLs abrufen
+     */
+    public function getLegalUrls()
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $currentGym = $user->currentGym;
+
+        if (!$currentGym) {
+            return response()->json(['error' => 'Kein Gym gefunden.'], 404);
+        }
+
+        $legalUrls = $currentGym->legalUrls()->get()->map(function ($url) {
+            return [
+                'id' => $url->id,
+                'type' => $url->type,
+                'label' => $url->label,
+                'url' => $url->url,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'legal_urls' => $legalUrls,
+            'available_types' => GymLegalUrl::getTypes(),
+        ]);
+    }
+
+    /**
+     * Legal URL erstellen oder aktualisieren
+     */
+    public function storeLegalUrl(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $currentGym = $user->currentGym;
+
+        if (!$currentGym) {
+            return response()->json(['error' => 'Kein Gym gefunden.'], 404);
+        }
+
+        $this->authorize('update', $currentGym);
+
+        $validated = $request->validate([
+            'type' => 'required|string|in:' . implode(',', array_keys(GymLegalUrl::getTypes())),
+            'url' => 'required|url|max:2048',
+        ]);
+
+        $legalUrl = GymLegalUrl::updateOrCreate(
+            [
+                'gym_id' => $currentGym->id,
+                'type' => $validated['type'],
+            ],
+            [
+                'url' => $validated['url'],
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'legal_url' => [
+                'id' => $legalUrl->id,
+                'type' => $legalUrl->type,
+                'label' => $legalUrl->label,
+                'url' => $legalUrl->url,
+            ],
+            'message' => 'URL wurde erfolgreich gespeichert.',
+        ]);
+    }
+
+    /**
+     * Legal URL löschen
+     */
+    public function destroyLegalUrl(GymLegalUrl $legalUrl)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $currentGym = $user->currentGym;
+
+        if (!$currentGym || $legalUrl->gym_id !== $currentGym->id) {
+            return response()->json(['error' => 'Nicht autorisiert.'], 403);
+        }
+
+        $this->authorize('update', $currentGym);
+
+        $legalUrl->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'URL wurde erfolgreich gelöscht.',
+        ]);
+    }
+
+    /**
+     * PWA-Einstellungen aktualisieren
+     */
+    public function updatePwaSettings(Request $request, Gym $gym)
+    {
+        $this->authorize('update', $gym);
+
+        $validated = $request->validate([
+            'pwa_enabled' => 'boolean',
+            'primary_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'secondary_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'accent_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'background_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'text_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'pwa_logo_url' => 'nullable|url|max:2048',
+            'favicon_url' => 'nullable|url|max:2048',
+            'custom_css' => 'nullable|string|max:10000',
+            'member_app_description' => 'nullable|string|max:500',
+            'opening_hours' => 'nullable|array',
+            'opening_hours.*.open' => 'nullable|string',
+            'opening_hours.*.close' => 'nullable|string',
+            'opening_hours.*.closed' => 'nullable|boolean',
+            'social_media' => 'nullable|array',
+            'social_media.instagram' => 'nullable|url|max:255',
+            'social_media.facebook' => 'nullable|url|max:255',
+            'social_media.youtube' => 'nullable|url|max:255',
+            'social_media.twitter' => 'nullable|url|max:255',
+            'social_media.linkedin' => 'nullable|url|max:255',
+            'social_media.tiktok' => 'nullable|url|max:255',
+            'pwa_settings' => 'nullable|array',
+            'pwa_settings.install_prompt_enabled' => 'nullable|boolean',
+            'pwa_settings.offline_support_enabled' => 'nullable|boolean',
+            'pwa_settings.push_notifications_enabled' => 'nullable|boolean',
+            'pwa_settings.background_sync_enabled' => 'nullable|boolean',
+        ]);
+
+        $gym->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'gym' => $gym->fresh(),
+            'message' => 'PWA-Einstellungen wurden erfolgreich aktualisiert.'
         ]);
     }
 }

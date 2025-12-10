@@ -20,7 +20,7 @@ class UpdateMembershipStatuses extends Command
         $now = Carbon::now();
 
         // 1. Gekündigte Mitgliedschaften auf 'cancelled' setzen
-        $cancelledCount = Membership::where('cancellation_date', '<=', $now)
+        $cancelledCount = Membership::where('cancellation_date', '<', $now)
             ->whereIn('status', ['active', 'paused'])
             ->update(['status' => 'cancelled']);
 

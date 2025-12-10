@@ -46,6 +46,7 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::get('{slug}', [GymController::class, 'show']);
         Route::get('{slug}/theme', [GymController::class, 'theme']);
         Route::get('{slug}/manifest', [GymController::class, 'manifest']);
+        Route::get('{slug}/related', [GymController::class, 'related']);
     });
     Route::prefix('auth')->group(function () {
         Route::post('send-code', [AuthController::class, 'sendLoginCode']);
@@ -63,6 +64,7 @@ Route::group(['prefix' => 'pwa'], function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);
             Route::post('{id}/end', [CheckInController::class, 'endCheckin'])->where('id', '[0-9]+');
         });
+        Route::get('gyms', [MemberController::class, 'gyms']);
     });
 });
 

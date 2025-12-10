@@ -24,6 +24,8 @@ class Gym extends Model
         'city',
         'postal_code',
         'country',
+        'latitude',
+        'longitude',
         'phone',
         'email',
         'account_holder',
@@ -163,6 +165,27 @@ class Gym extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function legalUrls()
+    {
+        return $this->hasMany(GymLegalUrl::class);
+    }
+
+    /**
+     * Bestimmte Legal URL nach Typ abrufen
+     */
+    public function getLegalUrl(string $type): ?string
+    {
+        return $this->legalUrls()->where('type', $type)->value('url');
+    }
+
+    /**
+     * Alle Legal URLs als assoziatives Array [type => url]
+     */
+    public function getLegalUrlsArray(): array
+    {
+        return $this->legalUrls()->pluck('url', 'type')->toArray();
     }
 
     // === NEW PWA THEMING METHODS ===
@@ -421,6 +444,7 @@ class Gym extends Model
             'social_media' => $this->social_media,
             'theme' => $this->theme,
             'pwa_enabled' => $this->isPwaEnabled(),
+            'legal_urls' => $this->getLegalUrlsArray(),
         ];
     }
 

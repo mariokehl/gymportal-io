@@ -7,6 +7,7 @@ use App\Mail\CancellationConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
+use App\Models\User;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -24,8 +25,8 @@ class MemberController extends Controller
             'success' => true,
             'data' => $member->only([
                 'id', 'email', 'first_name', 'last_name',
-                'member_number', 'phone', 'address',
-                'city', 'postal_code', 'status'
+                'member_number', 'birth_date', 'phone', 'address',
+                'city', 'postal_code', 'status', 'gym', 'joined_date'
             ]),
         ]);
     }
@@ -166,5 +167,127 @@ class MemberController extends Controller
                 'member' => $member->only(['first_name', 'last_name', 'member_number'])
             ]
         ]);
+    }
+
+    /**
+     * Alle Gyms des eingeloggten Members abrufen.
+     *
+     * Gibt alle Gyms zurück, zu denen der Member Zugang hat.
+     * Bei Multi-Gym-Mitgliedschaften können das mehrere sein.
+     *
+     * @return JsonResponse
+     */
+    public function gyms(): JsonResponse
+    {
+        /** @var Member $member */
+        $member = request()->user();
+
+        /** @var Gym $gym */
+        $gym = $member->gym;
+
+        // Gym(s) des Members laden mit relevanten Daten
+        $gyms = Gym::where('owner_id', $gym->owner_id)
+            //->with(['openingHours', 'media'])
+            ->get()
+            ->map(function ($gym) {
+                return [
+                    'id' => $gym->id,
+                    'slug' => $gym->slug,
+                    'name' => $gym->name,
+                    'address' => $gym->address,
+                    'city' => $gym->city,
+                    'postal_code' => $gym->postal_code,
+                    'phone' => $gym->phone,
+                    'email' => $gym->email,
+                    'latitude' => (float) $gym->latitude,
+                    'longitude' => (float) $gym->longitude,
+                    //'opening_hours' => $this->formatOpeningHours($gym->openingHours),
+                    //'logo_url' => $gym->getFirstMediaUrl('logo'),
+                    //'cover_image_url' => $gym->getFirstMediaUrl('cover'),
+                    //'is_open' => $this->isGymOpen($gym),
+                    //'current_occupancy' => $this->getCurrentOccupancy($gym),
+                ];
+            });
+
+        return response()->json([
+            'data' => [
+                'gyms' => $gyms,
+                'current_gym_id' => $member->gym_id,
+            ],
+        ]);
+    }
+
+    /**
+     * Öffnungszeiten formatieren
+     */
+    private function formatOpeningHours($openingHours): ?array
+    {
+        if (!$openingHours) {
+            return null;
+        }
+
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        $formatted = [];
+
+        foreach ($days as $day) {
+            $dayHours = $openingHours->where('day', $day)->first();
+            if ($dayHours && !$dayHours->is_closed) {
+                $formatted[$day] = [
+                    'open' => $dayHours->open_time->format('H:i'),
+                    'close' => $dayHours->close_time->format('H:i'),
+                ];
+            } else {
+                $formatted[$day] = null;
+            }
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Prüfen ob Gym aktuell geöffnet ist
+     */
+    private function isGymOpen($gym): bool
+    {
+        $now = now();
+        $dayName = strtolower($now->englishDayOfWeek);
+
+        $todayHours = $gym->openingHours
+            ->where('day', $dayName)
+            ->where('is_closed', false)
+            ->first();
+
+        if (!$todayHours) {
+            return false;
+        }
+
+        $openTime = $now->copy()->setTimeFromTimeString($todayHours->open_time);
+        $closeTime = $now->copy()->setTimeFromTimeString($todayHours->close_time);
+
+        // Falls Schließzeit nach Mitternacht
+        if ($closeTime->lt($openTime)) {
+            $closeTime->addDay();
+        }
+
+        return $now->between($openTime, $closeTime);
+    }
+
+    /**
+     * Aktuelle Auslastung berechnen (optional)
+     */
+    private function getCurrentOccupancy($gym): ?int
+    {
+        // Aktive Check-ins zählen
+        $activeCheckIns = $gym->checkIns()
+            ->whereNull('checked_out_at')
+            ->where('checked_in_at', '>=', now()->subHours(12))
+            ->count();
+
+        // Kapazität prüfen
+        if (!$gym->max_capacity) {
+            return null;
+        }
+
+        return (int) round(($activeCheckIns / $gym->max_capacity) * 100);
     }
 }

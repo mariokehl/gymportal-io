@@ -87,6 +87,22 @@
                                 </div>
 
                                 <div>
+                                    <label class="block text-sm/6 font-medium text-gray-700">Breitengrad (Latitude)</label>
+                                    <input v-model="gymForm.latitude" type="number" step="any" min="-90" max="90" placeholder="z.B. 52.520008" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Geografische Koordinate für Kartenanzeige (-90 bis 90)
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm/6 font-medium text-gray-700">Längengrad (Longitude)</label>
+                                    <input v-model="gymForm.longitude" type="number" step="any" min="-180" max="180" placeholder="z.B. 13.404954" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Geografische Koordinate für Kartenanzeige (-180 bis 180)
+                                    </p>
+                                </div>
+
+                                <div>
                                     <label class="block text-sm/6 font-medium text-gray-700">Telefon <span class="text-red-500">*</span></label>
                                     <input v-model="gymForm.phone" type="tel" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
                                 </div>
@@ -169,6 +185,12 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Legal URLs Manager -->
+                <LegalUrlsManager
+                    :current-gym="currentGym"
+                    @success="handleSuccess"
+                    @error="handleError" />
 
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
@@ -423,6 +445,14 @@
             <div v-if="activeTab === 'contracts'" class="space-y-6">
                 <ContractWidget :current-gym="currentGym" />
             </div>
+
+            <!-- PWA Settings -->
+            <div v-if="activeTab === 'pwa'" class="space-y-6">
+                <PwaSettingsWidget
+                    :current-gym="currentGym"
+                    @success="handleSuccess"
+                    @error="handleError" />
+            </div>
         </div>
 
         <!-- Mollie Setup Modal -->
@@ -442,7 +472,7 @@ import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
     Building2, Users, Plus, Signature, CreditCard,
-    Wallet, DollarSign, FileText, HandCoins, Mail
+    Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
@@ -451,6 +481,8 @@ import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
 import EmailTemplatesWidget from '@/Components/EmailTemplatesWidget.vue'
 import TeamManagement from '@/Components/TeamManagement.vue'
 import IbanInput from '@/Components/IbanInput.vue'
+import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
+import PwaSettingsWidget from '@/Components/PwaSettingsWidget.vue'
 
 // Props
 const props = defineProps({
@@ -483,6 +515,7 @@ const tabs = [
     { key: 'payments', label: 'Zahlungsarten', icon: CreditCard },
     { key: 'emails', label: 'E-Mail-Vorlagen', icon: Mail },
     { key: 'contracts', label: 'Online-Verträge', icon: Signature },
+    { key: 'pwa', label: 'App (PWA)', icon: Smartphone },
 ]
 
 // Computed property to check if SEPA Direct Debit is enabled
@@ -507,6 +540,8 @@ const gymForm = ref({
     city: props.currentGym?.city || '',
     postal_code: props.currentGym?.postal_code || '',
     country: props.currentGym?.country || 'DE',
+    latitude: props.currentGym?.latitude || null,
+    longitude: props.currentGym?.longitude || null,
     phone: props.currentGym?.phone || '',
     email: props.currentGym?.email || '',
     account_holder: props.currentGym?.account_holder || '',

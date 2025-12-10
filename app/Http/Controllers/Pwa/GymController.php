@@ -15,6 +15,7 @@ class GymController extends Controller
     {
         $gym = Gym::where('slug', $slug)
             ->pwaEnabled()
+            ->with('legalUrls')
             ->first();
 
         if (!$gym) {
@@ -93,5 +94,42 @@ class GymController extends Controller
             'success' => true,
             'data' => $gyms
         ]);
+    }
+
+    /**
+     * Alle verwandten Gyms anhand des Slugs laden
+     *
+     * @param string $slug
+     * @return JsonResponse
+     */
+    public function related(string $slug): JsonResponse
+    {
+        $gym = Gym::where('slug', $slug)->pwaEnabled()->first();
+
+        if (!$gym) {
+            return response()->json(['error' => 'Gym not found'], 404);
+        }
+
+        // Return sibling gyms without exposing owner_id in the API
+        $relatedGyms = Gym::where('owner_id', $gym->owner_id)
+            ->pwaEnabled()
+            ->select('id', 'name', 'slug', 'address', 'postal_code', 'city', 'pwa_logo_url', 'logo_path', 'primary_color')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($gym) {
+                return [
+                    'id' => $gym->id,
+                    'name' => $gym->name,
+                    'slug' => $gym->slug,
+                    'address' => $gym->address,
+                    'postal_code' => $gym->postal_code,
+                    'city' => $gym->city,
+                    'logo_url' => $gym->getPwaLogoUrl(),
+                    'primary_color' => $gym->primary_color,
+                    'website' => $gym->website,
+                ];
+            });
+
+        return response()->json(['success' => true, 'data' => $relatedGyms]);
     }
 }
