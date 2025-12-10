@@ -298,27 +298,26 @@ Route::prefix('embed')->name('embed.')->group(function () {
     })->name('widget.js')->withoutMiddleware(['web']);
 });
 
-Route::get('/debug/widget-assets', function () {
-    $isProduction = App::environment('production');
-    $isDebug = config('app.debug');
-
-    return [
-        'js_file_exists' => file_exists(public_path('js/widget.js')),
-        'css_file_exists' => file_exists(public_path('css/widget.css')),
-        'js_path' => public_path('js/widget.js'),
-        'css_path' => public_path('css/widget.css'),
-        'js_readable' => is_readable(public_path('js/widget.js')),
-        'css_readable' => is_readable(public_path('css/widget.css')),
-        'js_size' => file_exists(public_path('js/widget.js')) ? filesize(public_path('js/widget.js')) : 0,
-        'css_size' => file_exists(public_path('css/widget.css')) ? filesize(public_path('css/widget.css')) : 0,
-        'public_path' => public_path(),
-        'laravel_version' => (!$isProduction || $isDebug) ? app()->version() : 'hidden',
-        'available_routes' => [
-            'embed_widget_js' => route('embed.widget.js'),
-            'embed_widget_css' => route('embed.widget.css'),
-        ]
-    ];
-});
+if (App::environment('local', 'development', 'staging')) {
+    Route::get('/debug/widget-assets', function () {
+        return [
+            'js_file_exists' => file_exists(public_path('js/widget.js')),
+            'css_file_exists' => file_exists(public_path('css/widget.css')),
+            'js_path' => public_path('js/widget.js'),
+            'css_path' => public_path('css/widget.css'),
+            'js_readable' => is_readable(public_path('js/widget.js')),
+            'css_readable' => is_readable(public_path('css/widget.css')),
+            'js_size' => file_exists(public_path('js/widget.js')) ? filesize(public_path('js/widget.js')) : 0,
+            'css_size' => file_exists(public_path('css/widget.css')) ? filesize(public_path('css/widget.css')) : 0,
+            'public_path' => public_path(),
+            'laravel_version' => app()->version(),
+            'available_routes' => [
+                'embed_widget_js' => route('embed.widget.js'),
+                'embed_widget_css' => route('embed.widget.css'),
+            ]
+        ];
+    });
+}
 
 Route::get('/widget-test', function () {
     return view('widget-test');
