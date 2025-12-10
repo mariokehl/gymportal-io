@@ -35,6 +35,7 @@ class Membership extends Model
     protected $appends = [
         'min_cancellation_date',
         'default_cancellation_date',
+        'can_cancel',
     ];
 
     public function member()
@@ -177,6 +178,11 @@ class Membership extends Model
 
         // Fallback to min_cancellation_date if no end_date exists
         return $this->min_cancellation_date ? $this->min_cancellation_date->format('Y-m-d') : null;
+    }
+
+    public function getCanCancelAttribute(): bool
+    {
+        return $this->canBeCancelled();
     }
 
     public function canBeCancelled(): bool
