@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
+use App\Rules\SafeCss;
+use App\Services\CssSanitizer;
 use App\Models\GymLegalUrl;
 use App\Models\GymUser;
 use App\Models\Role;
@@ -415,7 +417,7 @@ class SettingController extends Controller
             'text_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
             'pwa_logo_url' => 'nullable|url|max:2048',
             'favicon_url' => 'nullable|url|max:2048',
-            'custom_css' => 'nullable|string|max:10000',
+            'custom_css' => ['nullable', 'string', 'max:10000', new SafeCss],
             'member_app_description' => 'nullable|string|max:500',
             'opening_hours' => 'nullable|array',
             'opening_hours.*.open' => 'nullable|string',
@@ -434,6 +436,11 @@ class SettingController extends Controller
             'pwa_settings.push_notifications_enabled' => 'nullable|boolean',
             'pwa_settings.background_sync_enabled' => 'nullable|boolean',
         ]);
+
+        // Sanitize custom CSS before storing
+        if (isset($validated['custom_css'])) {
+            $validated['custom_css'] = CssSanitizer::sanitize($validated['custom_css']);
+        }
 
         $gym->update($validated);
 
