@@ -111,7 +111,9 @@ class SettingController extends Controller
 
         try {
             $file = $request->file('logo');
-            $gym = \App\Models\Gym::findOrFail($request->gym_id);
+            $gym = Gym::findOrFail($request->gym_id);
+
+            $this->authorize('update', $gym);
 
             // Altes Logo löschen falls vorhanden
             if ($gym->logo_path) {
@@ -150,7 +152,9 @@ class SettingController extends Controller
         }
 
         try {
-            $gym = \App\Models\Gym::findOrFail($request->gym_id);
+            $gym = Gym::findOrFail($request->gym_id);
+
+            $this->authorize('update', $gym);
 
             if ($gym->logo_path) {
                 Storage::disk('public')->delete($gym->logo_path);
