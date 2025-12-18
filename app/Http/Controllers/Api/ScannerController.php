@@ -35,7 +35,9 @@ class ScannerController extends Controller
             return response(status: 400);
         }
 
+        $scanner = $request->get('scanner');
         $scanType = $request->input('scan_type');
+        $nfcCardId = $request->input('nfc_card_id');
         $member = null;
 
         try {
@@ -44,18 +46,20 @@ class ScannerController extends Controller
                 $memberId = $request->input('member_id');
                 $member = Member::find($memberId);
             } elseif ($scanType === 'nfc_card') {
-                $nfcCardId = $request->input('nfc_card_id');
                 $accessConfig = MemberAccessConfig::where('nfc_uid', $nfcCardId)->first();
                 $member = $accessConfig?->member;
             }
 
             // Mitglied nicht gefunden
             if (!$member) {
-                Log::info('Member not found', [
-                    'scan_type' => $scanType,
-                    'member_id' => $request->input('member_id'),
-                    'nfc_card_id' => $request->input('nfc_card_id')
-                ]);
+                $this->logAccessFromVerify(
+                    $scanner,
+                    null,
+                    $scanType,
+                    false,
+                    $scanType === 'nfc_card' ? 'Unbekannte NFC-Karte' : 'Mitglied nicht gefunden',
+                    $nfcCardId
+                );
                 return response(status: 404);
             }
 
@@ -63,21 +67,28 @@ class ScannerController extends Controller
             $activeMembership = $member->activeMembership();
 
             if (!$activeMembership) {
-                Log::info('No active membership', [
-                    'member_id' => $member->id,
-                    'scan_type' => $scanType
-                ]);
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    false,
+                    'Keine aktive Mitgliedschaft',
+                    $nfcCardId
+                );
                 return response(status: 403);
             }
 
             // Prüfen ob start_date in der Vergangenheit liegt
             if ($activeMembership->start_date->isPast() || $activeMembership->start_date->isToday()) {
-                // Gültige Mitgliedschaft
-                Log::info('Valid membership access', [
-                    'member_id' => $member->id,
-                    'membership_id' => $activeMembership->id,
-                    'scan_type' => $scanType
-                ]);
+                // Gültige Mitgliedschaft - Zugang gewährt
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    true,
+                    null,
+                    $nfcCardId
+                );
 
                 CheckIn::create([
                     'member_id' => $member->id,
@@ -96,12 +107,14 @@ class ScannerController extends Controller
                 ]);
             } else {
                 // Mitgliedschaft noch nicht gestartet
-                Log::info('Membership not yet started', [
-                    'member_id' => $member->id,
-                    'membership_id' => $activeMembership->id,
-                    'start_date' => $activeMembership->start_date->toDateString(),
-                    'scan_type' => $scanType
-                ]);
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    false,
+                    'Mitgliedschaft startet am ' . $activeMembership->start_date->format('d.m.Y'),
+                    $nfcCardId
+                );
 
                 return response(status: 403);
             }
@@ -111,6 +124,17 @@ class ScannerController extends Controller
                 'error' => $e->getMessage(),
                 'scan_type' => $scanType
             ]);
+
+            if ($scanner) {
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member?->id ?? $request->input('member_id', ''),
+                    $scanType,
+                    false,
+                    'Systemfehler',
+                    $nfcCardId
+                );
+            }
 
             return response(status: 500);
         }
@@ -209,7 +233,7 @@ class ScannerController extends Controller
     }
 
     /**
-     * Zugangsversuch protokollieren
+     * Zugangsversuch protokollieren (für validateAccess)
      */
     private function logAccess($scanner, $memberId, $scanType, $granted, $message = null)
     {
@@ -225,6 +249,38 @@ class ScannerController extends Controller
                 'scanner_id' => $scanner->id,
                 'timestamp' => now()->toIso8601String()
             ]
+        ]);
+    }
+
+    /**
+     * Zugangsversuch protokollieren (für verifyMembership)
+     * Inkludiert NFC-Karten-ID in metadata für unbekannte Karten
+     */
+    private function logAccessFromVerify($scanner, $memberId, $scanType, $granted, $message = null, $nfcCardId = null)
+    {
+        if (!$scanner) {
+            return;
+        }
+
+        $metadata = [
+            'ip' => request()->ip(),
+            'scanner_id' => $scanner->id,
+            'timestamp' => now()->toIso8601String()
+        ];
+
+        // NFC-Karten-ID für unbekannte Karten speichern (wichtig für Live-Protokoll)
+        if ($nfcCardId && !$granted) {
+            $metadata['nfc_card_id'] = $nfcCardId;
+        }
+
+        ScannerAccessLog::create([
+            'gym_id' => $scanner->gym_id,
+            'device_number' => $scanner->device_number,
+            'member_id' => $memberId,
+            'scan_type' => $scanType,
+            'access_granted' => $granted,
+            'denial_reason' => $granted ? null : $message,
+            'metadata' => $metadata
         ]);
     }
 

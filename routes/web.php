@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
+use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
@@ -124,6 +125,25 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/{payment}/refund', [PaymentController::class, 'refund'])->name('refund');
     });
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    // Access Control / Scanner Management
+    Route::prefix('access-control')->name('access-control.')->group(function () {
+        Route::get('/', [AccessControlController::class, 'index'])->name('index');
+        Route::get('/logs', [AccessControlController::class, 'logs'])->name('logs');
+        Route::get('/statistics', [AccessControlController::class, 'statistics'])->name('statistics');
+
+        // Scanner CRUD
+        Route::post('/scanners', [AccessControlController::class, 'storeScanner'])->name('scanners.store');
+        Route::put('/scanners/{scanner}', [AccessControlController::class, 'updateScanner'])->name('scanners.update');
+        Route::delete('/scanners/{scanner}', [AccessControlController::class, 'destroyScanner'])->name('scanners.destroy');
+        Route::post('/scanners/{scanner}/toggle', [AccessControlController::class, 'toggleScanner'])->name('scanners.toggle');
+        Route::post('/scanners/{scanner}/regenerate-token', [AccessControlController::class, 'regenerateToken'])->name('scanners.regenerate-token');
+        Route::get('/scanners/{scanner}/download-config', [AccessControlController::class, 'downloadConfig'])->name('scanners.download-config');
+
+        // Gym Secret Key
+        Route::post('/regenerate-secret-key', [AccessControlController::class, 'regenerateSecretKey'])->name('regenerate-secret-key');
+    });
+
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::put('/gym/{gym}', [SettingController::class, 'updateGym'])->name('gym.update');
@@ -298,27 +318,26 @@ Route::prefix('embed')->name('embed.')->group(function () {
     })->name('widget.js')->withoutMiddleware(['web']);
 });
 
-Route::get('/debug/widget-assets', function () {
-    $isProduction = App::environment('production');
-    $isDebug = config('app.debug');
-
-    return [
-        'js_file_exists' => file_exists(public_path('js/widget.js')),
-        'css_file_exists' => file_exists(public_path('css/widget.css')),
-        'js_path' => public_path('js/widget.js'),
-        'css_path' => public_path('css/widget.css'),
-        'js_readable' => is_readable(public_path('js/widget.js')),
-        'css_readable' => is_readable(public_path('css/widget.css')),
-        'js_size' => file_exists(public_path('js/widget.js')) ? filesize(public_path('js/widget.js')) : 0,
-        'css_size' => file_exists(public_path('css/widget.css')) ? filesize(public_path('css/widget.css')) : 0,
-        'public_path' => public_path(),
-        'laravel_version' => (!$isProduction || $isDebug) ? app()->version() : 'hidden',
-        'available_routes' => [
-            'embed_widget_js' => route('embed.widget.js'),
-            'embed_widget_css' => route('embed.widget.css'),
-        ]
-    ];
-});
+if (App::environment('local', 'development', 'staging')) {
+    Route::get('/debug/widget-assets', function () {
+        return [
+            'js_file_exists' => file_exists(public_path('js/widget.js')),
+            'css_file_exists' => file_exists(public_path('css/widget.css')),
+            'js_path' => public_path('js/widget.js'),
+            'css_path' => public_path('css/widget.css'),
+            'js_readable' => is_readable(public_path('js/widget.js')),
+            'css_readable' => is_readable(public_path('css/widget.css')),
+            'js_size' => file_exists(public_path('js/widget.js')) ? filesize(public_path('js/widget.js')) : 0,
+            'css_size' => file_exists(public_path('css/widget.css')) ? filesize(public_path('css/widget.css')) : 0,
+            'public_path' => public_path(),
+            'laravel_version' => app()->version(),
+            'available_routes' => [
+                'embed_widget_js' => route('embed.widget.js'),
+                'embed_widget_css' => route('embed.widget.css'),
+            ]
+        ];
+    });
+}
 
 Route::get('/widget-test', function () {
     return view('widget-test');

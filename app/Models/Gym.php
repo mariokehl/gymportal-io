@@ -172,6 +172,16 @@ class Gym extends Model
         return $this->hasMany(GymLegalUrl::class);
     }
 
+    public function scanners()
+    {
+        return $this->hasMany(GymScanner::class);
+    }
+
+    public function accessLogs()
+    {
+        return $this->hasMany(ScannerAccessLog::class);
+    }
+
     /**
      * Bestimmte Legal URL nach Typ abrufen
      */

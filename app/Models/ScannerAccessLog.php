@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\ScannerAccessEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,6 +85,11 @@ class ScannerAccessLog extends Model
                 $log->metadata = $metadata;
             }
         });
+
+        // Broadcast event for live updates after creation
+        static::created(function ($log) {
+            broadcast(new ScannerAccessEvent($log))->toOthers();
+        });
     }
 
     // ==========================================
@@ -112,7 +118,7 @@ class ScannerAccessLog extends Model
      */
     public function member(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'member_id', 'member_id');
+        return $this->belongsTo(Member::class, 'member_id', 'id');
     }
 
     // ==========================================
@@ -408,12 +414,13 @@ class ScannerAccessLog extends Model
                 ->map(function ($item) {
                     return [
                         'device' => $item->device_number,
-                        'total' => $item->total,
-                        'granted' => $item->granted,
-                        'denied' => $item->total - $item->granted,
-                        'success_rate' => round(($item->granted / $item->total) * 100, 2)
+                        'total' => (int) $item->total,
+                        'granted' => (int) $item->granted,
+                        'denied' => (int) $item->total - (int) $item->granted,
+                        'success_rate' => $item->total > 0 ? round(((int) $item->granted / (int) $item->total) * 100, 2) : 0
                     ];
                 })
+                ->toArray()
         ];
     }
 
