@@ -70,6 +70,34 @@ class ScannerAccessLog extends Model
     ];
 
     /**
+     * Get database-agnostic SQL for summing a boolean column.
+     * MySQL allows SUM(boolean), PostgreSQL requires casting to int.
+     */
+    public static function sumBooleanSql(string $column): string
+    {
+        $driver = config('database.default');
+        $connection = config("database.connections.{$driver}.driver");
+
+        return $connection === 'pgsql'
+            ? "SUM({$column}::int)"
+            : "SUM({$column})";
+    }
+
+    /**
+     * Get database-agnostic SQL for extracting hour from a timestamp.
+     * MySQL uses HOUR(), PostgreSQL uses EXTRACT(HOUR FROM ...).
+     */
+    public static function extractHourSql(string $column): string
+    {
+        $driver = config('database.default');
+        $connection = config("database.connections.{$driver}.driver");
+
+        return $connection === 'pgsql'
+            ? "EXTRACT(HOUR FROM {$column})"
+            : "HOUR({$column})";
+    }
+
+    /**
      * Boot method to register model events
      */
     protected static function boot()
@@ -408,7 +436,7 @@ class ScannerAccessLog extends Model
             ],
             'by_device' => (clone $query)->select('device_number')
                 ->selectRaw('COUNT(*) as total')
-                ->selectRaw('SUM(access_granted) as granted')
+                ->selectRaw(self::sumBooleanSql('access_granted') . ' as granted')
                 ->groupBy('device_number')
                 ->get()
                 ->map(function ($item) {

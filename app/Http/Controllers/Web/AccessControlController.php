@@ -119,11 +119,11 @@ class AccessControlController extends Controller
         // Add hourly distribution for chart
         $hourlyStats = ScannerAccessLog::forGym($gym->id)
             ->where('created_at', '>=', $startDate)
-            ->selectRaw('HOUR(created_at) as hour')
+            ->selectRaw(ScannerAccessLog::extractHourSql('created_at') . ' as hour')
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw('SUM(access_granted) as granted')
-            ->groupByRaw('HOUR(created_at)')
-            ->orderByRaw('HOUR(created_at)')
+            ->selectRaw(ScannerAccessLog::sumBooleanSql('access_granted') . ' as granted')
+            ->groupByRaw(ScannerAccessLog::extractHourSql('created_at'))
+            ->orderByRaw(ScannerAccessLog::extractHourSql('created_at'))
             ->get()
             ->keyBy('hour');
 
