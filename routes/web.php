@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
+use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
@@ -124,6 +125,25 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/{payment}/refund', [PaymentController::class, 'refund'])->name('refund');
     });
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    // Access Control / Scanner Management
+    Route::prefix('access-control')->name('access-control.')->group(function () {
+        Route::get('/', [AccessControlController::class, 'index'])->name('index');
+        Route::get('/logs', [AccessControlController::class, 'logs'])->name('logs');
+        Route::get('/statistics', [AccessControlController::class, 'statistics'])->name('statistics');
+
+        // Scanner CRUD
+        Route::post('/scanners', [AccessControlController::class, 'storeScanner'])->name('scanners.store');
+        Route::put('/scanners/{scanner}', [AccessControlController::class, 'updateScanner'])->name('scanners.update');
+        Route::delete('/scanners/{scanner}', [AccessControlController::class, 'destroyScanner'])->name('scanners.destroy');
+        Route::post('/scanners/{scanner}/toggle', [AccessControlController::class, 'toggleScanner'])->name('scanners.toggle');
+        Route::post('/scanners/{scanner}/regenerate-token', [AccessControlController::class, 'regenerateToken'])->name('scanners.regenerate-token');
+        Route::get('/scanners/{scanner}/download-config', [AccessControlController::class, 'downloadConfig'])->name('scanners.download-config');
+
+        // Gym Secret Key
+        Route::post('/regenerate-secret-key', [AccessControlController::class, 'regenerateSecretKey'])->name('regenerate-secret-key');
+    });
+
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::put('/gym/{gym}', [SettingController::class, 'updateGym'])->name('gym.update');

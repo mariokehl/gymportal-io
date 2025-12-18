@@ -62,4 +62,12 @@ class GymPolicy
     {
         return false;
     }
+
+    /**
+     * Determine whether the user can manage the gym (scanners, settings, etc.)
+     */
+    public function manage(User $user, Gym $gym): bool
+    {
+        return $user->current_gym_id === $gym->id;
+    }
 }

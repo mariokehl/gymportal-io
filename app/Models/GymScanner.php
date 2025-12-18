@@ -169,6 +169,7 @@ class GymScanner extends Model
 
     public function accessLogs()
     {
-        return $this->hasMany(ScannerAccessLog::class, 'device_number', 'device_number');
+        return $this->hasMany(ScannerAccessLog::class, 'device_number', 'device_number')
+            ->where('gym_id', $this->gym_id);
     }
 }

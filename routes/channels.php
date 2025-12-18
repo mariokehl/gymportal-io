@@ -21,3 +21,8 @@ Broadcast::channel('notifications.{userId}', function ($user, $userId) {
 Broadcast::channel('gym.{gymId}', function ($user, $gymId) {
     return $user->current_gym_id === (int) $gymId;
 });
+
+// Scanner access logs channel (live updates for access control dashboard)
+Broadcast::channel('gym.{gymId}.access-logs', function ($user, $gymId) {
+    return $user->current_gym_id === (int) $gymId;
+});
