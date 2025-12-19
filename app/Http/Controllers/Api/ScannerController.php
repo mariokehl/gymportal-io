@@ -54,7 +54,7 @@ class ScannerController extends Controller
             if (!$member) {
                 $this->logAccessFromVerify(
                     $scanner,
-                    null,
+                    $request->input('member_id', ''),
                     $scanType,
                     false,
                     $scanType === 'nfc_card' ? 'Unbekannte NFC-Karte' : 'Mitglied nicht gefunden',
