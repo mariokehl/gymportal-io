@@ -4,6 +4,7 @@ use App\Http\Middleware\AuthenticateScanner;
 use App\Http\Middleware\BasicAuthMiddleware;
 use App\Http\Middleware\CheckIfUserBlocked;
 use App\Http\Middleware\CheckSubscription;
+use App\Http\Middleware\EnsureFullSession;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PaddleIpMiddleware;
 use App\Http\Middleware\WidgetAuthMiddleware;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'scanner.auth' => AuthenticateScanner::class,
             'blocked.check' => CheckIfUserBlocked::class,
             'basic.auth' => BasicAuthMiddleware::class,
+            'full.session' => EnsureFullSession::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/pwa/*',

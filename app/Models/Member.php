@@ -1165,4 +1165,103 @@ class Member extends Authenticatable
                 ->count()
         ];
     }
+
+    /**
+     * Get masked phone number: +49 *** ***89
+     */
+    public function getMaskedPhoneAttribute(): ?string
+    {
+        if (!$this->phone) {
+            return null;
+        }
+
+        $phone = preg_replace('/\s+/', '', $this->phone);
+        $length = strlen($phone);
+
+        if ($length < 4) {
+            return str_repeat('*', $length);
+        }
+
+        if (str_starts_with($phone, '+')) {
+            $countryCode = substr($phone, 0, 3);
+            $lastDigits = substr($phone, -2);
+            return $countryCode . ' *** ***' . $lastDigits;
+        }
+
+        return '*** ***' . substr($phone, -2);
+    }
+
+    /**
+     * Get masked address: M*****str. **
+     */
+    public function getMaskedAddressAttribute(): ?string
+    {
+        if (!$this->address) {
+            return null;
+        }
+
+        $parts = explode(' ', $this->address);
+        if (count($parts) === 0) {
+            return '****';
+        }
+
+        $firstPart = $parts[0];
+        $masked = substr($firstPart, 0, 1) . str_repeat('*', min(5, strlen($firstPart) - 1));
+
+        if (count($parts) > 1) {
+            $masked .= ' **';
+        }
+
+        return $masked;
+    }
+
+    /**
+     * Get masked postal code: 1****
+     */
+    public function getMaskedPostalCodeAttribute(): ?string
+    {
+        if (!$this->postal_code) {
+            return null;
+        }
+
+        return substr($this->postal_code, 0, 1) . str_repeat('*', strlen($this->postal_code) - 1);
+    }
+
+    /**
+     * Get masked city: B****n
+     */
+    public function getMaskedCityAttribute(): ?string
+    {
+        if (!$this->city) {
+            return null;
+        }
+
+        $length = strlen($this->city);
+        if ($length <= 2) {
+            return str_repeat('*', $length);
+        }
+
+        return substr($this->city, 0, 1) . str_repeat('*', $length - 2) . substr($this->city, -1);
+    }
+
+    /**
+     * Get masked birth date: **.05.1990
+     */
+    public function getMaskedBirthDateAttribute(): ?string
+    {
+        if (!$this->birth_date) {
+            return null;
+        }
+
+        if ($this->birth_date instanceof \Carbon\Carbon || $this->birth_date instanceof \DateTime) {
+            return '**.' . $this->birth_date->format('m.Y');
+        }
+
+        $parts = explode('-', $this->birth_date);
+        if (count($parts) === 3) {
+            return '**.' . $parts[1] . '.' . $parts[0];
+        }
+
+        return '**.**.' . substr($this->birth_date, 0, 4);
+    }
 }

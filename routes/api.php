@@ -51,20 +51,28 @@ Route::group(['prefix' => 'pwa'], function () {
     Route::prefix('auth')->group(function () {
         Route::post('send-code', [AuthController::class, 'sendLoginCode']);
         Route::post('verify-code', [AuthController::class, 'verifyCode']);
+        Route::post('link-contract-anonymous', [AuthController::class, 'linkContractAnonymous']);
     });
     Route::middleware(['auth:member-pwa'])->prefix('member')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [MemberController::class, 'profile']);
-        Route::put('profile', [MemberController::class, 'updateProfile']);
         Route::get('contract', [MemberController::class, 'contract']);
-        Route::put('contract', [MemberController::class, 'updateContract']);
-        Route::delete('contract', [MemberController::class, 'cancelContract']);
-        Route::get('qr-code', [MemberController::class, 'generateQrCode']);
+        Route::get('gyms', [MemberController::class, 'gyms']);
         Route::prefix('checkin')->group(function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);
             Route::post('{id}/end', [CheckInController::class, 'endCheckin'])->where('id', '[0-9]+');
         });
-        Route::get('gyms', [MemberController::class, 'gyms']);
+
+        // Auth upgrade routes (require anonymous or full session)
+        Route::post('upgrade-session', [AuthController::class, 'upgradeSession']);
+
+        // Routes requiring full session verification
+        Route::middleware(['full.session'])->group(function () {
+            Route::put('profile', [MemberController::class, 'updateProfile']);
+            Route::put('contract', [MemberController::class, 'updateContract']);
+            Route::delete('contract', [MemberController::class, 'cancelContract']);
+            Route::get('qr-code', [MemberController::class, 'generateQrCode']);
+        });
     });
 });
 

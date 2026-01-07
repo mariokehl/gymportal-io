@@ -7,7 +7,6 @@ use App\Mail\CancellationConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
-use App\Models\User;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -19,15 +18,65 @@ class MemberController extends Controller
 {
     public function profile(): JsonResponse
     {
+        /** @var Member $member */
         $member = request()->user();
+        $token = $member->currentAccessToken();
 
+        // Check if token is anonymous or full
+        $isVerified = $token && $token->can('full');
+
+        if ($isVerified) {
+            // Full session - return all data
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $member->id,
+                    'member_number' => $member->member_number,
+                    'first_name' => $member->first_name,
+                    'last_name' => $member->last_name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'address' => $member->address,
+                    'postal_code' => $member->postal_code,
+                    'city' => $member->city,
+                    'birth_date' => $member->birth_date?->format('Y-m-d'),
+                    'status' => $member->status,
+                    'avatar_url' => null,
+                    'joined_date' => $member->joined_date?->format('Y-m-d'),
+                    'gym' => $member->gym ? [
+                        'id' => $member->gym->id,
+                        'name' => $member->gym->name,
+                        'slug' => $member->gym->slug
+                    ] : null,
+                    'is_verified' => true
+                ],
+            ]);
+        }
+
+        // Anonymous session - return masked data
         return response()->json([
             'success' => true,
-            'data' => $member->only([
-                'id', 'email', 'first_name', 'last_name',
-                'member_number', 'birth_date', 'phone', 'address',
-                'city', 'postal_code', 'status', 'gym', 'joined_date'
-            ]),
+            'data' => [
+                'id' => $member->id,
+                'member_number' => $member->member_number,
+                'first_name' => $member->first_name,
+                'last_name' => $member->last_name,
+                'email' => $member->email,
+                'phone_masked' => $member->masked_phone,
+                'address_masked' => $member->masked_address,
+                'postal_code_masked' => $member->masked_postal_code,
+                'city_masked' => $member->masked_city,
+                'birth_date_masked' => $member->masked_birth_date,
+                'status' => $member->status,
+                'avatar_url' => null,
+                'joined_date' => $member->joined_date?->format('Y-m-d'),
+                'gym' => $member->gym ? [
+                    'id' => $member->gym->id,
+                    'name' => $member->gym->name,
+                    'slug' => $member->gym->slug
+                ] : null,
+                'is_verified' => false
+            ],
         ]);
     }
 
@@ -187,7 +236,6 @@ class MemberController extends Controller
 
         // Gym(s) des Members laden mit relevanten Daten
         $gyms = Gym::where('owner_id', $gym->owner_id)
-            //->with(['openingHours', 'media'])
             ->get()
             ->map(function ($gym) {
                 return [
@@ -201,7 +249,7 @@ class MemberController extends Controller
                     'email' => $gym->email,
                     'latitude' => (float) $gym->latitude,
                     'longitude' => (float) $gym->longitude,
-                    //'opening_hours' => $this->formatOpeningHours($gym->openingHours),
+                    'opening_hours' => $gym->opening_hours,
                     //'logo_url' => $gym->getFirstMediaUrl('logo'),
                     //'cover_image_url' => $gym->getFirstMediaUrl('cover'),
                     //'is_open' => $this->isGymOpen($gym),
@@ -215,33 +263,6 @@ class MemberController extends Controller
                 'current_gym_id' => $member->gym_id,
             ],
         ]);
-    }
-
-    /**
-     * Öffnungszeiten formatieren
-     */
-    private function formatOpeningHours($openingHours): ?array
-    {
-        if (!$openingHours) {
-            return null;
-        }
-
-        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        $formatted = [];
-
-        foreach ($days as $day) {
-            $dayHours = $openingHours->where('day', $day)->first();
-            if ($dayHours && !$dayHours->is_closed) {
-                $formatted[$day] = [
-                    'open' => $dayHours->open_time->format('H:i'),
-                    'close' => $dayHours->close_time->format('H:i'),
-                ];
-            } else {
-                $formatted[$day] = null;
-            }
-        }
-
-        return $formatted;
     }
 
     /**

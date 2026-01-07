@@ -167,8 +167,8 @@ class AuthController extends Controller
         // Code als verwendet markieren
         $loginCode->markAsUsed();
 
-        // Token erstellen
-        $token = $member->createToken('member-pwa', ['member-pwa'])->plainTextToken;
+        // Token erstellen (full session - user verified via email code)
+        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'])->plainTextToken;
 
         // Rate limit zurücksetzen bei erfolgreichem Login
         RateLimiter::clear($key);
@@ -183,11 +183,8 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Anmeldung erfolgreich',
             'token' => $token,
-            'member' => $member->only([
-                'id', 'email', 'first_name', 'last_name',
-                'member_number', 'phone', 'address',
-                'city', 'postal_code', 'status'
-            ]),
+            'token_type' => 'full',
+            'member' => $this->getFullMemberData($member, $gym),
             'gym' => $gym->getMemberAppData()
         ]);
     }
@@ -204,5 +201,229 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Logout erfolgreich'
         ]);
+    }
+
+    /**
+     * Link a contract anonymously using email and birth date.
+     * Returns a limited anonymous token with masked member data.
+     */
+    public function linkContractAnonymous(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'birth_date' => 'required|date',
+            'gym_slug' => 'required|string'
+        ]);
+
+        // Rate Limiting
+        $key = 'link-contract:' . $request->ip() . ':' . $request->email;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Zu viele Versuche. Bitte warten Sie vor dem nächsten Versuch.',
+                'error_code' => 'RATE_LIMITED'
+            ], 429);
+        }
+
+        $gym = Gym::where('slug', $request->gym_slug)
+                  ->where('pwa_enabled', true)
+                  ->first();
+
+        if (!$gym) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gym nicht gefunden oder PWA nicht aktiviert',
+                'error_code' => 'GYM_NOT_FOUND'
+            ], 404);
+        }
+
+        // Find member by email and birth_date
+        $member = Member::where('email', $request->email)
+                       ->where('gym_id', $gym->id)
+                       ->whereDate('birth_date', $request->birth_date)
+                       ->first();
+
+        if (!$member) {
+            RateLimiter::hit($key, 300);
+
+            return response()->json([
+                'message' => 'Kein Vertrag mit dieser E-Mail und Geburtsdatum gefunden.'
+            ], 404);
+        }
+
+        // Create anonymous token with limited abilities
+        $token = $member->createToken('member-pwa-anonymous', ['member-pwa', 'anonymous'])->plainTextToken;
+
+        // Send verification code for potential upgrade
+        try {
+            $loginCode = LoginCode::createForMember($member);
+            Mail::to($member->email)->send(
+                new LoginCodeMail($loginCode, $member, $gym)
+            );
+        } catch (\Exception $e) {
+            Log::warning('Failed to send verification code during anonymous link', [
+                'member_id' => $member->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        RateLimiter::clear($key);
+
+        Log::info('Member linked contract anonymously', [
+            'member_id' => $member->id,
+            'gym_id' => $gym->id,
+            'ip' => $request->ip()
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'anonymous',
+            'member' => $this->getMaskedMemberData($member, $gym)
+        ]);
+    }
+
+    /**
+     * Upgrade an anonymous session to a full session using verification code.
+     */
+    public function upgradeSession(Request $request): JsonResponse
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+            'gym_slug' => 'required|string'
+        ]);
+
+        /** @var Member $member */
+        $member = $request->user();
+
+        if (!$member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nicht authentifiziert',
+                'error_code' => 'UNAUTHENTICATED'
+            ], 401);
+        }
+
+        // Rate Limiting
+        $key = 'upgrade-session:' . $request->ip() . ':' . $member->id;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warten Sie.',
+                'error_code' => 'RATE_LIMITED'
+            ], 429);
+        }
+
+        $gym = Gym::where('slug', $request->gym_slug)
+                  ->where('pwa_enabled', true)
+                  ->first();
+
+        if (!$gym) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gym nicht gefunden',
+                'error_code' => 'GYM_NOT_FOUND'
+            ], 404);
+        }
+
+        // Verify member belongs to this gym
+        if ($member->gym_id !== $gym->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ungültige Gym-Zuordnung',
+                'error_code' => 'INVALID_GYM'
+            ], 403);
+        }
+
+        $loginCode = LoginCode::findValidCode($request->code, $member->id);
+
+        if (!$loginCode) {
+            RateLimiter::hit($key, 60);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ungültiger oder abgelaufener Code',
+                'error_code' => 'INVALID_CODE'
+            ], 422);
+        }
+
+        // Mark code as used
+        $loginCode->markAsUsed();
+
+        // Delete current anonymous token
+        $member->currentAccessToken()->delete();
+
+        // Create new full session token
+        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'])->plainTextToken;
+
+        RateLimiter::clear($key);
+
+        Log::info('Member upgraded to full session', [
+            'member_id' => $member->id,
+            'gym_id' => $gym->id,
+            'ip' => $request->ip()
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'full',
+            'member' => $this->getFullMemberData($member, $gym)
+        ]);
+    }
+
+    /**
+     * Get masked member data for anonymous sessions.
+     */
+    private function getMaskedMemberData(Member $member, Gym $gym): array
+    {
+        return [
+            'id' => $member->id,
+            'member_number' => $member->member_number,
+            'first_name' => $member->first_name,
+            'last_name' => $member->last_name,
+            'email' => $member->email,
+            'phone_masked' => $member->masked_phone,
+            'address_masked' => $member->masked_address,
+            'postal_code_masked' => $member->masked_postal_code,
+            'city_masked' => $member->masked_city,
+            'birth_date_masked' => $member->masked_birth_date,
+            'status' => $member->status,
+            'avatar_url' => null,
+            'joined_date' => $member->joined_date?->format('Y-m-d'),
+            'gym' => [
+                'id' => $gym->id,
+                'name' => $gym->name,
+                'slug' => $gym->slug
+            ],
+            'is_verified' => false
+        ];
+    }
+
+    /**
+     * Get full member data for verified sessions.
+     */
+    private function getFullMemberData(Member $member, Gym $gym): array
+    {
+        return [
+            'id' => $member->id,
+            'member_number' => $member->member_number,
+            'first_name' => $member->first_name,
+            'last_name' => $member->last_name,
+            'email' => $member->email,
+            'phone' => $member->phone,
+            'address' => $member->address,
+            'postal_code' => $member->postal_code,
+            'city' => $member->city,
+            'status' => $member->status,
+            'birth_date' => $member->birth_date?->format('Y-m-d'),
+            'status' => $member->status,
+            'avatar_url' => null,
+            'joined_date' => $member->joined_date?->format('Y-m-d'),
+            'gym' => [
+                'id' => $gym->id,
+                'name' => $gym->name,
+                'slug' => $gym->slug
+            ],
+            'is_verified' => true
+        ];
     }
 }
