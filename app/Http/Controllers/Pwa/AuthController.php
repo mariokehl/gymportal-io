@@ -255,17 +255,17 @@ class AuthController extends Controller
         $token = $member->createToken('member-pwa-anonymous', ['member-pwa', 'anonymous'])->plainTextToken;
 
         // Send verification code for potential upgrade
-        try {
-            $loginCode = LoginCode::createForMember($member);
-            Mail::to($member->email)->send(
-                new LoginCodeMail($loginCode, $member, $gym)
-            );
-        } catch (\Exception $e) {
-            Log::warning('Failed to send verification code during anonymous link', [
-                'member_id' => $member->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        //try {
+        //    $loginCode = LoginCode::createForMember($member);
+        //    Mail::to($member->email)->send(
+        //        new LoginCodeMail($loginCode, $member, $gym)
+        //    );
+        //} catch (\Exception $e) {
+        //    Log::warning('Failed to send verification code during anonymous link', [
+        //        'member_id' => $member->id,
+        //        'error' => $e->getMessage()
+        //    ]);
+        //}
 
         RateLimiter::clear($key);
 
