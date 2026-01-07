@@ -236,7 +236,6 @@ class MemberController extends Controller
 
         // Gym(s) des Members laden mit relevanten Daten
         $gyms = Gym::where('owner_id', $gym->owner_id)
-            //->with(['openingHours', 'media'])
             ->get()
             ->map(function ($gym) {
                 return [
@@ -250,7 +249,7 @@ class MemberController extends Controller
                     'email' => $gym->email,
                     'latitude' => (float) $gym->latitude,
                     'longitude' => (float) $gym->longitude,
-                    //'opening_hours' => $this->formatOpeningHours($gym->openingHours),
+                    'opening_hours' => $gym->opening_hours,
                     //'logo_url' => $gym->getFirstMediaUrl('logo'),
                     //'cover_image_url' => $gym->getFirstMediaUrl('cover'),
                     //'is_open' => $this->isGymOpen($gym),
@@ -264,33 +263,6 @@ class MemberController extends Controller
                 'current_gym_id' => $member->gym_id,
             ],
         ]);
-    }
-
-    /**
-     * Öffnungszeiten formatieren
-     */
-    private function formatOpeningHours($openingHours): ?array
-    {
-        if (!$openingHours) {
-            return null;
-        }
-
-        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        $formatted = [];
-
-        foreach ($days as $day) {
-            $dayHours = $openingHours->where('day', $day)->first();
-            if ($dayHours && !$dayHours->is_closed) {
-                $formatted[$day] = [
-                    'open' => $dayHours->open_time->format('H:i'),
-                    'close' => $dayHours->close_time->format('H:i'),
-                ];
-            } else {
-                $formatted[$day] = null;
-            }
-        }
-
-        return $formatted;
     }
 
     /**
