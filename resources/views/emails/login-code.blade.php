@@ -243,7 +243,7 @@
         <!-- Header -->
         <div class="header">
             @if($gym->pwa_logo_url || $gym->logo_path)
-                <img src="{{ $gym->pwa_logo_url ?: asset('storage/' . $gym->logo_path) }}"
+                <img src="{{ $gym->pwa_logo_url ?: Storage::disk('public')->url($gym->logo_path) }}"
                      alt="{{ $gym->name }}"
                      class="logo">
             @endif
