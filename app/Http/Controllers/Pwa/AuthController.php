@@ -67,6 +67,24 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Check if member has a static login code configured (for App Store review)
+        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+            // Rate limiting für erfolgreiche Anfragen
+            RateLimiter::hit($key, 60); // 1 Minute
+
+            Log::info('Static login code requested (no email sent)', [
+                'member_id' => $member->id,
+                'gym_id' => $gym->id,
+                'ip' => $request->ip()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Anmeldecode wurde versendet',
+                'expires_in' => 600 // 10 Minuten in Sekunden (same as normal flow)
+            ]);
+        }
+
         try {
             // LoginCode erstellen
             $loginCode = LoginCode::createForMember($member);
@@ -152,20 +170,38 @@ class AuthController extends Controller
             ], 404);
         }
 
-        $loginCode = LoginCode::findValidCode($request->code, $member->id);
+        // Check if member has a static login code configured
+        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+            // Verify against static code
+            if ($request->code !== $member->accessConfig->static_login_code) {
+                RateLimiter::hit($key, 60);
 
-        if (!$loginCode) {
-            RateLimiter::hit($key, 60);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ungültiger oder abgelaufener Code',
+                    'error_code' => 'INVALID_CODE'
+                ], 422);
+            }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Ungültiger oder abgelaufener Code',
-                'error_code' => 'INVALID_CODE'
-            ], 422);
+            // Static code is valid - no need to mark as used
+            // (it can be reused for App Store review)
+        } else {
+            // Normal flow: check database login code
+            $loginCode = LoginCode::findValidCode($request->code, $member->id);
+
+            if (!$loginCode) {
+                RateLimiter::hit($key, 60);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ungültiger oder abgelaufener Code',
+                    'error_code' => 'INVALID_CODE'
+                ], 422);
+            }
+
+            // Code als verwendet markieren
+            $loginCode->markAsUsed();
         }
-
-        // Code als verwendet markieren
-        $loginCode->markAsUsed();
 
         // Token erstellen (full session - user verified via email code)
         $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'])->plainTextToken;
@@ -334,20 +370,38 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $loginCode = LoginCode::findValidCode($request->code, $member->id);
+        // Check if member has a static login code configured
+        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+            // Verify against static code
+            if ($request->code !== $member->accessConfig->static_login_code) {
+                RateLimiter::hit($key, 60);
 
-        if (!$loginCode) {
-            RateLimiter::hit($key, 60);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ungültiger oder abgelaufener Code',
+                    'error_code' => 'INVALID_CODE'
+                ], 422);
+            }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Ungültiger oder abgelaufener Code',
-                'error_code' => 'INVALID_CODE'
-            ], 422);
+            // Static code is valid - no need to mark as used
+            // (it can be reused for App Store review)
+        } else {
+            // Normal flow: check database login code
+            $loginCode = LoginCode::findValidCode($request->code, $member->id);
+
+            if (!$loginCode) {
+                RateLimiter::hit($key, 60);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ungültiger oder abgelaufener Code',
+                    'error_code' => 'INVALID_CODE'
+                ], 422);
+            }
+
+            // Mark code as used
+            $loginCode->markAsUsed();
         }
-
-        // Mark code as used
-        $loginCode->markAsUsed();
 
         // Delete current anonymous token
         $member->currentAccessToken()->delete();

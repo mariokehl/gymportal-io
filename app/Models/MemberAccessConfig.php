@@ -13,6 +13,7 @@ class MemberAccessConfig extends Model
 
     protected $fillable = [
         'member_id',
+        'static_login_code',
         'qr_code_enabled',
         'qr_code_invalidated_at',
         'qr_code_invalidated_by',
@@ -101,6 +102,14 @@ class MemberAccessConfig extends Model
         if ($this->coffee_flat_enabled) $count++;
 
         return $count;
+    }
+
+    /**
+     * Check if a static login code is configured
+     */
+    public function hasStaticLoginCode(): bool
+    {
+        return !empty($this->static_login_code);
     }
 
     /**
