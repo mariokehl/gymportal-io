@@ -102,8 +102,8 @@ export default {
 
   mounted() {
     // Aktuelles Logo laden falls vorhanden
-    if (this.currentGym?.logo_path) {
-      this.logoPreview = `/storage/${this.currentGym.logo_path}`
+    if (this.currentGym?.logo_url) {
+      this.logoPreview = this.currentGym.logo_url
     }
   },
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Gym extends Model
@@ -82,7 +83,7 @@ class Gym extends Model
         'scanner_secret_key',
     ];
 
-    protected $appends = ['theme', 'pwa_manifest'];
+    protected $appends = ['theme', 'pwa_manifest', 'logo_url'];
 
     protected static function boot()
     {
@@ -251,6 +252,28 @@ class Gym extends Model
     }
 
     /**
+     * Logo URL Attribute - for general logo display
+     */
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->logo_path) {
+                    return null;
+                }
+
+                // If it's already a full URL, return as-is
+                if (str_starts_with($this->logo_path, 'http')) {
+                    return $this->logo_path;
+                }
+
+                // Return the storage URL
+                return Storage::disk('public')->url($this->logo_path);
+            }
+        );
+    }
+
+    /**
      * Get PWA Logo URL with fallbacks
      */
     public function getPwaLogoUrl(): ?string
@@ -265,7 +288,7 @@ class Gym extends Model
             if (str_starts_with($this->logo_path, 'http')) {
                 return $this->logo_path;
             }
-            return asset('storage/' . $this->logo_path);
+            return Storage::disk('public')->url($this->logo_path);
         }
 
         return null;

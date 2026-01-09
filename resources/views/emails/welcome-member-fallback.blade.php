@@ -59,7 +59,7 @@
         <!-- Header -->
         <div class="email-header">
             @if($gym->logo_path)
-                <img src="{{ asset('storage/' . $gym->logo_path) }}" alt="{{ $gym->name }}" class="gym-logo">
+                <img src="{{ Storage::disk('public')->url($gym->logo_path) }}" alt="{{ $gym->name }}" class="gym-logo">
             @endif
             <h1>Willkommen bei {{ $gym->name }}!</h1>
         </div>
