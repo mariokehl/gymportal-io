@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Member;
 use App\Models\Membership;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -74,6 +75,31 @@ class UpdateMembershipStatuses extends Command
             $updated++;
 
             Log::info("Ausstehende Mitgliedschaft #{$membership->id} wurde automatisch storniert.");
+        }
+
+        // 6. Mitglieder ohne aktive Mitgliedschaft auf 'inactive' setzen
+        $activeMembers = Member::where('status', 'active')->get();
+        $deactivatedCount = 0;
+
+        foreach ($activeMembers as $member) {
+            // Prüfen, ob Mitglied mindestens eine aktive Mitgliedschaft hat
+            $hasActiveMembership = $member->memberships()
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$hasActiveMembership) {
+                $member->logStatusChange(
+                    'inactive',
+                    'Automatisch deaktiviert - keine aktive Mitgliedschaft vorhanden',
+                    ['action_source' => 'System']
+                );
+                $member->update(['status' => 'inactive']);
+                $deactivatedCount++;
+            }
+        }
+
+        if ($deactivatedCount > 0) {
+            $this->info("$deactivatedCount Mitglied(er) ohne aktive Mitgliedschaft wurden auf 'inactive' gesetzt.");
         }
 
         $this->info("Aktualisierung abgeschlossen. $updated Mitgliedschaft(en) wurden aktualisiert.");
