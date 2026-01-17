@@ -132,12 +132,12 @@
           <NotificationPopup ref="notificationPopup" />
 
           <!-- User Profile -->
-          <div class="flex items-center">
+          <Link :href="route('profile.index')" class="flex items-center hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors cursor-pointer">
             <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
               {{ userInitials }}
             </div>
             <span class="ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
-          </div>
+          </Link>
         </div>
       </header>
 
