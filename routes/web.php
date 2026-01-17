@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\AccessControlController;
+use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
@@ -195,6 +196,13 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');
     Route::delete('/gyms/remove/{gym}', [GymController::class, 'remove'])->name('gyms.remove');
     Route::post('/user/switch-organization', [GymController::class, 'switchOrganization'])->name('user.switch-organization');
+
+    // Profile routes
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // Benutzer-Simulation
