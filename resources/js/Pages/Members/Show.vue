@@ -302,147 +302,21 @@
           </div>
 
           <!-- Membership Tab -->
-          <div v-show="activeTab === 'membership'" class="space-y-6">
-            <div v-if="member.memberships && member.memberships.length > 0">
-              <div v-for="membership in member.memberships" :key="membership.id" class="border border-gray-200 rounded-lg p-4 mb-4">
-                <div class="flex justify-between items-start">
-                  <div>
-                    <h4 class="text-lg font-semibold">
-                      <span v-if="membership.membership_plan?.deleted_at" class="text-red-600">Gelöschter Vertrag: </span>
-                      {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
-                      <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
-                        {{ getStatusText(membership.status) }}
-                      </span>
-                    </h4>
-                    <p class="text-gray-600">{{ membership.membership_plan?.description || 'Keine Beschreibung verfügbar' }}</p>
-                    <div class="mt-2 space-y-1">
-                      <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
-                      <p v-if="membership.membership_plan?.commitment_months" class="text-sm">
-                        <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
-                      </p>
-                      <p v-if="membership.membership_plan?.cancellation_period_days" class="text-sm">
-                        <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.cancellation_period_days }} Tage
-                      </p>
-                      <p v-if="membership.cancellation_date" class="text-sm text-red-600">
-                        <span class="font-medium">Gekündigt zum:</span> {{ formatDate(membership.cancellation_date) }}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex flex-col items-end">
-                    <!-- Action buttons for memberships - above the price -->
-                    <div v-if="membership.status === 'active' || membership.status === 'paused' || membership.status === 'pending'" class="flex items-center justify-end gap-2 sm:gap-3 mb-3">
-                      <!-- Activate pending membership -->
-                      <button
-                        v-if="membership.status === 'pending'"
-                        @click="activateMembership(membership)"
-                        type="button"
-                        class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
-                        :disabled="activatingMembership === membership.id"
-                      >
-                        <CheckCircle class="w-4 h-4" />
-                        <span>{{ activatingMembership === membership.id ? 'Wird aktiviert...' : 'Aktivieren' }}</span>
-                      </button>
-
-                      <!-- Pause button -->
-                      <button
-                        v-if="membership.status === 'active' && !membership.cancellation_date"
-                        @click="openPauseMembership(membership)"
-                        type="button"
-                        class="text-sm text-yellow-600 hover:text-yellow-800 font-medium flex items-center gap-1 transition-colors"
-                        :disabled="pausingMembership === membership.id"
-                      >
-                        <Clock class="w-4 h-4" />
-                        <span class="hidden sm:inline">{{ pausingMembership === membership.id ? 'Wird stillgelegt...' : 'Stilllegen' }}</span>
-                        <span class="sm:hidden">{{ pausingMembership === membership.id ? '...' : 'Pause' }}</span>
-                      </button>
-
-                      <!-- Continue button -->
-                      <button
-                        v-if="membership.status === 'paused'"
-                        @click="resumeMembership(membership)"
-                        type="button"
-                        class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
-                        :disabled="resumingMembership === membership.id"
-                      >
-                        <PlayCircle class="w-4 h-4" />
-                        <span class="hidden sm:inline">{{ resumingMembership === membership.id ? 'Wird aktiviert...' : 'Fortsetzen' }}</span>
-                        <span class="sm:hidden">{{ resumingMembership === membership.id ? '...' : 'Weiter' }}</span>
-                      </button>
-
-                      <!-- Dividing line -->
-                      <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date" class="hidden sm:block w-px h-4 bg-gray-300"></div>
-
-                      <!-- Cancel button -->
-                      <button
-                        v-if="!membership.cancellation_date && membership.status !== 'pending'"
-                        @click="openCancelMembership(membership)"
-                        type="button"
-                        class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
-                        :disabled="cancellingMembership === membership.id"
-                      >
-                        <XCircle class="w-4 h-4" />
-                        <span class="hidden sm:inline">{{ cancellingMembership === membership.id ? 'Wird gekündigt...' : 'Kündigen' }}</span>
-                        <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
-                      </button>
-
-                      <!-- Cancel cancellation button -->
-                      <button
-                        v-if="membership.cancellation_date"
-                        @click="revokeCancellation(membership)"
-                        type="button"
-                        class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
-                        :disabled="revokingCancellation === membership.id"
-                      >
-                        <RotateCcw class="w-4 h-4" />
-                        <span class="hidden sm:inline">{{ revokingCancellation === membership.id ? 'Wird zurückgenommen...' : 'Kündigung zurücknehmen' }}</span>
-                        <span class="sm:hidden">{{ revokingCancellation === membership.id ? '...' : 'Zurück' }}</span>
-                      </button>
-                    </div>
-
-                    <!-- Price display -->
-                    <div class="text-right">
-                      <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan?.price || 0) }}</p>
-                      <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan?.billing_cycle || 'monthly') }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="membership.membership_plan?.deleted_at" class="mt-3 p-3 bg-red-50 rounded-md">
-                  <p class="text-sm text-red-800">
-                    <AlertCircle class="w-4 h-4 inline mr-1" />
-                    Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.
-                  </p>
-                </div>
-
-                <div v-if="membership.status === 'pending'" class="mt-3 p-3 bg-orange-50 rounded-md">
-                  <p class="text-sm text-orange-800">
-                    <AlertCircle class="w-4 h-4 inline mr-1" />
-                    Diese Mitgliedschaft wartet auf Aktivierung
-                  </p>
-                </div>
-
-                <div v-if="membership.pause_start_date" class="mt-3 p-3 bg-yellow-50 rounded-md">
-                  <p class="text-sm text-yellow-800">
-                    <Clock class="w-4 h-4 inline mr-1" />
-                    Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
-                  </p>
-                </div>
-
-                <div v-if="membership.cancellation_date" class="mt-3 p-3 bg-red-50 rounded-md">
-                  <p class="text-sm text-red-800">
-                    <AlertCircle class="w-4 h-4 inline mr-1" />
-                    Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
-                    <span v-if="membership.cancellation_reason" class="block mt-1">
-                      Grund: {{ membership.cancellation_reason }}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-center py-8">
-              <UserX class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p class="text-gray-500">Keine Mitgliedschaften vorhanden</p>
-            </div>
+          <div v-show="activeTab === 'membership'">
+            <MembershipTab
+              :member="member"
+              :membership-plans="membershipPlans"
+              :pausing-membership="pausingMembership"
+              :resuming-membership="resumingMembership"
+              :cancelling-membership="cancellingMembership"
+              :revoking-cancellation="revokingCancellation"
+              :activating-membership="activatingMembership"
+              @activate="activateMembership"
+              @pause="openPauseMembership"
+              @resume="resumeMembership"
+              @cancel="openCancelMembership"
+              @revoke-cancellation="revokeCancellation"
+            />
           </div>
 
           <!-- Payments & Payment Methods Tab -->
@@ -1807,11 +1681,12 @@ import StatusHistory from '@/Components/StatusHistory.vue'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
 import IbanInput from '@/Components/IbanInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
+import MembershipTab from '@/Components/Members/MembershipTab.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
-  UserX, ArrowLeft, Wallet, AlertCircle, CheckCircle,
+  ArrowLeft, Wallet, AlertCircle, CheckCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  XCircle, RotateCcw, History, Key, QrCode, Nfc,
+  XCircle, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
@@ -1819,6 +1694,10 @@ import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear
 const props = defineProps({
   member: Object,
   availablePaymentMethods: {
+    type: Array,
+    default: () => []
+  },
+  membershipPlans: {
     type: Array,
     default: () => []
   }
@@ -2716,15 +2595,6 @@ const getStatusText = (status) => {
     expired: 'Abgelaufen'
   }
   return texts[status] || status
-}
-
-const getBillingCycleText = (cycle) => {
-  const cycles = {
-    'monthly': 'Monat',
-    'quarterly': 'Quartal',
-    'yearly': 'Jahr'
-  }
-  return cycles[cycle] || cycle
 }
 
 const getPaymentMethodIcon = (type) => {
