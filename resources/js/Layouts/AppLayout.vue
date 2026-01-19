@@ -56,6 +56,13 @@
         />
         <SidebarItem
           v-if="isOwnerOrAdmin"
+          :icon="ArrowDownUp"
+          label="Import/Export"
+          :active="route().current('data-transfer.*')"
+          :href="route('data-transfer.index')"
+        />
+        <SidebarItem
+          v-if="isOwnerOrAdmin"
           :icon="Settings"
           label="Einstellungen"
           :active="route().current('settings.index')"
@@ -164,7 +171,8 @@ import { router, usePage, Head, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
-  FilePlus, Shield, DoorOpen
+  FilePlus, Shield, DoorOpen,
+  ArrowDownUp
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'

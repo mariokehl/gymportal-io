@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
+use App\Http\Controllers\Web\DataTransferController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
@@ -144,6 +145,14 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Gym Secret Key
         Route::post('/regenerate-secret-key', [AccessControlController::class, 'regenerateSecretKey'])->name('regenerate-secret-key');
+    });
+
+    // Data Transfer (Import/Export)
+    Route::prefix('data-transfer')->name('data-transfer.')->group(function () {
+        Route::get('/', [DataTransferController::class, 'index'])->name('index');
+        Route::get('/export', [DataTransferController::class, 'export'])->name('export');
+        Route::post('/validate', [DataTransferController::class, 'validateImport'])->name('validate');
+        Route::post('/import', [DataTransferController::class, 'import'])->name('import');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {
