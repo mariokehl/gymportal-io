@@ -5,7 +5,6 @@ namespace App\Notifications;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\Gym;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -62,26 +61,6 @@ class MemberRegisteredNotification extends Notification implements ShouldQueue
             'registration_source' => $this->registrationSource,
             'timestamp' => now()->toIso8601String(),
         ];
-    }
-
-    /**
-     * Get the channels the notification should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
-     */
-    public function broadcastOn(): array
-    {
-        return [
-            new PrivateChannel('gym.' . $this->gym->id),
-        ];
-    }
-
-    /**
-     * The event's broadcast name.
-     */
-    public function broadcastAs(): string
-    {
-        return 'member.registered';
     }
 
     /**

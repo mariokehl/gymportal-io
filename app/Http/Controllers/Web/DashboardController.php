@@ -78,12 +78,8 @@ class DashboardController extends Controller
         // Calculate statistics
         $stats = $this->memberService->getDashboardStats($user->current_gym_id);
 
-        // Get latest notifications for the current gym
-        $currentGymId = $user->current_gym_id;
+        // Get latest notifications
         $notifications = $user->notifications()
-            ->when($currentGymId, function ($query) use ($currentGymId) {
-                $query->whereJsonContains('data->gym_id', $currentGymId);
-            })
             ->limit(5)
             ->get()
             ->map(function (DatabaseNotification $notification) {
