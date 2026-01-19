@@ -169,11 +169,11 @@ class MembershipPlanController extends Controller
         if ($activeMembersCount > 0) {
             $activeMembers = $membershipPlan->memberships()
                 ->where('status', 'active')
-                ->with(['user'])
+                ->with(['member'])
                 ->limit(5)
                 ->get();
 
-            $memberNames = $activeMembers->pluck('user.first_name')->join(', ');
+            $memberNames = $activeMembers->pluck('member.first_name')->join(', ');
             $additionalCount = max(0, $activeMembersCount - 5);
             $additionalText = $additionalCount > 0 ? " und {$additionalCount} weitere" : '';
 
@@ -205,18 +205,18 @@ class MembershipPlanController extends Controller
         if ($activeMembersCount > 0) {
             $activeMembers = $membershipPlan->memberships()
                 ->where('status', 'active')
-                ->with(['user'])
+                ->with(['member'])
                 ->limit(10)
                 ->get();
 
             return response()->json([
                 'canDelete' => false,
                 'activeMembersCount' => $activeMembersCount,
-                'activeMembers' => $activeMembers->map(function ($member) {
+                'activeMembers' => $activeMembers->map(function ($membership) {
                     return [
-                        'id' => $member->id,
-                        'name' => $member->user->first_name . ' ' . $member->user->last_name,
-                        'email' => $member->user->email
+                        'id' => $membership->id,
+                        'name' => $membership->member->first_name . ' ' . $membership->member->last_name,
+                        'email' => $membership->member->email
                     ];
                 })
             ]);
