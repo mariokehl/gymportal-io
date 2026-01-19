@@ -56,6 +56,13 @@
         />
         <SidebarItem
           v-if="isOwnerOrAdmin"
+          :icon="ArrowDownUp"
+          label="Import/Export"
+          :active="route().current('data-transfer.*')"
+          :href="route('data-transfer.index')"
+        />
+        <SidebarItem
+          v-if="isOwnerOrAdmin"
           :icon="Settings"
           label="Einstellungen"
           :active="route().current('settings.index')"
@@ -132,12 +139,12 @@
           <NotificationPopup ref="notificationPopup" />
 
           <!-- User Profile -->
-          <div class="flex items-center">
+          <Link :href="route('profile.index')" class="flex items-center hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors cursor-pointer">
             <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
               {{ userInitials }}
             </div>
             <span class="ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
-          </div>
+          </Link>
         </div>
       </header>
 
@@ -164,7 +171,8 @@ import { router, usePage, Head, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
-  FilePlus, Shield, DoorOpen
+  FilePlus, Shield, DoorOpen,
+  ArrowDownUp
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'

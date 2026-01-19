@@ -43,7 +43,8 @@ class MemberController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('member_number', 'like', "%{$search}%");
+                  ->orWhere('member_number', 'like', "%{$search}%")
+                  ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
@@ -230,7 +231,11 @@ class MemberController extends Controller
             'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->whereNull('deleted_at')],
+            'email' => ['required', 'email', 'max:255',
+                Rule::unique('members', 'email')
+                    ->where('gym_id', $user->current_gym_id)
+                    ->whereNull('deleted_at')
+            ],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
             'custom_member_number' => [
@@ -384,9 +389,16 @@ class MemberController extends Controller
             })
         );
 
+        // Get available membership plans for adding new memberships
+        $membershipPlans = MembershipPlan::where('gym_id', $member->gym_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Members/Show', [
             'member' => $member,
             'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
+            'membershipPlans' => $membershipPlans,
             'updatedPayments' => session('updated_payments', false) ? $member->payments : null
         ]);
     }
@@ -413,7 +425,10 @@ class MemberController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
-                Rule::unique('members', 'email')->ignore($member->id)
+                Rule::unique('members', 'email')
+                    ->ignore($member->id)
+                    ->where('gym_id', $member->gym_id)
+                    ->whereNull('deleted_at')
             ],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
@@ -894,6 +909,90 @@ class MemberController extends Controller
             ]);
 
             return back()->with('error', 'Fehler beim Versenden der E-Mail. Bitte versuchen Sie es erneut.');
+        }
+    }
+
+    /**
+     * Store a new membership for an existing member
+     */
+    public function storeMembership(Request $request, Member $member)
+    {
+        $this->authorize('update', $member);
+
+        /** @var Gym $gym */
+        $gym = $member->gym;
+
+        $validated = $request->validate([
+            'membership_plan_id' => ['required', 'exists:membership_plans,id'],
+            'start_date' => ['required', 'date'],
+            'allow_past_start_date' => ['nullable', 'boolean'],
+            'billing_anchor_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        // Check if member has a default payment method
+        $defaultPaymentMethod = $member->paymentMethods()
+            ->where('is_default', true)
+            ->first();
+
+        if (!$defaultPaymentMethod) {
+            return back()->withErrors([
+                'membership' => 'Das Mitglied hat keine Standard-Zahlungsmethode hinterlegt. Bitte zuerst eine Zahlungsmethode anlegen.'
+            ]);
+        }
+
+        // Verify membership plan belongs to the same gym
+        $membershipPlan = MembershipPlan::where('id', $validated['membership_plan_id'])
+            ->where('gym_id', $gym->id)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        try {
+            DB::beginTransaction();
+
+            // Calculate end date based on commitment months
+            $startDate = \Carbon\Carbon::parse($validated['start_date']);
+            $endDate = $membershipPlan->commitment_months > 0
+                ? $startDate->copy()->addMonths($membershipPlan->commitment_months)->subDay()
+                : null;
+
+            // Create the new membership
+            $membership = \App\Models\Membership::create([
+                'member_id' => $member->id,
+                'membership_plan_id' => $membershipPlan->id,
+                'start_date' => $validated['start_date'],
+                'end_date' => $endDate,
+                'status' => 'pending'
+            ]);
+
+            // Create payments using PaymentService (same logic as Members/Create)
+            $paymentService = app(PaymentService::class);
+
+            // Create setup fee payment if applicable
+            $paymentService->createSetupFeePayment($member, $membership, $defaultPaymentMethod);
+
+            // Create pending payment for the membership
+            $billingAnchorDate = !empty($validated['billing_anchor_date'])
+                ? \Carbon\Carbon::parse($validated['billing_anchor_date'])
+                : null;
+            $paymentService->createPendingPayment($member, $membership, $defaultPaymentMethod, $billingAnchorDate);
+
+            DB::commit();
+
+            return back()->with('success', 'Mitgliedschaft wurde erfolgreich erstellt.');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('Failed to create membership for member', [
+                'member_id' => $member->id,
+                'membership_plan_id' => $validated['membership_plan_id'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->withErrors([
+                'membership' => 'Fehler beim Erstellen der Mitgliedschaft: ' . $e->getMessage()
+            ]);
         }
     }
 }

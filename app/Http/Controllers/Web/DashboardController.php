@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\CheckIn;
 use App\Models\Member;
 use App\Models\User;
 use App\Services\MemberService;
@@ -77,8 +78,12 @@ class DashboardController extends Controller
         // Calculate statistics
         $stats = $this->memberService->getDashboardStats($user->current_gym_id);
 
-        // Get latest notifications
+        // Get latest notifications for the current gym
+        $currentGymId = $user->current_gym_id;
         $notifications = $user->notifications()
+            ->when($currentGymId, function ($query) use ($currentGymId) {
+                $query->whereJsonContains('data->gym_id', $currentGymId);
+            })
             ->limit(5)
             ->get()
             ->map(function (DatabaseNotification $notification) {
@@ -93,11 +98,30 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Get active check-ins from the last 2.5 hours
+        $activeCheckIns = CheckIn::query()
+            ->where('gym_id', $user->current_gym_id)
+            ->where('check_in_time', '>=', now()->subMinutes(150))
+            ->whereNull('check_out_time')
+            ->with('member:id,first_name,last_name')
+            ->orderBy('check_in_time', 'desc')
+            ->get()
+            ->map(function (CheckIn $checkIn) {
+                return [
+                    'id' => $checkIn->id,
+                    'member_id' => $checkIn->member_id,
+                    'member_name' => $checkIn->member->full_name,
+                    'member_initials' => $checkIn->member->initials,
+                    'check_in_time' => $checkIn->check_in_time->format('d.m.Y H:i'),
+                ];
+            });
+
         return Inertia::render('Dashboard/Index', [
             'user' => $user,
             'members' => $members,
             'stats' => $stats,
             'notifications' => $notifications,
+            'activeCheckIns' => $activeCheckIns,
             'totalMembers' => $stats['detailed_stats']['total_members'],
             'filters' => [
                 'search' => request('search'),

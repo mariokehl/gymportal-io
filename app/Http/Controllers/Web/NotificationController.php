@@ -15,8 +15,12 @@ class NotificationController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+        $currentGymId = $user->current_gym_id;
 
         $notifications = $user->notifications()
+            ->when($currentGymId, function ($query) use ($currentGymId) {
+                $query->whereJsonContains('data->gym_id', $currentGymId);
+            })
             ->paginate(20);
 
         return Inertia::render('Notifications/Index', [
@@ -28,8 +32,12 @@ class NotificationController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+        $currentGymId = $user->current_gym_id;
 
         $notifications = $user->unreadNotifications()
+            ->when($currentGymId, function ($query) use ($currentGymId) {
+                $query->whereJsonContains('data->gym_id', $currentGymId);
+            })
             ->limit(10)
             ->get()
             ->map(function (DatabaseNotification $notification) {
@@ -66,8 +74,15 @@ class NotificationController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+        $currentGymId = $user->current_gym_id;
 
-        $user->unreadNotifications->markAsRead();
+        // Only mark notifications for the current gym as read
+        $user->unreadNotifications()
+            ->when($currentGymId, function ($query) use ($currentGymId) {
+                $query->whereJsonContains('data->gym_id', $currentGymId);
+            })
+            ->get()
+            ->markAsRead();
 
         return response()->json(['success' => true]);
     }

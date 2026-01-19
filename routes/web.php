@@ -15,7 +15,9 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\AccessControlController;
+use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
+use App\Http\Controllers\Web\DataTransferController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
@@ -76,6 +78,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::post('/members/check-email', [MemberController::class, 'checkEmail'])->name('members.check-email');
     Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
+    Route::post('/members/{member}/memberships', [MemberController::class, 'storeMembership'])->name('members.memberships.store');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {
         Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');
         Route::put('/pause', [MembershipController::class, 'pause'])->name('members.memberships.pause');
@@ -144,6 +147,14 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/regenerate-secret-key', [AccessControlController::class, 'regenerateSecretKey'])->name('regenerate-secret-key');
     });
 
+    // Data Transfer (Import/Export)
+    Route::prefix('data-transfer')->name('data-transfer.')->group(function () {
+        Route::get('/', [DataTransferController::class, 'index'])->name('index');
+        Route::get('/export', [DataTransferController::class, 'export'])->name('export');
+        Route::post('/validate', [DataTransferController::class, 'validateImport'])->name('validate');
+        Route::post('/import', [DataTransferController::class, 'import'])->name('import');
+    });
+
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::put('/gym/{gym}', [SettingController::class, 'updateGym'])->name('gym.update');
@@ -194,6 +205,13 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::get('/gyms/create', [GymController::class, 'create'])->name('gyms.create');
     Route::delete('/gyms/remove/{gym}', [GymController::class, 'remove'])->name('gyms.remove');
     Route::post('/user/switch-organization', [GymController::class, 'switchOrganization'])->name('user.switch-organization');
+
+    // Profile routes
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // Benutzer-Simulation

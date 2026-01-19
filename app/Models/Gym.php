@@ -125,17 +125,17 @@ class Gym extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class)->withPivot('role')->withTimestamps();
+        return $this->belongsToMany(User::class, 'gym_users')->withPivot('role')->withTimestamps();
     }
 
     public function staff()
     {
-        return $this->belongsToMany(User::class)->wherePivot('role', 'staff');
+        return $this->belongsToMany(User::class, 'gym_users')->wherePivot('role', 'staff');
     }
 
     public function trainers()
     {
-        return $this->belongsToMany(User::class)->wherePivot('role', 'trainer');
+        return $this->belongsToMany(User::class, 'gym_users')->wherePivot('role', 'trainer');
     }
 
     public function members()

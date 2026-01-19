@@ -59,36 +59,31 @@ export function useNotifications() {
         // Request notification permission
         requestNotificationPermission();
 
-        // Subscribe to user notifications
+        // Subscribe to gym-specific notifications
         if (window.Echo && page.props.auth?.user) {
-            const userId = page.props.auth.user.id;
+            const gymId = page.props.auth.user.current_gym?.id;
 
-            console.log('Echo initialized, subscribing to user notification channel...', { userId });
+            if (!gymId) {
+                console.warn('No current gym selected, skipping notification channel subscription');
+                return;
+            }
 
-            // Listen to user-specific notifications
-            const userChannel = window.Echo.private(`App.Models.User.${userId}`);
+            console.log('Echo initialized, subscribing to gym notification channel...', { gymId });
 
-            // Listen for Laravel notification events
-            userChannel.notification((notification) => {
-                console.log('✅ Received user notification via .notification():', notification);
-                handleNewNotification(notification);
+            // Listen to gym-specific notifications
+            const gymChannel = window.Echo.private(`gym.${gymId}`);
+
+            // Listen for member registered notifications
+            gymChannel.listen('.member.registered', (data) => {
+                console.log('Received member.registered event:', data);
+                handleNewNotification(data);
             });
 
-            // Also listen for broadcast notification events explicitly
-            userChannel.listen('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', (data) => {
-                console.log('✅ Received broadcast notification event:', data);
+            gymChannel.error((error) => {
+                console.error('Error on gym notification channel:', error);
             });
 
-            // Listen to ALL events for debugging
-            userChannel.listenForWhisper('*', (event) => {
-                console.log('✅ Received whisper event:', event);
-            });
-
-            userChannel.error((error) => {
-                console.error('❌ Error on user notification channel:', error);
-            });
-
-            console.log(`✅ Subscribed to App.Models.User.${userId} channel for user notifications`);
+            console.log(`Subscribed to gym.${gymId} channel for notifications`);
         } else {
             console.warn('Echo is not initialized or user is not authenticated', {
                 hasEcho: !!window.Echo,
@@ -101,8 +96,10 @@ export function useNotifications() {
     onUnmounted(() => {
         // Clean up channel subscription
         if (window.Echo && page.props.auth?.user) {
-            const userId = page.props.auth.user.id;
-            window.Echo.leave(`private-App.Models.User.${userId}`);
+            const gymId = page.props.auth.user.current_gym?.id;
+            if (gymId) {
+                window.Echo.leave(`private-gym.${gymId}`);
+            }
         }
     });
 

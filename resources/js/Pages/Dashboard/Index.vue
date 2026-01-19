@@ -38,16 +38,6 @@
                     </Link>
                 </div>
 
-                <!-- Search Bar -->
-                <div class="mb-4 flex items-center space-x-2">
-                    <div class="flex-1 relative">
-                        <component :is="Search"
-                            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input v-model="searchTerm" type="text" placeholder="Mitglied suchen..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-                    </div>
-                </div>
-
                 <!-- Members Table -->
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
@@ -61,7 +51,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="member in filteredMembers" :key="member.id"
+                            <tr v-for="member in props.members" :key="member.id"
                                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center">
@@ -105,47 +95,78 @@
 
                 <!-- Pagination -->
                 <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-500">Zeige 1-{{ filteredMembers.length }} von {{ totalMembers }} Mitgliedern</p>
+                    <p class="text-sm text-gray-500">Zeige 1-{{ props.members.length }} von {{ totalMembers }} Mitgliedern</p>
                 </div>
             </div>
 
-            <!-- Notifications -->
-            <div class="bg-white p-6 rounded-lg shadow-sm">
-                <h2 class="text-lg font-semibold mb-4">Benachrichtigungen</h2>
-                <div class="space-y-4">
-                    <component :is="notification.link ? Link : 'div'"
-                        v-for="notification in notifications"
-                        :key="notification.id"
-                        :href="notification.link"
-                        class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
-                        :class="{ 'hover:bg-gray-50 -mx-2 px-2 py-2 rounded transition-colors cursor-pointer': notification.link }"
-                    >
-                        <div class="flex justify-between items-start gap-2">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium" :class="notification.read_at ? 'text-gray-600' : 'text-gray-900'">
-                                    {{ notification.title }}
-                                </p>
-                                <p class="text-xs text-gray-500 mt-1 truncate">{{ notification.message }}</p>
+            <!-- Right Column: Notifications & Active Check-Ins -->
+            <div class="space-y-6">
+                <!-- Notifications -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-lg font-semibold mb-4">Benachrichtigungen</h2>
+                    <div class="space-y-4">
+                        <component :is="notification.link ? Link : 'div'"
+                            v-for="notification in notifications"
+                            :key="notification.id"
+                            :href="notification.link"
+                            class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
+                            :class="{ 'hover:bg-gray-50 -mx-2 px-2 py-2 rounded transition-colors cursor-pointer': notification.link }"
+                        >
+                            <div class="flex justify-between items-start gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium" :class="notification.read_at ? 'text-gray-600' : 'text-gray-900'">
+                                        {{ notification.title }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1 truncate">{{ notification.message }}</p>
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <span class="text-xs text-gray-400">{{ notification.created_at }}</span>
+                                    <div v-if="!notification.read_at" class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2 flex-shrink-0">
-                                <span class="text-xs text-gray-400">{{ notification.created_at }}</span>
-                                <div v-if="!notification.read_at" class="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                            </div>
+                        </component>
+                        <div v-if="notifications.length === 0" class="text-center text-sm text-gray-500 py-4">
+                            Keine Benachrichtigungen vorhanden.
                         </div>
-                    </component>
-                    <div v-if="notifications.length === 0" class="text-center text-sm text-gray-500 py-4">
-                        Keine Benachrichtigungen vorhanden.
                     </div>
+
+                    <Link
+                        v-if="notifications.length > 0"
+                        :href="route('notifications.index')"
+                        class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors"
+                    >
+                        Alle anzeigen
+                        <ChevronRight class="w-4 h-4 ml-1" />
+                    </Link>
                 </div>
 
-                <Link
-                    v-if="notifications.length > 0"
-                    :href="route('notifications.index')"
-                    class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors"
-                >
-                    Alle anzeigen
-                    <ChevronRight class="w-4 h-4 ml-1" />
-                </Link>
+                <!-- Active Check-Ins -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-lg font-semibold mb-4">Aktuell Anwesend</h2>
+                    <div v-if="activeCheckIns.length > 0" class="flex flex-wrap gap-2">
+                        <Tooltip
+                            v-for="checkIn in activeCheckIns"
+                            :key="checkIn.id"
+                            position="top"
+                        >
+                            <Link
+                                :href="route('members.show', checkIn.member_id)"
+                                class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center font-medium text-sm hover:bg-indigo-200 transition-colors"
+                            >
+                                {{ checkIn.member_initials }}
+                            </Link>
+                            <template #content>
+                                <div class="text-center">
+                                    <p class="font-medium">{{ checkIn.member_name }}</p>
+                                    <p class="text-xs text-gray-400">{{ checkIn.check_in_time }}</p>
+                                </div>
+                            </template>
+                        </Tooltip>
+                    </div>
+                    <div v-else class="text-center text-sm text-gray-500 py-4">
+                        Gerade keine Check-Ins.
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -153,28 +174,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
-    Plus, Search, Edit, ChevronRight, Eye
+    Plus, Edit, ChevronRight, Eye
 } from 'lucide-vue-next'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate } from '@/utils/formatters'
 
 // Reactive data
-const searchTerm = ref('')
 const page = usePage()
-
-// Computed properties
-const filteredMembers = computed(() => {
-    if (!searchTerm.value) return props.members
-    return props.members.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchTerm.value.toLowerCase())
-    )
-})
 
 const isOwnerOrAdmin = computed(() => {
     const user = page.props.auth.user
@@ -190,7 +202,8 @@ const props = defineProps({
     members: Array,
     totalMembers: Number,
     stats: Object,
-    notifications: Array
+    notifications: Array,
+    activeCheckIns: Array
 })
 
 // Methods
