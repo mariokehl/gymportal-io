@@ -38,16 +38,6 @@
                     </Link>
                 </div>
 
-                <!-- Search Bar -->
-                <div class="mb-4 flex items-center space-x-2">
-                    <div class="flex-1 relative">
-                        <component :is="Search"
-                            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input v-model="searchTerm" type="text" placeholder="Mitglied suchen..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-                    </div>
-                </div>
-
                 <!-- Members Table -->
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
@@ -61,7 +51,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="member in filteredMembers" :key="member.id"
+                            <tr v-for="member in props.members" :key="member.id"
                                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center">
@@ -105,7 +95,7 @@
 
                 <!-- Pagination -->
                 <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-500">Zeige 1-{{ filteredMembers.length }} von {{ totalMembers }} Mitgliedern</p>
+                    <p class="text-sm text-gray-500">Zeige 1-{{ props.members.length }} von {{ totalMembers }} Mitgliedern</p>
                 </div>
             </div>
 
@@ -184,29 +174,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
-    Plus, Search, Edit, ChevronRight, Eye
+    Plus, Edit, ChevronRight, Eye
 } from 'lucide-vue-next'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate } from '@/utils/formatters'
 
 // Reactive data
-const searchTerm = ref('')
 const page = usePage()
-
-// Computed properties
-const filteredMembers = computed(() => {
-    if (!searchTerm.value) return props.members
-    return props.members.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchTerm.value.toLowerCase())
-    )
-})
 
 const isOwnerOrAdmin = computed(() => {
     const user = page.props.auth.user
