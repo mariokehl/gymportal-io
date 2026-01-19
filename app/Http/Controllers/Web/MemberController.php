@@ -230,7 +230,11 @@ class MemberController extends Controller
             'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->whereNull('deleted_at')],
+            'email' => ['required', 'email', 'max:255',
+                Rule::unique('members', 'email')
+                    ->where('gym_id', $user->current_gym_id)
+                    ->whereNull('deleted_at')
+            ],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
             'custom_member_number' => [
@@ -420,7 +424,10 @@ class MemberController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
-                Rule::unique('members', 'email')->ignore($member->id)
+                Rule::unique('members', 'email')
+                    ->ignore($member->id)
+                    ->where('gym_id', $member->gym_id)
+                    ->whereNull('deleted_at')
             ],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
