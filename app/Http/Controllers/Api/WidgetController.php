@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\WidgetAnalytics;
 use App\Models\WidgetRegistration;
 use App\Services\WidgetService;
 use App\Services\MollieService;
+use App\Services\MemberStatusService;
 use App\Util\MembershipPriceCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -474,7 +476,64 @@ class WidgetController extends Controller
                 'paid_date' => $molliePayment->isPaid() ? now() : null
             ]);
 
-            // Wenn Payment neu bezahlt wurde
+            // Prüfen ob es sich um eine 1. Zahlung zur Kreditkarten-Authorisierung handelt
+            $isFirstCreditCardPayment = $molliePayment->sequenceType === 'first'
+                && $molliePayment->method === 'creditcard';
+
+            // Wenn 1. Kreditkarten-Authorisierung erfolgreich war
+            if ($isFirstCreditCardPayment && $molliePayment->isPaid() && $oldStatus !== 'paid') {
+                $member = $localPayment->member;
+                $membership = $localPayment->membership;
+
+                // Member und Membership aktivieren
+                $member->update(['status' => 'active']);
+                if ($membership) {
+                    $membership->update(['status' => 'active']);
+                }
+
+                // PaymentMethod mit Mandat-Daten aktivieren
+                $paymentMethod = PaymentMethod::where('member_id', $member->id)
+                    ->where('type', 'mollie_creditcard')
+                    ->where('status', 'pending')
+                    ->first();
+
+                if ($paymentMethod) {
+                    $paymentMethod->update([
+                        'status' => 'active',
+                        'mollie_customer_id' => $molliePayment->customerId,
+                        'mollie_mandate_id' => $molliePayment->mandateId,
+                    ]);
+                    $paymentMethod->activateSepaMandate();
+                }
+
+                // Widget-Registrierung abschließen
+                WidgetRegistration::where('gym_id', $gym->id)
+                    ->where('payment_data', 'like', '%' . $molliePayment->id . '%')
+                    ->update([
+                        'status' => 'completed',
+                        'completed_at' => now()
+                    ]);
+
+                // Analytics
+                $this->widgetService->trackEvent($gym, 'mollie_webhook_creditcard_authorized', 'payment_webhook', [
+                    'member_id' => $member->id,
+                    'membership_id' => $membership?->id,
+                    'payment_method' => 'creditcard',
+                    'mollie_payment_id' => $paymentId,
+                    'mollie_mandate_id' => $molliePayment->mandateId
+                ]);
+
+                Log::info('Mollie webhook: Credit card authorization completed', [
+                    'gym_id' => $gym->id,
+                    'member_id' => $member->id,
+                    'payment_id' => $paymentId,
+                    'mandate_id' => $molliePayment->mandateId
+                ]);
+
+                return response('OK', 200);
+            }
+
+            // Wenn Payment neu bezahlt wurde (reguläre Zahlung, keine Authorisierung)
             if ($molliePayment->isPaid() && $oldStatus !== 'paid') {
                 $member = $localPayment->member;
                 $membership = $localPayment->membership;
@@ -508,6 +567,35 @@ class WidgetController extends Controller
                     'member_id' => $member->id,
                     'payment_id' => $paymentId
                 ]);
+            }
+
+            // Wenn Payment fehlgeschlagen und Mitglied aktiv ist
+            if ($molliePayment->isFailed() && $oldStatus !== 'failed') {
+                $member = $localPayment->member;
+
+                if ($member && $member->status === 'active') {
+                    $memberStatusService = app(MemberStatusService::class);
+                    $memberStatusService->handlePaymentFailed($member, [
+                        'mollie_payment_id' => $paymentId,
+                        'amount' => $localPayment->amount,
+                        'payment_method' => $localPayment->payment_method,
+                        'gym_id' => $gym->id
+                    ]);
+
+                    // Analytics
+                    $this->widgetService->trackEvent($gym, 'mollie_webhook_failed', 'payment_webhook', [
+                        'member_id' => $member->id,
+                        'payment_method' => $localPayment->payment_method,
+                        'amount' => $localPayment->amount,
+                        'mollie_payment_id' => $paymentId
+                    ]);
+
+                    Log::warning('Mollie webhook: Payment failed, member set to overdue', [
+                        'gym_id' => $gym->id,
+                        'member_id' => $member->id,
+                        'payment_id' => $paymentId
+                    ]);
+                }
             }
 
             return response('OK', 200);

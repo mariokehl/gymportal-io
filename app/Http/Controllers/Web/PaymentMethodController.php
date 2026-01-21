@@ -64,6 +64,11 @@ class PaymentMethodController extends Controller
             if ($validated['sepa_mandate_acknowledged']) {
                 app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
             }
+        } elseif ($validated['type'] === 'mollie_creditcard') {
+            /** @var PaymentMethod $paymentMethod */
+            $paymentMethod = $member->paymentMethods()->create($validated);
+
+            app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
         } else {
             $paymentMethod = $member->paymentMethods()->create($validated);
         }

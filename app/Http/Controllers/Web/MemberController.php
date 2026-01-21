@@ -10,6 +10,7 @@ use App\Models\MembershipPlan;
 use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Services\MemberService;
+use App\Services\MemberStatusService;
 use App\Services\PaymentService;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -501,7 +502,8 @@ class MemberController extends Controller
             );
 
             // Zusätzliche Aktionen basierend auf Statusänderung
-            $this->handleStatusChangeActions($member, $currentStatus, $newStatus);
+            $memberStatusService = app(MemberStatusService::class);
+            $memberStatusService->handleStatusChangeActions($member, $currentStatus, $newStatus, Auth::user());
 
             DB::commit();
 
@@ -519,143 +521,6 @@ class MemberController extends Controller
             return back()->withErrors([
                 'status' => 'Fehler beim Ändern des Status. Bitte versuchen Sie es erneut.'
             ]);
-        }
-    }
-
-    /**
-     * Handle additional actions after status change
-     */
-    private function handleStatusChangeActions(Member $member, string $oldStatus, string $newStatus): void
-    {
-        /** @var User $user */
-        $user = Auth::user();
-
-        // Aktivierung von Pending
-        if ($oldStatus === 'pending' && $newStatus === 'active') {
-            // Aktiviere alle pending Mitgliedschaften
-            $activatedCount = $member->memberships()
-                ->where('memberships.status', 'pending')
-                ->update(['status' => 'active']);
-
-            // Log die Aktivierung in der History
-            if ($activatedCount > 0) {
-                // Speichere die IDs der aktivierten Mitgliedschaften
-                $activatedMembershipIds = $member->memberships()
-                    ->where('memberships.status', 'active')
-                    ->pluck('memberships.id')
-                    ->toArray();
-
-                MemberStatusHistory::create([
-                    'member_id' => $member->id,
-                    'old_status' => 'pending',
-                    'new_status' => 'active',
-                    'reason' => "Automatische Aktivierung von {$activatedCount} Mitgliedschaft(en)",
-                    'changed_by' => $user->id,
-                    'metadata' => [
-                        'activated_memberships' => $activatedCount,
-                        'activated_membership_ids' => $activatedMembershipIds,
-                        'activated_at' => now()->toISOString(),
-                        'action_type' => 'auto_activation'
-                    ]
-                ]);
-            }
-
-            // Sende Willkommens-E-Mail (optional)
-            // Mail::to($member->email)->send(new WelcomeMemberMail($member));
-        }
-
-        // Inaktivierung
-        if ($newStatus === 'inactive') {
-            // Pausiere alle aktiven Mitgliedschaften
-            $pausedCount = $member->memberships()
-                ->where('memberships.status', 'active')
-                ->update(['status' => 'paused']);
-
-            if ($pausedCount > 0) {
-                $pausedMembershipIds = $member->memberships()
-                    ->where('memberships.status', 'paused')
-                    ->pluck('memberships.id')
-                    ->toArray();
-
-                MemberStatusHistory::create([
-                    'member_id' => $member->id,
-                    'old_status' => 'active',
-                    'new_status' => 'paused',
-                    'reason' => "Mitgliedschaften pausiert wegen Mitgliedsinaktivierung",
-                    'changed_by' => $user->id,
-                    'metadata' => [
-                        'paused_memberships' => $pausedCount,
-                        'paused_membership_ids' => $pausedMembershipIds,
-                        'triggered_by' => 'member_inactivation'
-                    ]
-                ]);
-            }
-        }
-
-        // Von Overdue zu Active
-        if ($oldStatus === 'overdue' && $newStatus === 'active') {
-            // Reaktiviere pausierte Mitgliedschaften (prüfe über Status History)
-            $recentOverduePause = MemberStatusHistory::where('member_id', $member->id)
-                ->where('new_status', 'paused')
-                ->where('metadata->triggered_by', 'payment_overdue')
-                ->latest()
-                ->first();
-
-            if ($recentOverduePause) {
-                $reactivatedCount = $member->memberships()
-                    ->where('memberships.status', 'paused')
-                    ->where('memberships.updated_at', '>=', $recentOverduePause->created_at)
-                    ->update(['status' => 'active']);
-
-                if ($reactivatedCount > 0) {
-                    $reactivatedMembershipIds = $member->memberships()
-                        ->where('memberships.status', 'active')
-                        ->pluck('memberships.id')
-                        ->toArray();
-
-                    MemberStatusHistory::create([
-                        'member_id' => $member->id,
-                        'old_status' => 'paused',
-                        'new_status' => 'active',
-                        'reason' => "Mitgliedschaften reaktiviert nach Zahlungseingang",
-                        'changed_by' => $user->id,
-                        'metadata' => [
-                            'reactivated_memberships' => $reactivatedCount,
-                            'reactivated_membership_ids' => $reactivatedMembershipIds,
-                            'reactivated_at' => now()->toISOString(),
-                            'triggered_by' => 'payment_resolved'
-                        ]
-                    ]);
-                }
-            }
-        }
-
-        // Zu Overdue
-        if ($newStatus === 'overdue' && $oldStatus === 'active') {
-            // Pausiere aktive Mitgliedschaften
-            $pausedCount = $member->memberships()
-                ->where('memberships.status', 'active')
-                ->update(['status' => 'paused']);
-
-            if ($pausedCount > 0) {
-                $pausedMembershipIds = $member->memberships()
-                    ->where('memberships.status', 'paused')
-                    ->pluck('memberships.id')
-                    ->toArray();
-
-                MemberStatusHistory::create([
-                    'member_id' => $member->id,
-                    'old_status' => 'active',
-                    'new_status' => 'paused',
-                    'reason' => "Mitgliedschaften pausiert wegen überfälliger Zahlung",
-                    'changed_by' => $user->id,
-                    'metadata' => [
-                        'paused_memberships' => $pausedCount,
-                        'paused_membership_ids' => $pausedMembershipIds,
-                        'triggered_by' => 'payment_overdue'
-                    ]
-                ]);
-            }
         }
     }
 
