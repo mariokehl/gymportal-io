@@ -322,8 +322,10 @@ class WidgetService
 
     /**
      * Mollie-Payment-Return verarbeiten
+     *
+     * @param bool $sendNotifications Ob Willkommens-E-Mail und MemberRegistered Event gesendet werden sollen
      */
-    public function processMollieReturn(Gym $gym, string $sessionId, string $paymentId): array
+    public function processMollieReturn(Gym $gym, string $sessionId, string $paymentId, bool $sendNotifications = true): array
     {
         $mollieService = app(MollieService::class);
 
@@ -357,9 +359,24 @@ class WidgetService
                         'completed_at' => now()
                     ]);
 
-                $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
+                $paymentMethod = $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
 
-                app(MemberService::class)->sendWelcomeEmail($member, $gym);
+                if ($sendNotifications) {
+                    MemberRegistered::dispatch(
+                        $member,
+                        $membership,
+                        $gym,
+                        'widget',
+                        [
+                            'payment_method' => $paymentMethod,
+                            'session_id' => $sessionId,
+                            'ip_address' => request()->ip(),
+                            'user_agent' => request()->userAgent(),
+                        ]
+                    );
+
+                    app(MemberService::class)->sendWelcomeEmail($member, $gym);
+                }
 
                 $this->trackEvent($gym, 'mollie_payment_completed', 'payment_success', [
                     'member_id' => $member->id,

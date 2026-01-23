@@ -466,7 +466,7 @@ class WidgetController extends Controller
             $sessionId = $widgetRegistration->session_id ?? 'unknown';
 
             $gym = Gym::findOrFail($gymId);
-            $result = $this->widgetService->processMollieReturn($gym, $sessionId, $paymentId);
+            $result = $this->widgetService->processMollieReturn($gym, $sessionId, $paymentId, sendNotifications: false);
 
             return response()->json($result);
 

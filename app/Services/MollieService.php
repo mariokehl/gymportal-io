@@ -756,11 +756,15 @@ class MollieService
     /**
      * Start mollie payment method in local database
      */
-    public function activateMolliePaymentMethod(Gym $gym, string $memberId, string $type)
+    public function activateMolliePaymentMethod(Gym $gym, string $memberId, string $type): ?PaymentMethod
     {
         $paymentMethod = PaymentMethod::where('member_id', $memberId)
             ->where('type', 'mollie_' . str_replace('mollie_', '', $type))
             ->first();
+
+        if (!$paymentMethod) {
+            return null;
+        }
 
         // Aktuelles Mandat von Mollie abrufen
         $mollieMandate = null;
@@ -768,11 +772,12 @@ class MollieService
             $mollieMandate = $this->getMandate($gym, $paymentMethod->mollie_customer_id);
         }
 
-        PaymentMethod::where('id', $paymentMethod->id)
-            ->update([
-                'mollie_mandate_id' => $mollieMandate->id ?? null,
-                'status' => 'active',
-            ]);
+        $paymentMethod->update([
+            'mollie_mandate_id' => $mollieMandate->id ?? null,
+            'status' => 'active',
+        ]);
+
+        return $paymentMethod->fresh();
     }
 
     /**
