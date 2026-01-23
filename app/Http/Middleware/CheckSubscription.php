@@ -45,6 +45,15 @@ class CheckSubscription
             'dashboard', // Erlaubt, aber mit Einschränkungen
             'settings.index',
             'logout',
+            // Profil (Benutzer sollen ihre Daten verwalten können)
+            'profile.index',
+            'profile.password.update',
+            'profile.destroy',
+            // Import/Export (Datenexport soll immer möglich sein)
+            'data-transfer.index',
+            'data-transfer.export',
+            'data-transfer.validate',
+            'data-transfer.import',
         ];
 
         // Wenn weder Testphase noch aktive Subscription
