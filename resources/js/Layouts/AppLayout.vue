@@ -47,7 +47,6 @@
           :disabled="!canAccessPremiumFeatures"
         />
         <SidebarItem
-          v-if="isOwnerOrAdmin"
           :icon="DoorOpen"
           label="Zugangskontrolle"
           :active="route().current('access-control.*')"
