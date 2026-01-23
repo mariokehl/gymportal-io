@@ -95,11 +95,7 @@ class NotificationController extends Controller
                 }
                 break;
 
-            case 'payment_reminder':
-                $paymentId = $data['payment_id'] ?? null;
-                if ($paymentId && Route::has('payments.show')) {
-                    return route('payments.show', $paymentId);
-                }
+            case 'payment_failed':
                 if (Route::has('finances.index')) {
                     return route('finances.index');
                 }

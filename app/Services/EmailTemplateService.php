@@ -200,6 +200,47 @@ class EmailTemplateService
                     Telefon: [Telefon]<br>
                     Website: [Website]</p>
                 '
+            ],
+            'payment_failed' => [
+                'name' => 'Zahlung fehlgeschlagen',
+                'subject' => 'Wichtig: Ihre Zahlung konnte nicht verarbeitet werden - [Fitnessstudio-Name]',
+                'body' => '
+                    <p>Liebe/r [Vorname],</p>
+
+                    <p>leider konnten wir Ihre letzte Zahlung nicht erfolgreich verarbeiten.</p>
+
+                    <h2 style="color: #dc3545;">Wichtiger Hinweis: Zugang vorübergehend gesperrt</h2>
+                    <p>Aufgrund der fehlgeschlagenen Zahlung wurde Ihr Zugang zu <strong>[Fitnessstudio-Name]</strong> vorübergehend gesperrt. Sie können unsere Einrichtungen derzeit nicht nutzen.</p>
+
+                    <h3>Was ist passiert?</h3>
+                    <p>Die automatische Abbuchung Ihres Mitgliedsbeitrags konnte nicht durchgeführt werden. Dies kann verschiedene Gründe haben:</p>
+                    <ul>
+                        <li>Unzureichende Deckung auf Ihrem Konto</li>
+                        <li>Abgelaufene oder gesperrte Zahlungsmethode</li>
+                        <li>Technische Probleme bei der Zahlungsabwicklung</li>
+                    </ul>
+
+                    <h3>Was müssen Sie tun?</h3>
+                    <p>Um Ihren Zugang wiederherzustellen, bitten wir Sie:</p>
+                    <ol>
+                        <li>Überprüfen Sie Ihre hinterlegte Zahlungsmethode</li>
+                        <li>Stellen Sie sicher, dass ausreichend Guthaben verfügbar ist</li>
+                        <li>Loggen Sie sich in Ihren Mitgliederbereich ein, um die Zahlung zu aktualisieren</li>
+                    </ol>
+
+                    <p style="text-align: center;"><strong><a href="[Mitgliederbereich-Link]">→ Zum Mitgliederbereich</a></strong></p>
+
+                    <p><strong>Benötigen Sie Hilfe?</strong><br>
+                    Unser Team steht Ihnen gerne zur Verfügung. Kontaktieren Sie uns unter <strong>[Telefon]</strong>.</p>
+
+                    <p>Sobald die Zahlung erfolgreich verarbeitet wurde, wird Ihr Zugang automatisch wieder freigeschaltet.</p>
+
+                    <p>Mit freundlichen Grüßen<br>
+                    Ihr [Fitnessstudio-Name] Team</p>
+
+                    <hr>
+                    <p style="font-size: 12px; color: #666;">Diese E-Mail wurde automatisch generiert.</p>
+                '
             ]
         ];
     }

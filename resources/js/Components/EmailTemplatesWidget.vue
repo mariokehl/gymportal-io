@@ -81,6 +81,7 @@
                             <option value="reminder">Erinnerung</option>
                             <option value="cancellation">Kündigung</option>
                             <option value="invoice">Rechnung</option>
+                            <option value="payment_failed">Zahlung fehlgeschlagen</option>
                             <option value="general">Allgemein</option>
                         </select>
                     </div>
@@ -361,6 +362,7 @@
                             <option value="reminder">Erinnerung</option>
                             <option value="cancellation">Kündigung</option>
                             <option value="invoice">Rechnung</option>
+                            <option value="payment_failed">Zahlung fehlgeschlagen</option>
                             <option value="general">Allgemein</option>
                         </select>
                     </div>
@@ -782,6 +784,7 @@ const getTypeLabel = (type) => {
         reminder: 'Erinnerung',
         cancellation: 'Kündigung',
         invoice: 'Rechnung',
+        payment_failed: 'Mahnung',
         general: 'Allgemein'
     }
     return labels[type] || type
@@ -794,6 +797,7 @@ const getTypeColor = (type) => {
         reminder: 'bg-yellow-100 text-yellow-800',
         cancellation: 'bg-red-100 text-red-800',
         invoice: 'bg-purple-100 text-purple-800',
+        payment_failed: 'bg-red-100 text-red-800',
         general: 'bg-gray-100 text-gray-800'
     }
     return colors[type] || 'bg-gray-100 text-gray-800'

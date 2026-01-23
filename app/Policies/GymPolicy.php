@@ -65,9 +65,11 @@ class GymPolicy
 
     /**
      * Determine whether the user can manage the gym (scanners, settings, etc.)
+     * Only Admin (role_id=1) and Owner (role_id=2) can manage
      */
     public function manage(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id;
+        return $user->current_gym_id === $gym->id
+            && in_array($user->role_id, [1, 2]); // Admin oder Owner
     }
 }

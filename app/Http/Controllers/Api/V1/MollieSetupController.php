@@ -130,7 +130,7 @@ class MollieSetupController extends Controller
                 'oauth_token' => $request->filled('oauth_token') ? $request->oauth_token : null,
                 'test_mode' => $request->test_mode ?? false,
                 'enabled_methods' => $request->enabled_methods,
-                'redirect_url' => $request->redirect_url ?: route('payment.return', ['organization' => $gym->id]), // TODO: Implement return route
+                'redirect_url' => $request->redirect_url ?: route('payment.return', ['organization' => $gym->id]),
                 'description_prefix' => $request->description_prefix ?: $gym->name,
                 'configured_at' => now(),
                 'configured_by' => Auth::id(),

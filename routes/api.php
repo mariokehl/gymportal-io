@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\MollieWebhookController;
 use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\ScannerController;
 use App\Http\Controllers\Api\WidgetController;
@@ -33,7 +34,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
     // Public routes
     Route::name('public.')->prefix('/public')->group(static function (): void {
-        Route::post('/mollie/webhook', [WidgetController::class, 'handleMollieWebhook'])->name('mollie.webhook');
+        Route::post('/mollie/webhook', [MollieWebhookController::class, 'handle'])->name('mollie.webhook');
     });
 });
 

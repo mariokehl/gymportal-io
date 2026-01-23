@@ -198,12 +198,7 @@ const getNotificationLink = (notification) => {
         }
         break
 
-      case 'payment_reminder':
-        const paymentId = data.payment_id
-
-        if (paymentId && route().has('finances.show')) {
-          return route('finances.show', paymentId)
-        }
+      case 'payment_failed':
         if (route().has('finances.index')) {
           return route('finances.index')
         }
@@ -227,7 +222,7 @@ const getTypeText = (type) => {
   const types = {
     'member_registered': 'Neues Mitglied',
     'contract_expiring': 'Vertragsablauf',
-    'payment_reminder': 'Zahlungserinnerung',
+    'payment_failed': 'Mahnung',
     'announcement': 'Ankündigung',
     'promotion': 'Aktion',
     'system': 'System',
@@ -240,7 +235,7 @@ const getTypeBadgeClass = (type) => {
   const classes = {
     'member_registered': 'bg-green-100 text-green-800',
     'contract_expiring': 'bg-yellow-100 text-yellow-800',
-    'payment_reminder': 'bg-red-100 text-red-800',
+    'payment_failed': 'bg-red-100 text-red-800',
     'announcement': 'bg-indigo-100 text-indigo-800',
     'promotion': 'bg-purple-100 text-purple-800',
     'system': 'bg-gray-100 text-gray-800',

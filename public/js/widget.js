@@ -1842,7 +1842,7 @@
                     "X-API-Key": this.config.apiKey,
                     "X-Studio-ID": this.config.studioId,
                     "X-Widget-Session": this.sessionId,
-                    // KEINE Authorization mit Bearer Token
+                    "ngrok-skip-browser-warning": true
                 },
                 // Wichtig: keine Credentials senden
                 credentials: 'omit'

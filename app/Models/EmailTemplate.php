@@ -33,6 +33,7 @@ class EmailTemplate extends Model
         'reminder' => 'Erinnerung',
         'cancellation' => 'Kündigung',
         'invoice' => 'Rechnung',
+        'payment_failed' => 'Zahlung fehlgeschlagen',
         'general' => 'Allgemein',
     ];
 

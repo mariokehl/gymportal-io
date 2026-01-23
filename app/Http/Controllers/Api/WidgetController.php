@@ -9,7 +9,6 @@ use App\Models\Payment;
 use App\Models\WidgetAnalytics;
 use App\Models\WidgetRegistration;
 use App\Services\WidgetService;
-use App\Services\MollieService;
 use App\Util\MembershipPriceCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -434,96 +433,6 @@ class WidgetController extends Controller
     }
 
     /**
-     * Mollie Webhook verarbeiten
-     */
-    public function handleMollieWebhook(Request $request)
-    {
-        try {
-            $payload = $request->json()->all();
-
-            // Hook ping
-            if (data_get($payload, 'resource') === 'event' &&
-                data_get($payload, 'type') === 'hook.ping') {
-                return response('OK', 200);
-            }
-
-            $paymentId = $request->input('id');
-
-            if (!$paymentId) {
-                return response('Payment ID missing', 400);
-            }
-
-            // Lokale Payment-Referenz finden
-            $localPayment = Payment::where('mollie_payment_id', $paymentId)->first();
-
-            if (!$localPayment) {
-                Log::warning('Mollie webhook: Payment reference not found', ['payment_id' => $paymentId]);
-                return response('Payment not found', 404);
-            }
-
-            $gym = Gym::findOrFail($localPayment->gym_id);
-            $mollieService = app(MollieService::class);
-
-            // Aktuellen Payment-Status von Mollie abrufen
-            $molliePayment = $mollieService->getPayment($gym, $paymentId);
-
-            // Status aktualisieren
-            $oldStatus = $localPayment->status;
-            $localPayment->update([
-                'status' => $molliePayment->status,
-                'paid_date' => $molliePayment->isPaid() ? now() : null
-            ]);
-
-            // Wenn Payment neu bezahlt wurde
-            if ($molliePayment->isPaid() && $oldStatus !== 'paid') {
-                $member = $localPayment->member;
-                $membership = $localPayment->membership;
-
-                // Member und Membership aktivieren
-                $member->update(['status' => 'active']);
-                $membership->update(['status' => 'active']);
-
-                // Widget-Registrierung abschließen
-                WidgetRegistration::where('gym_id', $gym->id)
-                    ->where('payment_data', 'like', '%' . $molliePayment->id . '%')
-                    ->update([
-                        'status' => 'completed',
-                        'completed_at' => now()
-                    ]);
-
-                // PaymentMethod aktualisieren
-                $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
-
-                // Analytics
-                $this->widgetService->trackEvent($gym, 'mollie_webhook_paid', 'payment_webhook', [
-                    'member_id' => $member->id,
-                    'membership_id' => $membership->id,
-                    'payment_method' => $localPayment->method,
-                    'amount' => $localPayment->amount,
-                    'mollie_payment_id' => $paymentId
-                ]);
-
-                Log::info('Mollie webhook: Payment completed', [
-                    'gym_id' => $gym->id,
-                    'member_id' => $member->id,
-                    'payment_id' => $paymentId
-                ]);
-            }
-
-            return response('OK', 200);
-
-        } catch (\Exception $e) {
-            Log::error('Mollie webhook processing failed', [
-                'payment_id' => $request->input('id'),
-                'error' => $e->getMessage(),
-                'request' => $request->all()
-            ]);
-
-            return response('Webhook processing failed', 500);
-        }
-    }
-
-    /**
      * Mollie-Result-Page rendern
      */
     private function renderMollieResult(array $result, ?Gym $gym): \Illuminate\Http\Response
@@ -557,7 +466,7 @@ class WidgetController extends Controller
             $sessionId = $widgetRegistration->session_id ?? 'unknown';
 
             $gym = Gym::findOrFail($gymId);
-            $result = $this->widgetService->processMollieReturn($gym, $sessionId, $paymentId);
+            $result = $this->widgetService->processMollieReturn($gym, $sessionId, $paymentId, sendNotifications: false);
 
             return response()->json($result);
 

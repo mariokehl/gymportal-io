@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
+use App\Http\Controllers\Web\PaymentReturnController;
 use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
@@ -34,6 +35,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect('/login');
 });
+
+// Payment return route (public, no auth required)
+Route::get('/payment/return/{organization}', PaymentReturnController::class)->name('payment.return');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
