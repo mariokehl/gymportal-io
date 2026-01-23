@@ -88,9 +88,8 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
+            <template v-for="payment in payments.data" :key="payment.id">
             <tr
-              v-for="payment in payments.data"
-              :key="payment.id"
               class="hover:bg-gray-50"
               :class="{ 'opacity-60': executingPaymentId === payment.id }"
             >
@@ -164,6 +163,19 @@
                     >
                       {{ payment.status_text }}
                     </span>
+                    <!-- Chargeback/Refund Badge -->
+                    <button
+                      v-if="getChargebackRefundCount(payment) > 0"
+                      @click.stop="toggleRowExpansion(payment.id)"
+                      class="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800 hover:bg-orange-200 transition-colors cursor-pointer"
+                      :title="isRowExpanded(payment.id) ? 'Details ausblenden' : 'Details anzeigen'"
+                    >
+                      <component
+                        :is="isRowExpanded(payment.id) ? ChevronDown : ChevronRight"
+                        class="w-3 h-3 mr-1"
+                      />
+                      {{ getChargebackRefundCount(payment) }}
+                    </button>
                     <div
                       v-if="executingPaymentId === payment.id"
                       class="ml-2 w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"
@@ -221,6 +233,90 @@
                 </div>
               </td>
             </tr>
+
+            <!-- Expanded Row for Chargebacks/Refunds -->
+            <tr v-if="isRowExpanded(payment.id) && getChargebackRefundCount(payment) > 0">
+              <td :colspan="visibleColumns.length + (showCheckboxes ? 1 : 0) + (showActions ? 1 : 0)" class="px-6 py-4 bg-gray-50">
+                <div class="space-y-4">
+                  <!-- Chargebacks -->
+                  <div v-if="payment.chargebacks?.length > 0">
+                    <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
+                      <AlertTriangle class="w-4 h-4 mr-2 text-red-500" />
+                      Rückbuchungen ({{ payment.chargebacks.length }})
+                    </h4>
+                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grund</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                          <tr v-for="chargeback in payment.chargebacks" :key="chargeback.id" class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-sm text-gray-900 font-mono">{{ chargeback.mollie_chargeback_id }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-900">{{ formatDate(chargeback.chargeback_date) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-red-600">-{{ formatCurrency(chargeback.amount) }}</td>
+                            <td class="px-4 py-2">
+                              <span
+                                :class="getChargebackStatusClasses(chargeback.status)"
+                                class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
+                              >
+                                {{ chargeback.status_text }}
+                              </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ chargeback.reason || '-' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Refunds -->
+                  <div v-if="payment.refunds?.length > 0">
+                    <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
+                      <RotateCcw class="w-4 h-4 mr-2 text-blue-500" />
+                      Erstattungen ({{ payment.refunds.length }})
+                    </h4>
+                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grund</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                          <tr v-for="refund in payment.refunds" :key="refund.id" class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-sm text-gray-900 font-mono">{{ refund.mollie_refund_id }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-900">{{ formatDate(refund.created_at) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-blue-600">-{{ formatCurrency(refund.amount) }}</td>
+                            <td class="px-4 py-2">
+                              <span
+                                :class="getRefundStatusClasses(refund.status)"
+                                class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
+                              >
+                                {{ refund.status_text }}
+                              </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ refund.description || '-' }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ refund.reason || '-' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -375,7 +471,11 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  X
+  X,
+  ChevronDown,
+  ChevronRight,
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 
@@ -483,6 +583,7 @@ const selectedPayments = ref(props.selectedIds)
 const showPaymentModal = ref(false)
 const selectedPayment = ref(null)
 const isProcessing = ref(false)
+const expandedRows = ref(new Set())
 
 // Watch for external changes to selectedIds
 watch(() => props.selectedIds, (newVal) => {
@@ -705,6 +806,46 @@ const getStatusClasses = (color) => {
     gray: 'bg-gray-100 text-gray-800'
   }
   return classes[color] || classes.gray
+}
+
+const getChargebackRefundCount = (payment) => {
+  const chargebackCount = payment.chargebacks?.length || 0
+  const refundCount = payment.refunds?.length || 0
+  return chargebackCount + refundCount
+}
+
+const toggleRowExpansion = (paymentId) => {
+  if (expandedRows.value.has(paymentId)) {
+    expandedRows.value.delete(paymentId)
+  } else {
+    expandedRows.value.add(paymentId)
+  }
+  // Trigger reactivity
+  expandedRows.value = new Set(expandedRows.value)
+}
+
+const isRowExpanded = (paymentId) => {
+  return expandedRows.value.has(paymentId)
+}
+
+const getChargebackStatusClasses = (status) => {
+  const classes = {
+    received: 'bg-red-100 text-red-800',
+    accepted: 'bg-gray-100 text-gray-800',
+    disputed: 'bg-yellow-100 text-yellow-800',
+    reversed: 'bg-green-100 text-green-800'
+  }
+  return classes[status] || classes.received
+}
+
+const getRefundStatusClasses = (status) => {
+  const classes = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    processing: 'bg-blue-100 text-blue-800',
+    refunded: 'bg-green-100 text-green-800',
+    failed: 'bg-red-100 text-red-800'
+  }
+  return classes[status] || classes.pending
 }
 
 // Expose methods for parent component if needed

@@ -63,6 +63,43 @@ class Payment extends Model
         return $this->belongsTo(Member::class);
     }
 
+    public function gym()
+    {
+        return $this->belongsTo(Gym::class);
+    }
+
+    /**
+     * Get all refunds for this payment.
+     */
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * Get all chargebacks for this payment.
+     */
+    public function chargebacks()
+    {
+        return $this->hasMany(Chargeback::class);
+    }
+
+    /**
+     * Get the original payment (for refunds/chargebacks linked via transaction_id).
+     */
+    public function originalPayment()
+    {
+        return $this->belongsTo(Payment::class, 'transaction_id', 'id');
+    }
+
+    /**
+     * Get related payments (refunds/chargebacks) that reference this payment via transaction_id.
+     */
+    public function relatedPayments()
+    {
+        return $this->hasMany(Payment::class, 'transaction_id', 'id');
+    }
+
     public function getStatusTextAttribute()
     {
         return [
@@ -70,6 +107,8 @@ class Payment extends Model
             'paid' => 'Bezahlt',
             'failed' => 'Fehlgeschlagen',
             'refunded' => 'Erstattet',
+            'partially_refunded' => 'Teilweise erstattet',
+            'chargeback' => 'Rückbuchung',
             'expired' => 'Verfallen',
             'canceled' => 'Abgebrochen',
             'completed' => 'Bezahlt',
@@ -84,6 +123,8 @@ class Payment extends Model
             'paid' => 'green',
             'failed' => 'red',
             'refunded' => 'blue',
+            'partially_refunded' => 'blue',
+            'chargeback' => 'red',
             'expired' => 'gray',
             'canceled' => 'red',
             'completed' => 'green'

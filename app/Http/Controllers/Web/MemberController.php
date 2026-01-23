@@ -364,7 +364,8 @@ class MemberController extends Controller
                 }]);
             },
             'paymentMethods',
-            'payments',
+            'payments.chargebacks',
+            'payments.refunds',
             'checkIns' => function ($query) {
                 $query->latest()->take(10);
             },

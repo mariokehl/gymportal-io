@@ -20,7 +20,7 @@ class PaymentController extends Controller
         // Ensure user can only access payments from their gym
         $this->authorize('view', $payment);
 
-        $payment->load(['membership.member', 'invoice']);
+        $payment->load(['membership.member', 'invoice', 'chargebacks', 'refunds']);
 
         return response()->json([
             'payment' => $payment

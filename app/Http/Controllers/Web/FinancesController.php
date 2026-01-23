@@ -17,7 +17,7 @@ class FinancesController extends Controller
     {
         $gymId = Auth::user()->current_gym_id;
 
-        $query = Payment::with(['membership.member', 'invoice'])
+        $query = Payment::with(['membership.member', 'invoice', 'chargebacks', 'refunds'])
             ->where('gym_id', $gymId);
 
         // Apply filters
@@ -83,6 +83,7 @@ class FinancesController extends Controller
             'pending' => 'Ausstehend',
             'paid' => 'Bezahlt',
             'failed' => 'Fehlgeschlagen',
+            'chargeback' => 'Rückbuchung',
             'refunded' => 'Erstattet',
             'expired' => 'Verfallen',
         ];
@@ -93,7 +94,10 @@ class FinancesController extends Controller
         $totalAmount = Payment::where('gym_id', $gymId)->sum('amount');
         $paidAmount = Payment::where('gym_id', $gymId)->where('status', 'paid')->sum('amount');
         $pendingAmount = Payment::where('gym_id', $gymId)->where('status', 'pending')->sum('amount');
-        $failedAmount = Payment::where('gym_id', $gymId)->where('status', 'failed')->sum('amount');
+        $failedAmount = Payment::where('gym_id', $gymId)
+            ->whereIn('status', ['failed', 'chargeback'])
+            ->get()
+            ->sum(fn($payment) => abs($payment->amount));
 
         return Inertia::render('Finances/Index', [
             'payments' => $payments,
@@ -108,7 +112,7 @@ class FinancesController extends Controller
                 'total_count' => Payment::where('gym_id', $gymId)->count(),
                 'paid_count' => Payment::where('gym_id', $gymId)->where('status', 'paid')->count(),
                 'pending_count' => Payment::where('gym_id', $gymId)->where('status', 'pending')->count(),
-                'failed_count' => Payment::where('gym_id', $gymId)->where('status', 'failed')->count(),
+                'failed_count' => Payment::where('gym_id', $gymId)->whereIn('status', ['failed', 'chargeback'])->count(),
             ]
         ]);
     }

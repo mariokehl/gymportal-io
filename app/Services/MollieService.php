@@ -20,6 +20,8 @@ use Mollie\Api\Resources\Payment as MolliePayment;
 use Mollie\Api\Resources\MethodCollection;
 use Mollie\Api\Resources\Refund;
 use Mollie\Api\Resources\RefundCollection;
+use Mollie\Api\Resources\Chargeback as MollieChargeback;
+use Mollie\Api\Resources\ChargebackCollection;
 use Mollie\Api\Types\MandateMethod;
 
 class MollieService
@@ -912,5 +914,45 @@ class MollieService
             'success_rate' => $payments->count() > 0 ?
                 round(($payments->where('status', 'paid')->count() / $payments->count()) * 100, 2) : 0
         ];
+    }
+
+    /**
+     * Get all chargebacks for a payment
+     */
+    public function getChargebacks(Gym $gym, string $paymentId): ChargebackCollection
+    {
+        $client = $this->initializeClient($gym);
+
+        return $client->payments->get($paymentId)->chargebacks();
+    }
+
+    /**
+     * Get a specific chargeback
+     */
+    public function getChargeback(Gym $gym, string $paymentId, string $chargebackId): MollieChargeback
+    {
+        $client = $this->initializeClient($gym);
+
+        return $client->payments->get($paymentId)->getChargeback($chargebackId);
+    }
+
+    /**
+     * Check if payment has chargebacks
+     */
+    public function hasChargebacks(Gym $gym, string $paymentId): bool
+    {
+        $chargebacks = $this->getChargebacks($gym, $paymentId);
+
+        return $chargebacks->count > 0;
+    }
+
+    /**
+     * Get a specific refund
+     */
+    public function getRefund(Gym $gym, string $paymentId, string $refundId): Refund
+    {
+        $client = $this->initializeClient($gym);
+
+        return $client->payments->get($paymentId)->getRefund($refundId);
     }
 }
