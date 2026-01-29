@@ -17,9 +17,12 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <div class="h-16 w-16 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xl font-bold">
-              {{ getInitials(member.first_name, member.last_name) }}
-            </div>
+            <MemberAvatar
+              :initials="getInitials(member.first_name, member.last_name)"
+              :age-verified="member.age_verified"
+              :verified-at="member.age_verified_at"
+              size="xl"
+            />
             <div>
               <h2 class="text-2xl font-bold text-gray-900">
                 {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }}
@@ -58,6 +61,36 @@
               </div>
             </div>
           </div>
+
+          <!-- Altersverifizierung Toggle -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <button
+                @click="toggleAgeVerification"
+                :disabled="verifyingAge"
+                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                :class="member.age_verified ? 'bg-blue-500' : 'bg-gray-200'"
+                role="switch"
+                :aria-checked="member.age_verified"
+              >
+                <span
+                  aria-hidden="true"
+                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="member.age_verified ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
+              <span class="text-sm text-gray-600">
+                Alter verifiziert
+              </span>
+              <span
+                v-if="member.age_verified && member.age_verified_at"
+                class="text-xs text-gray-400"
+              >
+                ({{ formatDate(member.age_verified_at) }})
+              </span>
+            </div>
+          </div>
+
           <div class="flex items-center space-x-3">
             <Link
               :href="route('members.create')"
@@ -733,13 +766,30 @@
                             :disabled="!editingNfc"
                             @input="validateNfcInput"
                           />
-                          <button
-                            v-if="!editingNfc"
-                            @click="startNfcEdit"
-                            class="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50"
-                          >
-                            Bearbeiten
-                          </button>
+                          <template v-if="!editingNfc && !isNfcScanning">
+                            <button
+                              @click="startNfcEdit"
+                              class="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50"
+                            >
+                              Bearbeiten
+                            </button>
+                            <button
+                              @click="startNfcScanning"
+                              class="px-4 py-2 text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50 flex items-center gap-2"
+                            >
+                              <Radio class="w-4 h-4" />
+                              Einlesen
+                            </button>
+                          </template>
+                          <template v-else-if="isNfcScanning">
+                            <button
+                              @click="stopNfcScanning"
+                              class="px-4 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50 flex items-center gap-2"
+                            >
+                              <Loader2 class="w-4 h-4 animate-spin" />
+                              Abbrechen
+                            </button>
+                          </template>
                           <template v-else>
                             <button
                               @click="saveNfcUid"
@@ -1671,12 +1721,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
+import MemberAvatar from '@/Components/MemberAvatar.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
 import IbanInput from '@/Components/IbanInput.vue'
@@ -1687,7 +1738,7 @@ import {
   ArrowLeft, Wallet, AlertCircle, CheckCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
-  Sun, Package, Armchair, Coffee, Info, Mail
+  Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -1723,6 +1774,11 @@ const normalizedNfcId = ref('')
 const isNfcValid = ref(false)
 const accessLogs = ref([])
 
+// NFC Scanning state
+const isNfcScanning = ref(false)
+const nfcScanChannel = ref(null)
+const nfcScanConnected = ref(false)
+
 // Access form for managing permissions
 const accessForm = useForm({
   // Primary access methods
@@ -1743,6 +1799,9 @@ const accessForm = useForm({
   coffee_flat_enabled: props.member.access_config?.coffee_flat_enabled || false,
   coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
 })
+
+// Age verification state
+const verifyingAge = ref(false)
 
 // Membership-related state
 const pausingMembership = ref(null)
@@ -1988,6 +2047,75 @@ const updateAccessSettings = () => {
     preserveScroll: true
   })
 }
+
+// NFC Scanning functions
+const startNfcScanning = () => {
+  if (!window.Echo || !props.member.gym?.id) {
+    alert('WebSocket-Verbindung nicht verfügbar.')
+    return
+  }
+
+  isNfcScanning.value = true
+  const gymId = props.member.gym.id
+
+  try {
+    nfcScanChannel.value = window.Echo.private(`gym.${gymId}.access-logs`)
+
+    nfcScanChannel.value.listen('.scanner.access', (event) => {
+      const log = event.log
+      // Only process NFC card scans
+      if (log.scan_type === 'nfc_card' && log.nfc_card_id) {
+        // Found an NFC card scan - use the nfc_card_id
+        const nfcCardId = log.nfc_card_id
+
+        // Set the value and save
+        accessForm.nfc_uid = nfcCardId
+        nfcInputValue.value = formatNfcIdForDisplay(nfcCardId)
+
+        // Save immediately
+        accessForm.put(route('members.access.update', props.member.id), {
+          preserveScroll: true,
+          onSuccess: () => {
+            stopNfcScanning()
+          },
+          onError: (errors) => {
+            console.error('Fehler beim Speichern der NFC-ID:', errors)
+            alert('Die NFC-ID konnte nicht gespeichert werden. Möglicherweise ist diese ID bereits einem anderen Mitglied zugeordnet.')
+            stopNfcScanning()
+          }
+        })
+      }
+    })
+
+    nfcScanChannel.value.subscribed(() => {
+      nfcScanConnected.value = true
+      console.log(`NFC scanning started for gym.${gymId}.access-logs`)
+    })
+
+    nfcScanChannel.value.error((error) => {
+      console.error('NFC scan WebSocket error:', error)
+      nfcScanConnected.value = false
+      stopNfcScanning()
+    })
+  } catch (error) {
+    console.error('Failed to start NFC scanning:', error)
+    isNfcScanning.value = false
+  }
+}
+
+const stopNfcScanning = () => {
+  if (nfcScanChannel.value && window.Echo && props.member.gym?.id) {
+    window.Echo.leave(`gym.${props.member.gym.id}.access-logs`)
+    nfcScanChannel.value = null
+  }
+  isNfcScanning.value = false
+  nfcScanConnected.value = false
+}
+
+// Cleanup on unmount
+onUnmounted(() => {
+  stopNfcScanning()
+})
 
 const getAccessMethodIcon = (method) => {
   const icons = {
@@ -2664,6 +2792,20 @@ const updateMember = () => {
 const cancelEdit = () => {
   form.reset()
   editMode.value = false
+}
+
+const toggleAgeVerification = () => {
+  verifyingAge.value = true
+
+  router.post(route('members.toggle-age-verification', props.member.id), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      verifyingAge.value = false
+    },
+    onError: () => {
+      verifyingAge.value = false
+    }
+  })
 }
 
 // Watchers
