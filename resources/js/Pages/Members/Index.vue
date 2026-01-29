@@ -90,19 +90,13 @@
               <tr v-for="member in members.data" :key="member.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10">
-                      <img
-                        v-if="member.profile_photo_path"
-                        :src="member.profile_photo_path"
-                        :alt="`${member.first_name} ${member.last_name}`"
-                        class="h-10 w-10 rounded-full object-cover"
+                    <div class="flex-shrink-0">
+                      <MemberAvatar
+                        :initials="getInitials(member.first_name, member.last_name)"
+                        :age-verified="member.age_verified"
+                        :verified-at="member.age_verified_at"
+                        size="md"
                       />
-                      <div
-                        v-else
-                        class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold"
-                      >
-                        {{ getInitials(member.first_name, member.last_name) }}
-                      </div>
                     </div>
                     <div class="ml-4">
                       <div class="text-sm font-medium text-gray-900">
@@ -297,6 +291,7 @@ import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import MemberAvatar from '@/Components/MemberAvatar.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import {
   Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown

@@ -370,7 +370,8 @@ class MemberController extends Controller
                 $query->latest()->take(10);
             },
             'accessConfig',
-            'statusHistory.changedBy:id,first_name,last_name'
+            'statusHistory.changedBy:id,first_name,last_name',
+            'ageVerifiedByUser:id,first_name,last_name'
         ]);
 
         // Transformiere die Status History für das Frontend
@@ -775,6 +776,22 @@ class MemberController extends Controller
             ]);
 
             return back()->with('error', 'Fehler beim Versenden der E-Mail. Bitte versuchen Sie es erneut.');
+        }
+    }
+
+    /**
+     * Toggle age verification for a member
+     */
+    public function toggleAgeVerification(Member $member)
+    {
+        $this->authorize('update', $member);
+
+        if ($member->age_verified) {
+            $member->revokeAgeVerification();
+            return back()->with('success', 'Altersverifizierung wurde entfernt.');
+        } else {
+            $member->verifyAge(auth()->id());
+            return back()->with('success', 'Alter wurde verifiziert.');
         }
     }
 

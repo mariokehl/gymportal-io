@@ -60,7 +60,9 @@ class DashboardController extends Controller
                         'name' => $member->full_name,
                         'email' => $member->email,
                         'membership' => 'Keine Mitgliedschaft',
-                        'status' => $member->status
+                        'status' => $member->status,
+                        'age_verified' => $member->age_verified,
+                        'age_verified_at' => $member->age_verified_at?->toISOString(),
                     ];
                 }
 
@@ -72,6 +74,8 @@ class DashboardController extends Controller
                     'membership' => $firstMembership->toArray()['membership_plan']['name'] ?? 'Gelöschter Vertrag',
                     'status' => $member->status,
                     'last_check_in' => $member->last_check_in,
+                    'age_verified' => $member->age_verified,
+                    'age_verified_at' => $member->age_verified_at?->toISOString(),
                 ];
             });
 

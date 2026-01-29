@@ -39,12 +39,17 @@ class Member extends Authenticatable
         'emergency_contact_phone',
         'registration_source',
         'widget_data',
+        'age_verified',
+        'age_verified_at',
+        'age_verified_by',
     ];
 
     protected $casts = [
         'birth_date' => 'date:Y-m-d',
         'joined_date' => 'date:Y-m-d',
         'widget_data' => 'array',
+        'age_verified' => 'boolean',
+        'age_verified_at' => 'datetime',
     ];
 
     protected $appends = ['initials', 'full_name', 'status_text', 'status_color'];
@@ -73,6 +78,43 @@ class Member extends Authenticatable
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function ageVerifiedByUser()
+    {
+        return $this->belongsTo(User::class, 'age_verified_by');
+    }
+
+    /**
+     * Verifiziert das Alter des Mitglieds
+     */
+    public function verifyAge(?int $verifiedBy = null): bool
+    {
+        return $this->update([
+            'age_verified' => true,
+            'age_verified_at' => now(),
+            'age_verified_by' => $verifiedBy ?? auth()->id(),
+        ]);
+    }
+
+    /**
+     * Entfernt die Altersverifizierung
+     */
+    public function revokeAgeVerification(): bool
+    {
+        return $this->update([
+            'age_verified' => false,
+            'age_verified_at' => null,
+            'age_verified_by' => null,
+        ]);
+    }
+
+    /**
+     * Prüft ob das Alter verifiziert ist
+     */
+    public function isAgeVerified(): bool
+    {
+        return $this->age_verified === true;
     }
 
     public function memberships()

@@ -55,10 +55,12 @@
                                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center font-medium">
-                                            {{ member.initials }}
-                                        </div>
+                                        <MemberAvatar
+                                            :initials="member.initials"
+                                            :age-verified="member.age_verified"
+                                            :verified-at="member.age_verified_at"
+                                            size="sm"
+                                        />
                                         <div class="ml-3">
                                             <p class="text-sm font-medium">{{ member.name }}</p>
                                             <p class="text-xs text-gray-500">{{ member.email }}</p>
@@ -182,6 +184,7 @@ import {
     Plus, Edit, ChevronRight, Eye
 } from 'lucide-vue-next'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import MemberAvatar from '@/Components/MemberAvatar.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate } from '@/utils/formatters'
 
