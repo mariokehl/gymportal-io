@@ -422,6 +422,47 @@
                 </p>
               </div>
             </div>
+
+            <!-- Gratis-Zeitraum Info-Box -->
+            <div v-if="shouldShowFreePeriodInfo" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-green-800">Gratis-Testzeitraum</h3>
+                  <div class="mt-2 text-sm text-green-700">
+                    <p>
+                      Da der Vertrag nicht am 1. des Monats beginnt, wird automatisch ein
+                      <strong>{{ gymSettings.free_trial_membership_name }}</strong> erstellt:
+                    </p>
+                    <ul class="mt-2 list-disc list-inside space-y-1">
+                      <li><strong>Gratis-Zeitraum:</strong> {{ formatFreePeriodDate(new Date(form.joined_date)) }} - {{ formatFreePeriodDate(freePeriodEndDate) }}</li>
+                      <li><strong>Zahlungspflichtiger Vertrag beginnt:</strong> {{ formatFreePeriodDate(paidMembershipStartDate) }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Checkbox: Vertrag beginnt sofort -->
+            <div v-if="gymSettings.contracts_start_first_of_month && form.joined_date && new Date(form.joined_date).getDate() !== 1" class="mt-4">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  v-model="form.start_immediately"
+                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <span class="ml-2 text-sm text-gray-700">
+                  Vertrag beginnt sofort (ohne Gratis-Zeitraum)
+                </span>
+              </label>
+              <p class="mt-1 ml-6 text-xs text-gray-500">
+                Der Vertrag startet am gewählten Datum und es wird kein Gratis-Zeitraum angelegt.
+              </p>
+            </div>
           </div>
 
           <p v-if="errors.membership_plan_id" class="mt-4 text-sm text-red-600">
@@ -518,7 +559,19 @@
               <div class="space-y-2 text-sm" v-if="selectedPlan">
                 <div><span class="font-medium">Tarif:</span> {{ selectedPlan.name }}</div>
                 <div><span class="font-medium">Preis:</span> {{ formatCurrency(selectedPlan.price) }} / {{ getBillingCycleText(selectedPlan.billing_cycle) }}</div>
-                <div><span class="font-medium">Startdatum:</span> {{ formatDate(form.joined_date) }}</div>
+
+                <!-- Gratis-Zeitraum Anzeige in Zusammenfassung -->
+                <template v-if="shouldShowFreePeriodInfo">
+                  <div class="py-2 px-3 bg-green-100 rounded-md -mx-1">
+                    <div class="text-green-800 font-medium">{{ gymSettings.free_trial_membership_name }}</div>
+                    <div class="text-green-700">{{ formatFreePeriodDate(new Date(form.joined_date)) }} - {{ formatFreePeriodDate(freePeriodEndDate) }} (kostenlos)</div>
+                  </div>
+                  <div><span class="font-medium">Zahlungspflichtiger Vertrag ab:</span> {{ formatFreePeriodDate(paidMembershipStartDate) }}</div>
+                </template>
+                <template v-else>
+                  <div><span class="font-medium">Startdatum:</span> {{ formatDate(form.joined_date) }}</div>
+                </template>
+
                 <div v-if="form.billing_anchor_date"><span class="font-medium">Erste Abrechnung am:</span> {{ formatDate(form.billing_anchor_date) }}</div>
                 <div><span class="font-medium">Laufzeit: </span>
                   <span v-if="selectedPlan.commitment_months > 0">
@@ -609,6 +662,13 @@ const props = defineProps({
     paymentMethods: {
         type: Array,
         default: () => []
+    },
+    gymSettings: {
+        type: Object,
+        default: () => ({
+            contracts_start_first_of_month: false,
+            free_trial_membership_name: 'Gratis-Testzeitraum'
+        })
     }
 })
 
@@ -649,6 +709,9 @@ const form = useForm({
   // Zahlungsmethode
   payment_method: '',
 
+  // Vertragsstart-Option
+  start_immediately: false,
+
   // Zustimmung
   accept_terms: true // TODO: Momentan über Adminbereich immer erteilt, ggf. an SEPA-Lastschriftverfahren koppeln
 })
@@ -660,6 +723,35 @@ const today = computed(() => {
 const selectedPlan = computed(() => {
   return props.membershipPlans.find(plan => plan.id === form.membership_plan_id)
 })
+
+// Gratis-Zeitraum Berechnungen
+const shouldShowFreePeriodInfo = computed(() => {
+  if (!props.gymSettings.contracts_start_first_of_month) return false
+  if (form.start_immediately) return false
+  if (!form.joined_date) return false
+
+  const startDate = new Date(form.joined_date)
+  return startDate.getDate() !== 1
+})
+
+const freePeriodEndDate = computed(() => {
+  if (!form.joined_date) return null
+  const startDate = new Date(form.joined_date)
+  // Letzter Tag des Monats
+  return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
+})
+
+const paidMembershipStartDate = computed(() => {
+  if (!form.joined_date) return null
+  const startDate = new Date(form.joined_date)
+  // 1. des Folgemonats
+  return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1)
+})
+
+const formatFreePeriodDate = (date) => {
+  if (!date) return ''
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 const errors = computed(() => form.errors)
 

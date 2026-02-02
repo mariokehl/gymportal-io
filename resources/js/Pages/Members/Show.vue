@@ -344,11 +344,13 @@
               :cancelling-membership="cancellingMembership"
               :revoking-cancellation="revokingCancellation"
               :activating-membership="activatingMembership"
+              :aborting-membership="abortingMembership"
               @activate="activateMembership"
               @pause="openPauseMembership"
               @resume="resumeMembership"
               @cancel="openCancelMembership"
               @revoke-cancellation="revokeCancellation"
+              @abort="abortMembership"
             />
           </div>
 
@@ -1809,6 +1811,7 @@ const resumingMembership = ref(null)
 const cancellingMembership = ref(null)
 const revokingCancellation = ref(null)
 const activatingMembership = ref(null)
+const abortingMembership = ref(null)
 const showPauseMembershipModal = ref(false)
 const showCancelMembershipModal = ref(false)
 const selectedMembership = ref(null)
@@ -2325,6 +2328,28 @@ const resumeMembership = (membership) => {
     onError: () => {
       resumingMembership.value = null
       alert('Die Mitgliedschaft konnte nicht wieder aufgenommen werden.')
+    }
+  })
+}
+
+const abortMembership = (membership) => {
+  if (!confirm('Möchten Sie diesen Gratis-Testzeitraum wirklich abbrechen? Der Zeitraum wird sofort beendet.')) {
+    return
+  }
+
+  abortingMembership.value = membership.id
+
+  router.put(route('members.memberships.abort', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      abortingMembership.value = null
+    },
+    onError: () => {
+      abortingMembership.value = null
+      alert('Der Gratis-Testzeitraum konnte nicht abgebrochen werden.')
     }
   })
 }

@@ -210,7 +210,11 @@ class MemberController extends Controller
 
         return Inertia::render('Members/Create', [
             'membershipPlans' => $membershipPlans,
-            'paymentMethods' => $paymentMethods
+            'paymentMethods' => $paymentMethods,
+            'gymSettings' => [
+                'contracts_start_first_of_month' => $gym->contracts_start_first_of_month,
+                'free_trial_membership_name' => $gym->free_trial_membership_name ?? 'Gratis-Testzeitraum',
+            ],
         ]);
     }
 
@@ -259,6 +263,7 @@ class MemberController extends Controller
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
             'payment_method' => ['required', Rule::in($enabledPaymentMethods)],
+            'start_immediately' => ['nullable', 'boolean'],
         ]);
 
         // Custom validation for billing_anchor_date - must be on the same day of month as joined_date
@@ -302,8 +307,21 @@ class MemberController extends Controller
             // Get membership plan to calculate end date
             $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
 
-            // Create membership
-            $newMembership = app(MemberService::class)->createMembership($newMember, $membershipPlan, 'pending');
+            // Create membership (with optional free period for first-of-month start)
+            $memberService = app(MemberService::class);
+            $startImmediately = $validated['start_immediately'] ?? false;
+            $startDate = \Carbon\Carbon::parse($validated['joined_date']);
+
+            $membershipResult = $memberService->createMembershipWithFreePeriod(
+                $newMember,
+                $membershipPlan,
+                $startDate,
+                'pending',
+                $startImmediately
+            );
+
+            $newMembership = $membershipResult['membership'];
+            $freeMembership = $membershipResult['free_membership'];
 
             // Select payment method
             $paymentMethodData = [

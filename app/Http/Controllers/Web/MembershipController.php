@@ -5,12 +5,78 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\Membership;
+use App\Services\MemberService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class MembershipController extends Controller
 {
+    public function __construct(
+        private MemberService $memberService
+    ) {}
+
+    /**
+     * Erstellt einen kostenlosen Zeitraum (z.B. Probetraining)
+     */
+    public function storeFreePeriod(Request $request, Member $member)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'linked_membership_id' => 'nullable|exists:memberships,id',
+        ], [
+            'start_date.required' => 'Das Startdatum ist erforderlich.',
+            'end_date.required' => 'Das Enddatum ist erforderlich.',
+            'end_date.after_or_equal' => 'Das Enddatum muss nach dem Startdatum liegen.',
+        ]);
+
+        // Gym des aktuellen Benutzers
+        $gym = auth()->user()->gym;
+
+        DB::beginTransaction();
+        try {
+            // Verknüpfte Mitgliedschaft prüfen (falls angegeben)
+            $linkedMembership = null;
+            if ($validated['linked_membership_id']) {
+                $linkedMembership = Membership::where('id', $validated['linked_membership_id'])
+                    ->where('member_id', $member->id)
+                    ->first();
+
+                if (!$linkedMembership) {
+                    return back()->withErrors([
+                        'linked_membership_id' => 'Die ausgewählte Mitgliedschaft gehört nicht zu diesem Mitglied.'
+                    ]);
+                }
+            }
+
+            // Gratis-Mitgliedschaft erstellen
+            $freeMembership = $this->memberService->createFreePeriodMembership(
+                $member,
+                Carbon::parse($validated['start_date']),
+                Carbon::parse($validated['end_date']),
+                $linkedMembership
+            );
+
+            // Verknüpfung in der anderen Richtung speichern
+            if ($linkedMembership) {
+                $linkedMembership->update([
+                    'linked_free_membership_id' => $freeMembership->id
+                ]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Der kostenlose Zeitraum wurde erfolgreich erstellt.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors([
+                'error' => 'Der kostenlose Zeitraum konnte nicht erstellt werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     /**
      * Aktiviert eine pending Mitgliedschaft
      */
@@ -354,6 +420,55 @@ class MembershipController extends Controller
             DB::rollBack();
             return back()->withErrors([
                 'error' => 'Die Kündigung konnte nicht zurückgenommen werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Bricht einen Gratis-Testzeitraum sofort ab
+     */
+    public function abort(Request $request, Member $member, Membership $membership)
+    {
+        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        // Überprüfen ob es sich um einen Gratis-Testzeitraum handelt
+        if (!$membership->is_free_trial) {
+            return back()->withErrors([
+                'error' => 'Nur Gratis-Testzeiträume können abgebrochen werden.'
+            ]);
+        }
+
+        // Überprüfen ob die Mitgliedschaft aktiv ist
+        if ($membership->status !== 'active') {
+            return back()->withErrors([
+                'status' => 'Nur aktive Gratis-Testzeiträume können abgebrochen werden.'
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Enddatum auf heute setzen und Status auf expired
+            $membership->update([
+                'status' => 'expired',
+                'end_date' => now()->format('Y-m-d'),
+            ]);
+
+            // Notiz hinzufügen
+            $membership->update([
+                'notes' => ($membership->notes ? $membership->notes . "\n" : '') .
+                          "Gratis-Testzeitraum abgebrochen am " . now()->format('d.m.Y H:i')
+            ]);
+
+            DB::commit();
+
+            return back()->with('success', 'Der Gratis-Testzeitraum wurde erfolgreich abgebrochen.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors([
+                'error' => 'Der Gratis-Testzeitraum konnte nicht abgebrochen werden: ' . $e->getMessage()
             ]);
         }
     }

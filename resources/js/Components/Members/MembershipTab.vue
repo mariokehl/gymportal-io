@@ -4,14 +4,24 @@
     <div class="space-y-4">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-semibold text-gray-900">Mitgliedschaften</h3>
-        <button
-          @click="openAddMembershipModal"
-          type="button"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-        >
-          <Plus class="w-4 h-4" />
-          Neue Mitgliedschaft
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="openFreePeriodModal"
+            type="button"
+            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+          >
+            <Gift class="w-4 h-4" />
+            Gratis-Zeitraum
+          </button>
+          <button
+            @click="openAddMembershipModal"
+            type="button"
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+          >
+            <Plus class="w-4 h-4" />
+            Neue Mitgliedschaft
+          </button>
+        </div>
       </div>
 
       <!-- Active Memberships List -->
@@ -55,9 +65,9 @@
                   <span>{{ activatingMembership === membership.id ? 'Wird aktiviert...' : 'Aktivieren' }}</span>
                 </button>
 
-                <!-- Pause button -->
+                <!-- Pause button (not available for free trial periods) -->
                 <button
-                  v-if="membership.status === 'active' && !membership.cancellation_date"
+                  v-if="membership.status === 'active' && !membership.cancellation_date && !membership.is_free_trial"
                   @click="$emit('pause', membership)"
                   type="button"
                   class="text-sm text-yellow-600 hover:text-yellow-800 font-medium flex items-center gap-1 transition-colors"
@@ -81,12 +91,12 @@
                   <span class="sm:hidden">{{ resumingMembership === membership.id ? '...' : 'Weiter' }}</span>
                 </button>
 
-                <!-- Dividing line -->
-                <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date" class="hidden sm:block w-px h-4 bg-gray-300"></div>
+                <!-- Dividing line (only show when pause/cancel buttons are visible, not for free trials) -->
+                <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date && !membership.is_free_trial" class="hidden sm:block w-px h-4 bg-gray-300"></div>
 
-                <!-- Cancel button -->
+                <!-- Cancel button (not available for free trial periods) -->
                 <button
-                  v-if="!membership.cancellation_date && membership.status !== 'pending'"
+                  v-if="!membership.cancellation_date && membership.status !== 'pending' && !membership.is_free_trial"
                   @click="$emit('cancel', membership)"
                   type="button"
                   class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
@@ -95,6 +105,19 @@
                   <XCircle class="w-4 h-4" />
                   <span class="hidden sm:inline">{{ cancellingMembership === membership.id ? 'Wird gekündigt...' : 'Kündigen' }}</span>
                   <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
+                </button>
+
+                <!-- Stop button (only for free trial periods) -->
+                <button
+                  v-if="membership.is_free_trial && membership.status === 'active'"
+                  @click="$emit('abort', membership)"
+                  type="button"
+                  class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
+                  :disabled="abortingMembership === membership.id"
+                >
+                  <StopCircle class="w-4 h-4" />
+                  <span class="hidden sm:inline">{{ abortingMembership === membership.id ? 'Wird gestoppt...' : 'Stoppen' }}</span>
+                  <span class="sm:hidden">{{ abortingMembership === membership.id ? '...' : 'Stopp' }}</span>
                 </button>
 
                 <!-- Cancel cancellation button -->
@@ -211,6 +234,119 @@
       </div>
     </div>
 
+    <!-- Free Period Modal -->
+    <teleport to="body">
+      <div v-if="showFreePeriodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeFreePeriodModal">
+        <div class="relative top-10 mx-auto p-5 border border-gray-50 w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="addFreePeriod">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Gratis-Zeitraum hinzufügen
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                  Erstelle einen kostenlosen Zeitraum, z.B. für Probetraining oder Überbrückung.
+                </p>
+              </div>
+
+              <!-- Error message -->
+              <div v-if="freePeriodForm.errors.error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex">
+                  <AlertCircle class="h-5 w-5 text-red-400 flex-shrink-0" />
+                  <p class="ml-3 text-sm text-red-800">{{ freePeriodForm.errors.error }}</p>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <!-- Start Date -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    v-model="freePeriodForm.start_date"
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                    :class="{ 'border-red-500': freePeriodForm.errors.start_date }"
+                  />
+                  <p v-if="freePeriodForm.errors.start_date" class="mt-1 text-sm text-red-600">
+                    {{ freePeriodForm.errors.start_date }}
+                  </p>
+                </div>
+
+                <!-- End Date -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    v-model="freePeriodForm.end_date"
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                    :class="{ 'border-red-500': freePeriodForm.errors.end_date }"
+                  />
+                  <p v-if="freePeriodForm.errors.end_date" class="mt-1 text-sm text-red-600">
+                    {{ freePeriodForm.errors.end_date }}
+                  </p>
+                </div>
+
+                <!-- Link to Membership (optional) -->
+                <div v-if="linkableMemberships.length > 0">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Mit Mitgliedschaft verknüpfen (optional)
+                  </label>
+                  <select
+                    v-model="freePeriodForm.linked_membership_id"
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option :value="null">Keine Verknüpfung</option>
+                    <option v-for="m in linkableMemberships" :key="m.id" :value="m.id">
+                      {{ m.membership_plan?.name || 'Unbekannt' }} (ab {{ formatDate(m.start_date) }})
+                    </option>
+                  </select>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Verknüpfe diesen Gratis-Zeitraum mit einer bestehenden oder neuen Mitgliedschaft.
+                  </p>
+                </div>
+
+                <!-- Preview -->
+                <div v-if="freePeriodForm.start_date && freePeriodForm.end_date" class="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div class="flex items-start gap-2">
+                    <Gift class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div class="text-sm">
+                      <p class="font-medium text-green-800">Vorschau</p>
+                      <p class="text-green-700">
+                        Gratis-Zeitraum vom {{ formatDateShort(freePeriodForm.start_date) }}
+                        bis {{ formatDateShort(freePeriodForm.end_date) }}
+                        ({{ freePeriodDays }} Tage)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="freePeriodForm.processing || !freePeriodForm.start_date || !freePeriodForm.end_date"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ freePeriodForm.processing ? 'Wird erstellt...' : 'Gratis-Zeitraum erstellen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeFreePeriodModal"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
     <!-- Add Membership Modal -->
     <teleport to="body">
       <div v-if="showAddMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddMembershipModal">
@@ -265,8 +401,8 @@
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
-  Plus, Clock, CheckCircle, XCircle, PlayCircle,
-  RotateCcw, AlertCircle, UserX, ChevronDown, ChevronUp
+  Plus, Clock, CheckCircle, XCircle, PlayCircle, StopCircle,
+  RotateCcw, AlertCircle, UserX, ChevronDown, ChevronUp, Gift
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
@@ -299,14 +435,26 @@ const props = defineProps({
   activatingMembership: {
     type: [Number, null],
     default: null
+  },
+  abortingMembership: {
+    type: [Number, null],
+    default: null
   }
 })
 
-const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation'])
+const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort'])
 
 // Local state
 const showPastMemberships = ref(false)
 const showAddMembershipModal = ref(false)
+const showFreePeriodModal = ref(false)
+
+// Free period form
+const freePeriodForm = useForm({
+  start_date: new Date().toISOString().split('T')[0],
+  end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 Tage
+  linked_membership_id: null
+})
 
 // Add membership form
 const addMembershipForm = useForm({
@@ -337,6 +485,23 @@ const pastMemberships = computed(() => {
   return props.member.memberships.filter(m =>
     m.status === 'cancelled' || m.status === 'expired'
   )
+})
+
+// Memberships that can be linked to a free period
+const linkableMemberships = computed(() => {
+  if (!props.member.memberships) return []
+  return props.member.memberships.filter(m =>
+    (m.status === 'active' || m.status === 'pending') && !m.linked_free_membership_id
+  )
+})
+
+// Calculate free period duration in days
+const freePeriodDays = computed(() => {
+  if (!freePeriodForm.start_date || !freePeriodForm.end_date) return 0
+  const start = new Date(freePeriodForm.start_date)
+  const end = new Date(freePeriodForm.end_date)
+  const diffTime = Math.abs(end - start)
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
 })
 
 // Watch membershipFormData and sync to addMembershipForm
@@ -373,6 +538,42 @@ const addMembership = () => {
       closeAddMembershipModal()
     }
   })
+}
+
+// Free period modal functions
+const openFreePeriodModal = () => {
+  freePeriodForm.reset()
+  freePeriodForm.clearErrors()
+  freePeriodForm.start_date = new Date().toISOString().split('T')[0]
+  // Default: Ende des aktuellen Monats
+  const endOfMonth = new Date()
+  endOfMonth.setMonth(endOfMonth.getMonth() + 1)
+  endOfMonth.setDate(0) // Letzter Tag des aktuellen Monats
+  freePeriodForm.end_date = endOfMonth.toISOString().split('T')[0]
+  freePeriodForm.linked_membership_id = null
+  showFreePeriodModal.value = true
+}
+
+const closeFreePeriodModal = () => {
+  showFreePeriodModal.value = false
+  freePeriodForm.reset()
+  freePeriodForm.clearErrors()
+}
+
+const addFreePeriod = () => {
+  freePeriodForm.post(route('members.memberships.store-free-period', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeFreePeriodModal()
+    }
+  })
+}
+
+// Helper function to format date in short German format
+const formatDateShort = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // Helper functions

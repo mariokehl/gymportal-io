@@ -22,6 +22,7 @@ class Membership extends Model
         'cancellation_reason',
         'contract_file_path',
         'notes',
+        'linked_free_membership_id',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Membership extends Model
         'min_cancellation_date',
         'default_cancellation_date',
         'can_cancel',
+        'is_free_trial',
     ];
 
     public function member()
@@ -51,6 +53,30 @@ class Membership extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Verknüpfte Gratis-Mitgliedschaft (bei Vertragsstart zum 1. des Monats)
+     */
+    public function linkedFreeMembership()
+    {
+        return $this->belongsTo(Membership::class, 'linked_free_membership_id');
+    }
+
+    /**
+     * Verknüpfte zahlungspflichtige Mitgliedschaft (inverse Relation)
+     */
+    public function linkedPaidMembership()
+    {
+        return $this->hasOne(Membership::class, 'linked_free_membership_id');
+    }
+
+    /**
+     * Prüft ob dies eine Gratis-Testmitgliedschaft ist
+     */
+    public function getIsFreeTrialAttribute(): bool
+    {
+        return $this->membershipPlan?->is_free_trial_plan ?? false;
     }
 
     public function getStatusTextAttribute()

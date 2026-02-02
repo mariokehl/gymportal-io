@@ -124,6 +124,24 @@ class Member extends Authenticatable
 
     public function activeMembership()
     {
+        $today = now()->startOfDay();
+
+        // Zuerst: Aktive Mitgliedschaft suchen, die heute gültig ist (start_date <= heute <= end_date)
+        $currentMembership = $this->memberships()
+            ->where('status', 'active')
+            ->whereDate('start_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereDate('end_date', '>=', $today)
+                    ->orWhereNull('end_date');
+            })
+            ->orderBy('start_date', 'asc') // Bei mehreren: die mit früherem Startdatum (z.B. Gratis-Zeitraum)
+            ->first();
+
+        if ($currentMembership) {
+            return $currentMembership;
+        }
+
+        // Fallback: Erste aktive Mitgliedschaft (auch wenn sie noch nicht begonnen hat)
         return $this->memberships()->where('status', 'active')->first();
     }
 
