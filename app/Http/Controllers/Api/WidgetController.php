@@ -538,7 +538,8 @@ class WidgetController extends Controller
             ),
             'currency' => 'EUR',
             'commitment_months' => $plan->commitment_months,
-            'cancellation_period_days' => $plan->cancellation_period_days,
+            'cancellation_period' => $plan->cancellation_period,
+            'cancellation_period_unit' => $plan->cancellation_period_unit,
             'gym_id' => $plan->gym_id,
             'selected_at' => now()->toISOString()
         ];

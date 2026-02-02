@@ -539,8 +539,14 @@ class ProcessMembershipPayments extends Command
 
         // Check if we're within the renewal window
         $renewalDate = $membership->end_date->copy()->addDay();
-        $cancellationDeadline = $membership->end_date->copy()
-            ->subDays($plan->cancellation_period_days ?? 30);
+        $cancellationPeriod = $plan->cancellation_period ?? 30;
+        $cancellationUnit = $plan->cancellation_period_unit ?? 'days';
+
+        if ($cancellationUnit === 'months') {
+            $cancellationDeadline = $membership->end_date->copy()->subMonths($cancellationPeriod);
+        } else {
+            $cancellationDeadline = $membership->end_date->copy()->subDays($cancellationPeriod);
+        }
 
         // Renew if:
         // 1. We're past the cancellation deadline

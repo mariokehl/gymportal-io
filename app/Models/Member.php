@@ -145,6 +145,61 @@ class Member extends Authenticatable
         return $this->memberships()->where('status', 'active')->first();
     }
 
+    /**
+     * Gibt eine strukturierte Übersicht aller Mitgliedschaften zurück
+     *
+     * @return array{
+     *     current: Membership|null,
+     *     free: \Illuminate\Database\Eloquent\Collection,
+     *     paid: \Illuminate\Database\Eloquent\Collection
+     * }
+     */
+    public function getMembershipOverview(): array
+    {
+        $today = now()->startOfDay();
+
+        // Aktuelle Mitgliedschaft ermitteln (die heute gültig ist)
+        $currentMembership = $this->memberships()
+            ->with('membershipPlan')
+            ->where('status', 'active')
+            ->whereDate('start_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereDate('end_date', '>=', $today)
+                    ->orWhereNull('end_date');
+            })
+            ->orderBy('start_date', 'asc')
+            ->first();
+
+        // Fallback: Erste aktive Mitgliedschaft (auch wenn sie noch nicht begonnen hat)
+        if (!$currentMembership) {
+            $currentMembership = $this->memberships()
+                ->with('membershipPlan')
+                ->where('status', 'active')
+                ->first();
+        }
+
+        // Alle anderen Mitgliedschaften (außer der aktuellen) laden
+        $otherMembershipsQuery = $this->memberships()
+            ->with('membershipPlan');
+
+        $otherMemberships = $otherMembershipsQuery->get();
+
+        // Nach Gratis und Bezahlt aufteilen
+        $freeMemberships = $otherMemberships->filter(function ($membership) {
+            return $membership->is_free_trial;
+        })->values();
+
+        $paidMemberships = $otherMemberships->filter(function ($membership) {
+            return !$membership->is_free_trial;
+        })->values();
+
+        return [
+            'current' => $currentMembership,
+            'free' => $freeMemberships,
+            'paid' => $paidMemberships,
+        ];
+    }
+
     public function paymentMethods(): HasMany
     {
         return $this->hasMany(PaymentMethod::class);

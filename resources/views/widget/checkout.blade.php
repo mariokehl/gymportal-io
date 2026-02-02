@@ -74,7 +74,17 @@
             </div>
             <div class="detail-row">
                 <span class="label">Kündigungsfrist:</span>
-                <span class="value">{{ $planData['cancellation_period_days'] ?? 30 }} Tage</span>
+                <span class="value">
+                    @php
+                        $cancellationPeriod = $planData['cancellation_period'] ?? 30;
+                        $cancellationUnit = $planData['cancellation_period_unit'] ?? 'days';
+                        if ($cancellationUnit === 'months') {
+                            echo $cancellationPeriod . ' ' . ($cancellationPeriod == 1 ? 'Monat' : 'Monate');
+                        } else {
+                            echo $cancellationPeriod . ' ' . ($cancellationPeriod == 1 ? 'Tag' : 'Tage');
+                        }
+                    @endphp
+                </span>
             </div>
             {{--
             <div class="detail-row">

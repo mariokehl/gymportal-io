@@ -115,6 +115,43 @@ class MemberController extends Controller
         ]);
     }
 
+    /**
+     * Gibt eine Übersicht aller Mitgliedschaften zurück
+     * (aktuelle, gratis und bezahlte Mitgliedschaften)
+     */
+    public function memberships(): JsonResponse
+    {
+        /** @var Member $member */
+        $member = request()->user();
+        $overview = $member->getMembershipOverview();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'current' => $overview['current'] ? $this->formatMembership($overview['current']) : null,
+                'free' => $overview['free']->map(fn($m) => $this->formatMembership($m)),
+                'paid' => $overview['paid']->map(fn($m) => $this->formatMembership($m)),
+            ]
+        ]);
+    }
+
+    /**
+     * Formatiert eine Mitgliedschaft für die API-Antwort
+     */
+    private function formatMembership(Membership $membership): array
+    {
+        return [
+            'id' => (int) $membership->id,
+            'status' => (string) $membership->status,
+            'status_text' => (string) $membership->status_text,
+            'start_date' => $membership->start_date?->format('Y-m-d'),
+            'end_date' => $membership->end_date?->format('Y-m-d'),
+            'cancellation_date' => $membership->cancellation_date?->format('Y-m-d'),
+            'is_free_trial' => (bool) $membership->is_free_trial,
+            'plan' => $membership->is_free_trial ? null : $membership->membershipPlan,
+        ];
+    }
+
     public function updateContract(Request $request): JsonResponse
     {
         $request->validate([

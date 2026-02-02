@@ -130,21 +130,33 @@
             </div>
 
             <div>
-              <label for="cancellation_period_days" class="block text-sm font-medium text-gray-700 mb-2">
-                Kündigungsfrist (Tage) <span class="text-red-500">*</span>
+              <label for="cancellation_period" class="block text-sm font-medium text-gray-700 mb-2">
+                Kündigungsfrist <span class="text-red-500">*</span>
               </label>
-              <input
-                id="cancellation_period_days"
-                v-model="form.cancellation_period_days"
-                type="number"
-                min="0"
-                max="365"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                :class="{ 'border-red-500': errors.cancellation_period_days }"
-                placeholder="30"
-                required
-              />
-              <p v-if="errors.cancellation_period_days" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period_days }}</p>
+              <div class="flex gap-2">
+                <input
+                  id="cancellation_period"
+                  v-model="form.cancellation_period"
+                  type="number"
+                  min="0"
+                  :max="form.cancellation_period_unit === 'months' ? 24 : 365"
+                  class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                  :class="{ 'border-red-500': errors.cancellation_period }"
+                  placeholder="30"
+                  required
+                />
+                <select
+                  id="cancellation_period_unit"
+                  v-model="form.cancellation_period_unit"
+                  class="w-28 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                  :class="{ 'border-red-500': errors.cancellation_period_unit }"
+                >
+                  <option value="days">Tage</option>
+                  <option value="months">Monate</option>
+                </select>
+              </div>
+              <p v-if="errors.cancellation_period" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period }}</p>
+              <p v-if="errors.cancellation_period_unit" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period_unit }}</p>
             </div>
           </div>
 
@@ -206,7 +218,8 @@ const form = useForm({
   billing_cycle: '',
   is_active: true,
   commitment_months: '',
-  cancellation_period_days: 30
+  cancellation_period: 30,
+  cancellation_period_unit: 'days'
 })
 
 // Computed

@@ -42,8 +42,8 @@
                 <p v-if="membership.membership_plan?.commitment_months" class="text-sm">
                   <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
                 </p>
-                <p v-if="membership.membership_plan?.cancellation_period_days" class="text-sm">
-                  <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.cancellation_period_days }} Tage
+                <p v-if="membership.membership_plan?.cancellation_period" class="text-sm">
+                  <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.formatted_cancellation_period }}
                 </p>
                 <p v-if="membership.cancellation_date" class="text-sm text-red-600">
                   <span class="font-medium">Gekündigt zum:</span> {{ formatDate(membership.cancellation_date) }}

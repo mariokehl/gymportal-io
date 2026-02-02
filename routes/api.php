@@ -58,6 +58,7 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [MemberController::class, 'profile']);
         Route::get('contract', [MemberController::class, 'contract']);
+        Route::get('memberships', [MemberController::class, 'memberships']);
         Route::get('gyms', [MemberController::class, 'gyms']);
         Route::prefix('checkin')->group(function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);

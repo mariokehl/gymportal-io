@@ -17,7 +17,8 @@ class MembershipPlanSeeder extends Seeder
             'price' => 29.99,
             'billing_cycle' => 'monthly',
             'commitment_months' => 12,
-            'cancellation_period_days' => 30,
+            'cancellation_period' => 30,
+            'cancellation_period_unit' => 'days',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -29,7 +30,8 @@ class MembershipPlanSeeder extends Seeder
             'price' => 49.99,
             'billing_cycle' => 'monthly',
             'commitment_months' => 12,
-            'cancellation_period_days' => 30,
+            'cancellation_period' => 30,
+            'cancellation_period_unit' => 'days',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -41,7 +43,8 @@ class MembershipPlanSeeder extends Seeder
             'price' => 499.99,
             'billing_cycle' => 'yearly',
             'commitment_months' => 12,
-            'cancellation_period_days' => 60,
+            'cancellation_period' => 2,
+            'cancellation_period_unit' => 'months',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -54,7 +57,8 @@ class MembershipPlanSeeder extends Seeder
             'price' => 34.99,
             'billing_cycle' => 'monthly',
             'commitment_months' => 6,
-            'cancellation_period_days' => 30,
+            'cancellation_period' => 30,
+            'cancellation_period_unit' => 'days',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -66,7 +70,8 @@ class MembershipPlanSeeder extends Seeder
             'price' => 59.99,
             'billing_cycle' => 'monthly',
             'commitment_months' => 6,
-            'cancellation_period_days' => 30,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

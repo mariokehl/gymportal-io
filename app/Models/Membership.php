@@ -182,9 +182,13 @@ class Membership extends Model
             $date->addMonths($this->membershipPlan->commitment_months);
         }
 
-        // Subtract cancellation period days (user must cancel before commitment ends)
-        if ($this->membershipPlan->cancellation_period_days) {
-            $date->subDays($this->membershipPlan->cancellation_period_days);
+        // Subtract cancellation period (user must cancel before commitment ends)
+        if ($this->membershipPlan->cancellation_period) {
+            if ($this->membershipPlan->cancellation_period_unit === 'months') {
+                $date->subMonths($this->membershipPlan->cancellation_period);
+            } else {
+                $date->subDays($this->membershipPlan->cancellation_period);
+            }
         }
 
         return $date->format('Y-m-d');
@@ -222,7 +226,8 @@ class Membership extends Model
 
         $commitmentMonths = $this->membershipPlan->commitment_months ?? 0;
         $renewalMonths = $this->membershipPlan->renewal_months ?? 1;
-        $cancellationPeriodDays = $this->membershipPlan->cancellation_period_days ?? 0;
+        $cancellationPeriod = $this->membershipPlan->cancellation_period ?? 0;
+        $cancellationPeriodUnit = $this->membershipPlan->cancellation_period_unit ?? 'days';
 
         // 1. End of minimum term
         $commitmentEnd = $start->copy()->addMonths($commitmentMonths);
@@ -243,7 +248,11 @@ class Membership extends Model
         $periodEnd = $periodStart->copy();
 
         // 3. Calculate the latest possible termination date for this period.
-        $latestPossibleCancellation = $periodEnd->copy()->subDays($cancellationPeriodDays);
+        if ($cancellationPeriodUnit === 'months') {
+            $latestPossibleCancellation = $periodEnd->copy()->subMonths($cancellationPeriod);
+        } else {
+            $latestPossibleCancellation = $periodEnd->copy()->subDays($cancellationPeriod);
+        }
 
         // 4. Termination is possible if today <= deadline
         return $today->lessThanOrEqualTo($latestPossibleCancellation);

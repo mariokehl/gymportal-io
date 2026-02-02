@@ -1153,9 +1153,9 @@
                     <AlertCircle class="w-3 h-3 inline mr-1" />
                     Mindestlaufzeit: {{ selectedMembership.membership_plan?.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
                   </p>
-                  <p v-if="selectedMembership?.membership_plan?.cancellation_period_days" class="mt-1 text-sm text-blue-600">
+                  <p v-if="selectedMembership?.membership_plan?.cancellation_period" class="mt-1 text-sm text-blue-600">
                     <Clock class="w-3 h-3 inline mr-1" />
-                    Kündigungsfrist: {{ selectedMembership.membership_plan?.cancellation_period_days }} Tage
+                    Kündigungsfrist: {{ selectedMembership.membership_plan?.formatted_cancellation_period }}
                   </p>
                 </div>
 

@@ -301,14 +301,21 @@ class MembershipController extends Controller
             }
 
             // Kündigungsfrist prüfen
-            if ($membership->membershipPlan->cancellation_period_days) {
-                $minCancellationDate = now()->addDays($membership->membershipPlan->cancellation_period_days);
+            if ($membership->membershipPlan->cancellation_period) {
+                $cancellationPeriod = $membership->membershipPlan->cancellation_period;
+                $cancellationUnit = $membership->membershipPlan->cancellation_period_unit ?? 'days';
+
+                if ($cancellationUnit === 'months') {
+                    $minCancellationDate = now()->addMonths($cancellationPeriod);
+                } else {
+                    $minCancellationDate = now()->addDays($cancellationPeriod);
+                }
 
                 if (\Carbon\Carbon::parse($validated['cancellation_date'])->lt($minCancellationDate)) {
                     return back()->withErrors([
                         'cancellation_date' => 'Die Kündigungsfrist beträgt ' .
-                                             $membership->membershipPlan->cancellation_period_days .
-                                             ' Tage. Frühestmöglicher Kündigungstermin: ' .
+                                             $membership->membershipPlan->formatted_cancellation_period .
+                                             '. Frühestmöglicher Kündigungstermin: ' .
                                              $minCancellationDate->format('d.m.Y')
                     ]);
                 }

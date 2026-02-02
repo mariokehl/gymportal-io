@@ -22,7 +22,8 @@ class MembershipPlan extends Model
         'is_active',
         'is_free_trial_plan',
         'commitment_months',
-        'cancellation_period_days',
+        'cancellation_period',
+        'cancellation_period_unit',
         'features',
         'widget_display_options',
         'sort_order',
@@ -41,7 +42,7 @@ class MembershipPlan extends Model
         'widget_display_options' => 'array',
     ];
 
-    protected $appends = ['formatted_price', 'billing_cycle_text'];
+    protected $appends = ['formatted_price', 'billing_cycle_text', 'cancellation_period_in_days', 'formatted_cancellation_period'];
 
     public function gym()
     {
@@ -111,5 +112,36 @@ class MembershipPlan extends Model
     public function scopeHighlighted($query)
     {
         return $query->where('highlight', true);
+    }
+
+    /**
+     * Get cancellation period in days for calculation purposes.
+     * Converts months to days (using 30 days per month as approximation).
+     */
+    public function getCancellationPeriodInDaysAttribute(): int
+    {
+        $period = $this->cancellation_period ?? 0;
+        $unit = $this->cancellation_period_unit ?? 'days';
+
+        if ($unit === 'months') {
+            return $period * 30;
+        }
+
+        return $period;
+    }
+
+    /**
+     * Get formatted cancellation period text.
+     */
+    public function getFormattedCancellationPeriodAttribute(): string
+    {
+        $period = $this->cancellation_period ?? 0;
+        $unit = $this->cancellation_period_unit ?? 'days';
+
+        if ($unit === 'months') {
+            return $period . ' ' . ($period === 1 ? 'Monat' : 'Monate');
+        }
+
+        return $period . ' ' . ($period === 1 ? 'Tag' : 'Tage');
     }
 }
