@@ -191,14 +191,29 @@ class MemberController extends Controller
     {
         /** @var Member $member */
         $member = request()->user();
-        /** @var Membership $membership */
-        $membership = $member->activeMembership();
+        /** @var Membership|null $activeMembership */
+        $activeMembership = $member->activeMembership();
 
-        if (!$membership) {
+        if (!$activeMembership) {
             return response()->json([
                 'success' => false,
                 'message' => 'Keine aktive Mitgliedschaft gefunden'
             ], 404);
+        }
+
+        // Gekündigt wird immer die bezahlte Mitgliedschaft
+        // Bei Free-Trial: verlinkte bezahlte Mitgliedschaft ermitteln
+        // Bei bezahlter Mitgliedschaft: direkt diese kündigen
+        /** @var Membership|null $membership */
+        $membership = $activeMembership->is_free_trial
+            ? $activeMembership->linkedPaidMembership
+            : $activeMembership;
+
+        if (!$membership) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Keine kündigbare Mitgliedschaft gefunden'
+            ], 422);
         }
 
         $membership->update([
