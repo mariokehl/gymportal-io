@@ -288,8 +288,15 @@ class EmailTemplateService
         ]);
 
         // Contract data (if member has active contract)
+        // Prioritize linked paid membership if available (e.g., when current membership is a free trial)
         if ($member && $member->activeMembership()) {
             $contract = $member->activeMembership();
+
+            // If current membership has a linked paid membership, use that for contract data
+            if ($contract->linkedPaidMembership) {
+                $contract = $contract->linkedPaidMembership;
+            }
+
             $data = array_merge($data, [
                 '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months . ' Monate',
                 '[Monatsbeitrag]' => number_format($contract->membershipPlan->price, 2, ',', '.'),

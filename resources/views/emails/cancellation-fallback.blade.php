@@ -70,7 +70,7 @@
 
             <p>wir bestätigen hiermit den Erhalt Ihrer Kündigung.</p>
 
-            <p>Ihre Mitgliedschaft endet zum <strong>{{ $membership->end_date->format('d.m.Y') }}</strong>.</p>
+            <p>Ihre Mitgliedschaft endet zum <strong>{{ $membership->cancellation_date->format('d.m.Y') }}</strong>.</p>
 
             <p>Bis zu diesem Datum können Sie selbstverständlich weiterhin alle Einrichtungen nutzen.</p>
 
