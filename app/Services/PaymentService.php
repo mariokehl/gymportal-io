@@ -629,4 +629,94 @@ class PaymentService
             return false;
         }
     }
+
+    /**
+     * Initiiert Erstattung für Widerruf gemäß § 356a BGB
+     *
+     * Bei einem Widerruf müssen alle geleisteten Zahlungen innerhalb von
+     * 14 Tagen erstattet werden.
+     *
+     * @param Membership $membership Die widerrufene Mitgliedschaft
+     * @param float $refundAmount Der zu erstattende Betrag
+     * @return bool True wenn Erstattung erfolgreich initiiert wurde
+     */
+    public function initiateRefund(Membership $membership, float $refundAmount): bool
+    {
+        if ($refundAmount <= 0) {
+            return true;
+        }
+
+        try {
+            // Alle bezahlten Zahlungen für diese Mitgliedschaft abrufen
+            $paidPayments = $membership->payments()
+                ->whereIn('status', ['paid', 'completed'])
+                ->orderBy('paid_date', 'desc')
+                ->get();
+
+            $remainingRefund = $refundAmount;
+
+            foreach ($paidPayments as $payment) {
+                if ($remainingRefund <= 0) {
+                    break;
+                }
+
+                $paymentRefundAmount = min($payment->amount, $remainingRefund);
+
+                // Erstattungszahlung erstellen
+                Payment::create([
+                    'gym_id' => $payment->gym_id,
+                    'membership_id' => $membership->id,
+                    'member_id' => $membership->member_id,
+                    'amount' => -$paymentRefundAmount, // Negativer Betrag für Erstattung
+                    'currency' => $payment->currency,
+                    'description' => "Erstattung Widerruf - Ref: #{$payment->id}",
+                    'status' => 'pending',
+                    'payment_method' => $payment->payment_method,
+                    'execution_date' => now()->addDays(14), // Max. 14 Tage gemäß § 356a BGB
+                    'due_date' => now()->addDays(14),
+                    'transaction_id' => $payment->id, // Verknüpfung zur Original-Zahlung
+                    'notes' => "Erstattung aufgrund Widerruf gemäß § 356a BGB | Original-Zahlung: #{$payment->id}",
+                    'metadata' => [
+                        'payment_type' => 'withdrawal_refund',
+                        'original_payment_id' => $payment->id,
+                        'withdrawal_date' => now()->toIso8601String(),
+                        'membership_id' => $membership->id,
+                    ],
+                ]);
+
+                // Original-Zahlung als erstattet markieren
+                $payment->update([
+                    'status' => 'refunded',
+                    'notes' => $payment->notes . ' | Erstattet aufgrund Widerruf am ' . now()->format('d.m.Y H:i'),
+                ]);
+
+                $remainingRefund -= $paymentRefundAmount;
+            }
+
+            // Alle ausstehenden Zahlungen stornieren
+            $membership->payments()
+                ->where('status', 'pending')
+                ->update([
+                    'status' => 'canceled',
+                    'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Storniert aufgrund Widerruf am " . now()->format('d.m.Y H:i') . "')"),
+                ]);
+
+            Log::info('Refund initiated for withdrawal', [
+                'membership_id' => $membership->id,
+                'refund_amount' => $refundAmount,
+                'payments_refunded' => $paidPayments->count(),
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to initiate refund for withdrawal', [
+                'membership_id' => $membership->id,
+                'refund_amount' => $refundAmount,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
 }

@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Services\MemberService;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class MembershipController extends Controller
@@ -476,6 +480,149 @@ class MembershipController extends Controller
             DB::rollBack();
             return back()->withErrors([
                 'error' => 'Der Gratis-Testzeitraum konnte nicht abgebrochen werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Widerruft eine Mitgliedschaft gemäß § 356a BGB
+     *
+     * Der manuelle Widerruf aus dem Admin-Bereich löst ebenfalls
+     * die E-Mail-Bestätigung aus.
+     */
+    public function withdraw(Request $request, Member $member, Membership $membership, PaymentService $paymentService)
+    {
+        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        // Validierung
+        $validated = $request->validate([
+            'confirmation_email' => 'nullable|email|max:255',
+        ]);
+
+        // Prüfen ob Widerruf möglich ist
+        if ($membership->is_free_trial) {
+            return back()->withErrors([
+                'error' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.'
+            ]);
+        }
+
+        if ($membership->withdrawn_at) {
+            return back()->withErrors([
+                'error' => 'Diese Mitgliedschaft wurde bereits widerrufen.'
+            ]);
+        }
+
+        if ($membership->status === 'cancelled') {
+            return back()->withErrors([
+                'error' => 'Gekündigte Verträge können nicht widerrufen werden.'
+            ]);
+        }
+
+        if (!in_array($membership->status, ['active', 'pending'])) {
+            return back()->withErrors([
+                'error' => 'Diese Mitgliedschaft kann nicht widerrufen werden.'
+            ]);
+        }
+
+        // Widerrufsfrist prüfen (14 Tage)
+        $contractStartDate = $membership->contract_start_date;
+        if (!$contractStartDate) {
+            return back()->withErrors([
+                'error' => 'Vertragsstartdatum konnte nicht ermittelt werden.'
+            ]);
+        }
+
+        $startDate = Carbon::parse($contractStartDate);
+        $withdrawalDeadline = $startDate->copy()->addDays(14)->endOfDay();
+
+        if (now()->isAfter($withdrawalDeadline)) {
+            return back()->withErrors([
+                'error' => 'Die 14-tägige Widerrufsfrist ist bereits abgelaufen (Fristende: ' .
+                          $withdrawalDeadline->format('d.m.Y H:i') . ').'
+            ]);
+        }
+
+        // E-Mail aus Request oder Member-Profil
+        $confirmationEmail = $validated['confirmation_email'] ?? $member->email;
+
+        DB::beginTransaction();
+        try {
+            // Erstattungsbetrag berechnen
+            $refundAmount = $membership->payments()
+                ->whereIn('status', ['paid', 'completed'])
+                ->sum('amount');
+
+            // Widerruf durchführen
+            $membership->update([
+                'status' => 'withdrawn',
+                'withdrawn_at' => now(),
+                'withdrawal_confirmation_sent_to' => $confirmationEmail,
+                'withdrawal_refund_amount' => $refundAmount,
+            ]);
+
+            // Erstattung initiieren (falls Zahlungen vorhanden)
+            if ($refundAmount > 0) {
+                $paymentService->initiateRefund($membership, $refundAmount);
+            }
+
+            // Notiz hinzufügen
+            $membership->update([
+                'notes' => ($membership->notes ? $membership->notes . "\n" : '') .
+                          "Widerrufen am " . now()->format('d.m.Y H:i') .
+                          " (manuell durch Admin)" .
+                          ($refundAmount > 0 ? " - Erstattung: " . number_format($refundAmount, 2, ',', '.') . " €" : "")
+            ]);
+
+            // Eingangsbestätigung per E-Mail senden (§ 356a BGB)
+            try {
+                Mail::to($confirmationEmail)->send(new WithdrawalConfirmationMail(
+                    $member,
+                    $membership->fresh(),
+                    $member->gym,
+                    [
+                        'withdrawal_date' => now()->format('d.m.Y'),
+                        'withdrawal_time' => now()->format('H:i'),
+                        'refund_amount' => $refundAmount,
+                    ]
+                ));
+            } catch (\Exception $mailException) {
+                Log::error('Failed to send withdrawal confirmation email', [
+                    'member_id' => $member->id,
+                    'membership_id' => $membership->id,
+                    'error' => $mailException->getMessage(),
+                ]);
+                // E-Mail-Fehler sollte den Widerruf nicht rückgängig machen
+            }
+
+            DB::commit();
+
+            Log::info('Contract withdrawn manually by admin', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'admin_user_id' => auth()->id(),
+                'refund_amount' => $refundAmount,
+            ]);
+
+            $successMessage = 'Die Mitgliedschaft wurde erfolgreich widerrufen.';
+            if ($refundAmount > 0) {
+                $successMessage .= ' Erstattung von ' . number_format($refundAmount, 2, ',', '.') . ' € wurde initiiert.';
+            }
+
+            return back()->with('success', $successMessage);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Manual contract withdrawal failed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Der Widerruf konnte nicht durchgeführt werden: ' . $e->getMessage()
             ]);
         }
     }

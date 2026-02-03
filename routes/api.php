@@ -74,6 +74,9 @@ Route::group(['prefix' => 'pwa'], function () {
             Route::put('contract', [MemberController::class, 'updateContract']);
             Route::delete('contract', [MemberController::class, 'cancelContract']);
             Route::get('qr-code', [MemberController::class, 'generateQrCode']);
+
+            // Vertragswiderruf gemäß § 356a BGB
+            Route::post('contract/withdraw', [MemberController::class, 'withdrawContract']);
         });
     });
 });

@@ -198,6 +198,16 @@ const getNotificationLink = (notification) => {
         }
         break
 
+      case 'contract_withdrawn':
+        const withdrawnMemberId = data.member?.id
+        if (withdrawnMemberId && route().has('members.show')) {
+          return route('members.show', withdrawnMemberId)
+        }
+        if (route().has('members.index')) {
+          return route('members.index')
+        }
+        break
+
       case 'payment_failed':
         if (route().has('finances.index')) {
           return route('finances.index')
@@ -222,6 +232,7 @@ const getTypeText = (type) => {
   const types = {
     'member_registered': 'Neues Mitglied',
     'contract_expiring': 'Vertragsablauf',
+    'contract_withdrawn': 'Widerrufsrecht',
     'payment_failed': 'Mahnung',
     'announcement': 'Ankündigung',
     'promotion': 'Aktion',
@@ -235,6 +246,7 @@ const getTypeBadgeClass = (type) => {
   const classes = {
     'member_registered': 'bg-green-100 text-green-800',
     'contract_expiring': 'bg-yellow-100 text-yellow-800',
+    'contract_withdrawn': 'bg-purple-100 text-purple-800',
     'payment_failed': 'bg-red-100 text-red-800',
     'announcement': 'bg-indigo-100 text-indigo-800',
     'promotion': 'bg-purple-100 text-purple-800',

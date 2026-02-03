@@ -23,6 +23,11 @@ class Membership extends Model
         'contract_file_path',
         'notes',
         'linked_free_membership_id',
+        // Widerrufs-Felder (§ 356a BGB)
+        'withdrawn_at',
+        'withdrawal_confirmation_sent_to',
+        'withdrawal_refund_amount',
+        'withdrawal_refund_processed_at',
     ];
 
     protected $casts = [
@@ -31,6 +36,10 @@ class Membership extends Model
         'pause_start_date' => 'date',
         'pause_end_date' => 'date',
         'cancellation_date' => 'date',
+        // Widerrufs-Felder (§ 356a BGB)
+        'withdrawn_at' => 'datetime',
+        'withdrawal_refund_processed_at' => 'datetime',
+        'withdrawal_refund_amount' => 'decimal:2',
     ];
 
     protected $appends = [
@@ -38,6 +47,10 @@ class Membership extends Model
         'default_cancellation_date',
         'can_cancel',
         'is_free_trial',
+        // Widerrufs-Attribute (§ 356a BGB)
+        'withdrawal_eligible',
+        'withdrawal_deadline',
+        'contract_start_date',
     ];
 
     public function member()
@@ -86,7 +99,8 @@ class Membership extends Model
             'paused' => 'Pausiert',
             'cancelled' => 'Gekündigt',
             'expired' => 'Abgelaufen',
-            'pending' => 'Ausstehend', // Neu hinzugefügt
+            'pending' => 'Ausstehend',
+            'withdrawn' => 'Widerrufen',
         ][$this->status] ?? $this->status;
     }
 
@@ -97,7 +111,8 @@ class Membership extends Model
             'paused' => 'yellow',
             'cancelled' => 'red',
             'expired' => 'gray',
-            'pending' => 'orange', // Neu hinzugefügt
+            'pending' => 'orange',
+            'withdrawn' => 'purple',
         ][$this->status] ?? 'gray';
     }
 
@@ -256,5 +271,106 @@ class Membership extends Model
 
         // 4. Termination is possible if today <= deadline
         return $today->lessThanOrEqualTo($latestPossibleCancellation);
+    }
+
+    // =========================================================================
+    // Widerrufsfunktion gemäß § 356a BGB
+    // =========================================================================
+
+    /**
+     * Effektives Vertragsstartdatum (für Widerrufsfrist-Berechnung)
+     *
+     * Bei verknüpfter Gratis-Mitgliedschaft wird deren Startdatum verwendet,
+     * da dies den tatsächlichen Vertragsabschluss darstellt.
+     */
+    public function getContractStartDateAttribute(): ?string
+    {
+        // Wenn eine verknüpfte Gratis-Mitgliedschaft existiert, deren Startdatum verwenden
+        if ($this->linked_free_membership_id && $this->linkedFreeMembership) {
+            return $this->linkedFreeMembership->start_date?->format('Y-m-d');
+        }
+
+        // Alternativ: Suche nach einer Gratis-Mitgliedschaft für dieses Mitglied
+        $freeMembership = self::where('member_id', $this->member_id)
+            ->whereHas('membershipPlan', function ($query) {
+                $query->where('is_free_trial_plan', true);
+            })
+            ->where('start_date', '<=', $this->start_date)
+            ->orderBy('start_date', 'asc')
+            ->first();
+
+        if ($freeMembership) {
+            return $freeMembership->start_date?->format('Y-m-d');
+        }
+
+        return $this->start_date?->format('Y-m-d');
+    }
+
+    /**
+     * Prüft ob ein Widerruf möglich ist (§ 356a BGB)
+     *
+     * Widerrufsfrist: 14 Tage ab Vertragsabschluss
+     */
+    public function getWithdrawalEligibleAttribute(): bool
+    {
+        // Nur bezahlte, aktive/pending Mitgliedschaften können widerrufen werden
+        if ($this->is_free_trial) {
+            return false;
+        }
+
+        // Bereits widerrufen oder gekündigt?
+        if ($this->withdrawn_at || $this->status === 'cancelled' || $this->status === 'withdrawn') {
+            return false;
+        }
+
+        // Nur aktive oder pending Mitgliedschaften
+        if (!in_array($this->status, ['active', 'pending'])) {
+            return false;
+        }
+
+        // 14-Tage-Frist prüfen
+        $contractStartDate = $this->contract_start_date;
+        if (!$contractStartDate) {
+            return false;
+        }
+
+        $startDate = \Carbon\Carbon::parse($contractStartDate);
+        $deadline = $startDate->copy()->addDays(14)->endOfDay();
+
+        return now()->isBefore($deadline);
+    }
+
+    /**
+     * Widerrufs-Deadline (Ende der 14-Tage-Frist)
+     */
+    public function getWithdrawalDeadlineAttribute(): ?string
+    {
+        if (!$this->withdrawal_eligible) {
+            return null;
+        }
+
+        $contractStartDate = $this->contract_start_date;
+        if (!$contractStartDate) {
+            return null;
+        }
+
+        $startDate = \Carbon\Carbon::parse($contractStartDate);
+        return $startDate->copy()->addDays(14)->endOfDay()->toIso8601String();
+    }
+
+    /**
+     * Prüft ob die Mitgliedschaft widerrufen wurde
+     */
+    public function getIsWithdrawnAttribute(): bool
+    {
+        return $this->status === 'withdrawn' || $this->withdrawn_at !== null;
+    }
+
+    /**
+     * Scope für widerrufene Mitgliedschaften
+     */
+    public function scopeWithdrawn($query)
+    {
+        return $query->where('status', 'withdrawn');
     }
 }

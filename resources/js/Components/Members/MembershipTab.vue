@@ -46,12 +46,14 @@
                   :revokingCancellation="revokingCancellation"
                   :activatingMembership="activatingMembership"
                   :abortingMembership="abortingMembership"
+                  :withdrawingMembership="withdrawingMembership"
                   @activate="$emit('activate', $event)"
                   @pause="$emit('pause', $event)"
                   @resume="$emit('resume', $event)"
                   @cancel="$emit('cancel', $event)"
                   @revoke-cancellation="$emit('revoke-cancellation', $event)"
                   @abort="$emit('abort', $event)"
+                  @withdraw="$emit('withdraw', $event)"
                 />
               </div>
               <!-- Linked membership (right side, 2/3 width) -->
@@ -70,12 +72,14 @@
                   :revokingCancellation="revokingCancellation"
                   :activatingMembership="activatingMembership"
                   :abortingMembership="abortingMembership"
+                  :withdrawingMembership="withdrawingMembership"
                   @activate="$emit('activate', $event)"
                   @pause="$emit('pause', $event)"
                   @resume="$emit('resume', $event)"
                   @cancel="$emit('cancel', $event)"
                   @revoke-cancellation="$emit('revoke-cancellation', $event)"
                   @abort="$emit('abort', $event)"
+                  @withdraw="$emit('withdraw', $event)"
                 />
               </div>
             </div>
@@ -92,12 +96,14 @@
               :revokingCancellation="revokingCancellation"
               :activatingMembership="activatingMembership"
               :abortingMembership="abortingMembership"
+              :withdrawingMembership="withdrawingMembership"
               @activate="$emit('activate', $event)"
               @pause="$emit('pause', $event)"
               @resume="$emit('resume', $event)"
               @cancel="$emit('cancel', $event)"
               @revoke-cancellation="$emit('revoke-cancellation', $event)"
               @abort="$emit('abort', $event)"
+              @withdraw="$emit('withdraw', $event)"
             />
           </div>
         </template>
@@ -367,10 +373,14 @@ const props = defineProps({
   abortingMembership: {
     type: [Number, null],
     default: null
+  },
+  withdrawingMembership: {
+    type: [Number, null],
+    default: null
   }
 })
 
-const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort'])
+const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw'])
 
 // Local state
 const showPastMemberships = ref(false)
@@ -411,7 +421,7 @@ const activeMemberships = computed(() => {
 const pastMemberships = computed(() => {
   if (!props.member.memberships) return []
   return props.member.memberships.filter(m =>
-    m.status === 'cancelled' || m.status === 'expired'
+    m.status === 'cancelled' || m.status === 'expired' || m.status === 'withdrawn'
   )
 })
 
@@ -573,7 +583,8 @@ const getStatusBadgeClass = (status) => {
     'pending': 'bg-orange-100 text-orange-800',
     'paused': 'bg-yellow-100 text-yellow-800',
     'cancelled': 'bg-red-100 text-red-800',
-    'expired': 'bg-gray-100 text-gray-800'
+    'expired': 'bg-gray-100 text-gray-800',
+    'withdrawn': 'bg-purple-100 text-purple-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -584,7 +595,8 @@ const getStatusText = (status) => {
     'pending': 'Ausstehend',
     'paused': 'Pausiert',
     'cancelled': 'Gekündigt',
-    'expired': 'Abgelaufen'
+    'expired': 'Abgelaufen',
+    'withdrawn': 'Widerrufen'
   }
   return texts[status] || status
 }

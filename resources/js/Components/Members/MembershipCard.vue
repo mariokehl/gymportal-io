@@ -88,6 +88,20 @@
             <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
           </button>
 
+          <!-- Withdraw button (only for eligible memberships within 14-day period) -->
+          <button
+            v-if="membership.withdrawal_eligible && !membership.is_free_trial"
+            @click="$emit('withdraw', membership)"
+            type="button"
+            class="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 transition-colors"
+            :disabled="withdrawingMembership === membership.id"
+            :title="'Widerruf möglich bis ' + formatDate(membership.withdrawal_deadline)"
+          >
+            <Undo2 class="w-4 h-4" />
+            <span class="hidden sm:inline">{{ withdrawingMembership === membership.id ? 'Wird widerrufen...' : 'Widerrufen' }}</span>
+            <span class="sm:hidden">{{ withdrawingMembership === membership.id ? '...' : 'Widerruf' }}</span>
+          </button>
+
           <!-- Stop button (only for free trial periods) -->
           <button
             v-if="membership.is_free_trial && membership.status === 'active'"
@@ -163,7 +177,7 @@
 <script setup>
 import {
   Clock, CheckCircle, XCircle, PlayCircle, StopCircle,
-  RotateCcw, AlertCircle, Gift
+  RotateCcw, AlertCircle, Gift, Undo2
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
@@ -199,10 +213,14 @@ defineProps({
   abortingMembership: {
     type: [Number, null],
     default: null
+  },
+  withdrawingMembership: {
+    type: [Number, null],
+    default: null
   }
 })
 
-defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort'])
+defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw'])
 
 // Helper functions
 const getStatusBadgeClass = (status) => {
@@ -211,7 +229,8 @@ const getStatusBadgeClass = (status) => {
     'pending': 'bg-orange-100 text-orange-800',
     'paused': 'bg-yellow-100 text-yellow-800',
     'cancelled': 'bg-red-100 text-red-800',
-    'expired': 'bg-gray-100 text-gray-800'
+    'expired': 'bg-gray-100 text-gray-800',
+    'withdrawn': 'bg-purple-100 text-purple-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -222,7 +241,8 @@ const getStatusText = (status) => {
     'pending': 'Ausstehend',
     'paused': 'Pausiert',
     'cancelled': 'Gekündigt',
-    'expired': 'Abgelaufen'
+    'expired': 'Abgelaufen',
+    'withdrawn': 'Widerrufen'
   }
   return texts[status] || status
 }
