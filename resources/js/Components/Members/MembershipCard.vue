@@ -90,7 +90,7 @@
 
           <!-- Withdraw button (only for eligible memberships within 14-day period) -->
           <button
-            v-if="membership.withdrawal_eligible && !membership.is_free_trial"
+            v-if="!membership.cancellation_date && membership.withdrawal_eligible && !membership.is_free_trial"
             @click="$emit('withdraw', membership)"
             type="button"
             class="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 transition-colors"
