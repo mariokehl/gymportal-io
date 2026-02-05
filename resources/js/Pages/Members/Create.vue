@@ -281,6 +281,45 @@
             </div>
           </div>
 
+          <!-- Gesetzlicher Vertreter -->
+          <h4 class="text-md font-medium text-gray-900 mt-8 mb-4">Gesetzlicher Vertreter</h4>
+          <p class="text-sm text-gray-500 mb-4">
+            Bei Minderjährigen muss ein gesetzlicher Vertreter (z.B. Elternteil) dem Vertrag zustimmen.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="legal_guardian_first_name" class="block text-sm font-medium text-gray-700 mb-2">
+                Vorname des gesetzlichen Vertreters
+              </label>
+              <input
+                id="legal_guardian_first_name"
+                v-model="form.legal_guardian_first_name"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.legal_guardian_first_name }"
+              />
+              <p v-if="errors.legal_guardian_first_name" class="mt-1 text-sm text-red-600">
+                {{ errors.legal_guardian_first_name }}
+              </p>
+            </div>
+
+            <div>
+              <label for="legal_guardian_last_name" class="block text-sm font-medium text-gray-700 mb-2">
+                Nachname des gesetzlichen Vertreters
+              </label>
+              <input
+                id="legal_guardian_last_name"
+                v-model="form.legal_guardian_last_name"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.legal_guardian_last_name }"
+              />
+              <p v-if="errors.legal_guardian_last_name" class="mt-1 text-sm text-red-600">
+                {{ errors.legal_guardian_last_name }}
+              </p>
+            </div>
+          </div>
+
           <div class="mt-6">
             <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
               Zusätzliche Notizen (optional)
@@ -568,6 +607,7 @@
                 <div v-else class="text-gray-500 italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
                 <div><span class="font-medium">Adresse:</span> {{ form.address }}, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
                 <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
+                <div v-if="form.legal_guardian_first_name || form.legal_guardian_last_name"><span class="font-medium">Gesetzlicher Vertreter:</span> {{ form.legal_guardian_first_name }} {{ form.legal_guardian_last_name }}</div>
               </div>
             </div>
 
@@ -729,6 +769,8 @@ const form = useForm({
   country: 'DE',
   emergency_contact_name: '',
   emergency_contact_phone: '',
+  legal_guardian_first_name: '',
+  legal_guardian_last_name: '',
   notes: '',
   status: 'active',
 

@@ -77,10 +77,11 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 // Protected routes
 Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::resource('members', MemberController::class);
-    Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
+    Route::get('/members/search', [MemberController::class, 'search'])->name('members.search');
     Route::post('/members/check-email', [MemberController::class, 'checkEmail'])->name('members.check-email');
     Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
+    Route::resource('members', MemberController::class);
+    Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::post('/members/{member}/toggle-age-verification', [MemberController::class, 'toggleAgeVerification'])->name('members.toggle-age-verification');
     Route::post('/members/{member}/toggle-guest-access', [MemberController::class, 'toggleGuestAccess'])->name('members.toggle-guest-access');

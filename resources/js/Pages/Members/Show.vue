@@ -334,6 +334,7 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
+
                 <div class="md:col-span-2">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
                   <textarea
@@ -342,6 +343,92 @@
                     rows="3"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   ></textarea>
+                </div>
+
+                <!-- Gesetzlicher Vertreter -->
+                <div class="md:col-span-2 mt-4">
+                  <h4 class="text-sm font-semibold text-gray-900 mb-1">Gesetzlicher Vertreter</h4>
+                  <p class="text-xs text-gray-500">Bei Minderjährigen muss ein gesetzlicher Vertreter dem Vertrag zustimmen.</p>
+                </div>
+
+                <!-- Mitglied verknüpfen -->
+                <div class="md:col-span-2" v-if="editMode">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Mit Mitglied verknüpfen (optional)</label>
+                  <div class="flex gap-3">
+                    <div class="flex-1 relative">
+                      <input
+                        v-model="legalGuardianSearch"
+                        type="text"
+                        placeholder="Nach Mitglied suchen (Name oder Mitgliedsnummer)..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        @input="searchLegalGuardian"
+                        @focus="showLegalGuardianResults = true"
+                      />
+                      <!-- Suchergebnisse -->
+                      <div
+                        v-if="showLegalGuardianResults && legalGuardianSearchResults.length > 0"
+                        class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        <div
+                          v-for="result in legalGuardianSearchResults"
+                          :key="result.id"
+                          @click="selectLegalGuardian(result)"
+                          class="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm"
+                        >
+                          <span class="font-medium">{{ result.first_name }} {{ result.last_name }}</span>
+                          <span class="text-gray-500 ml-2">#{{ result.member_number }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      v-if="form.legal_guardian_member_id"
+                      type="button"
+                      @click="clearLegalGuardianMember"
+                      class="px-3 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
+                    >
+                      Verknüpfung entfernen
+                    </button>
+                  </div>
+                  <!-- Anzeige des verknüpften Mitglieds -->
+                  <div v-if="form.legal_guardian_member_id && selectedLegalGuardian" class="mt-2 p-2 bg-indigo-50 rounded-md text-sm">
+                    <span class="font-medium">Verknüpft mit:</span>
+                    {{ selectedLegalGuardian.first_name }} {{ selectedLegalGuardian.last_name }}
+                    <span class="text-gray-500">#{{ selectedLegalGuardian.member_number }}</span>
+                  </div>
+                </div>
+
+                <!-- Nur anzeigen wenn nicht im Edit-Mode oder kein Mitglied verknüpft -->
+                <div v-if="!editMode && member.legal_guardian_member_id && member.legal_guardian" class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Verknüpftes Mitglied</label>
+                  <div class="p-3 bg-indigo-50 rounded-md">
+                    <Link
+                      :href="route('members.show', member.legal_guardian.id)"
+                      class="text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      {{ member.legal_guardian.first_name }} {{ member.legal_guardian.last_name }}
+                      <span class="text-gray-500">#{{ member.legal_guardian.member_number }}</span>
+                    </Link>
+                  </div>
+                </div>
+
+                <!-- Manuelle Eingabe (nur wenn kein Mitglied verknüpft) -->
+                <div v-if="!form.legal_guardian_member_id">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Vorname</label>
+                  <input
+                    v-model="form.legal_guardian_first_name"
+                    :disabled="!editMode"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div v-if="!form.legal_guardian_member_id">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nachname</label>
+                  <input
+                    v-model="form.legal_guardian_last_name"
+                    :disabled="!editMode"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                  />
                 </div>
               </div>
               <div v-if="editMode" class="mt-6 flex justify-end space-x-3">
@@ -1864,6 +1951,54 @@ const {
 const editMode = ref(false)
 const activeTab = ref('personal')
 
+// Legal Guardian Search
+const legalGuardianSearch = ref('')
+const legalGuardianSearchResults = ref([])
+const showLegalGuardianResults = ref(false)
+const selectedLegalGuardian = ref(props.member.legal_guardian || null)
+let legalGuardianSearchTimeout = null
+
+const searchLegalGuardian = () => {
+  if (legalGuardianSearchTimeout) {
+    clearTimeout(legalGuardianSearchTimeout)
+  }
+
+  if (legalGuardianSearch.value.length < 2) {
+    legalGuardianSearchResults.value = []
+    return
+  }
+
+  legalGuardianSearchTimeout = setTimeout(async () => {
+    try {
+      const response = await fetch(route('members.search') + '?' + new URLSearchParams({
+        search: legalGuardianSearch.value,
+        exclude_id: props.member.id
+      }))
+      const data = await response.json()
+      legalGuardianSearchResults.value = data.members || []
+    } catch (error) {
+      console.error('Error searching members:', error)
+      legalGuardianSearchResults.value = []
+    }
+  }, 300)
+}
+
+const selectLegalGuardian = (member) => {
+  form.legal_guardian_member_id = member.id
+  form.legal_guardian_first_name = null
+  form.legal_guardian_last_name = null
+  selectedLegalGuardian.value = member
+  legalGuardianSearch.value = ''
+  legalGuardianSearchResults.value = []
+  showLegalGuardianResults.value = false
+}
+
+const clearLegalGuardianMember = () => {
+  form.legal_guardian_member_id = null
+  selectedLegalGuardian.value = null
+  legalGuardianSearch.value = ''
+}
+
 // Access Control state
 const editingNfc = ref(false)
 const nfcInputValue = ref('')
@@ -2215,10 +2350,6 @@ const stopNfcScanning = () => {
   nfcScanConnected.value = false
 }
 
-// Cleanup on unmount
-onUnmounted(() => {
-  stopNfcScanning()
-})
 
 const getAccessMethodIcon = (method) => {
   const icons = {
@@ -2263,6 +2394,9 @@ const form = useForm({
   status: props.member.status,
   emergency_contact_name: props.member.emergency_contact_name,
   emergency_contact_phone: props.member.emergency_contact_phone,
+  legal_guardian_member_id: props.member.legal_guardian_member_id,
+  legal_guardian_first_name: props.member.legal_guardian_first_name,
+  legal_guardian_last_name: props.member.legal_guardian_last_name,
   notes: props.member.notes,
   joined_date: formatDateForInput(props.member.joined_date),
 })
@@ -2997,6 +3131,16 @@ watch(paymentStatusFilter, () => {
   filterPayments()
 })
 
+// Click outside handler for legal guardian search
+const handleClickOutside = (event) => {
+  if (showLegalGuardianResults.value) {
+    const searchContainer = event.target.closest('.relative')
+    if (!searchContainer || !searchContainer.querySelector('[placeholder*="Nach Mitglied suchen"]')) {
+      showLegalGuardianResults.value = false
+    }
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -3022,5 +3166,13 @@ onMounted(() => {
 
   // Initial filter anwenden
   filterPayments()
+
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  stopNfcScanning()
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>

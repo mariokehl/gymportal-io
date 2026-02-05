@@ -263,6 +263,8 @@ class MemberController extends Controller
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
+            'legal_guardian_first_name' => ['nullable', 'string', 'max:255'],
+            'legal_guardian_last_name' => ['nullable', 'string', 'max:255'],
             'create_as_guest' => ['nullable', 'boolean'],
         ];
 
@@ -419,7 +421,8 @@ class MemberController extends Controller
             },
             'accessConfig',
             'statusHistory.changedBy:id,first_name,last_name',
-            'ageVerifiedByUser:id,first_name,last_name'
+            'ageVerifiedByUser:id,first_name,last_name',
+            'legalGuardian:id,first_name,last_name,member_number'
         ]);
 
         // Transformiere die Status History für das Frontend
@@ -492,6 +495,9 @@ class MemberController extends Controller
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
+            'legal_guardian_member_id' => ['nullable', 'integer', 'exists:members,id'],
+            'legal_guardian_first_name' => ['nullable', 'string', 'max:255'],
+            'legal_guardian_last_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $member->update($validated);
@@ -857,6 +863,41 @@ class MemberController extends Controller
             $member->grantGuestAccess(auth()->id());
             return back()->with('success', 'Gastzugang wurde gewährt.');
         }
+    }
+
+    /**
+     * Search for members (used for legal guardian selection)
+     */
+    public function search(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $search = $request->get('search', '');
+        $excludeId = $request->get('exclude_id');
+
+        $query = Member::query()
+            ->where('gym_id', $user->current_gym_id)
+            ->where('status', 'active')
+            ->select('id', 'first_name', 'last_name', 'member_number');
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('member_number', 'like', "%{$search}%");
+            });
+        }
+
+        $members = $query->orderBy('last_name')->orderBy('first_name')->limit(10)->get();
+
+        return response()->json([
+            'members' => $members
+        ]);
     }
 
     /**

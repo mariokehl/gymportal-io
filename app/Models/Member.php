@@ -45,6 +45,9 @@ class Member extends Authenticatable
         'guest_access',
         'guest_access_granted_at',
         'guest_access_granted_by',
+        'legal_guardian_member_id',
+        'legal_guardian_first_name',
+        'legal_guardian_last_name',
     ];
 
     protected $casts = [
@@ -93,6 +96,49 @@ class Member extends Authenticatable
     public function guestAccessGrantedByUser()
     {
         return $this->belongsTo(User::class, 'guest_access_granted_by');
+    }
+
+    /**
+     * Gesetzlicher Vertreter (wenn ein anderes Mitglied verknüpft ist)
+     */
+    public function legalGuardian()
+    {
+        return $this->belongsTo(Member::class, 'legal_guardian_member_id');
+    }
+
+    /**
+     * Mitglieder, für die dieses Mitglied der gesetzliche Vertreter ist
+     */
+    public function dependents()
+    {
+        return $this->hasMany(Member::class, 'legal_guardian_member_id');
+    }
+
+    /**
+     * Gibt den vollständigen Namen des gesetzlichen Vertreters zurück
+     * Entweder vom verknüpften Mitglied oder aus den manuellen Feldern
+     */
+    public function getLegalGuardianNameAttribute(): ?string
+    {
+        if ($this->legal_guardian_member_id && $this->legalGuardian) {
+            return $this->legalGuardian->full_name;
+        }
+
+        if ($this->legal_guardian_first_name || $this->legal_guardian_last_name) {
+            return trim($this->legal_guardian_first_name . ' ' . $this->legal_guardian_last_name);
+        }
+
+        return null;
+    }
+
+    /**
+     * Prüft ob ein gesetzlicher Vertreter hinterlegt ist
+     */
+    public function hasLegalGuardian(): bool
+    {
+        return $this->legal_guardian_member_id !== null ||
+               $this->legal_guardian_first_name !== null ||
+               $this->legal_guardian_last_name !== null;
     }
 
     /**
