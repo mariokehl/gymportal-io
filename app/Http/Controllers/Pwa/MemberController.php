@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pwa;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\WithdrawContractRequest;
 use App\Mail\CancellationConfirmationMail;
 use App\Mail\WithdrawalConfirmationMail;
@@ -88,22 +89,10 @@ class MemberController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request): JsonResponse
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:100',
-            'postal_code' => 'nullable|string|max:10',
-        ]);
-
         $member = request()->user();
-        $member->update($request->only([
-            'first_name', 'last_name', 'phone',
-            'address', 'city', 'postal_code'
-        ]));
+        $member->update($request->validated());
 
         return response()->json([
             'success' => true,
