@@ -54,7 +54,8 @@ class MemberController extends Controller
                         'name' => $member->gym->name,
                         'slug' => $member->gym->slug
                     ] : null,
-                    'is_verified' => true
+                    'is_verified' => true,
+                    'qr_code_enabled' => $member->accessConfig?->qr_code_enabled ?? false
                 ],
             ]);
         }
@@ -81,7 +82,8 @@ class MemberController extends Controller
                     'name' => $member->gym->name,
                     'slug' => $member->gym->slug
                 ] : null,
-                'is_verified' => false
+                'is_verified' => false,
+                'qr_code_enabled' => $member->accessConfig?->qr_code_enabled ?? false
             ],
         ]);
     }
@@ -439,6 +441,14 @@ class MemberController extends Controller
     {
         /** @var Member $member */
         $member = request()->user();
+
+        // Prüfen, ob QR-Code-Generierung für dieses Mitglied erlaubt ist
+        if (!$member->accessConfig || !$member->accessConfig->qr_code_enabled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'QR-Code-Generierung ist für dieses Mitglied nicht aktiviert.'
+            ], 403);
+        }
 
         /** @var Gym $gym */
         $gym = $member->gym;
