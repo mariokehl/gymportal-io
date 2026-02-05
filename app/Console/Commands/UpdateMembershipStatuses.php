@@ -78,7 +78,10 @@ class UpdateMembershipStatuses extends Command
         }
 
         // 6. Mitglieder ohne aktive Mitgliedschaft auf 'inactive' setzen
-        $activeMembers = Member::where('status', 'active')->get();
+        // Überspringe Mitglieder mit aktivem Gastzugang
+        $activeMembers = Member::where('status', 'active')
+            ->where('guest_access', false)
+            ->get();
         $deactivatedCount = 0;
 
         foreach ($activeMembers as $member) {
@@ -100,6 +103,18 @@ class UpdateMembershipStatuses extends Command
 
         if ($deactivatedCount > 0) {
             $this->info("$deactivatedCount Mitglied(er) ohne aktive Mitgliedschaft wurden auf 'inactive' gesetzt.");
+        }
+
+        // Mitglieder mit Gastzugang zählen (zur Information)
+        $guestAccessCount = Member::where('status', 'active')
+            ->where('guest_access', true)
+            ->doesntHave('memberships', 'and', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->count();
+
+        if ($guestAccessCount > 0) {
+            $this->info("$guestAccessCount Mitglied(er) mit Gastzugang wurden übersprungen.");
         }
 
         $this->info("Aktualisierung abgeschlossen. $updated Mitgliedschaft(en) wurden aktualisiert.");

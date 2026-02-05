@@ -232,7 +232,11 @@ class MemberController extends Controller
         $gym = $user->currentGym;
         $enabledPaymentMethods = array_column($gym->getEnabledPaymentMethods(), 'key');
 
-        $validated = $request->validate([
+        // Prüfen ob als Gast angelegt werden soll
+        $createAsGuest = $request->boolean('create_as_guest');
+
+        // Basis-Validierungsregeln (für alle Mitglieder)
+        $rules = [
             'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
@@ -256,18 +260,28 @@ class MemberController extends Controller
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
             'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
-            'joined_date' => ['required', 'date'],
-            'allow_past_start_date' => ['nullable', 'boolean'],
-            'billing_anchor_date' => ['nullable', 'date', 'after_or_equal:joined_date'],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
-            'payment_method' => ['required', Rule::in($enabledPaymentMethods)],
-            'start_immediately' => ['nullable', 'boolean'],
-        ]);
+            'create_as_guest' => ['nullable', 'boolean'],
+        ];
+
+        // Zusätzliche Validierungsregeln für reguläre Mitglieder (nicht Gäste)
+        if (!$createAsGuest) {
+            $rules['joined_date'] = ['required', 'date'];
+            $rules['allow_past_start_date'] = ['nullable', 'boolean'];
+            $rules['billing_anchor_date'] = ['nullable', 'date', 'after_or_equal:joined_date'];
+            $rules['payment_method'] = ['required', Rule::in($enabledPaymentMethods)];
+            $rules['start_immediately'] = ['nullable', 'boolean'];
+        } else {
+            // Optionale Felder für Gäste
+            $rules['joined_date'] = ['nullable', 'date'];
+        }
+
+        $validated = $request->validate($rules);
 
         // Custom validation for billing_anchor_date - must be on the same day of month as joined_date
-        if (!empty($validated['billing_anchor_date']) && !empty($validated['joined_date'])) {
+        if (!$createAsGuest && !empty($validated['billing_anchor_date']) && !empty($validated['joined_date'])) {
             $joinedDate = \Carbon\Carbon::parse($validated['joined_date']);
             $billingDate = \Carbon\Carbon::parse($validated['billing_anchor_date']);
 
@@ -290,8 +304,17 @@ class MemberController extends Controller
         $memberData['gym_id'] = $user->current_gym_id;
         $memberData['user_id'] = $user->id;
 
-        // Member status
-        $memberData['status'] = 'pending';
+        // Gastzugang: Mitglied direkt als aktiv mit guest_access anlegen
+        if ($createAsGuest) {
+            $memberData['status'] = 'active';
+            $memberData['guest_access'] = true;
+            $memberData['guest_access_granted_at'] = now();
+            $memberData['guest_access_granted_by'] = $user->id;
+            $memberData['joined_date'] = $validated['joined_date'] ?? now()->toDateString();
+        } else {
+            // Member status für reguläre Mitglieder
+            $memberData['status'] = 'pending';
+        }
 
         try {
             DB::beginTransaction();
@@ -304,53 +327,56 @@ class MemberController extends Controller
                 )
             );
 
-            // Get membership plan to calculate end date
-            $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
+            // Für Gäste: Keine Mitgliedschaft und keine Zahlungsmethode anlegen
+            if (!$createAsGuest) {
+                // Get membership plan to calculate end date
+                $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
 
-            // Create membership (with optional free period for first-of-month start)
-            $memberService = app(MemberService::class);
-            $startImmediately = $validated['start_immediately'] ?? false;
-            $startDate = \Carbon\Carbon::parse($validated['joined_date']);
+                // Create membership (with optional free period for first-of-month start)
+                $memberService = app(MemberService::class);
+                $startImmediately = $validated['start_immediately'] ?? false;
+                $startDate = \Carbon\Carbon::parse($validated['joined_date']);
 
-            $membershipResult = $memberService->createMembershipWithFreePeriod(
-                $newMember,
-                $membershipPlan,
-                $startDate,
-                'pending',
-                $startImmediately
-            );
+                $membershipResult = $memberService->createMembershipWithFreePeriod(
+                    $newMember,
+                    $membershipPlan,
+                    $startDate,
+                    'pending',
+                    $startImmediately
+                );
 
-            $newMembership = $membershipResult['membership'];
-            $freeMembership = $membershipResult['free_membership'];
+                $newMembership = $membershipResult['membership'];
+                $freeMembership = $membershipResult['free_membership'];
 
-            // Select payment method
-            $paymentMethodData = [
-                'member_id' => $newMember->id,
-                'type' => $request->payment_method,
-                'is_default' => true, // Setze als Standard-Zahlungsmethode
-            ];
+                // Select payment method
+                $paymentMethodData = [
+                    'member_id' => $newMember->id,
+                    'type' => $request->payment_method,
+                    'is_default' => true, // Setze als Standard-Zahlungsmethode
+                ];
 
-            // Check if this payment method requires a mandate
-            if (PaymentMethod::typeRequiresMandate($request->payment_method, $gym->getPaymentMethodForKey($request->payment_method))) {
-                $paymentMethodData['status'] = 'pending'; // bis Zahlungsdaten vollständig hinterlegt (z.B. SEPA-Mandat)
-                $paymentMethodData['requires_mandate'] = true;
-                $paymentMethodData['sepa_mandate_status'] = 'pending';
-                $paymentMethodData['sepa_mandate_acknowledged'] = false;
-            } else {
-                $paymentMethodData['requires_mandate'] = false;
+                // Check if this payment method requires a mandate
+                if (PaymentMethod::typeRequiresMandate($request->payment_method, $gym->getPaymentMethodForKey($request->payment_method))) {
+                    $paymentMethodData['status'] = 'pending'; // bis Zahlungsdaten vollständig hinterlegt (z.B. SEPA-Mandat)
+                    $paymentMethodData['requires_mandate'] = true;
+                    $paymentMethodData['sepa_mandate_status'] = 'pending';
+                    $paymentMethodData['sepa_mandate_acknowledged'] = false;
+                } else {
+                    $paymentMethodData['requires_mandate'] = false;
+                }
+
+                $newPaymentMethod = PaymentMethod::create($paymentMethodData);
+
+                // Create Payment
+                $paymentService = app(PaymentService::class);
+                $paymentService->createSetupFeePayment($newMember, $newMembership, $newPaymentMethod);
+
+                // Pass billing_anchor_date to payment service if provided
+                $billingAnchorDate = !empty($validated['billing_anchor_date'])
+                    ? \Carbon\Carbon::parse($validated['billing_anchor_date'])
+                    : null;
+                $paymentService->createPendingPayment($newMember, $newMembership, $newPaymentMethod, $billingAnchorDate);
             }
-
-            $newPaymentMethod = PaymentMethod::create($paymentMethodData);
-
-            // Create Payment
-            $paymentService = app(PaymentService::class);
-            $paymentService->createSetupFeePayment($newMember, $newMembership, $newPaymentMethod);
-
-            // Pass billing_anchor_date to payment service if provided
-            $billingAnchorDate = !empty($validated['billing_anchor_date'])
-                ? \Carbon\Carbon::parse($validated['billing_anchor_date'])
-                : null;
-            $paymentService->createPendingPayment($newMember, $newMembership, $newPaymentMethod, $billingAnchorDate);
 
             DB::commit();
 
@@ -362,8 +388,12 @@ class MemberController extends Controller
                 ->withInput();
         }
 
+        $successMessage = $createAsGuest
+            ? 'Gast-Mitglied wurde erfolgreich erstellt.'
+            : 'Mitglied wurde erfolgreich erstellt.';
+
         return redirect()->route('members.show', ['member' => $newMember->id])
-            ->with('success', 'Mitglied wurde erfolgreich erstellt.');
+            ->with('success', $successMessage);
     }
 
     /**
@@ -810,6 +840,22 @@ class MemberController extends Controller
         } else {
             $member->verifyAge(auth()->id());
             return back()->with('success', 'Alter wurde verifiziert.');
+        }
+    }
+
+    /**
+     * Toggle guest access for a member
+     */
+    public function toggleGuestAccess(Member $member)
+    {
+        $this->authorize('update', $member);
+
+        if ($member->guest_access) {
+            $member->revokeGuestAccess();
+            return back()->with('success', 'Gastzugang wurde entzogen.');
+        } else {
+            $member->grantGuestAccess(auth()->id());
+            return back()->with('success', 'Gastzugang wurde gewährt.');
         }
     }
 

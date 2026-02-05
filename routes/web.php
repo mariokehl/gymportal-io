@@ -83,6 +83,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::post('/members/{member}/toggle-age-verification', [MemberController::class, 'toggleAgeVerification'])->name('members.toggle-age-verification');
+    Route::post('/members/{member}/toggle-guest-access', [MemberController::class, 'toggleGuestAccess'])->name('members.toggle-guest-access');
     Route::post('/members/{member}/memberships', [MemberController::class, 'storeMembership'])->name('members.memberships.store');
     Route::post('/members/{member}/memberships/free-period', [MembershipController::class, 'storeFreePeriod'])->name('members.memberships.store-free-period');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {

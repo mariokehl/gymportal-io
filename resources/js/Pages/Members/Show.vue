@@ -91,6 +91,35 @@
             </div>
           </div>
 
+          <!-- Gastzugang Toggle -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <button
+                @click="toggleGuestAccess"
+                :disabled="togglingGuestAccess"
+                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                :class="member.guest_access ? 'bg-orange-500' : 'bg-gray-200'"
+                role="switch"
+                :aria-checked="member.guest_access"
+              >
+                <span
+                  aria-hidden="true"
+                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
+              <span class="text-sm text-gray-600">
+                Gastzugang
+              </span>
+              <span
+                v-if="member.guest_access && member.guest_access_granted_at"
+                class="text-xs text-gray-400"
+              >
+                ({{ formatDate(member.guest_access_granted_at) }})
+              </span>
+            </div>
+          </div>
+
           <div class="flex items-center space-x-3">
             <Link
               :href="route('members.create')"
@@ -1871,6 +1900,9 @@ const accessForm = useForm({
 // Age verification state
 const verifyingAge = ref(false)
 
+// Guest access state
+const togglingGuestAccess = ref(false)
+
 // Membership-related state
 const pausingMembership = ref(null)
 const resumingMembership = ref(null)
@@ -2930,6 +2962,20 @@ const toggleAgeVerification = () => {
     },
     onError: () => {
       verifyingAge.value = false
+    }
+  })
+}
+
+const toggleGuestAccess = () => {
+  togglingGuestAccess.value = true
+
+  router.post(route('members.toggle-guest-access', props.member.id), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      togglingGuestAccess.value = false
+    },
+    onError: () => {
+      togglingGuestAccess.value = false
     }
   })
 }

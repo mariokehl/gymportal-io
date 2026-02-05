@@ -42,6 +42,9 @@ class Member extends Authenticatable
         'age_verified',
         'age_verified_at',
         'age_verified_by',
+        'guest_access',
+        'guest_access_granted_at',
+        'guest_access_granted_by',
     ];
 
     protected $casts = [
@@ -50,6 +53,8 @@ class Member extends Authenticatable
         'widget_data' => 'array',
         'age_verified' => 'boolean',
         'age_verified_at' => 'datetime',
+        'guest_access' => 'boolean',
+        'guest_access_granted_at' => 'datetime',
     ];
 
     protected $appends = ['initials', 'full_name', 'status_text', 'status_color'];
@@ -85,6 +90,11 @@ class Member extends Authenticatable
         return $this->belongsTo(User::class, 'age_verified_by');
     }
 
+    public function guestAccessGrantedByUser()
+    {
+        return $this->belongsTo(User::class, 'guest_access_granted_by');
+    }
+
     /**
      * Verifiziert das Alter des Mitglieds
      */
@@ -115,6 +125,38 @@ class Member extends Authenticatable
     public function isAgeVerified(): bool
     {
         return $this->age_verified === true;
+    }
+
+    /**
+     * Gewährt Gastzugang
+     */
+    public function grantGuestAccess(?int $grantedBy = null): bool
+    {
+        return $this->update([
+            'guest_access' => true,
+            'guest_access_granted_at' => now(),
+            'guest_access_granted_by' => $grantedBy ?? auth()->id(),
+        ]);
+    }
+
+    /**
+     * Entzieht Gastzugang
+     */
+    public function revokeGuestAccess(): bool
+    {
+        return $this->update([
+            'guest_access' => false,
+            'guest_access_granted_at' => null,
+            'guest_access_granted_by' => null,
+        ]);
+    }
+
+    /**
+     * Prüft ob Gastzugang aktiv ist
+     */
+    public function hasGuestAccess(): bool
+    {
+        return $this->guest_access === true;
     }
 
     public function memberships()

@@ -63,6 +63,34 @@ class ScannerController extends Controller
                 return response(status: 404);
             }
 
+            // Gastzugang: Überspringe Mitgliedschaftsprüfung
+            if ($member->hasGuestAccess()) {
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    true,
+                    null,
+                    $nfcCardId
+                );
+
+                CheckIn::create([
+                    'member_id' => $member->id,
+                    'gym_id' => $member->gym_id,
+                    'check_in_time' => now(),
+                    'check_in_method' => $scanType,
+                ]);
+
+                return response()->json([
+                    'member_id' => $member->id,
+                    'active' => true,
+                    'membership_expires' => null,
+                    'access_allowed' => true,
+                    'scan_type' => $scanType,
+                    'message' => 'Zugang gewährt (Gastzugang)',
+                ]);
+            }
+
             // Aktive Mitgliedschaft prüfen
             $activeMembership = $member->activeMembership();
 
