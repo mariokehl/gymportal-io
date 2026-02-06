@@ -318,8 +318,13 @@ class ProcessMembershipPayments extends Command
         $stats = ['created' => 0, 'skipped' => 0];
 
         // Get active memberships that need upcoming payments
+        // Exclude free trial memberships (no payments needed for those)
         $query = Membership::where('status', 'active')
-            ->whereDate('start_date', '<=', Carbon::today());
+            ->whereDate('start_date', '<=', Carbon::today())
+            ->whereHas('membershipPlan', function($q) {
+                $q->where('is_free_trial_plan', false)
+                    ->orWhereNull('is_free_trial_plan');
+            });
 
         if ($gymId = $this->option('gym-id')) {
             $query->whereHas('member', function($q) use ($gymId) {
@@ -386,6 +391,14 @@ class ProcessMembershipPayments extends Command
         }
 
         $plan = $membership->membershipPlan;
+
+        // Keine Zahlungen für Gratis-Mitgliedschaften (z.B. Probetraining, Überbrückungszeitraum)
+        if ($plan && $plan->is_free_trial_plan) {
+            if ($this->verboseLog) {
+                $this->info("→ Skipping payment creation for free trial membership #{$membership->id}");
+            }
+            return 0;
+        }
         $member = $membership->member;
         $created = 0;
 
@@ -458,11 +471,16 @@ class ProcessMembershipPayments extends Command
         $stats = ['renewed' => 0, 'expired' => 0];
 
         // Get memberships expiring within the next 30 days
-        // Schließt bereits expired/cancelled aus
+        // Schließt bereits expired/cancelled und Gratis-Mitgliedschaften aus
         $expiringMemberships = Membership::whereIn('status', ['active', 'paused'])
             ->whereNotNull('end_date')
             ->whereDate('end_date', '<=', Carbon::today()->addDays(30))
             ->whereNull('cancellation_date') // Keine gekündigten
+            ->whereHas('membershipPlan', function($q) {
+                // Keine Gratis-Mitgliedschaften (diese laufen einfach aus)
+                $q->where('is_free_trial_plan', false)
+                    ->orWhereNull('is_free_trial_plan');
+            })
             ->with(['member', 'membershipPlan'])
             ->get();
 
@@ -514,10 +532,21 @@ class ProcessMembershipPayments extends Command
 
         $plan = $membership->membershipPlan;
 
+        // Keine automatische Verlängerung für Gratis-Mitgliedschaften
+        if ($plan && $plan->is_free_trial_plan) {
+            return false;
+        }
+
         // Check if we're within the renewal window
         $renewalDate = $membership->end_date->copy()->addDay();
-        $cancellationDeadline = $membership->end_date->copy()
-            ->subDays($plan->cancellation_period_days ?? 30);
+        $cancellationPeriod = $plan->cancellation_period ?? 30;
+        $cancellationUnit = $plan->cancellation_period_unit ?? 'days';
+
+        if ($cancellationUnit === 'months') {
+            $cancellationDeadline = $membership->end_date->copy()->subMonths($cancellationPeriod);
+        } else {
+            $cancellationDeadline = $membership->end_date->copy()->subDays($cancellationPeriod);
+        }
 
         // Renew if:
         // 1. We're past the cancellation deadline

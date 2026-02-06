@@ -91,7 +91,7 @@
               <div>
                 <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Kündigungsfrist</h3>
                 <p class="mt-1 text-lg text-gray-900">
-                  {{ membershipPlan.cancellation_period_days }} Tag{{ membershipPlan.cancellation_period_days !== 1 ? 'e' : '' }}
+                  {{ membershipPlan.formatted_cancellation_period }}
                 </p>
               </div>
             </div>

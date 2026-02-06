@@ -28,9 +28,33 @@
                 <span class="label">Vertrag:</span>
                 <span class="value">{{ $planData['name'] ?? 'Unbekannt' }}</span>
             </div>
+            @php
+                $today = now();
+                $startsFirstOfMonth = ($gymData['contracts_start_first_of_month'] ?? false) && $today->day !== 1;
+                $freePeriodEnd = $startsFirstOfMonth ? $today->copy()->endOfMonth() : null;
+                $paidStart = $startsFirstOfMonth ? $today->copy()->addMonth()->startOfMonth() : $today;
+            @endphp
+
+            @if($startsFirstOfMonth)
+            <div class="free-period-notice" style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <svg style="width: 20px; height: 20px; color: #10b981; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <strong style="color: #065f46;">{{ $gymData['free_trial_membership_name'] ?? 'Gratis-Testzeitraum' }}</strong>
+                        <p style="color: #047857; margin: 4px 0 0 0; font-size: 14px;">
+                            Vom {{ $today->format('d.m.Y') }} bis {{ $freePeriodEnd->format('d.m.Y') }} trainierst du kostenlos!
+                            Dein zahlungspflichtiger Vertrag beginnt am {{ $paidStart->format('d.m.Y') }}.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <div class="detail-row">
                 <span class="label">Vertragsbeginn:</span>
-                <span class="value">{{ date('d.m.Y') }}</span>
+                <span class="value">{{ $paidStart->format('d.m.Y') }}</span>
             </div>
             <div class="detail-row">
                 <span class="label">Mindestvertragslaufzeit:</span>
@@ -50,7 +74,17 @@
             </div>
             <div class="detail-row">
                 <span class="label">Kündigungsfrist:</span>
-                <span class="value">{{ $planData['cancellation_period_days'] ?? 30 }} Tage</span>
+                <span class="value">
+                    @php
+                        $cancellationPeriod = $planData['cancellation_period'] ?? 30;
+                        $cancellationUnit = $planData['cancellation_period_unit'] ?? 'days';
+                        if ($cancellationUnit === 'months') {
+                            echo $cancellationPeriod . ' ' . ($cancellationPeriod == 1 ? 'Monat' : 'Monate');
+                        } else {
+                            echo $cancellationPeriod . ' ' . ($cancellationPeriod == 1 ? 'Tag' : 'Tage');
+                        }
+                    @endphp
+                </span>
             </div>
             {{--
             <div class="detail-row">

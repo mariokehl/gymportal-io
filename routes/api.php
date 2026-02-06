@@ -58,6 +58,7 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [MemberController::class, 'profile']);
         Route::get('contract', [MemberController::class, 'contract']);
+        Route::get('memberships', [MemberController::class, 'memberships']);
         Route::get('gyms', [MemberController::class, 'gyms']);
         Route::prefix('checkin')->group(function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);
@@ -73,6 +74,9 @@ Route::group(['prefix' => 'pwa'], function () {
             Route::put('contract', [MemberController::class, 'updateContract']);
             Route::delete('contract', [MemberController::class, 'cancelContract']);
             Route::get('qr-code', [MemberController::class, 'generateQrCode']);
+
+            // Vertragswiderruf gemäß § 356a BGB
+            Route::post('contract/withdraw', [MemberController::class, 'withdrawContract']);
         });
     });
 });

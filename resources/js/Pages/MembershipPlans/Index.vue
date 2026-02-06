@@ -39,7 +39,7 @@
       <div
         v-for="plan in membershipPlans"
         :key="plan.id"
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col"
       >
         <!-- Plan Header -->
         <div class="flex justify-between items-start mb-4">
@@ -47,6 +47,13 @@
             <div class="flex items-center space-x-2">
               <h3 class="font-semibold text-lg text-gray-900">{{ plan.name }}</h3>
               <span
+                v-if="plan.is_free_trial_plan"
+                class="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+              >
+                Gratis-Test
+              </span>
+              <span
+                v-else
                 :class="{
                   'bg-green-100 text-green-800': plan.is_active,
                   'bg-gray-100 text-gray-800': !plan.is_active
@@ -61,26 +68,29 @@
         </div>
 
         <!-- Plan Details -->
-        <div class="space-y-3 mb-6">
-          <div class="flex justify-between">
-            <span class="text-gray-600 text-sm">Preis:</span>
-            <span class="font-medium">{{ formatPrice(plan.price) }} / {{ formatBillingCycle(plan.billing_cycle) }}</span>
-          </div>
+        <div class="space-y-3 mb-6 flex-grow">
+          <!-- Regular plan fields - hidden for free trial plans -->
+          <template v-if="!plan.is_free_trial_plan">
+            <div class="flex justify-between">
+              <span class="text-gray-600 text-sm">Preis:</span>
+              <span class="font-medium">{{ formatPrice(plan.price) }} / {{ formatBillingCycle(plan.billing_cycle) }}</span>
+            </div>
 
-          <div v-if="plan.setup_fee && plan.setup_fee > 0" class="flex justify-between">
-            <span class="text-gray-600 text-sm">Aktivierungsgebühr:</span>
-            <span class="font-medium text-orange-600">{{ formatPrice(plan.setup_fee) }}</span>
-          </div>
+            <div v-if="plan.setup_fee && plan.setup_fee > 0" class="flex justify-between">
+              <span class="text-gray-600 text-sm">Aktivierungsgebühr:</span>
+              <span class="font-medium text-orange-600">{{ formatPrice(plan.setup_fee) }}</span>
+            </div>
 
-          <div v-if="plan.commitment_months" class="flex justify-between">
-            <span class="text-gray-600 text-sm">Mindestlaufzeit:</span>
-            <span class="font-medium">{{ plan.commitment_months }} Monat{{ plan.commitment_months !== 1 ? 'e' : '' }}</span>
-          </div>
+            <div v-if="plan.commitment_months" class="flex justify-between">
+              <span class="text-gray-600 text-sm">Mindestlaufzeit:</span>
+              <span class="font-medium">{{ plan.commitment_months }} Monat{{ plan.commitment_months !== 1 ? 'e' : '' }}</span>
+            </div>
 
-          <div class="flex justify-between">
-            <span class="text-gray-600 text-sm">Kündigungsfrist:</span>
-            <span class="font-medium">{{ plan.cancellation_period_days }} Tag{{ plan.cancellation_period_days !== 1 ? 'e' : '' }}</span>
-          </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600 text-sm">Kündigungsfrist:</span>
+              <span class="font-medium">{{ plan.formatted_cancellation_period }}</span>
+            </div>
+          </template>
 
           <div class="flex justify-between">
             <span class="text-gray-600 text-sm">Aktive Mitglieder:</span>
@@ -89,7 +99,7 @@
         </div>
 
         <!-- Plan Actions -->
-        <div class="flex space-x-2">
+        <div class="flex space-x-2 mt-auto">
           <Link
             :href="route('contracts.show', plan.id)"
             :class="isOwnerOrAdmin ? 'flex-1' : 'w-full'"

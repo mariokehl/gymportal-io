@@ -4,152 +4,109 @@
     <div class="space-y-4">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-semibold text-gray-900">Mitgliedschaften</h3>
-        <button
-          @click="openAddMembershipModal"
-          type="button"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-        >
-          <Plus class="w-4 h-4" />
-          Neue Mitgliedschaft
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="openFreePeriodModal"
+            type="button"
+            class="bg-green-600 text-white px-3 py-2 md:px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"
+          >
+            <Gift class="w-4 h-4" />
+            <span class="hidden md:inline">Gratis-Zeitraum</span>
+          </button>
+          <button
+            @click="openAddMembershipModal"
+            type="button"
+            class="bg-indigo-600 text-white px-3 py-2 md:px-4 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+          >
+            <Plus class="w-4 h-4" />
+            <span class="hidden md:inline">Neue Mitgliedschaft</span>
+          </button>
+        </div>
       </div>
 
       <!-- Active Memberships List -->
       <div v-if="activeMemberships.length > 0" class="space-y-4">
-        <div v-for="membership in activeMemberships" :key="membership.id" class="border border-gray-200 rounded-lg p-4">
-          <div class="flex justify-between items-start">
-            <div>
-              <h4 class="text-lg font-semibold">
-                <span v-if="membership.membership_plan?.deleted_at" class="text-red-600">Gelöschter Vertrag: </span>
-                {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
-                <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
-                  {{ getStatusText(membership.status) }}
-                </span>
-              </h4>
-              <p class="text-gray-600">{{ membership.membership_plan?.description || 'Keine Beschreibung verfügbar' }}</p>
-              <div class="mt-2 space-y-1">
-                <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
-                <p v-if="membership.membership_plan?.commitment_months" class="text-sm">
-                  <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
-                </p>
-                <p v-if="membership.membership_plan?.cancellation_period_days" class="text-sm">
-                  <span class="font-medium">Kündigungsfrist:</span> {{ membership.membership_plan.cancellation_period_days }} Tage
-                </p>
-                <p v-if="membership.cancellation_date" class="text-sm text-red-600">
-                  <span class="font-medium">Gekündigt zum:</span> {{ formatDate(membership.cancellation_date) }}
-                </p>
+        <template v-for="membership in displayableMemberships" :key="membership.id">
+          <!-- Linked memberships: 50:50 split display -->
+          <div v-if="membership.linkedMembership" class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3">
+              <!-- Free trial period (left/top side) -->
+              <div
+                :class="[
+                  'p-4 border-b md:border-b-0 md:border-r border-gray-200',
+                  isCurrentlyActive(membership) ? 'bg-white' : 'bg-gray-50'
+                ]"
+              >
+                <MembershipCard
+                  :membership="membership"
+                  :is-secondary="!isCurrentlyActive(membership)"
+                  :pausingMembership="pausingMembership"
+                  :resumingMembership="resumingMembership"
+                  :cancellingMembership="cancellingMembership"
+                  :revokingCancellation="revokingCancellation"
+                  :activatingMembership="activatingMembership"
+                  :abortingMembership="abortingMembership"
+                  :withdrawingMembership="withdrawingMembership"
+                  @activate="$emit('activate', $event)"
+                  @pause="$emit('pause', $event)"
+                  @resume="$emit('resume', $event)"
+                  @cancel="$emit('cancel', $event)"
+                  @revoke-cancellation="$emit('revoke-cancellation', $event)"
+                  @abort="$emit('abort', $event)"
+                  @withdraw="$emit('withdraw', $event)"
+                />
               </div>
-            </div>
-            <div class="flex flex-col items-end">
-              <!-- Action buttons for memberships -->
-              <div v-if="membership.status === 'active' || membership.status === 'paused' || membership.status === 'pending'" class="flex items-center justify-end gap-2 sm:gap-3 mb-3">
-                <!-- Activate pending membership -->
-                <button
-                  v-if="membership.status === 'pending'"
-                  @click="$emit('activate', membership)"
-                  type="button"
-                  class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
-                  :disabled="activatingMembership === membership.id"
-                >
-                  <CheckCircle class="w-4 h-4" />
-                  <span>{{ activatingMembership === membership.id ? 'Wird aktiviert...' : 'Aktivieren' }}</span>
-                </button>
-
-                <!-- Pause button -->
-                <button
-                  v-if="membership.status === 'active' && !membership.cancellation_date"
-                  @click="$emit('pause', membership)"
-                  type="button"
-                  class="text-sm text-yellow-600 hover:text-yellow-800 font-medium flex items-center gap-1 transition-colors"
-                  :disabled="pausingMembership === membership.id"
-                >
-                  <Clock class="w-4 h-4" />
-                  <span class="hidden sm:inline">{{ pausingMembership === membership.id ? 'Wird stillgelegt...' : 'Stilllegen' }}</span>
-                  <span class="sm:hidden">{{ pausingMembership === membership.id ? '...' : 'Pause' }}</span>
-                </button>
-
-                <!-- Continue button -->
-                <button
-                  v-if="membership.status === 'paused'"
-                  @click="$emit('resume', membership)"
-                  type="button"
-                  class="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1 transition-colors"
-                  :disabled="resumingMembership === membership.id"
-                >
-                  <PlayCircle class="w-4 h-4" />
-                  <span class="hidden sm:inline">{{ resumingMembership === membership.id ? 'Wird aktiviert...' : 'Fortsetzen' }}</span>
-                  <span class="sm:hidden">{{ resumingMembership === membership.id ? '...' : 'Weiter' }}</span>
-                </button>
-
-                <!-- Dividing line -->
-                <div v-if="(membership.status === 'active' || membership.status === 'paused') && !membership.cancellation_date" class="hidden sm:block w-px h-4 bg-gray-300"></div>
-
-                <!-- Cancel button -->
-                <button
-                  v-if="!membership.cancellation_date && membership.status !== 'pending'"
-                  @click="$emit('cancel', membership)"
-                  type="button"
-                  class="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
-                  :disabled="cancellingMembership === membership.id"
-                >
-                  <XCircle class="w-4 h-4" />
-                  <span class="hidden sm:inline">{{ cancellingMembership === membership.id ? 'Wird gekündigt...' : 'Kündigen' }}</span>
-                  <span class="sm:hidden">{{ cancellingMembership === membership.id ? '...' : 'Kündigen' }}</span>
-                </button>
-
-                <!-- Cancel cancellation button -->
-                <button
-                  v-if="membership.cancellation_date"
-                  @click="$emit('revoke-cancellation', membership)"
-                  type="button"
-                  class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
-                  :disabled="revokingCancellation === membership.id"
-                >
-                  <RotateCcw class="w-4 h-4" />
-                  <span class="hidden sm:inline">{{ revokingCancellation === membership.id ? 'Wird zurückgenommen...' : 'Kündigung zurücknehmen' }}</span>
-                  <span class="sm:hidden">{{ revokingCancellation === membership.id ? '...' : 'Zurück' }}</span>
-                </button>
-              </div>
-
-              <!-- Price display -->
-              <div class="text-right">
-                <p class="text-2xl font-bold text-indigo-600">{{ formatCurrency(membership.membership_plan?.price || 0) }}</p>
-                <p class="text-sm text-gray-500">pro {{ getBillingCycleText(membership.membership_plan?.billing_cycle || 'monthly') }}</p>
+              <!-- Linked membership (right side, 2/3 width) -->
+              <div
+                :class="[
+                  'p-4 md:col-span-2',
+                  isCurrentlyActive(membership.linkedMembership) ? 'bg-white' : 'bg-gray-50'
+                ]"
+              >
+                <MembershipCard
+                  :membership="membership.linkedMembership"
+                  :is-secondary="!isCurrentlyActive(membership.linkedMembership)"
+                  :pausingMembership="pausingMembership"
+                  :resumingMembership="resumingMembership"
+                  :cancellingMembership="cancellingMembership"
+                  :revokingCancellation="revokingCancellation"
+                  :activatingMembership="activatingMembership"
+                  :abortingMembership="abortingMembership"
+                  :withdrawingMembership="withdrawingMembership"
+                  @activate="$emit('activate', $event)"
+                  @pause="$emit('pause', $event)"
+                  @resume="$emit('resume', $event)"
+                  @cancel="$emit('cancel', $event)"
+                  @revoke-cancellation="$emit('revoke-cancellation', $event)"
+                  @abort="$emit('abort', $event)"
+                  @withdraw="$emit('withdraw', $event)"
+                />
               </div>
             </div>
           </div>
 
-          <div v-if="membership.membership_plan?.deleted_at" class="mt-3 p-3 bg-red-50 rounded-md">
-            <p class="text-sm text-red-800">
-              <AlertCircle class="w-4 h-4 inline mr-1" />
-              Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.
-            </p>
+          <!-- Standalone membership (no link) -->
+          <div v-else class="border border-gray-200 rounded-lg p-4">
+            <MembershipCard
+              :membership="membership"
+              :is-secondary="false"
+              :pausingMembership="pausingMembership"
+              :resumingMembership="resumingMembership"
+              :cancellingMembership="cancellingMembership"
+              :revokingCancellation="revokingCancellation"
+              :activatingMembership="activatingMembership"
+              :abortingMembership="abortingMembership"
+              :withdrawingMembership="withdrawingMembership"
+              @activate="$emit('activate', $event)"
+              @pause="$emit('pause', $event)"
+              @resume="$emit('resume', $event)"
+              @cancel="$emit('cancel', $event)"
+              @revoke-cancellation="$emit('revoke-cancellation', $event)"
+              @abort="$emit('abort', $event)"
+              @withdraw="$emit('withdraw', $event)"
+            />
           </div>
-
-          <div v-if="membership.status === 'pending'" class="mt-3 p-3 bg-orange-50 rounded-md">
-            <p class="text-sm text-orange-800">
-              <AlertCircle class="w-4 h-4 inline mr-1" />
-              Diese Mitgliedschaft wartet auf Aktivierung
-            </p>
-          </div>
-
-          <div v-if="membership.pause_start_date" class="mt-3 p-3 bg-yellow-50 rounded-md">
-            <p class="text-sm text-yellow-800">
-              <Clock class="w-4 h-4 inline mr-1" />
-              Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
-            </p>
-          </div>
-
-          <div v-if="membership.cancellation_date" class="mt-3 p-3 bg-red-50 rounded-md">
-            <p class="text-sm text-red-800">
-              <AlertCircle class="w-4 h-4 inline mr-1" />
-              Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
-              <span v-if="membership.cancellation_reason" class="block mt-1">
-                Grund: {{ membership.cancellation_reason }}
-              </span>
-            </p>
-          </div>
-        </div>
+        </template>
       </div>
 
       <!-- No Memberships -->
@@ -211,6 +168,119 @@
       </div>
     </div>
 
+    <!-- Free Period Modal -->
+    <teleport to="body">
+      <div v-if="showFreePeriodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeFreePeriodModal">
+        <div class="relative top-10 mx-auto p-5 border border-gray-50 w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <form @submit.prevent="addFreePeriod">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                  Gratis-Zeitraum hinzufügen
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                  Erstelle einen kostenlosen Zeitraum, z.B. für Probetraining oder Überbrückung.
+                </p>
+              </div>
+
+              <!-- Error message -->
+              <div v-if="freePeriodForm.errors.error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex">
+                  <AlertCircle class="h-5 w-5 text-red-400 flex-shrink-0" />
+                  <p class="ml-3 text-sm text-red-800">{{ freePeriodForm.errors.error }}</p>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <!-- Start Date -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    v-model="freePeriodForm.start_date"
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                    :class="{ 'border-red-500': freePeriodForm.errors.start_date }"
+                  />
+                  <p v-if="freePeriodForm.errors.start_date" class="mt-1 text-sm text-red-600">
+                    {{ freePeriodForm.errors.start_date }}
+                  </p>
+                </div>
+
+                <!-- End Date -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    v-model="freePeriodForm.end_date"
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                    :class="{ 'border-red-500': freePeriodForm.errors.end_date }"
+                  />
+                  <p v-if="freePeriodForm.errors.end_date" class="mt-1 text-sm text-red-600">
+                    {{ freePeriodForm.errors.end_date }}
+                  </p>
+                </div>
+
+                <!-- Link to Membership (optional) -->
+                <div v-if="linkableMemberships.length > 0">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Mit Mitgliedschaft verknüpfen (optional)
+                  </label>
+                  <select
+                    v-model="freePeriodForm.linked_membership_id"
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option :value="null">Keine Verknüpfung</option>
+                    <option v-for="m in linkableMemberships" :key="m.id" :value="m.id">
+                      {{ m.membership_plan?.name || 'Unbekannt' }} (ab {{ formatDate(m.start_date) }})
+                    </option>
+                  </select>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Verknüpfe diesen Gratis-Zeitraum mit einer bestehenden oder neuen Mitgliedschaft.
+                  </p>
+                </div>
+
+                <!-- Preview -->
+                <div v-if="freePeriodForm.start_date && freePeriodForm.end_date" class="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div class="flex items-start gap-2">
+                    <Gift class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div class="text-sm">
+                      <p class="font-medium text-green-800">Vorschau</p>
+                      <p class="text-green-700">
+                        Gratis-Zeitraum vom {{ formatDateShort(freePeriodForm.start_date) }}
+                        bis {{ formatDateShort(freePeriodForm.end_date) }}
+                        ({{ freePeriodDays }} Tage)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                :disabled="freePeriodForm.processing || !freePeriodForm.start_date || !freePeriodForm.end_date"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ freePeriodForm.processing ? 'Wird erstellt...' : 'Gratis-Zeitraum erstellen' }}
+              </button>
+              <button
+                type="button"
+                @click="closeFreePeriodModal"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
+
     <!-- Add Membership Modal -->
     <teleport to="body">
       <div v-if="showAddMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddMembershipModal">
@@ -265,11 +335,11 @@
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
-  Plus, Clock, CheckCircle, XCircle, PlayCircle,
-  RotateCcw, AlertCircle, UserX, ChevronDown, ChevronUp
+  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
+import MembershipCard from '@/Components/Members/MembershipCard.vue'
 
 const props = defineProps({
   member: {
@@ -299,14 +369,30 @@ const props = defineProps({
   activatingMembership: {
     type: [Number, null],
     default: null
+  },
+  abortingMembership: {
+    type: [Number, null],
+    default: null
+  },
+  withdrawingMembership: {
+    type: [Number, null],
+    default: null
   }
 })
 
-const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation'])
+const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw'])
 
 // Local state
 const showPastMemberships = ref(false)
 const showAddMembershipModal = ref(false)
+const showFreePeriodModal = ref(false)
+
+// Free period form
+const freePeriodForm = useForm({
+  start_date: new Date().toISOString().split('T')[0],
+  end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 Tage
+  linked_membership_id: null
+})
 
 // Add membership form
 const addMembershipForm = useForm({
@@ -335,8 +421,87 @@ const activeMemberships = computed(() => {
 const pastMemberships = computed(() => {
   if (!props.member.memberships) return []
   return props.member.memberships.filter(m =>
-    m.status === 'cancelled' || m.status === 'expired'
+    m.status === 'cancelled' || m.status === 'expired' || m.status === 'withdrawn'
   )
+})
+
+// Memberships that can be linked to a free period
+const linkableMemberships = computed(() => {
+  if (!props.member.memberships) return []
+  return props.member.memberships.filter(m =>
+    (m.status === 'active' || m.status === 'pending') && !m.linked_free_membership_id
+  )
+})
+
+// Displayable memberships - groups linked free periods with their memberships
+const displayableMemberships = computed(() => {
+  if (!activeMemberships.value.length) return []
+
+  const result = []
+  const processedIds = new Set()
+
+  for (const membership of activeMemberships.value) {
+    if (processedIds.has(membership.id)) continue
+
+    // Check if this is a free trial with a linked membership
+    if (membership.is_free_trial && membership.linked_membership_id) {
+      const linkedMembership = activeMemberships.value.find(m => m.id === membership.linked_membership_id)
+      if (linkedMembership) {
+        result.push({
+          ...membership,
+          linkedMembership: linkedMembership
+        })
+        processedIds.add(membership.id)
+        processedIds.add(linkedMembership.id)
+        continue
+      }
+    }
+
+    // Check if this membership has a linked free trial
+    if (membership.linked_free_membership_id) {
+      const freeTrial = activeMemberships.value.find(m => m.id === membership.linked_free_membership_id)
+      if (freeTrial) {
+        result.push({
+          ...freeTrial,
+          linkedMembership: membership
+        })
+        processedIds.add(membership.id)
+        processedIds.add(freeTrial.id)
+        continue
+      }
+    }
+
+    // Standalone membership
+    result.push(membership)
+    processedIds.add(membership.id)
+  }
+
+  return result
+})
+
+// Check if a membership is currently active (based on date)
+const isCurrentlyActive = (membership) => {
+  if (!membership) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const startDate = new Date(membership.start_date)
+  startDate.setHours(0, 0, 0, 0)
+  const endDate = membership.end_date ? new Date(membership.end_date) : null
+  if (endDate) endDate.setHours(23, 59, 59, 999)
+
+  const isAfterStart = today >= startDate
+  const isBeforeEnd = !endDate || today <= endDate
+
+  return isAfterStart && isBeforeEnd && membership.status === 'active'
+}
+
+// Calculate free period duration in days
+const freePeriodDays = computed(() => {
+  if (!freePeriodForm.start_date || !freePeriodForm.end_date) return 0
+  const start = new Date(freePeriodForm.start_date)
+  const end = new Date(freePeriodForm.end_date)
+  const diffTime = Math.abs(end - start)
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
 })
 
 // Watch membershipFormData and sync to addMembershipForm
@@ -375,6 +540,42 @@ const addMembership = () => {
   })
 }
 
+// Free period modal functions
+const openFreePeriodModal = () => {
+  freePeriodForm.reset()
+  freePeriodForm.clearErrors()
+  freePeriodForm.start_date = new Date().toISOString().split('T')[0]
+  // Default: Ende des aktuellen Monats
+  const endOfMonth = new Date()
+  endOfMonth.setMonth(endOfMonth.getMonth() + 1)
+  endOfMonth.setDate(0) // Letzter Tag des aktuellen Monats
+  freePeriodForm.end_date = endOfMonth.toISOString().split('T')[0]
+  freePeriodForm.linked_membership_id = null
+  showFreePeriodModal.value = true
+}
+
+const closeFreePeriodModal = () => {
+  showFreePeriodModal.value = false
+  freePeriodForm.reset()
+  freePeriodForm.clearErrors()
+}
+
+const addFreePeriod = () => {
+  freePeriodForm.post(route('members.memberships.store-free-period', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      closeFreePeriodModal()
+    }
+  })
+}
+
+// Helper function to format date in short German format
+const formatDateShort = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 // Helper functions
 const getStatusBadgeClass = (status) => {
   const classes = {
@@ -382,7 +583,8 @@ const getStatusBadgeClass = (status) => {
     'pending': 'bg-orange-100 text-orange-800',
     'paused': 'bg-yellow-100 text-yellow-800',
     'cancelled': 'bg-red-100 text-red-800',
-    'expired': 'bg-gray-100 text-gray-800'
+    'expired': 'bg-gray-100 text-gray-800',
+    'withdrawn': 'bg-purple-100 text-purple-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -393,7 +595,8 @@ const getStatusText = (status) => {
     'pending': 'Ausstehend',
     'paused': 'Pausiert',
     'cancelled': 'Gekündigt',
-    'expired': 'Abgelaufen'
+    'expired': 'Abgelaufen',
+    'withdrawn': 'Widerrufen'
   }
   return texts[status] || status
 }

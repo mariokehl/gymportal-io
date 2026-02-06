@@ -42,6 +42,12 @@ class Member extends Authenticatable
         'age_verified',
         'age_verified_at',
         'age_verified_by',
+        'guest_access',
+        'guest_access_granted_at',
+        'guest_access_granted_by',
+        'legal_guardian_member_id',
+        'legal_guardian_first_name',
+        'legal_guardian_last_name',
     ];
 
     protected $casts = [
@@ -50,6 +56,8 @@ class Member extends Authenticatable
         'widget_data' => 'array',
         'age_verified' => 'boolean',
         'age_verified_at' => 'datetime',
+        'guest_access' => 'boolean',
+        'guest_access_granted_at' => 'datetime',
     ];
 
     protected $appends = ['initials', 'full_name', 'status_text', 'status_color'];
@@ -85,6 +93,54 @@ class Member extends Authenticatable
         return $this->belongsTo(User::class, 'age_verified_by');
     }
 
+    public function guestAccessGrantedByUser()
+    {
+        return $this->belongsTo(User::class, 'guest_access_granted_by');
+    }
+
+    /**
+     * Gesetzlicher Vertreter (wenn ein anderes Mitglied verknüpft ist)
+     */
+    public function legalGuardian()
+    {
+        return $this->belongsTo(Member::class, 'legal_guardian_member_id');
+    }
+
+    /**
+     * Mitglieder, für die dieses Mitglied der gesetzliche Vertreter ist
+     */
+    public function dependents()
+    {
+        return $this->hasMany(Member::class, 'legal_guardian_member_id');
+    }
+
+    /**
+     * Gibt den vollständigen Namen des gesetzlichen Vertreters zurück
+     * Entweder vom verknüpften Mitglied oder aus den manuellen Feldern
+     */
+    public function getLegalGuardianNameAttribute(): ?string
+    {
+        if ($this->legal_guardian_member_id && $this->legalGuardian) {
+            return $this->legalGuardian->full_name;
+        }
+
+        if ($this->legal_guardian_first_name || $this->legal_guardian_last_name) {
+            return trim($this->legal_guardian_first_name . ' ' . $this->legal_guardian_last_name);
+        }
+
+        return null;
+    }
+
+    /**
+     * Prüft ob ein gesetzlicher Vertreter hinterlegt ist
+     */
+    public function hasLegalGuardian(): bool
+    {
+        return $this->legal_guardian_member_id !== null ||
+               $this->legal_guardian_first_name !== null ||
+               $this->legal_guardian_last_name !== null;
+    }
+
     /**
      * Verifiziert das Alter des Mitglieds
      */
@@ -117,6 +173,38 @@ class Member extends Authenticatable
         return $this->age_verified === true;
     }
 
+    /**
+     * Gewährt Gastzugang
+     */
+    public function grantGuestAccess(?int $grantedBy = null): bool
+    {
+        return $this->update([
+            'guest_access' => true,
+            'guest_access_granted_at' => now(),
+            'guest_access_granted_by' => $grantedBy ?? auth()->id(),
+        ]);
+    }
+
+    /**
+     * Entzieht Gastzugang
+     */
+    public function revokeGuestAccess(): bool
+    {
+        return $this->update([
+            'guest_access' => false,
+            'guest_access_granted_at' => null,
+            'guest_access_granted_by' => null,
+        ]);
+    }
+
+    /**
+     * Prüft ob Gastzugang aktiv ist
+     */
+    public function hasGuestAccess(): bool
+    {
+        return $this->guest_access === true;
+    }
+
     public function memberships()
     {
         return $this->hasMany(Membership::class);
@@ -124,7 +212,80 @@ class Member extends Authenticatable
 
     public function activeMembership()
     {
+        $today = now()->startOfDay();
+
+        // Zuerst: Aktive Mitgliedschaft suchen, die heute gültig ist (start_date <= heute <= end_date)
+        $currentMembership = $this->memberships()
+            ->where('status', 'active')
+            ->whereDate('start_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereDate('end_date', '>=', $today)
+                    ->orWhereNull('end_date');
+            })
+            ->orderBy('start_date', 'asc') // Bei mehreren: die mit früherem Startdatum (z.B. Gratis-Zeitraum)
+            ->first();
+
+        if ($currentMembership) {
+            return $currentMembership;
+        }
+
+        // Fallback: Erste aktive Mitgliedschaft (auch wenn sie noch nicht begonnen hat)
         return $this->memberships()->where('status', 'active')->first();
+    }
+
+    /**
+     * Gibt eine strukturierte Übersicht aller Mitgliedschaften zurück
+     *
+     * @return array{
+     *     current: Membership|null,
+     *     free: \Illuminate\Database\Eloquent\Collection,
+     *     paid: \Illuminate\Database\Eloquent\Collection
+     * }
+     */
+    public function getMembershipOverview(): array
+    {
+        $today = now()->startOfDay();
+
+        // Aktuelle Mitgliedschaft ermitteln (die heute gültig ist)
+        $currentMembership = $this->memberships()
+            ->with('membershipPlan')
+            ->where('status', 'active')
+            ->whereDate('start_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereDate('end_date', '>=', $today)
+                    ->orWhereNull('end_date');
+            })
+            ->orderBy('start_date', 'asc')
+            ->first();
+
+        // Fallback: Erste aktive Mitgliedschaft (auch wenn sie noch nicht begonnen hat)
+        if (!$currentMembership) {
+            $currentMembership = $this->memberships()
+                ->with('membershipPlan')
+                ->where('status', 'active')
+                ->first();
+        }
+
+        // Alle anderen Mitgliedschaften (außer der aktuellen) laden
+        $otherMembershipsQuery = $this->memberships()
+            ->with('membershipPlan');
+
+        $otherMemberships = $otherMembershipsQuery->get();
+
+        // Nach Gratis und Bezahlt aufteilen
+        $freeMemberships = $otherMemberships->filter(function ($membership) {
+            return $membership->is_free_trial;
+        })->values();
+
+        $paidMemberships = $otherMemberships->filter(function ($membership) {
+            return !$membership->is_free_trial;
+        })->values();
+
+        return [
+            'current' => $currentMembership,
+            'free' => $freeMemberships,
+            'paid' => $paidMemberships,
+        ];
     }
 
     public function paymentMethods(): HasMany

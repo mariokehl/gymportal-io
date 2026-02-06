@@ -60,8 +60,16 @@ class MembershipPlanController extends Controller
             'billing_cycle' => 'required|in:monthly,quarterly,yearly',
             'is_active' => 'boolean',
             'commitment_months' => 'nullable|integer|min:0|max:36',
-            'cancellation_period_days' => 'required|integer|min:0|max:365',
+            'cancellation_period' => 'required|integer|min:0',
+            'cancellation_period_unit' => 'required|in:days,months',
         ]);
+
+        // Additional validation based on unit
+        if ($request->cancellation_period_unit === 'months' && $request->cancellation_period > 24) {
+            return back()->withErrors(['cancellation_period' => 'Die Kündigungsfrist darf maximal 24 Monate betragen.'])->withInput();
+        } elseif ($request->cancellation_period_unit === 'days' && $request->cancellation_period > 365) {
+            return back()->withErrors(['cancellation_period' => 'Die Kündigungsfrist darf maximal 365 Tage betragen.'])->withInput();
+        }
 
         /** @var User $user */
         $user = Auth::user();
@@ -140,8 +148,16 @@ class MembershipPlanController extends Controller
             'billing_cycle' => 'required|in:monthly,quarterly,yearly',
             'is_active' => 'boolean',
             'commitment_months' => 'nullable|integer|min:0|max:36',
-            'cancellation_period_days' => 'required|integer|min:0|max:365',
+            'cancellation_period' => 'required|integer|min:0',
+            'cancellation_period_unit' => 'required|in:days,months',
         ]);
+
+        // Additional validation based on unit
+        if ($request->cancellation_period_unit === 'months' && $request->cancellation_period > 24) {
+            return back()->withErrors(['cancellation_period' => 'Die Kündigungsfrist darf maximal 24 Monate betragen.'])->withInput();
+        } elseif ($request->cancellation_period_unit === 'days' && $request->cancellation_period > 365) {
+            return back()->withErrors(['cancellation_period' => 'Die Kündigungsfrist darf maximal 365 Tage betragen.'])->withInput();
+        }
 
         $validated['is_active'] = $request->boolean('is_active');
         $validated['commitment_months'] = $request->commitment_months ?? 0;

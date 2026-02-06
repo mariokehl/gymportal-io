@@ -52,6 +52,141 @@ class MemberService
     }
 
     /**
+     * Prüft ob der Vertrag zum 1. des Monats starten soll
+     */
+    public function shouldStartFirstOfMonth(Gym $gym, Carbon $startDate): bool
+    {
+        return $gym->contracts_start_first_of_month && $startDate->day !== 1;
+    }
+
+    /**
+     * Holt oder erstellt den Gratis-Testzeitraum-Plan für ein Gym
+     */
+    public function getOrCreateFreeTrialPlan(Gym $gym): MembershipPlan
+    {
+        $plan = MembershipPlan::where('gym_id', $gym->id)
+            ->where('is_free_trial_plan', true)
+            ->first();
+
+        if (!$plan) {
+            $plan = MembershipPlan::create([
+                'gym_id' => $gym->id,
+                'name' => $gym->free_trial_membership_name ?? 'Gratis-Testzeitraum',
+                'description' => 'Kostenloser Testzeitraum bis zum Vertragsbeginn',
+                'price' => 0,
+                'setup_fee' => 0,
+                'billing_cycle' => 'monthly',
+                'is_active' => false, // Nicht in normaler Planauswahl sichtbar
+                'is_free_trial_plan' => true,
+                'commitment_months' => 0,
+                'cancellation_period_days' => 0,
+            ]);
+        } else {
+            // Namen aktualisieren wenn geändert
+            if ($plan->name !== $gym->free_trial_membership_name && $gym->free_trial_membership_name) {
+                $plan->update(['name' => $gym->free_trial_membership_name]);
+            }
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Erstellt eine Gratis-Mitgliedschaft für den Überbrückungszeitraum
+     */
+    public function createFreePeriodMembership(
+        Member $member,
+        Carbon $startDate,
+        Carbon $endDate,
+        ?Membership $linkedPaidMembership = null
+    ): Membership {
+        $gym = $member->gym;
+        $freeTrialPlan = $this->getOrCreateFreeTrialPlan($gym);
+
+        $freeMembership = Membership::create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $freeTrialPlan->id,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'status' => 'active',
+        ]);
+
+        // Verknüpfung mit der zahlungspflichtigen Mitgliedschaft
+        if ($linkedPaidMembership) {
+            $linkedPaidMembership->update([
+                'linked_free_membership_id' => $freeMembership->id
+            ]);
+        }
+
+        return $freeMembership;
+    }
+
+    /**
+     * Berechnet das Enddatum des Gratis-Zeitraums (letzter Tag des Monats)
+     */
+    public function calculateFreePeriodEndDate(Carbon $startDate): Carbon
+    {
+        return $startDate->copy()->endOfMonth();
+    }
+
+    /**
+     * Berechnet das Startdatum des zahlungspflichtigen Vertrags (1. des Folgemonats)
+     */
+    public function calculatePaidMembershipStartDate(Carbon $startDate): Carbon
+    {
+        return $startDate->copy()->addMonth()->startOfMonth();
+    }
+
+    /**
+     * Erstellt Mitgliedschaft(en) mit optionalem Gratis-Zeitraum bei Start zum 1. des Monats
+     *
+     * @return array{membership: Membership, free_membership: ?Membership}
+     */
+    public function createMembershipWithFreePeriod(
+        Member $member,
+        MembershipPlan $plan,
+        Carbon $startDate,
+        string $status = 'active',
+        bool $startImmediately = false
+    ): array {
+        $gym = $member->gym;
+        $freeMembership = null;
+
+        // Prüfen ob Gratis-Zeitraum erstellt werden soll
+        if (!$startImmediately && $this->shouldStartFirstOfMonth($gym, $startDate)) {
+            $freePeriodEnd = $this->calculateFreePeriodEndDate($startDate);
+            $paidStart = $this->calculatePaidMembershipStartDate($startDate);
+
+            // Mitglied joined_date auf den 1. des Folgemonats setzen
+            $originalJoinedDate = $member->joined_date;
+            $member->joined_date = $paidStart;
+
+            // Zahlungspflichtige Mitgliedschaft erstellen
+            $membership = $this->createMembership($member, $plan, $status);
+
+            // joined_date zurücksetzen
+            $member->joined_date = $originalJoinedDate;
+            $member->save();
+
+            // Gratis-Mitgliedschaft erstellen und verknüpfen
+            $freeMembership = $this->createFreePeriodMembership(
+                $member,
+                $startDate,
+                $freePeriodEnd,
+                $membership
+            );
+        } else {
+            // Normale Mitgliedschaft erstellen
+            $membership = $this->createMembership($member, $plan, $status);
+        }
+
+        return [
+            'membership' => $membership,
+            'free_membership' => $freeMembership,
+        ];
+    }
+
+    /**
      * Welcome E-Mail senden
      */
     public function sendWelcomeEmail(Member $member, Gym $gym): void

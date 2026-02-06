@@ -197,6 +197,8 @@ class WidgetController extends Controller
             'id' => $gym->id,
             'name' => $gym->name,
             'widget_settings' => $gym->widget_settings,
+            'contracts_start_first_of_month' => $gym->contracts_start_first_of_month,
+            'free_trial_membership_name' => $gym->free_trial_membership_name,
         ];
 
         $html = view('widget.checkout', compact('formData', 'planData', 'gymData'))->render();
@@ -536,7 +538,8 @@ class WidgetController extends Controller
             ),
             'currency' => 'EUR',
             'commitment_months' => $plan->commitment_months,
-            'cancellation_period_days' => $plan->cancellation_period_days,
+            'cancellation_period' => $plan->cancellation_period,
+            'cancellation_period_unit' => $plan->cancellation_period_unit,
             'gym_id' => $plan->gym_id,
             'selected_at' => now()->toISOString()
         ];

@@ -74,7 +74,9 @@ class SettingController extends Controller
             'iban' => 'nullable|string|max:34',
             'bic' => 'nullable|string|max:11',
             'creditor_identifier' => 'nullable|string|max:35',
-            'website' => 'nullable|url|max:255'
+            'website' => 'nullable|url|max:255',
+            'contracts_start_first_of_month' => 'boolean',
+            'free_trial_membership_name' => 'nullable|string|max:255'
         ]);
 
         $gym->update($validated);

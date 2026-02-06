@@ -174,6 +174,53 @@
                                 </div>
                             </div>
 
+                            <!-- Vertragseinstellungen Section -->
+                            <div class="mt-8 pt-8 border-t border-gray-200">
+                                <h4 class="text-base font-medium text-gray-900 mb-2">
+                                    Vertragseinstellungen
+                                </h4>
+                                <p class="text-sm text-gray-600 mb-6">
+                                    Konfiguriere, wie neue Mitgliedschaftsverträge erstellt werden.
+                                </p>
+
+                                <div class="space-y-4">
+                                    <!-- Toggle: Verträge zum 1. des Monats starten -->
+                                    <div class="flex items-start">
+                                        <div class="flex items-center h-7">
+                                            <input
+                                                id="contracts_start_first_of_month"
+                                                v-model="gymForm.contracts_start_first_of_month"
+                                                type="checkbox"
+                                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="contracts_start_first_of_month" class="text-sm font-medium text-gray-700">
+                                                Verträge immer zum 1. des Monats starten
+                                            </label>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                Wenn aktiviert, starten zahlungspflichtige Verträge immer zum 1. des Folgemonats.
+                                                Für die Zeit vom Anlagedatum bis Monatsende wird automatisch eine kostenlose Mitgliedschaft erstellt.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Textfeld: Name der Gratis-Mitgliedschaft (nur sichtbar wenn Toggle aktiv) -->
+                                    <div v-if="gymForm.contracts_start_first_of_month" class="ml-7">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            Name der Gratis-Mitgliedschaft
+                                        </label>
+                                        <input
+                                            v-model="gymForm.free_trial_membership_name"
+                                            type="text"
+                                            placeholder="Gratis-Testzeitraum"
+                                            class="block w-full max-w-md rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Dieser Name wird für die automatisch erstellte Gratis-Mitgliedschaft verwendet.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="flex justify-end">
                                 <button
                                     type="submit"
@@ -549,7 +596,9 @@ const gymForm = ref({
     bic: props.currentGym?.bic || '',
     creditor_identifier: props.currentGym?.creditor_identifier || '',
     website: props.currentGym?.website || '',
-    logo_path: props.currentGym?.logo_path || ''
+    logo_path: props.currentGym?.logo_path || '',
+    contracts_start_first_of_month: props.currentGym?.contracts_start_first_of_month || false,
+    free_trial_membership_name: props.currentGym?.free_trial_membership_name || 'Gratis-Testzeitraum'
 })
 
 // Icon mapping for Payment Methods

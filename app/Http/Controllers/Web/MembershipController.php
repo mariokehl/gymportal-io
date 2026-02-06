@@ -3,14 +3,84 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Member;
 use App\Models\Membership;
+use App\Services\MemberService;
+use App\Services\PaymentService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class MembershipController extends Controller
 {
+    public function __construct(
+        private MemberService $memberService
+    ) {}
+
+    /**
+     * Erstellt einen kostenlosen Zeitraum (z.B. Probetraining)
+     */
+    public function storeFreePeriod(Request $request, Member $member)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'linked_membership_id' => 'nullable|exists:memberships,id',
+        ], [
+            'start_date.required' => 'Das Startdatum ist erforderlich.',
+            'end_date.required' => 'Das Enddatum ist erforderlich.',
+            'end_date.after_or_equal' => 'Das Enddatum muss nach dem Startdatum liegen.',
+        ]);
+
+        // Gym des aktuellen Benutzers
+        $gym = auth()->user()->gym;
+
+        DB::beginTransaction();
+        try {
+            // Verknüpfte Mitgliedschaft prüfen (falls angegeben)
+            $linkedMembership = null;
+            if ($validated['linked_membership_id']) {
+                $linkedMembership = Membership::where('id', $validated['linked_membership_id'])
+                    ->where('member_id', $member->id)
+                    ->first();
+
+                if (!$linkedMembership) {
+                    return back()->withErrors([
+                        'linked_membership_id' => 'Die ausgewählte Mitgliedschaft gehört nicht zu diesem Mitglied.'
+                    ]);
+                }
+            }
+
+            // Gratis-Mitgliedschaft erstellen
+            $freeMembership = $this->memberService->createFreePeriodMembership(
+                $member,
+                Carbon::parse($validated['start_date']),
+                Carbon::parse($validated['end_date']),
+                $linkedMembership
+            );
+
+            // Verknüpfung in der anderen Richtung speichern
+            if ($linkedMembership) {
+                $linkedMembership->update([
+                    'linked_free_membership_id' => $freeMembership->id
+                ]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Der kostenlose Zeitraum wurde erfolgreich erstellt.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors([
+                'error' => 'Der kostenlose Zeitraum konnte nicht erstellt werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     /**
      * Aktiviert eine pending Mitgliedschaft
      */
@@ -235,14 +305,21 @@ class MembershipController extends Controller
             }
 
             // Kündigungsfrist prüfen
-            if ($membership->membershipPlan->cancellation_period_days) {
-                $minCancellationDate = now()->addDays($membership->membershipPlan->cancellation_period_days);
+            if ($membership->membershipPlan->cancellation_period) {
+                $cancellationPeriod = $membership->membershipPlan->cancellation_period;
+                $cancellationUnit = $membership->membershipPlan->cancellation_period_unit ?? 'days';
+
+                if ($cancellationUnit === 'months') {
+                    $minCancellationDate = now()->addMonths($cancellationPeriod);
+                } else {
+                    $minCancellationDate = now()->addDays($cancellationPeriod);
+                }
 
                 if (\Carbon\Carbon::parse($validated['cancellation_date'])->lt($minCancellationDate)) {
                     return back()->withErrors([
                         'cancellation_date' => 'Die Kündigungsfrist beträgt ' .
-                                             $membership->membershipPlan->cancellation_period_days .
-                                             ' Tage. Frühestmöglicher Kündigungstermin: ' .
+                                             $membership->membershipPlan->formatted_cancellation_period .
+                                             '. Frühestmöglicher Kündigungstermin: ' .
                                              $minCancellationDate->format('d.m.Y')
                     ]);
                 }
@@ -354,6 +431,198 @@ class MembershipController extends Controller
             DB::rollBack();
             return back()->withErrors([
                 'error' => 'Die Kündigung konnte nicht zurückgenommen werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Bricht einen Gratis-Testzeitraum sofort ab
+     */
+    public function abort(Request $request, Member $member, Membership $membership)
+    {
+        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        // Überprüfen ob es sich um einen Gratis-Testzeitraum handelt
+        if (!$membership->is_free_trial) {
+            return back()->withErrors([
+                'error' => 'Nur Gratis-Testzeiträume können abgebrochen werden.'
+            ]);
+        }
+
+        // Überprüfen ob die Mitgliedschaft aktiv ist
+        if ($membership->status !== 'active') {
+            return back()->withErrors([
+                'status' => 'Nur aktive Gratis-Testzeiträume können abgebrochen werden.'
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Enddatum auf heute setzen und Status auf expired
+            $membership->update([
+                'status' => 'expired',
+                'end_date' => now()->format('Y-m-d'),
+            ]);
+
+            // Notiz hinzufügen
+            $membership->update([
+                'notes' => ($membership->notes ? $membership->notes . "\n" : '') .
+                          "Gratis-Testzeitraum abgebrochen am " . now()->format('d.m.Y H:i')
+            ]);
+
+            DB::commit();
+
+            return back()->with('success', 'Der Gratis-Testzeitraum wurde erfolgreich abgebrochen.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors([
+                'error' => 'Der Gratis-Testzeitraum konnte nicht abgebrochen werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Widerruft eine Mitgliedschaft gemäß § 356a BGB
+     *
+     * Der manuelle Widerruf aus dem Admin-Bereich löst ebenfalls
+     * die E-Mail-Bestätigung aus.
+     */
+    public function withdraw(Request $request, Member $member, Membership $membership, PaymentService $paymentService)
+    {
+        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        // Validierung
+        $validated = $request->validate([
+            'confirmation_email' => 'nullable|email|max:255',
+        ]);
+
+        // Prüfen ob Widerruf möglich ist
+        if ($membership->is_free_trial) {
+            return back()->withErrors([
+                'error' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.'
+            ]);
+        }
+
+        if ($membership->withdrawn_at) {
+            return back()->withErrors([
+                'error' => 'Diese Mitgliedschaft wurde bereits widerrufen.'
+            ]);
+        }
+
+        if ($membership->status === 'cancelled') {
+            return back()->withErrors([
+                'error' => 'Gekündigte Verträge können nicht widerrufen werden.'
+            ]);
+        }
+
+        if (!in_array($membership->status, ['active', 'pending'])) {
+            return back()->withErrors([
+                'error' => 'Diese Mitgliedschaft kann nicht widerrufen werden.'
+            ]);
+        }
+
+        // Widerrufsfrist prüfen (14 Tage)
+        $contractStartDate = $membership->contract_start_date;
+        if (!$contractStartDate) {
+            return back()->withErrors([
+                'error' => 'Vertragsstartdatum konnte nicht ermittelt werden.'
+            ]);
+        }
+
+        $startDate = Carbon::parse($contractStartDate);
+        $withdrawalDeadline = $startDate->copy()->addDays(14)->endOfDay();
+
+        if (now()->isAfter($withdrawalDeadline)) {
+            return back()->withErrors([
+                'error' => 'Die 14-tägige Widerrufsfrist ist bereits abgelaufen (Fristende: ' .
+                          $withdrawalDeadline->format('d.m.Y H:i') . ').'
+            ]);
+        }
+
+        // E-Mail aus Request oder Member-Profil
+        $confirmationEmail = $validated['confirmation_email'] ?? $member->email;
+
+        DB::beginTransaction();
+        try {
+            // Erstattungsbetrag berechnen
+            $refundAmount = $membership->payments()
+                ->whereIn('status', ['paid', 'completed'])
+                ->sum('amount');
+
+            // Widerruf durchführen
+            $membership->update([
+                'status' => 'withdrawn',
+                'withdrawn_at' => now(),
+                'withdrawal_confirmation_sent_to' => $confirmationEmail,
+                'withdrawal_refund_amount' => $refundAmount,
+            ]);
+
+            // Erstattung initiieren (falls Zahlungen vorhanden)
+            if ($refundAmount > 0) {
+                $paymentService->initiateRefund($membership, $refundAmount);
+            }
+
+            // Notiz hinzufügen
+            $membership->update([
+                'notes' => ($membership->notes ? $membership->notes . "\n" : '') .
+                          "Widerrufen am " . now()->format('d.m.Y H:i') .
+                          " (manuell durch Admin)" .
+                          ($refundAmount > 0 ? " - Erstattung: " . number_format($refundAmount, 2, ',', '.') . " €" : "")
+            ]);
+
+            // Eingangsbestätigung per E-Mail senden (§ 356a BGB)
+            try {
+                Mail::to($confirmationEmail)->send(new WithdrawalConfirmationMail(
+                    $member,
+                    $membership->fresh(),
+                    $member->gym,
+                    [
+                        'withdrawal_date' => now()->format('d.m.Y'),
+                        'withdrawal_time' => now()->format('H:i'),
+                        'refund_amount' => $refundAmount,
+                    ]
+                ));
+            } catch (\Exception $mailException) {
+                Log::error('Failed to send withdrawal confirmation email', [
+                    'member_id' => $member->id,
+                    'membership_id' => $membership->id,
+                    'error' => $mailException->getMessage(),
+                ]);
+                // E-Mail-Fehler sollte den Widerruf nicht rückgängig machen
+            }
+
+            DB::commit();
+
+            Log::info('Contract withdrawn manually by admin', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'admin_user_id' => auth()->id(),
+                'refund_amount' => $refundAmount,
+            ]);
+
+            $successMessage = 'Die Mitgliedschaft wurde erfolgreich widerrufen.';
+            if ($refundAmount > 0) {
+                $successMessage .= ' Erstattung von ' . number_format($refundAmount, 2, ',', '.') . ' € wurde initiiert.';
+            }
+
+            return back()->with('success', $successMessage);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Manual contract withdrawal failed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Der Widerruf konnte nicht durchgeführt werden: ' . $e->getMessage()
             ]);
         }
     }

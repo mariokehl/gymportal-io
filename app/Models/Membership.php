@@ -22,6 +22,12 @@ class Membership extends Model
         'cancellation_reason',
         'contract_file_path',
         'notes',
+        'linked_free_membership_id',
+        // Widerrufs-Felder (§ 356a BGB)
+        'withdrawn_at',
+        'withdrawal_confirmation_sent_to',
+        'withdrawal_refund_amount',
+        'withdrawal_refund_processed_at',
     ];
 
     protected $casts = [
@@ -30,12 +36,21 @@ class Membership extends Model
         'pause_start_date' => 'date',
         'pause_end_date' => 'date',
         'cancellation_date' => 'date',
+        // Widerrufs-Felder (§ 356a BGB)
+        'withdrawn_at' => 'datetime',
+        'withdrawal_refund_processed_at' => 'datetime',
+        'withdrawal_refund_amount' => 'decimal:2',
     ];
 
     protected $appends = [
         'min_cancellation_date',
         'default_cancellation_date',
         'can_cancel',
+        'is_free_trial',
+        // Widerrufs-Attribute (§ 356a BGB)
+        'withdrawal_eligible',
+        'withdrawal_deadline',
+        'contract_start_date',
     ];
 
     public function member()
@@ -53,6 +68,30 @@ class Membership extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * Verknüpfte Gratis-Mitgliedschaft (bei Vertragsstart zum 1. des Monats)
+     */
+    public function linkedFreeMembership()
+    {
+        return $this->belongsTo(Membership::class, 'linked_free_membership_id');
+    }
+
+    /**
+     * Verknüpfte zahlungspflichtige Mitgliedschaft (inverse Relation)
+     */
+    public function linkedPaidMembership()
+    {
+        return $this->hasOne(Membership::class, 'linked_free_membership_id');
+    }
+
+    /**
+     * Prüft ob dies eine Gratis-Testmitgliedschaft ist
+     */
+    public function getIsFreeTrialAttribute(): bool
+    {
+        return $this->membershipPlan?->is_free_trial_plan ?? false;
+    }
+
     public function getStatusTextAttribute()
     {
         return [
@@ -60,7 +99,8 @@ class Membership extends Model
             'paused' => 'Pausiert',
             'cancelled' => 'Gekündigt',
             'expired' => 'Abgelaufen',
-            'pending' => 'Ausstehend', // Neu hinzugefügt
+            'pending' => 'Ausstehend',
+            'withdrawn' => 'Widerrufen',
         ][$this->status] ?? $this->status;
     }
 
@@ -71,7 +111,8 @@ class Membership extends Model
             'paused' => 'yellow',
             'cancelled' => 'red',
             'expired' => 'gray',
-            'pending' => 'orange', // Neu hinzugefügt
+            'pending' => 'orange',
+            'withdrawn' => 'purple',
         ][$this->status] ?? 'gray';
     }
 
@@ -156,9 +197,13 @@ class Membership extends Model
             $date->addMonths($this->membershipPlan->commitment_months);
         }
 
-        // Subtract cancellation period days (user must cancel before commitment ends)
-        if ($this->membershipPlan->cancellation_period_days) {
-            $date->subDays($this->membershipPlan->cancellation_period_days);
+        // Subtract cancellation period (user must cancel before commitment ends)
+        if ($this->membershipPlan->cancellation_period) {
+            if ($this->membershipPlan->cancellation_period_unit === 'months') {
+                $date->subMonths($this->membershipPlan->cancellation_period);
+            } else {
+                $date->subDays($this->membershipPlan->cancellation_period);
+            }
         }
 
         return $date->format('Y-m-d');
@@ -196,7 +241,8 @@ class Membership extends Model
 
         $commitmentMonths = $this->membershipPlan->commitment_months ?? 0;
         $renewalMonths = $this->membershipPlan->renewal_months ?? 1;
-        $cancellationPeriodDays = $this->membershipPlan->cancellation_period_days ?? 0;
+        $cancellationPeriod = $this->membershipPlan->cancellation_period ?? 0;
+        $cancellationPeriodUnit = $this->membershipPlan->cancellation_period_unit ?? 'days';
 
         // 1. End of minimum term
         $commitmentEnd = $start->copy()->addMonths($commitmentMonths);
@@ -217,9 +263,114 @@ class Membership extends Model
         $periodEnd = $periodStart->copy();
 
         // 3. Calculate the latest possible termination date for this period.
-        $latestPossibleCancellation = $periodEnd->copy()->subDays($cancellationPeriodDays);
+        if ($cancellationPeriodUnit === 'months') {
+            $latestPossibleCancellation = $periodEnd->copy()->subMonths($cancellationPeriod);
+        } else {
+            $latestPossibleCancellation = $periodEnd->copy()->subDays($cancellationPeriod);
+        }
 
         // 4. Termination is possible if today <= deadline
         return $today->lessThanOrEqualTo($latestPossibleCancellation);
+    }
+
+    // =========================================================================
+    // Widerrufsfunktion gemäß § 356a BGB
+    // =========================================================================
+
+    /**
+     * Effektives Vertragsstartdatum (für Widerrufsfrist-Berechnung)
+     *
+     * Bei verknüpfter Gratis-Mitgliedschaft wird deren Startdatum verwendet,
+     * da dies den tatsächlichen Vertragsabschluss darstellt.
+     */
+    public function getContractStartDateAttribute(): ?string
+    {
+        // Wenn eine verknüpfte Gratis-Mitgliedschaft existiert, deren Startdatum verwenden
+        if ($this->linked_free_membership_id && $this->linkedFreeMembership) {
+            return $this->linkedFreeMembership->start_date?->format('Y-m-d');
+        }
+
+        // Alternativ: Suche nach einer Gratis-Mitgliedschaft für dieses Mitglied
+        $freeMembership = self::where('member_id', $this->member_id)
+            ->whereHas('membershipPlan', function ($query) {
+                $query->where('is_free_trial_plan', true);
+            })
+            ->where('start_date', '<=', $this->start_date)
+            ->orderBy('start_date', 'asc')
+            ->first();
+
+        if ($freeMembership) {
+            return $freeMembership->start_date?->format('Y-m-d');
+        }
+
+        return $this->start_date?->format('Y-m-d');
+    }
+
+    /**
+     * Prüft ob ein Widerruf möglich ist (§ 356a BGB)
+     *
+     * Widerrufsfrist: 14 Tage ab Vertragsabschluss
+     */
+    public function getWithdrawalEligibleAttribute(): bool
+    {
+        // Nur bezahlte, aktive/pending Mitgliedschaften können widerrufen werden
+        if ($this->is_free_trial) {
+            return false;
+        }
+
+        // Bereits widerrufen oder gekündigt?
+        if ($this->withdrawn_at || $this->status === 'cancelled' || $this->status === 'withdrawn') {
+            return false;
+        }
+
+        // Nur aktive oder pending Mitgliedschaften
+        if (!in_array($this->status, ['active', 'pending'])) {
+            return false;
+        }
+
+        // 14-Tage-Frist prüfen
+        $contractStartDate = $this->contract_start_date;
+        if (!$contractStartDate) {
+            return false;
+        }
+
+        $startDate = \Carbon\Carbon::parse($contractStartDate);
+        $deadline = $startDate->copy()->addDays(14)->endOfDay();
+
+        return now()->isBefore($deadline);
+    }
+
+    /**
+     * Widerrufs-Deadline (Ende der 14-Tage-Frist)
+     */
+    public function getWithdrawalDeadlineAttribute(): ?string
+    {
+        if (!$this->withdrawal_eligible) {
+            return null;
+        }
+
+        $contractStartDate = $this->contract_start_date;
+        if (!$contractStartDate) {
+            return null;
+        }
+
+        $startDate = \Carbon\Carbon::parse($contractStartDate);
+        return $startDate->copy()->addDays(14)->endOfDay()->toIso8601String();
+    }
+
+    /**
+     * Prüft ob die Mitgliedschaft widerrufen wurde
+     */
+    public function getIsWithdrawnAttribute(): bool
+    {
+        return $this->status === 'withdrawn' || $this->withdrawn_at !== null;
+    }
+
+    /**
+     * Scope für widerrufene Mitgliedschaften
+     */
+    public function scopeWithdrawn($query)
+    {
+        return $query->where('status', 'withdrawn');
     }
 }

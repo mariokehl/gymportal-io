@@ -105,9 +105,15 @@ class CheckExpiringContracts extends Command
             $plan = $membership->membershipPlan;
             $member = $membership->member;
 
-            // Check cancellation status
-            $cancellationDeadline = $membership->end_date->copy()
-                ->subDays($plan->cancellation_period_days ?? 30);
+            // Check cancellation status - use cancellation period with proper unit
+            $cancellationPeriod = $plan->cancellation_period ?? 30;
+            $cancellationUnit = $plan->cancellation_period_unit ?? 'days';
+
+            if ($cancellationUnit === 'months') {
+                $cancellationDeadline = $membership->end_date->copy()->subMonths($cancellationPeriod);
+            } else {
+                $cancellationDeadline = $membership->end_date->copy()->subDays($cancellationPeriod);
+            }
 
             $canStillCancel = Carbon::today() <= $cancellationDeadline;
             $willAutoRenew = !$membership->cancellation_date && !$canStillCancel;
@@ -157,8 +163,13 @@ class CheckExpiringContracts extends Command
         } elseif ($willAutoRenew) {
             $this->line("  Status: <fg=green>Will auto-renew</>");
         } elseif ($canStillCancel) {
-            $cancellationDeadline = $membership->end_date->copy()
-                ->subDays($plan->cancellation_period_days ?? 30);
+            $cancellationPeriod = $plan->cancellation_period ?? 30;
+            $cancellationUnit = $plan->cancellation_period_unit ?? 'days';
+            if ($cancellationUnit === 'months') {
+                $cancellationDeadline = $membership->end_date->copy()->subMonths($cancellationPeriod);
+            } else {
+                $cancellationDeadline = $membership->end_date->copy()->subDays($cancellationPeriod);
+            }
             $this->line("  Status: <fg=cyan>Can cancel until {$cancellationDeadline->format('d.m.Y')}</>");
         }
     }
@@ -273,8 +284,13 @@ class CheckExpiringContracts extends Command
             $content['main'] = "Ihre Mitgliedschaft '{$plan->name}' verlängert sich automatisch in {$days} Tagen um weitere {$plan->commitment_months} Monate.";
             $content['action'] = "Falls Sie nicht verlängern möchten, können Sie Ihre Mitgliedschaft in Ihrem Konto kündigen.";
         } elseif ($canCancel) {
-            $cancellationDeadline = $membership->end_date->copy()
-                ->subDays($plan->cancellation_period_days ?? 30);
+            $cancellationPeriod = $plan->cancellation_period ?? 30;
+            $cancellationUnit = $plan->cancellation_period_unit ?? 'days';
+            if ($cancellationUnit === 'months') {
+                $cancellationDeadline = $membership->end_date->copy()->subMonths($cancellationPeriod);
+            } else {
+                $cancellationDeadline = $membership->end_date->copy()->subDays($cancellationPeriod);
+            }
             $content['main'] = "Ihre Mitgliedschaft '{$plan->name}' läuft in {$days} Tagen aus.";
             $content['action'] = "Sie können noch bis zum {$cancellationDeadline->format('d.m.Y')} kündigen.";
         } else {
@@ -328,15 +344,28 @@ class CheckExpiringContracts extends Command
         }
 
         // Count memberships that can still cancel
+        // Uses CASE to handle both days and months units
         $stats['can_cancel'] = $query->clone()
             ->whereNull('cancellation_date')
-            ->whereRaw('DATE_SUB(end_date, INTERVAL (SELECT cancellation_period_days FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) DAY) >= CURDATE()')
+            ->whereRaw("
+                CASE
+                    WHEN (SELECT cancellation_period_unit FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) = 'months'
+                    THEN DATE_SUB(end_date, INTERVAL (SELECT cancellation_period FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) MONTH)
+                    ELSE DATE_SUB(end_date, INTERVAL (SELECT cancellation_period FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) DAY)
+                END >= CURDATE()
+            ")
             ->count();
 
         // Count memberships that will auto-renew
         $stats['will_renew'] = $query->clone()
             ->whereNull('cancellation_date')
-            ->whereRaw('DATE_SUB(end_date, INTERVAL (SELECT cancellation_period_days FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) DAY) < CURDATE()')
+            ->whereRaw("
+                CASE
+                    WHEN (SELECT cancellation_period_unit FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) = 'months'
+                    THEN DATE_SUB(end_date, INTERVAL (SELECT cancellation_period FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) MONTH)
+                    ELSE DATE_SUB(end_date, INTERVAL (SELECT cancellation_period FROM membership_plans WHERE membership_plans.id = memberships.membership_plan_id) DAY)
+                END < CURDATE()
+            ")
             ->where('end_date', '>', Carbon::today())
             ->count();
     }

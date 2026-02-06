@@ -77,19 +77,24 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 // Protected routes
 Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::resource('members', MemberController::class);
-    Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
+    Route::get('/members/search', [MemberController::class, 'search'])->name('members.search');
     Route::post('/members/check-email', [MemberController::class, 'checkEmail'])->name('members.check-email');
     Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
+    Route::resource('members', MemberController::class);
+    Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::post('/members/{member}/toggle-age-verification', [MemberController::class, 'toggleAgeVerification'])->name('members.toggle-age-verification');
+    Route::post('/members/{member}/toggle-guest-access', [MemberController::class, 'toggleGuestAccess'])->name('members.toggle-guest-access');
     Route::post('/members/{member}/memberships', [MemberController::class, 'storeMembership'])->name('members.memberships.store');
+    Route::post('/members/{member}/memberships/free-period', [MembershipController::class, 'storeFreePeriod'])->name('members.memberships.store-free-period');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {
         Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');
         Route::put('/pause', [MembershipController::class, 'pause'])->name('members.memberships.pause');
         Route::put('/resume', [MembershipController::class, 'resume'])->name('members.memberships.resume');
         Route::put('/cancel', [MembershipController::class, 'cancel'])->name('members.memberships.cancel');
         Route::put('/revoke-cancellation', [MembershipController::class, 'revokeCancellation'])->name('members.memberships.revoke-cancellation');
+        Route::put('/abort', [MembershipController::class, 'abort'])->name('members.memberships.abort');
+        Route::put('/withdraw', [MembershipController::class, 'withdraw'])->name('members.memberships.withdraw');
     });
     Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');

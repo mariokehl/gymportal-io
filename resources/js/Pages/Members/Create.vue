@@ -281,6 +281,45 @@
             </div>
           </div>
 
+          <!-- Gesetzlicher Vertreter -->
+          <h4 class="text-md font-medium text-gray-900 mt-8 mb-4">Gesetzlicher Vertreter</h4>
+          <p class="text-sm text-gray-500 mb-4">
+            Bei Minderjährigen muss ein gesetzlicher Vertreter (z.B. Elternteil) dem Vertrag zustimmen.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="legal_guardian_first_name" class="block text-sm font-medium text-gray-700 mb-2">
+                Vorname des gesetzlichen Vertreters
+              </label>
+              <input
+                id="legal_guardian_first_name"
+                v-model="form.legal_guardian_first_name"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.legal_guardian_first_name }"
+              />
+              <p v-if="errors.legal_guardian_first_name" class="mt-1 text-sm text-red-600">
+                {{ errors.legal_guardian_first_name }}
+              </p>
+            </div>
+
+            <div>
+              <label for="legal_guardian_last_name" class="block text-sm font-medium text-gray-700 mb-2">
+                Nachname des gesetzlichen Vertreters
+              </label>
+              <input
+                id="legal_guardian_last_name"
+                v-model="form.legal_guardian_last_name"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'border-red-500': errors.legal_guardian_last_name }"
+              />
+              <p v-if="errors.legal_guardian_last_name" class="mt-1 text-sm text-red-600">
+                {{ errors.legal_guardian_last_name }}
+              </p>
+            </div>
+          </div>
+
           <div class="mt-6">
             <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
               Zusätzliche Notizen (optional)
@@ -299,8 +338,26 @@
         <div v-show="currentStep === 1" class="p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-6">Mitgliedschaft wählen</h3>
 
-          <!-- Show message if no membership plans are available -->
-          <div v-if="!membershipPlans || !Array.isArray(membershipPlans) || membershipPlans.length === 0" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <!-- Gastzugang Option -->
+          <div class="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="form.create_as_guest"
+                class="w-4 h-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+              />
+              <span class="ml-3 text-sm font-medium text-gray-900">
+                Als Gast anlegen (ohne Mitgliedschaft)
+              </span>
+            </label>
+            <p class="mt-2 ml-7 text-xs text-gray-600">
+              Das Mitglied erhält Gastzugang und kann das Fitnessstudio betreten, ohne eine aktive Mitgliedschaft zu benötigen.
+              Keine Zahlungsmethode erforderlich.
+            </p>
+          </div>
+
+          <!-- Show message if no membership plans are available (nur wenn nicht als Gast) -->
+          <div v-if="!form.create_as_guest && (!membershipPlans || !Array.isArray(membershipPlans) || membershipPlans.length === 0)" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div class="flex">
               <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -317,7 +374,7 @@
             </div>
           </div>
 
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          <div v-else-if="!form.create_as_guest" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             <div
               v-for="plan in membershipPlans"
               :key="plan.id"
@@ -355,7 +412,7 @@
             </div>
           </div>
 
-          <div v-if="membershipPlans && Array.isArray(membershipPlans) && membershipPlans.length > 0">
+          <div v-if="!form.create_as_guest && membershipPlans && Array.isArray(membershipPlans) && membershipPlans.length > 0">
             <!-- Checkbox to allow past start dates -->
             <div class="mb-4">
               <label class="flex items-center">
@@ -422,9 +479,50 @@
                 </p>
               </div>
             </div>
+
+            <!-- Gratis-Zeitraum Info-Box -->
+            <div v-if="shouldShowFreePeriodInfo" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-green-800">Gratis-Testzeitraum</h3>
+                  <div class="mt-2 text-sm text-green-700">
+                    <p>
+                      Da der Vertrag nicht am 1. des Monats beginnt, wird automatisch ein
+                      <strong>{{ gymSettings.free_trial_membership_name }}</strong> erstellt:
+                    </p>
+                    <ul class="mt-2 list-disc list-inside space-y-1">
+                      <li><strong>Gratis-Zeitraum:</strong> {{ formatFreePeriodDate(new Date(form.joined_date)) }} - {{ formatFreePeriodDate(freePeriodEndDate) }}</li>
+                      <li><strong>Zahlungspflichtiger Vertrag beginnt:</strong> {{ formatFreePeriodDate(paidMembershipStartDate) }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Checkbox: Vertrag beginnt sofort -->
+            <div v-if="gymSettings.contracts_start_first_of_month && form.joined_date && new Date(form.joined_date).getDate() !== 1" class="mt-4">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  v-model="form.start_immediately"
+                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <span class="ml-2 text-sm text-gray-700">
+                  Vertrag beginnt sofort (ohne Gratis-Zeitraum)
+                </span>
+              </label>
+              <p class="mt-1 ml-6 text-xs text-gray-500">
+                Der Vertrag startet am gewählten Datum und es wird kein Gratis-Zeitraum angelegt.
+              </p>
+            </div>
           </div>
 
-          <p v-if="errors.membership_plan_id" class="mt-4 text-sm text-red-600">
+          <p v-if="!form.create_as_guest && errors.membership_plan_id" class="mt-4 text-sm text-red-600">
             {{ errors.membership_plan_id }}
           </p>
         </div>
@@ -509,16 +607,43 @@
                 <div v-else class="text-gray-500 italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
                 <div><span class="font-medium">Adresse:</span> {{ form.address }}, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
                 <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
+                <div v-if="form.legal_guardian_first_name || form.legal_guardian_last_name"><span class="font-medium">Gesetzlicher Vertreter:</span> {{ form.legal_guardian_first_name }} {{ form.legal_guardian_last_name }}</div>
               </div>
             </div>
 
-            <!-- Mitgliedschaft -->
+            <!-- Mitgliedschaft / Gastzugang -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="font-medium text-gray-900 mb-3">Mitgliedschaft</h4>
-              <div class="space-y-2 text-sm" v-if="selectedPlan">
+              <h4 class="font-medium text-gray-900 mb-3">
+                {{ form.create_as_guest ? 'Gastzugang' : 'Mitgliedschaft' }}
+              </h4>
+
+              <!-- Gastzugang-Anzeige -->
+              <div v-if="form.create_as_guest" class="space-y-2 text-sm">
+                <div class="py-2 px-3 bg-orange-100 rounded-md -mx-1">
+                  <div class="text-orange-800 font-medium">Gastzugang aktiviert</div>
+                  <div class="text-orange-700 text-xs mt-1">Zugang ohne aktive Mitgliedschaft</div>
+                </div>
+                <div class="text-gray-600 italic">Keine Mitgliedschaft</div>
+                <div class="text-gray-600 italic">Keine Zahlungsmethode</div>
+              </div>
+
+              <!-- Normale Mitgliedschafts-Anzeige -->
+              <div class="space-y-2 text-sm" v-else-if="selectedPlan">
                 <div><span class="font-medium">Tarif:</span> {{ selectedPlan.name }}</div>
                 <div><span class="font-medium">Preis:</span> {{ formatCurrency(selectedPlan.price) }} / {{ getBillingCycleText(selectedPlan.billing_cycle) }}</div>
-                <div><span class="font-medium">Startdatum:</span> {{ formatDate(form.joined_date) }}</div>
+
+                <!-- Gratis-Zeitraum Anzeige in Zusammenfassung -->
+                <template v-if="shouldShowFreePeriodInfo">
+                  <div class="py-2 px-3 bg-green-100 rounded-md -mx-1">
+                    <div class="text-green-800 font-medium">{{ gymSettings.free_trial_membership_name }}</div>
+                    <div class="text-green-700">{{ formatFreePeriodDate(new Date(form.joined_date)) }} - {{ formatFreePeriodDate(freePeriodEndDate) }} (kostenlos)</div>
+                  </div>
+                  <div><span class="font-medium">Zahlungspflichtiger Vertrag ab:</span> {{ formatFreePeriodDate(paidMembershipStartDate) }}</div>
+                </template>
+                <template v-else>
+                  <div><span class="font-medium">Startdatum:</span> {{ formatDate(form.joined_date) }}</div>
+                </template>
+
                 <div v-if="form.billing_anchor_date"><span class="font-medium">Erste Abrechnung am:</span> {{ formatDate(form.billing_anchor_date) }}</div>
                 <div><span class="font-medium">Laufzeit: </span>
                   <span v-if="selectedPlan.commitment_months > 0">
@@ -609,6 +734,13 @@ const props = defineProps({
     paymentMethods: {
         type: Array,
         default: () => []
+    },
+    gymSettings: {
+        type: Object,
+        default: () => ({
+            contracts_start_first_of_month: false,
+            free_trial_membership_name: 'Gratis-Testzeitraum'
+        })
     }
 })
 
@@ -637,6 +769,8 @@ const form = useForm({
   country: 'DE',
   emergency_contact_name: '',
   emergency_contact_phone: '',
+  legal_guardian_first_name: '',
+  legal_guardian_last_name: '',
   notes: '',
   status: 'active',
 
@@ -649,8 +783,14 @@ const form = useForm({
   // Zahlungsmethode
   payment_method: '',
 
+  // Vertragsstart-Option
+  start_immediately: false,
+
   // Zustimmung
-  accept_terms: true // TODO: Momentan über Adminbereich immer erteilt, ggf. an SEPA-Lastschriftverfahren koppeln
+  accept_terms: true, // TODO: Momentan über Adminbereich immer erteilt, ggf. an SEPA-Lastschriftverfahren koppeln
+
+  // Gastzugang
+  create_as_guest: false
 })
 
 const today = computed(() => {
@@ -660,6 +800,35 @@ const today = computed(() => {
 const selectedPlan = computed(() => {
   return props.membershipPlans.find(plan => plan.id === form.membership_plan_id)
 })
+
+// Gratis-Zeitraum Berechnungen
+const shouldShowFreePeriodInfo = computed(() => {
+  if (!props.gymSettings.contracts_start_first_of_month) return false
+  if (form.start_immediately) return false
+  if (!form.joined_date) return false
+
+  const startDate = new Date(form.joined_date)
+  return startDate.getDate() !== 1
+})
+
+const freePeriodEndDate = computed(() => {
+  if (!form.joined_date) return null
+  const startDate = new Date(form.joined_date)
+  // Letzter Tag des Monats
+  return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
+})
+
+const paidMembershipStartDate = computed(() => {
+  if (!form.joined_date) return null
+  const startDate = new Date(form.joined_date)
+  // 1. des Folgemonats
+  return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1)
+})
+
+const formatFreePeriodDate = (date) => {
+  if (!date) return ''
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 const errors = computed(() => form.errors)
 
@@ -867,10 +1036,14 @@ const touchAllStep1Fields = () => {
 }
 
 const validateStep2 = () => {
+  // Bei Gastzugang ist Schritt 2 immer gültig
+  if (form.create_as_guest) return true
   return form.membership_plan_id && form.joined_date && !form.errors.membership_plan_id && !form.errors.joined_date && !form.errors.billing_anchor_date
 }
 
 const validateStep3 = () => {
+  // Bei Gastzugang ist Schritt 3 nicht relevant
+  if (form.create_as_guest) return true
   return form.payment_method && !form.errors.payment_method
 }
 
@@ -889,6 +1062,10 @@ const isCurrentStepValid = () => {
 }
 
 const isFormValid = () => {
+  // Bei Gastzugang: nur Schritt 1 und 4 validieren
+  if (form.create_as_guest) {
+    return validateStep1() && validateStep4()
+  }
   return validateStep1() && validateStep2() && validateStep3() && validateStep4()
 }
 
@@ -935,13 +1112,23 @@ const nextStep = () => {
   }
 
   if (currentStep.value < steps.length - 1 && isCurrentStepValid()) {
-    currentStep.value++
+    // Bei Gastzugang von Schritt 2 direkt zur Zusammenfassung springen
+    if (form.create_as_guest && currentStep.value === 1) {
+      currentStep.value = 3 // Springe direkt zu Schritt 4 (Zusammenfassung)
+    } else {
+      currentStep.value++
+    }
   }
 }
 
 const previousStep = () => {
   if (currentStep.value > 0) {
-    currentStep.value--
+    // Bei Gastzugang von der Zusammenfassung direkt zu Schritt 2 zurück
+    if (form.create_as_guest && currentStep.value === 3) {
+      currentStep.value = 1
+    } else {
+      currentStep.value--
+    }
   }
 }
 

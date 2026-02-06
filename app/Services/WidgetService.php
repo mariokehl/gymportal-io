@@ -97,7 +97,10 @@ class WidgetService
 
             $paymentMethod = $this->createPaymentMethod($member, $data);
 
-            $membership = $this->createMembership($member, $plan, $data['payment_method']);
+            // Mitgliedschaft erstellen (mit optionalem Gratis-Zeitraum)
+            $membershipResult = $this->createMembershipWithOptionalFreePeriod($member, $plan, $data['payment_method']);
+            $membership = $membershipResult['membership'];
+            $freeMembership = $membershipResult['free_membership'];
 
             $registration = WidgetRegistration::where('gym_id', $gym->id)
                 ->where('session_id', session()->getId())
@@ -225,6 +228,17 @@ class WidgetService
                         'method' => 'paper',
                         'deadline' => now()->addDays(14)->format('d.m.Y'),
                     ]
+                ];
+            }
+
+            // Gratis-Zeitraum Info hinzufügen wenn vorhanden
+            if ($freeMembership) {
+                $response['free_period'] = [
+                    'membership_id' => $freeMembership->id,
+                    'name' => $freeMembership->membershipPlan->name,
+                    'start_date' => $freeMembership->start_date->format('d.m.Y'),
+                    'end_date' => $freeMembership->end_date->format('d.m.Y'),
+                    'paid_membership_start' => $membership->start_date->format('d.m.Y'),
                 ];
             }
 
@@ -507,20 +521,25 @@ class WidgetService
     }
 
     /**
-     * Mitgliedschaft erstellen
+     * Mitgliedschaft erstellen (mit optionalem Gratis-Zeitraum)
+     *
+     * @return array{membership: Membership, free_membership: ?Membership}
      */
-    private function createMembership(Member $member, MembershipPlan $plan, string $paymentMethod): Membership
+    private function createMembershipWithOptionalFreePeriod(Member $member, MembershipPlan $plan, string $paymentMethod): array
     {
         $memberService = app(MemberService::class);
+        $startDate = Carbon::parse($member->joined_date);
 
-        $membership = $memberService
-            ->createMembership(
-                $member,
-                $plan,
-                $this->determineMembershipStatus($paymentMethod, null)
-            );
+        // Erstelle Mitgliedschaft mit optionalem Gratis-Zeitraum
+        $result = $memberService->createMembershipWithFreePeriod(
+            $member,
+            $plan,
+            $startDate,
+            $this->determineMembershipStatus($paymentMethod, null),
+            false // Widget startet nie sofort, immer mit Gratis-Zeitraum wenn Option aktiviert
+        );
 
-        return $membership;
+        return $result;
     }
 
     private function createPayment(

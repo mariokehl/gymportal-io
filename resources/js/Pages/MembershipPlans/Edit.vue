@@ -81,8 +81,18 @@
             <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
           </div>
 
-          <!-- Price, Setup Fee and Billing Cycle -->
-          <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Trial Period Info for Free Trial Plans -->
+          <div v-if="membershipPlan.is_free_trial_plan" class="mb-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <p class="text-sm text-purple-800">
+              <strong>Gratis-Mitgliedschaft</strong>
+            </p>
+            <p class="text-xs text-purple-600 mt-1">
+              Bei Gratis-Testzeiträumen sind Preis, Aktivierungsgebühr, Abrechnungszyklus, Mindestlaufzeit und Kündigungsfrist nicht relevant.
+            </p>
+          </div>
+
+          <!-- Price, Setup Fee and Billing Cycle - Hidden for free trial plans -->
+          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
                 Preis (€) <span class="text-red-500">*</span>
@@ -147,8 +157,8 @@
             </div>
           </div>
 
-          <!-- Commitment and Cancellation -->
-          <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Commitment and Cancellation - Hidden for free trial plans -->
+          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="commitment_months" class="block text-sm font-medium text-gray-700 mb-2">
                 Mindestlaufzeit (Monate)
@@ -168,26 +178,38 @@
             </div>
 
             <div>
-              <label for="cancellation_period_days" class="block text-sm font-medium text-gray-700 mb-2">
-                Kündigungsfrist (Tage) <span class="text-red-500">*</span>
+              <label for="cancellation_period" class="block text-sm font-medium text-gray-700 mb-2">
+                Kündigungsfrist <span class="text-red-500">*</span>
               </label>
-              <input
-                id="cancellation_period_days"
-                v-model="form.cancellation_period_days"
-                type="number"
-                min="0"
-                max="365"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                :class="{ 'border-red-500': errors.cancellation_period_days }"
-                placeholder="30"
-                required
-              />
-              <p v-if="errors.cancellation_period_days" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period_days }}</p>
+              <div class="flex gap-2">
+                <input
+                  id="cancellation_period"
+                  v-model="form.cancellation_period"
+                  type="number"
+                  min="0"
+                  :max="form.cancellation_period_unit === 'months' ? 24 : 365"
+                  class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                  :class="{ 'border-red-500': errors.cancellation_period }"
+                  placeholder="30"
+                  required
+                />
+                <select
+                  id="cancellation_period_unit"
+                  v-model="form.cancellation_period_unit"
+                  class="w-28 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                  :class="{ 'border-red-500': errors.cancellation_period_unit }"
+                >
+                  <option value="days">Tage</option>
+                  <option value="months">Monate</option>
+                </select>
+              </div>
+              <p v-if="errors.cancellation_period" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period }}</p>
+              <p v-if="errors.cancellation_period_unit" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period_unit }}</p>
             </div>
           </div>
 
-          <!-- Active Status -->
-          <div class="mb-8">
+          <!-- Active Status - Hidden for free trial plans -->
+          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-8">
             <div class="flex items-center">
               <input
                 id="is_active"
@@ -261,7 +283,8 @@ const form = useForm({
   billing_cycle: props.membershipPlan.billing_cycle,
   is_active: props.membershipPlan.is_active,
   commitment_months: props.membershipPlan.commitment_months || '',
-  cancellation_period_days: props.membershipPlan.cancellation_period_days
+  cancellation_period: props.membershipPlan.cancellation_period,
+  cancellation_period_unit: props.membershipPlan.cancellation_period_unit || 'days'
 })
 
 // Computed

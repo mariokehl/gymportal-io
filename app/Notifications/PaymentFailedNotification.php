@@ -45,7 +45,7 @@ class PaymentFailedNotification extends Notification implements ShouldQueue
         return [
             'type' => 'payment_failed',
             'title' => 'Zahlung fehlgeschlagen',
-            'message' => "Die Zahlung von {$this->member->first_name} {$this->member->last_name} ist fehlgeschlagen. Der Mitgliedsstatus wurde auf \"Überfällig\" geändert.",
+            'message' => "Zahlung von {$this->member->first_name} {$this->member->last_name} ist fehlgeschlagen. Mitgliedsstatus wurde auf \"Überfällig\" geändert.",
             'member' => [
                 'id' => $this->member->id,
                 'member_number' => $this->member->member_number,

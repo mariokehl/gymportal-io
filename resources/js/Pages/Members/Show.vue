@@ -91,6 +91,35 @@
             </div>
           </div>
 
+          <!-- Gastzugang Toggle -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <button
+                @click="toggleGuestAccess"
+                :disabled="togglingGuestAccess"
+                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                :class="member.guest_access ? 'bg-orange-500' : 'bg-gray-200'"
+                role="switch"
+                :aria-checked="member.guest_access"
+              >
+                <span
+                  aria-hidden="true"
+                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
+              <span class="text-sm text-gray-600">
+                Gastzugang
+              </span>
+              <span
+                v-if="member.guest_access && member.guest_access_granted_at"
+                class="text-xs text-gray-400"
+              >
+                ({{ formatDate(member.guest_access_granted_at) }})
+              </span>
+            </div>
+          </div>
+
           <div class="flex items-center space-x-3">
             <Link
               :href="route('members.create')"
@@ -305,6 +334,7 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
+
                 <div class="md:col-span-2">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
                   <textarea
@@ -313,6 +343,92 @@
                     rows="3"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   ></textarea>
+                </div>
+
+                <!-- Gesetzlicher Vertreter -->
+                <div class="md:col-span-2 mt-4">
+                  <h4 class="text-sm font-semibold text-gray-900 mb-1">Gesetzlicher Vertreter</h4>
+                  <p class="text-xs text-gray-500">Bei Minderjährigen muss ein gesetzlicher Vertreter dem Vertrag zustimmen.</p>
+                </div>
+
+                <!-- Mitglied verknüpfen -->
+                <div class="md:col-span-2" v-if="editMode">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Mit Mitglied verknüpfen (optional)</label>
+                  <div class="flex gap-3">
+                    <div class="flex-1 relative">
+                      <input
+                        v-model="legalGuardianSearch"
+                        type="text"
+                        placeholder="Nach Mitglied suchen (Name oder Mitgliedsnummer)..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        @input="searchLegalGuardian"
+                        @focus="showLegalGuardianResults = true"
+                      />
+                      <!-- Suchergebnisse -->
+                      <div
+                        v-if="showLegalGuardianResults && legalGuardianSearchResults.length > 0"
+                        class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        <div
+                          v-for="result in legalGuardianSearchResults"
+                          :key="result.id"
+                          @click="selectLegalGuardian(result)"
+                          class="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm"
+                        >
+                          <span class="font-medium">{{ result.first_name }} {{ result.last_name }}</span>
+                          <span class="text-gray-500 ml-2">#{{ result.member_number }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      v-if="form.legal_guardian_member_id"
+                      type="button"
+                      @click="clearLegalGuardianMember"
+                      class="px-3 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
+                    >
+                      Verknüpfung entfernen
+                    </button>
+                  </div>
+                  <!-- Anzeige des verknüpften Mitglieds -->
+                  <div v-if="form.legal_guardian_member_id && selectedLegalGuardian" class="mt-2 p-2 bg-indigo-50 rounded-md text-sm">
+                    <span class="font-medium">Verknüpft mit:</span>
+                    {{ selectedLegalGuardian.first_name }} {{ selectedLegalGuardian.last_name }}
+                    <span class="text-gray-500">#{{ selectedLegalGuardian.member_number }}</span>
+                  </div>
+                </div>
+
+                <!-- Nur anzeigen wenn nicht im Edit-Mode oder kein Mitglied verknüpft -->
+                <div v-if="!editMode && member.legal_guardian_member_id && member.legal_guardian" class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Verknüpftes Mitglied</label>
+                  <div class="p-3 bg-indigo-50 rounded-md">
+                    <Link
+                      :href="route('members.show', member.legal_guardian.id)"
+                      class="text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      {{ member.legal_guardian.first_name }} {{ member.legal_guardian.last_name }}
+                      <span class="text-gray-500">#{{ member.legal_guardian.member_number }}</span>
+                    </Link>
+                  </div>
+                </div>
+
+                <!-- Manuelle Eingabe (nur wenn kein Mitglied verknüpft) -->
+                <div v-if="!form.legal_guardian_member_id">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Vorname</label>
+                  <input
+                    v-model="form.legal_guardian_first_name"
+                    :disabled="!editMode"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div v-if="!form.legal_guardian_member_id">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nachname</label>
+                  <input
+                    v-model="form.legal_guardian_last_name"
+                    :disabled="!editMode"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                  />
                 </div>
               </div>
               <div v-if="editMode" class="mt-6 flex justify-end space-x-3">
@@ -344,11 +460,15 @@
               :cancelling-membership="cancellingMembership"
               :revoking-cancellation="revokingCancellation"
               :activating-membership="activatingMembership"
+              :aborting-membership="abortingMembership"
+              :withdrawing-membership="withdrawingMembership"
               @activate="activateMembership"
               @pause="openPauseMembership"
               @resume="resumeMembership"
               @cancel="openCancelMembership"
               @revoke-cancellation="revokeCancellation"
+              @abort="abortMembership"
+              @withdraw="openWithdrawMembership"
             />
           </div>
 
@@ -1151,9 +1271,9 @@
                     <AlertCircle class="w-3 h-3 inline mr-1" />
                     Mindestlaufzeit: {{ selectedMembership.membership_plan?.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
                   </p>
-                  <p v-if="selectedMembership?.membership_plan?.cancellation_period_days" class="mt-1 text-sm text-blue-600">
+                  <p v-if="selectedMembership?.membership_plan?.cancellation_period" class="mt-1 text-sm text-blue-600">
                     <Clock class="w-3 h-3 inline mr-1" />
-                    Kündigungsfrist: {{ selectedMembership.membership_plan?.cancellation_period_days }} Tage
+                    Kündigungsfrist: {{ selectedMembership.membership_plan?.formatted_cancellation_period }}
                   </p>
                 </div>
 
@@ -1231,6 +1351,70 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Modal für Mitgliedschaft widerrufen (§ 356a BGB) -->
+    <teleport to="body">
+      <div v-if="showWithdrawMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeWithdrawMembership">
+        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="mb-4">
+              <h3 class="text-lg font-medium text-gray-900">
+                Mitgliedschaft widerrufen
+              </h3>
+              <p class="text-sm text-gray-500 mt-1">
+                Widerruf gemäß § 356a BGB innerhalb der 14-tägigen Widerrufsfrist.
+              </p>
+            </div>
+
+            <div v-if="selectedMembership" class="space-y-4">
+              <!-- Membership Info -->
+              <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h4 class="font-medium text-purple-900">{{ selectedMembership.membership_plan?.name }}</h4>
+                <p class="text-sm text-purple-700 mt-1">
+                  Vertragsbeginn: {{ formatDate(selectedMembership.contract_start_date || selectedMembership.start_date) }}
+                </p>
+                <p v-if="selectedMembership.withdrawal_deadline" class="text-sm text-purple-700">
+                  Widerrufsfrist endet: {{ formatDate(selectedMembership.withdrawal_deadline) }}
+                </p>
+              </div>
+
+              <!-- Warning -->
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex">
+                  <AlertCircle class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+                  <div class="text-sm text-yellow-800">
+                    <p class="font-medium">Hinweis zum Widerruf:</p>
+                    <ul class="mt-1 list-disc list-inside space-y-1">
+                      <li>Der Widerruf ist unwiderruflich</li>
+                      <li>Eine E-Mail-Bestätigung wird automatisch versendet</li>
+                      <li>Bereits gezahlte Beträge werden innerhalb von 14 Tagen erstattet</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              @click="withdrawMembership"
+              :disabled="withdrawingMembership"
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+            >
+              {{ withdrawingMembership ? 'Wird widerrufen...' : 'Mitgliedschaft widerrufen' }}
+            </button>
+            <button
+              type="button"
+              @click="closeWithdrawMembership"
+              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Abbrechen
+            </button>
+          </div>
         </div>
       </div>
     </teleport>
@@ -1767,6 +1951,54 @@ const {
 const editMode = ref(false)
 const activeTab = ref('personal')
 
+// Legal Guardian Search
+const legalGuardianSearch = ref('')
+const legalGuardianSearchResults = ref([])
+const showLegalGuardianResults = ref(false)
+const selectedLegalGuardian = ref(props.member.legal_guardian || null)
+let legalGuardianSearchTimeout = null
+
+const searchLegalGuardian = () => {
+  if (legalGuardianSearchTimeout) {
+    clearTimeout(legalGuardianSearchTimeout)
+  }
+
+  if (legalGuardianSearch.value.length < 2) {
+    legalGuardianSearchResults.value = []
+    return
+  }
+
+  legalGuardianSearchTimeout = setTimeout(async () => {
+    try {
+      const response = await fetch(route('members.search') + '?' + new URLSearchParams({
+        search: legalGuardianSearch.value,
+        exclude_id: props.member.id
+      }))
+      const data = await response.json()
+      legalGuardianSearchResults.value = data.members || []
+    } catch (error) {
+      console.error('Error searching members:', error)
+      legalGuardianSearchResults.value = []
+    }
+  }, 300)
+}
+
+const selectLegalGuardian = (member) => {
+  form.legal_guardian_member_id = member.id
+  form.legal_guardian_first_name = null
+  form.legal_guardian_last_name = null
+  selectedLegalGuardian.value = member
+  legalGuardianSearch.value = ''
+  legalGuardianSearchResults.value = []
+  showLegalGuardianResults.value = false
+}
+
+const clearLegalGuardianMember = () => {
+  form.legal_guardian_member_id = null
+  selectedLegalGuardian.value = null
+  legalGuardianSearch.value = ''
+}
+
 // Access Control state
 const editingNfc = ref(false)
 const nfcInputValue = ref('')
@@ -1803,14 +2035,20 @@ const accessForm = useForm({
 // Age verification state
 const verifyingAge = ref(false)
 
+// Guest access state
+const togglingGuestAccess = ref(false)
+
 // Membership-related state
 const pausingMembership = ref(null)
 const resumingMembership = ref(null)
 const cancellingMembership = ref(null)
 const revokingCancellation = ref(null)
 const activatingMembership = ref(null)
+const abortingMembership = ref(null)
+const withdrawingMembership = ref(null)
 const showPauseMembershipModal = ref(false)
 const showCancelMembershipModal = ref(false)
+const showWithdrawMembershipModal = ref(false)
 const selectedMembership = ref(null)
 
 // PaymentMethod-related state
@@ -2112,10 +2350,6 @@ const stopNfcScanning = () => {
   nfcScanConnected.value = false
 }
 
-// Cleanup on unmount
-onUnmounted(() => {
-  stopNfcScanning()
-})
 
 const getAccessMethodIcon = (method) => {
   const icons = {
@@ -2160,6 +2394,9 @@ const form = useForm({
   status: props.member.status,
   emergency_contact_name: props.member.emergency_contact_name,
   emergency_contact_phone: props.member.emergency_contact_phone,
+  legal_guardian_member_id: props.member.legal_guardian_member_id,
+  legal_guardian_first_name: props.member.legal_guardian_first_name,
+  legal_guardian_last_name: props.member.legal_guardian_last_name,
   notes: props.member.notes,
   joined_date: formatDateForInput(props.member.joined_date),
 })
@@ -2325,6 +2562,61 @@ const resumeMembership = (membership) => {
     onError: () => {
       resumingMembership.value = null
       alert('Die Mitgliedschaft konnte nicht wieder aufgenommen werden.')
+    }
+  })
+}
+
+const abortMembership = (membership) => {
+  if (!confirm('Möchten Sie diesen Gratis-Testzeitraum wirklich abbrechen? Der Zeitraum wird sofort beendet.')) {
+    return
+  }
+
+  abortingMembership.value = membership.id
+
+  router.put(route('members.memberships.abort', {
+    member: props.member.id,
+    membership: membership.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      abortingMembership.value = null
+    },
+    onError: () => {
+      abortingMembership.value = null
+      alert('Der Gratis-Testzeitraum konnte nicht abgebrochen werden.')
+    }
+  })
+}
+
+// Widerruf gemäß § 356a BGB
+const openWithdrawMembership = (membership) => {
+  selectedMembership.value = membership
+  showWithdrawMembershipModal.value = true
+}
+
+const closeWithdrawMembership = () => {
+  showWithdrawMembershipModal.value = false
+  selectedMembership.value = null
+}
+
+const withdrawMembership = () => {
+  if (!confirm('Möchten Sie diese Mitgliedschaft wirklich widerrufen? Der Widerruf ist unwiderruflich und löst eine E-Mail-Bestätigung aus.')) {
+    return
+  }
+
+  withdrawingMembership.value = selectedMembership.value.id
+
+  router.put(route('members.memberships.withdraw', {
+    member: props.member.id,
+    membership: selectedMembership.value.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      withdrawingMembership.value = null
+      closeWithdrawMembership()
+    },
+    onError: () => {
+      withdrawingMembership.value = null
     }
   })
 }
@@ -2808,6 +3100,20 @@ const toggleAgeVerification = () => {
   })
 }
 
+const toggleGuestAccess = () => {
+  togglingGuestAccess.value = true
+
+  router.post(route('members.toggle-guest-access', props.member.id), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      togglingGuestAccess.value = false
+    },
+    onError: () => {
+      togglingGuestAccess.value = false
+    }
+  })
+}
+
 // Watchers
 watch(() => showAddPaymentMethodModal.value, (isOpen) => {
   if (isOpen && !newPaymentMethodForm.expiry_date) {
@@ -2824,6 +3130,16 @@ watch(() => props.member?.payments, (newPayments) => {
 watch(paymentStatusFilter, () => {
   filterPayments()
 })
+
+// Click outside handler for legal guardian search
+const handleClickOutside = (event) => {
+  if (showLegalGuardianResults.value) {
+    const searchContainer = event.target.closest('.relative')
+    if (!searchContainer || !searchContainer.querySelector('[placeholder*="Nach Mitglied suchen"]')) {
+      showLegalGuardianResults.value = false
+    }
+  }
+}
 
 // Lifecycle
 onMounted(() => {
@@ -2850,5 +3166,13 @@ onMounted(() => {
 
   // Initial filter anwenden
   filterPayments()
+
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  stopNfcScanning()
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
