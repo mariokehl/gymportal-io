@@ -25,11 +25,18 @@ return new class extends Migration
         });
 
         // Status-Enum um 'withdrawn' erweitern
-        DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('active', 'paused', 'cancelled', 'expired', 'pending', 'withdrawn') DEFAULT 'active'");
+        $this->updateMembershipStatusEnum();
     }
 
     public function down(): void
     {
+        // Prüfen ob 'withdrawn' Status verwendet wird
+        $withdrawnCount = DB::table('memberships')->where('status', 'withdrawn')->count();
+
+        if ($withdrawnCount > 0) {
+            throw new \Exception("Cannot rollback: {$withdrawnCount} memberships with 'withdrawn' status exist. Please resolve these first.");
+        }
+
         Schema::table('memberships', function (Blueprint $table) {
             $table->dropColumn([
                 'withdrawn_at',
@@ -40,6 +47,54 @@ return new class extends Migration
         });
 
         // Status-Enum zurücksetzen
-        DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('active', 'paused', 'cancelled', 'expired', 'pending') DEFAULT 'active'");
+        $this->revertMembershipStatusEnum();
+    }
+
+    private function updateMembershipStatusEnum(): void
+    {
+        $driver = DB::getDriverName();
+
+        switch ($driver) {
+            case 'mariadb':
+            case 'mysql':
+                DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('active', 'paused', 'cancelled', 'expired', 'pending', 'withdrawn') NOT NULL DEFAULT 'active'");
+                break;
+
+            case 'pgsql':
+                DB::statement('ALTER TABLE memberships DROP CONSTRAINT IF EXISTS memberships_status_check');
+                DB::statement("ALTER TABLE memberships ADD CONSTRAINT memberships_status_check CHECK (status IN ('active', 'paused', 'cancelled', 'expired', 'pending', 'withdrawn'))");
+                break;
+
+            case 'sqlite':
+                logger()->info('SQLite detected - consider using string column for status instead of ENUM');
+                break;
+
+            default:
+                logger()->warning("Unknown database driver: {$driver}. Status ENUM update skipped.");
+        }
+    }
+
+    private function revertMembershipStatusEnum(): void
+    {
+        $driver = DB::getDriverName();
+
+        switch ($driver) {
+            case 'mariadb':
+            case 'mysql':
+                DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('active', 'paused', 'cancelled', 'expired', 'pending') NOT NULL DEFAULT 'active'");
+                break;
+
+            case 'pgsql':
+                DB::statement('ALTER TABLE memberships DROP CONSTRAINT IF EXISTS memberships_status_check');
+                DB::statement("ALTER TABLE memberships ADD CONSTRAINT memberships_status_check CHECK (status IN ('active', 'paused', 'cancelled', 'expired', 'pending'))");
+                break;
+
+            case 'sqlite':
+                logger()->info('SQLite detected - ENUM revert skipped');
+                break;
+
+            default:
+                logger()->warning("Unknown database driver: {$driver}. ENUM revert skipped.");
+        }
     }
 };
