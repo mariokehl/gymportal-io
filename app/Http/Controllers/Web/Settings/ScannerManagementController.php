@@ -8,6 +8,9 @@ use App\Models\GymScanner;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
+/**
+ * @deprecated v0.0.53 Use {@see \App\Http\Controllers\Web\AccessControlController} instead.
+ */
 class ScannerManagementController extends Controller
 {
     use AuthorizesRequests;

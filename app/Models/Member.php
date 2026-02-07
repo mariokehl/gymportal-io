@@ -1150,7 +1150,7 @@ class Member extends Authenticatable
     /**
      * Generate QR code data for member
      *
-     * @deprecated v0.0.53
+     * @deprecated v0.0.53 Use {@see \App\Http\Controllers\Pwa\MemberController::generateQrCode()} instead.
      */
     public function generateQrCodeData(): string
     {
