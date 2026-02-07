@@ -63,6 +63,31 @@ class ScannerController extends Controller
                 return response(status: 404);
             }
 
+            // Bereits in den letzten 30 Sekunden eingecheckt: sofort Zugang gewähren
+            $recentCheckIn = CheckIn::where('member_id', $member->id)
+                ->where('check_in_time', '>=', now()->subSeconds(30))
+                ->first();
+
+            if ($recentCheckIn) {
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    true,
+                    null,
+                    $nfcCardId
+                );
+
+                return response()->json([
+                    'member_id' => $member->id,
+                    'active' => true,
+                    'membership_expires' => $recentCheckIn->check_in_time,
+                    'access_allowed' => true,
+                    'scan_type' => $scanType,
+                    'message' => 'Zugang bereits gewährt',
+                ]);
+            }
+
             // Gastzugang: Überspringe Mitgliedschaftsprüfung
             if ($member->hasGuestAccess()) {
                 $this->logAccessFromVerify(
