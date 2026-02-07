@@ -1149,6 +1149,8 @@ class Member extends Authenticatable
 
     /**
      * Generate QR code data for member
+     *
+     * @deprecated v0.0.53
      */
     public function generateQrCodeData(): string
     {
