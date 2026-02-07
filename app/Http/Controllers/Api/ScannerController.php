@@ -80,7 +80,7 @@ class ScannerController extends Controller
 
                 return response()->json([
                     'member_id' => $member->id,
-                    'active' => true,
+                    'active' => $member->isActive(),
                     'membership_expires' => $recentCheckIn->check_in_time,
                     'access_allowed' => true,
                     'scan_type' => $scanType,
@@ -108,7 +108,7 @@ class ScannerController extends Controller
 
                 return response()->json([
                     'member_id' => $member->id,
-                    'active' => true,
+                    'active' => $member->isActive(),
                     'membership_expires' => null,
                     'access_allowed' => true,
                     'scan_type' => $scanType,
@@ -152,7 +152,7 @@ class ScannerController extends Controller
 
                 return response()->json([
                     'member_id' => $member->id,
-                    'active' => true,
+                    'active' => $member->isActive(),
                     'membership_expires' => $activeMembership->end_date,
                     'access_allowed' => true,
                     'scan_type' => $scanType,
