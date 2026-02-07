@@ -106,6 +106,7 @@ class DashboardController extends Controller
             ->with('member:id,first_name,last_name')
             ->orderBy('check_in_time', 'desc')
             ->get()
+            ->unique('member_id')
             ->map(function (CheckIn $checkIn) {
                 return [
                     'id' => $checkIn->id,
@@ -114,7 +115,8 @@ class DashboardController extends Controller
                     'member_initials' => $checkIn->member->initials,
                     'check_in_time' => $checkIn->check_in_time->format('d.m.Y H:i'),
                 ];
-            });
+            })
+            ->values();
 
         return Inertia::render('Dashboard/Index', [
             'user' => $user,
