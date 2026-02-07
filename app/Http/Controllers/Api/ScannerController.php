@@ -63,6 +63,19 @@ class ScannerController extends Controller
                 return response(status: 404);
             }
 
+            // Mitglied ist nicht aktiv (z.B. gesperrt, gekündigt, ausstehend)
+            if (!$member->isActive()) {
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    false,
+                    'Mitglied ist nicht aktiv (Status: ' . $member->status . ')',
+                    $nfcCardId
+                );
+                return response(status: 403);
+            }
+
             // Bereits in den letzten 30 Sekunden eingecheckt: sofort Zugang gewähren
             $recentCheckIn = CheckIn::where('member_id', $member->id)
                 ->where('check_in_time', '>=', now()->subSeconds(30))
