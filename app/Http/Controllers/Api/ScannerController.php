@@ -47,6 +47,19 @@ class ScannerController extends Controller
                 $member = Member::find($memberId);
             } elseif ($scanType === 'nfc_card') {
                 $accessConfig = MemberAccessConfig::where('nfc_uid', $nfcCardId)->first();
+
+                if ($accessConfig && !$accessConfig->nfc_enabled) {
+                    $this->logAccessFromVerify(
+                        $scanner,
+                        $accessConfig->member_id,
+                        $scanType,
+                        false,
+                        'NFC-Zugang ist deaktiviert',
+                        $nfcCardId
+                    );
+                    return response(status: 403);
+                }
+
                 $member = $accessConfig?->member;
             }
 
@@ -61,6 +74,44 @@ class ScannerController extends Controller
                     $nfcCardId
                 );
                 return response(status: 404);
+            }
+
+            // Mitglied ist nicht aktiv (z.B. gesperrt, gekündigt, ausstehend)
+            if (!$member->isActive()) {
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    false,
+                    'Mitglied ist nicht aktiv (Status: ' . $member->status . ')',
+                    $nfcCardId
+                );
+                return response(status: 403);
+            }
+
+            // Bereits in den letzten 30 Sekunden eingecheckt: sofort Zugang gewähren
+            $recentCheckIn = CheckIn::where('member_id', $member->id)
+                ->where('check_in_time', '>=', now()->subSeconds(30))
+                ->first();
+
+            if ($recentCheckIn) {
+                $this->logAccessFromVerify(
+                    $scanner,
+                    $member->id,
+                    $scanType,
+                    true,
+                    null,
+                    $nfcCardId
+                );
+
+                return response()->json([
+                    'member_id' => $member->id,
+                    'active' => $member->isActive(),
+                    'membership_expires' => $recentCheckIn->check_in_time,
+                    'access_allowed' => true,
+                    'scan_type' => $scanType,
+                    'message' => 'Zugang bereits gewährt',
+                ]);
             }
 
             // Gastzugang: Überspringe Mitgliedschaftsprüfung
@@ -83,7 +134,7 @@ class ScannerController extends Controller
 
                 return response()->json([
                     'member_id' => $member->id,
-                    'active' => true,
+                    'active' => $member->isActive(),
                     'membership_expires' => null,
                     'access_allowed' => true,
                     'scan_type' => $scanType,
@@ -127,7 +178,7 @@ class ScannerController extends Controller
 
                 return response()->json([
                     'member_id' => $member->id,
-                    'active' => true,
+                    'active' => $member->isActive(),
                     'membership_expires' => $activeMembership->end_date,
                     'access_allowed' => true,
                     'scan_type' => $scanType,
