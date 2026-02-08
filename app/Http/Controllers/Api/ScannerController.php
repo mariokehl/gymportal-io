@@ -47,6 +47,19 @@ class ScannerController extends Controller
                 $member = Member::find($memberId);
             } elseif ($scanType === 'nfc_card') {
                 $accessConfig = MemberAccessConfig::where('nfc_uid', $nfcCardId)->first();
+
+                if ($accessConfig && !$accessConfig->nfc_enabled) {
+                    $this->logAccessFromVerify(
+                        $scanner,
+                        $accessConfig->member_id,
+                        $scanType,
+                        false,
+                        'NFC-Zugang ist deaktiviert',
+                        $nfcCardId
+                    );
+                    return response(status: 403);
+                }
+
                 $member = $accessConfig?->member;
             }
 
