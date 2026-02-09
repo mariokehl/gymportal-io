@@ -20,6 +20,18 @@ class ScannerController extends Controller
     ) {}
 
     /**
+     * Scanner meldet sich als online
+     * Route: GET /api/scanner/ping
+     */
+    public function ping(Request $request)
+    {
+        $scanner = $request->get('scanner');
+        $scanner->touch();
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    /**
      * Scanner prüft auf Gültigkeit der Mitgliedschaft
      * Route: GET /api/scanner/verify-membership
      */

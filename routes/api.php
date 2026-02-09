@@ -86,6 +86,7 @@ Route::group(['prefix' => 'pwa'], function () {
 */
 Route::prefix('scanner')->group(function () {
     Route::middleware(['scanner.auth'])->group(function () {
+        Route::get('ping', [ScannerController::class, 'ping']);
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
         //Route::post('validate', [ScannerController::class, 'validateAccess']);
         //Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
