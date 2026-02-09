@@ -781,7 +781,23 @@
                       <td class="px-4 py-3 text-sm">
                         {{ checkin.check_out_time ? calculateDuration(checkin.check_in_time, checkin.check_out_time) : '-' }}
                       </td>
-                      <td class="px-4 py-3 text-sm">{{ checkin.check_in_method_text || 'Unbekannt' }}</td>
+                      <td class="px-4 py-3 text-sm">
+                        <span
+                            :class="[
+                                'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                                checkin.check_in_method === 'nfc_card'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : checkin.check_in_method === 'manual'
+                                        ? 'bg-gray-100 text-gray-800'
+                                        : 'bg-blue-100 text-blue-800'
+                            ]"
+                        >
+                            <CreditCard v-if="checkin.check_in_method === 'nfc_card'" class="w-3 h-3 mr-1" />
+                            <Edit v-else-if="checkin.check_in_method === 'manual'" class="w-3 h-3 mr-1" />
+                            <QrCode v-else class="w-3 h-3 mr-1" />
+                            {{ checkin.check_in_method_text || 'Unbekannt' }}
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>

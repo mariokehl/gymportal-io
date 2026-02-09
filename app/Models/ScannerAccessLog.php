@@ -63,10 +63,12 @@ class ScannerAccessLog extends Model
      */
     const SCAN_TYPE_QR = 'qr_code';
     const SCAN_TYPE_NFC = 'nfc_card';
+    const SCAN_TYPE_ROLLING_QR = 'rolling_qr';
 
     const SCAN_TYPES = [
         self::SCAN_TYPE_QR => 'QR-Code',
-        self::SCAN_TYPE_NFC => 'NFC-Karte'
+        self::SCAN_TYPE_NFC => 'NFC-Karte',
+        self::SCAN_TYPE_ROLLING_QR => 'Rolling QR-Code',
     ];
 
     /**
@@ -262,6 +264,14 @@ class ScannerAccessLog extends Model
     }
 
     /**
+     * Scope for Rolling QR scans
+     */
+    public function scopeRollingQr(Builder $query): Builder
+    {
+        return $query->where('scan_type', self::SCAN_TYPE_ROLLING_QR);
+    }
+
+    /**
      * Scope for specific gym
      */
     public function scopeForGym(Builder $query, $gymId): Builder
@@ -357,7 +367,7 @@ class ScannerAccessLog extends Model
     public function getScanTypeIcon(): string
     {
         return match($this->scan_type) {
-            self::SCAN_TYPE_QR => '📱',
+            self::SCAN_TYPE_QR, self::SCAN_TYPE_ROLLING_QR => '📱',
             self::SCAN_TYPE_NFC => '💳',
             default => '❓'
         };
@@ -432,7 +442,8 @@ class ScannerAccessLog extends Model
             'success_rate' => $total > 0 ? round(($granted / $total) * 100, 2) : 0,
             'by_scan_type' => [
                 'qr_code' => (clone $query)->qrCode()->count(),
-                'nfc_card' => (clone $query)->nfcCard()->count()
+                'nfc_card' => (clone $query)->nfcCard()->count(),
+                'rolling_qr' => (clone $query)->rollingQr()->count(),
             ],
             'by_device' => (clone $query)->select('device_number')
                 ->selectRaw('COUNT(*) as total')

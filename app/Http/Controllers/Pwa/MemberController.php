@@ -428,6 +428,13 @@ class MemberController extends Controller
         return (float) $totalPaid;
     }
 
+    /**
+     * QR-Code-Generierung für Mitglieder:
+     * 1. Statischer QR-Code: Zeitstempel-basiert (Standard)
+     * 2. Rolling QR-Code: TOTP-basiert mit konfigurierbarem Intervall
+     *
+     * @return JsonResponse
+     */
     public function generateQrCode(): JsonResponse
     {
         /** @var Member $member */
@@ -448,23 +455,40 @@ class MemberController extends Controller
         /** @var Gym $gym */
         $gym = $member->gym;
 
-        // Zeitstempel im ISO 8601 Format mit Z-Suffix
-        $timestamp = Carbon::now()->format('Y-m-d\TH:i:s.uP');
+        if ($gym->rolling_qr_enabled) {
+            // Rolling QR-Code: TOTP-basiert mit konfigurierbarem Intervall
+            $interval = $gym->rolling_qr_interval ?: 3;
+            $timeStep = (int) floor(time() / $interval);
 
-        // QR-Code-Daten
-        $qrData = [
-            'member_id' => (string) $member->id,
-            'timestamp' => $timestamp
-        ];
+            $message = $member->id . ':' . $timeStep;
+            $totpHash = hash_hmac(
+                'sha256',
+                $message,
+                $gym->getCurrentScannerKey()
+            );
 
-        // Hash generieren (über member_id und timestamp)
-        $message = $member->id . ':' . $timestamp;
-        $hashValue = hash_hmac(
-            'sha256',
-            $message,
-            $gym->getCurrentScannerKey()
-        );
-        $qrData['hash'] = $hashValue;
+            $qrData = [
+                'member_id' => (string) $member->id,
+                'type' => 'rolling',
+                'totp_hash' => $totpHash,
+            ];
+        } else {
+            // Statischer QR-Code: Zeitstempel-basiert
+            $timestamp = Carbon::now()->format('Y-m-d\TH:i:s.uP');
+
+            $qrData = [
+                'member_id' => (string) $member->id,
+                'timestamp' => $timestamp,
+            ];
+
+            $message = $member->id . ':' . $timestamp;
+            $hashValue = hash_hmac(
+                'sha256',
+                $message,
+                $gym->getCurrentScannerKey()
+            );
+            $qrData['hash'] = $hashValue;
+        }
 
         return response()->json([
             'success' => true,

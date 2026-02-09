@@ -149,6 +149,22 @@
                             ></div>
                         </div>
                     </div>
+
+                    <div>
+                        <div class="flex items-center justify-between text-sm mb-1">
+                            <div class="flex items-center gap-2">
+                                <QrCode class="w-4 h-4 text-blue-600" />
+                                <span class="text-gray-700">Rolling QR-Code</span>
+                            </div>
+                            <span class="font-medium">{{ stats.by_scan_type?.rolling_qr || 0 }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                                class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                :style="{ width: getPercentage(stats.by_scan_type?.rolling_qr || 0, stats.total || 1) + '%' }"
+                            ></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

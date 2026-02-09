@@ -155,6 +155,9 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Gym Secret Key
         Route::post('/regenerate-secret-key', [AccessControlController::class, 'regenerateSecretKey'])->name('regenerate-secret-key');
+
+        // Rolling QR-Code Settings
+        Route::put('/rolling-qr-settings', [AccessControlController::class, 'updateRollingQrSettings'])->name('rolling-qr-settings.update');
     });
 
     // Data Transfer (Import/Export)
