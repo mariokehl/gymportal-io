@@ -24,6 +24,7 @@ class MembershipPlan extends Model
         'commitment_months',
         'cancellation_period',
         'cancellation_period_unit',
+        'auto_renew_type',
         'features',
         'widget_display_options',
         'sort_order',

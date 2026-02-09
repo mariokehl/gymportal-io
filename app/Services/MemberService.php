@@ -44,9 +44,11 @@ class MemberService
             'member_id' => $member->id,
             'membership_plan_id' => $plan->id,
             'start_date' => $member->joined_date,
-            'end_date' => Carbon::parse($member->joined_date)
-                ->addMonths($plan->commitment_months)
-                ->subDay(), // Einen Tag abziehen für korrektes Vertragsende
+            'end_date' => $plan->commitment_months > 0
+                ? Carbon::parse($member->joined_date)
+                    ->addMonths($plan->commitment_months)
+                    ->subDay()
+                : null, // Keine Mindestlaufzeit = unbefristet
             'status' => $status
         ]);
     }

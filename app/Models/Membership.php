@@ -216,13 +216,24 @@ class Membership extends Model
             return $this->cancellation_date->format('Y-m-d');
         }
 
+        // Unbefristete Mitgliedschaft: Kündigungsdatum = heute + Kündigungsfrist aus Plan
+        if ($this->end_date === null && $this->isInitialTermCompleted()) {
+            $period = $this->membershipPlan->cancellation_period ?? 1;
+            $unit = $this->membershipPlan->cancellation_period_unit ?? 'months';
+
+            if ($unit === 'months') {
+                return now()->addMonths($period)->format('Y-m-d');
+            }
+            return now()->addDays($period)->format('Y-m-d');
+        }
+
         // Always use end_date if available
         if ($this->end_date) {
             return $this->end_date->format('Y-m-d');
         }
 
         // Fallback to min_cancellation_date if no end_date exists
-        return $this->min_cancellation_date ? $this->min_cancellation_date->format('Y-m-d') : null;
+        return $this->min_cancellation_date;
     }
 
     public function getCanCancelAttribute(): bool
@@ -240,9 +251,6 @@ class Membership extends Model
         $start = $this->start_date->copy()->startOfDay();
 
         $commitmentMonths = $this->membershipPlan->commitment_months ?? 0;
-        $renewalMonths = $this->membershipPlan->renewal_months ?? 1;
-        $cancellationPeriod = $this->membershipPlan->cancellation_period ?? 0;
-        $cancellationPeriodUnit = $this->membershipPlan->cancellation_period_unit ?? 'days';
 
         // 1. End of minimum term
         $commitmentEnd = $start->copy()->addMonths($commitmentMonths);
@@ -252,7 +260,17 @@ class Membership extends Model
             return false;
         }
 
-        // 2. We are after the minimum term → extension periods apply
+        // 2. Unbefristete Mitgliedschaft (end_date=null): Immer kündbar nach Erstlaufzeit
+        // Gemäß Gesetz für faire Verbraucherverträge (ab 01.03.2022)
+        if ($this->end_date === null) {
+            return true;
+        }
+
+        // 3. We are after the minimum term → extension periods apply
+        $renewalMonths = $this->membershipPlan->renewal_months ?? 1;
+        $cancellationPeriod = $this->membershipPlan->cancellation_period ?? 0;
+        $cancellationPeriodUnit = $this->membershipPlan->cancellation_period_unit ?? 'days';
+
         $periodStart = $commitmentEnd->copy();
 
         // Find current or next renewal period
@@ -262,14 +280,14 @@ class Membership extends Model
 
         $periodEnd = $periodStart->copy();
 
-        // 3. Calculate the latest possible termination date for this period.
+        // 4. Calculate the latest possible termination date for this period.
         if ($cancellationPeriodUnit === 'months') {
             $latestPossibleCancellation = $periodEnd->copy()->subMonths($cancellationPeriod);
         } else {
             $latestPossibleCancellation = $periodEnd->copy()->subDays($cancellationPeriod);
         }
 
-        // 4. Termination is possible if today <= deadline
+        // 5. Termination is possible if today <= deadline
         return $today->lessThanOrEqualTo($latestPossibleCancellation);
     }
 
@@ -372,5 +390,25 @@ class Membership extends Model
     public function scopeWithdrawn($query)
     {
         return $query->where('status', 'withdrawn');
+    }
+
+    /**
+     * Prüft ob die Erstlaufzeit (commitment_months) bereits abgelaufen ist.
+     * Nach dem "Gesetz für faire Verbraucherverträge" (ab 01.03.2022) darf
+     * nach der Erstlaufzeit nur noch monatlich verlängert werden.
+     */
+    public function isInitialTermCompleted(): bool
+    {
+        if (!$this->start_date || !$this->membershipPlan) {
+            return false;
+        }
+
+        $commitmentMonths = $this->membershipPlan->commitment_months ?? 0;
+        if ($commitmentMonths === 0) {
+            return true; // Kein Commitment = sofort monatlich kündbar
+        }
+
+        $commitmentEnd = $this->start_date->copy()->addMonths($commitmentMonths);
+        return $commitmentEnd->lte($this->end_date ?? now());
     }
 }

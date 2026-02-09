@@ -62,6 +62,7 @@ class MembershipPlanController extends Controller
             'commitment_months' => 'nullable|integer|min:0|max:36',
             'cancellation_period' => 'required|integer|min:0',
             'cancellation_period_unit' => 'required|in:days,months',
+            'auto_renew_type' => 'nullable|in:indefinite,monthly',
         ]);
 
         // Additional validation based on unit
@@ -78,6 +79,7 @@ class MembershipPlanController extends Controller
         $validated['is_active'] = $request->boolean('is_active');
         $validated['setup_fee'] = $request->setup_fee ?? 0;
         $validated['commitment_months'] = $request->commitment_months ?? 0;
+        $validated['auto_renew_type'] = $request->auto_renew_type ?? 'indefinite';
 
         MembershipPlan::create($validated);
 
@@ -150,6 +152,7 @@ class MembershipPlanController extends Controller
             'commitment_months' => 'nullable|integer|min:0|max:36',
             'cancellation_period' => 'required|integer|min:0',
             'cancellation_period_unit' => 'required|in:days,months',
+            'auto_renew_type' => 'nullable|in:indefinite,monthly',
         ]);
 
         // Additional validation based on unit
@@ -161,6 +164,7 @@ class MembershipPlanController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active');
         $validated['commitment_months'] = $request->commitment_months ?? 0;
+        $validated['auto_renew_type'] = $request->auto_renew_type ?? 'indefinite';
 
         $membershipPlan->update($validated);
 
