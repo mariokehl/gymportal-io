@@ -485,6 +485,8 @@ class Gym extends Model
             'theme' => $this->theme,
             'pwa_enabled' => $this->isPwaEnabled(),
             'legal_urls' => $this->getLegalUrlsArray(),
+            'rolling_qr_enabled' => $this->rolling_qr_enabled,
+            'rolling_qr_interval' => $this->rolling_qr_interval ?? 3,
         ];
     }
 
