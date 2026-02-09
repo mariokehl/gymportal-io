@@ -59,7 +59,7 @@ class DashboardController extends Controller
                         'initials' => $member->initials,
                         'name' => $member->full_name,
                         'email' => $member->email,
-                        'membership' => 'Keine Mitgliedschaft',
+                        'membership' => '❌',
                         'status' => $member->status,
                         'age_verified' => $member->age_verified,
                         'age_verified_at' => $member->age_verified_at?->toISOString(),
