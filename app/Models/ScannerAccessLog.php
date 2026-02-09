@@ -68,7 +68,7 @@ class ScannerAccessLog extends Model
     const SCAN_TYPES = [
         self::SCAN_TYPE_QR => 'QR-Code',
         self::SCAN_TYPE_NFC => 'NFC-Karte',
-        self::SCAN_TYPE_ROLLING_QR => 'Rolling QR-Code',
+        self::SCAN_TYPE_ROLLING_QR => 'Rolling QR',
     ];
 
     /**

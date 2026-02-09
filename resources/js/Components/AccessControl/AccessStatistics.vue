@@ -154,7 +154,7 @@
                         <div class="flex items-center justify-between text-sm mb-1">
                             <div class="flex items-center gap-2">
                                 <QrCode class="w-4 h-4 text-blue-600" />
-                                <span class="text-gray-700">Rolling QR-Code</span>
+                                <span class="text-gray-700">Rolling QR</span>
                             </div>
                             <span class="font-medium">{{ stats.by_scan_type?.rolling_qr || 0 }}</span>
                         </div>
