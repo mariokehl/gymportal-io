@@ -190,13 +190,13 @@
 
                 <form @submit.prevent="saveScanner" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Name <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Name <span class="text-red-500">*</span></label>
                         <input
                             v-model="form.device_name"
                             type="text"
                             required
                             placeholder="z.B. Haupteingang"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                     </div>
 
@@ -224,7 +224,7 @@
                                     v-model="form.allowed_ips[index]"
                                     type="text"
                                     placeholder="z.B. 192.168.1.100"
-                                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                                 />
                                 <button
                                     type="button"
