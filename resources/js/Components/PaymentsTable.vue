@@ -124,14 +124,14 @@
                 <!-- Member Column -->
                 <template v-else-if="column.key === 'member'">
                   <div class="flex items-center">
-                    <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
+                    <div class="w-8 h-8 shrink-0 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
                       {{ getMemberInitials(payment.membership?.member) }}
                     </div>
-                    <div>
-                      <div class="text-sm font-medium text-gray-900">
+                    <div class="min-w-0 max-w-[250px]">
+                      <div class="text-sm font-medium text-gray-900 truncate">
                         {{ payment.membership?.member?.first_name }} {{ payment.membership?.member?.last_name }}
                       </div>
-                      <div class="text-sm text-gray-500">
+                      <div class="text-sm text-gray-500 truncate">
                         {{ payment.membership?.member?.email }}
                       </div>
                     </div>
