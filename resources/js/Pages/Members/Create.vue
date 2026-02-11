@@ -118,6 +118,7 @@
               :check-url="route('members.check-email')"
               help-text="Wir prüfen automatisch, ob diese E-Mail bereits registriert ist"
               placeholder="max@mustermann.de"
+              :show-generate-placeholder="true"
               @validation-change="handleEmailValidationChange"
             />
 
