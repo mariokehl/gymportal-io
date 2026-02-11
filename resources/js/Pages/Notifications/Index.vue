@@ -182,7 +182,7 @@ const getNotificationLink = (notification) => {
 
     switch (type) {
       case 'member_registered':
-        const memberId = data.member_id
+        const memberId = data.member?.id
 
         if (memberId && route().has('members.show')) {
           return route('members.show', memberId)
