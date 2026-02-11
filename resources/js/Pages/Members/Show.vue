@@ -309,7 +309,7 @@
                     id="country"
                     v-model="form.country"
                     :disabled="!editMode"
-                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
                   >
                     <option value="DE">Deutschland</option>
                     <option value="AT">Österreich</option>
