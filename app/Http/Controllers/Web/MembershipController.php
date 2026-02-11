@@ -550,23 +550,15 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Erstattungsbetrag berechnen
-            $refundAmount = $membership->payments()
-                ->whereIn('status', ['paid', 'completed'])
-                ->sum('amount');
+            // Widerruf durchführen: Ausstehende Zahlungen stornieren und ggf. Erstattung initiieren
+            $refundAmount = $paymentService->handleWithdrawalPayments($membership);
 
-            // Widerruf durchführen
             $membership->update([
                 'status' => 'withdrawn',
                 'withdrawn_at' => now(),
                 'withdrawal_confirmation_sent_to' => $confirmationEmail,
                 'withdrawal_refund_amount' => $refundAmount,
             ]);
-
-            // Erstattung initiieren (falls Zahlungen vorhanden)
-            if ($refundAmount > 0) {
-                $paymentService->initiateRefund($membership, $refundAmount);
-            }
 
             // Notiz hinzufügen
             $membership->update([
