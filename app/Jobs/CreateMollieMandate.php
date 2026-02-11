@@ -126,7 +126,13 @@ class CreateMollieMandate implements ShouldQueue
             'attempts' => $this->attempts(),
         ]);
 
-        // Optionally notify administrators or trigger alternative workflow
-        // You could send a notification to admins here
+        // Mark payment method as failed
+        $this->paymentMethod->update(['status' => 'failed']);
+
+        // Set member and membership back to pending
+        $this->member->update(['status' => 'pending']);
+        $this->member->memberships()
+            ->whereIn('status', ['active', 'pending'])
+            ->update(['status' => 'pending']);
     }
 }

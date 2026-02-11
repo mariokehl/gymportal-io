@@ -977,12 +977,21 @@ class GymDataImportService
             $iban = trim($row['iban'] ?? '') ?: null;
             $accountHolder = trim($row['kontoinhaber'] ?? '') ?: null;
 
+            // Validate account holder: must be a name (letters, spaces, hyphens, dots, apostrophes)
+            // Anything containing digits or other non-name characters is invalid
+            $invalidAccountHolder = $accountHolder && !preg_match('/^[\p{L}\s\-\.\'\,]+$/u', $accountHolder);
+
+            if ($invalidAccountHolder) {
+                Log::warning("Zeile {$lineNum}: Ungültiger Kontoinhaber '{$accountHolder}', Zahlungsart wird als fehlgeschlagen markiert.");
+            }
+
             $paymentMethod = $this->createPaymentMethodForType(
                 $member,
                 $paymentMethodType,
                 $iban,
                 $accountHolder,
-                $gym
+                $gym,
+                $invalidAccountHolder
             );
 
             if ($paymentMethod) {
@@ -995,7 +1004,6 @@ class GymDataImportService
 
         if (!$hasPayments) {
             $activePaymentMethod = $member->paymentMethods()
-                ->where('status', 'active')
                 ->where('is_default', true)
                 ->first();
 
@@ -1021,7 +1029,8 @@ class GymDataImportService
         string $type,
         ?string $iban,
         ?string $accountHolder,
-        \App\Models\Gym $gym
+        \App\Models\Gym $gym,
+        bool $skipMandate = false
     ): ?PaymentMethod {
         if ($type === 'sepa_direct_debit') {
             return PaymentMethod::createSepaPaymentMethod(
@@ -1038,7 +1047,7 @@ class GymDataImportService
 
             $paymentMethod = $member->paymentMethods()->create([
                 'type' => 'mollie_directdebit',
-                'status' => 'pending',
+                'status' => $skipMandate ? 'failed' : 'pending',
                 'is_default' => true,
                 'requires_mandate' => true,
                 'iban' => $iban,
@@ -1046,6 +1055,13 @@ class GymDataImportService
                 'sepa_mandate_acknowledged' => $hasRealEmail,
                 'sepa_mandate_status' => 'pending',
             ]);
+
+            // Skip mandate creation if data is invalid (e.g. credit card number as account holder)
+            if ($skipMandate) {
+                $member->update(['status' => 'pending']);
+                $member->memberships()->where('status', 'active')->update(['status' => 'pending']);
+                return $paymentMethod;
+            }
 
             if ($hasRealEmail) {
                 $paymentMethod->update([

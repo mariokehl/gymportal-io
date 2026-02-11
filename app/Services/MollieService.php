@@ -676,17 +676,37 @@ class MollieService
                 $mandate = $this->createMandate($member->gym, $customer, $paymentMethod, $member->fullName());
 
             } catch (ApiException $e) {
-                // Dispatch job to create mandate asynchronously with retry logic
-                // This handles race conditions where Mollie customer might not be immediately available
-                CreateMollieMandate::dispatch($member, $paymentMethod, $customer)
-                    ->onQueue('mollie')
-                    ->delay(now()->addSeconds(5)); // Initial delay to allow customer to be fully created
+                if ($e->getCode() === 404) {
+                    // Dispatch job to create mandate asynchronously with retry logic
+                    // This handles race conditions where Mollie customer might not be immediately available
+                    CreateMollieMandate::dispatch($member, $paymentMethod, $customer)
+                        ->onQueue('mollie')
+                        ->delay(now()->addSeconds(5)); // Initial delay to allow customer to be fully created
 
-                Log::info('Mollie mandate creation job dispatched', [
-                    'customer_id' => $customer->id,
-                    'member_id' => $member->id,
-                    'payment_method_id' => $paymentMethod->id,
-                ]);
+                    Log::info('Mollie mandate creation job dispatched', [
+                        'customer_id' => $customer->id,
+                        'member_id' => $member->id,
+                        'payment_method_id' => $paymentMethod->id,
+                    ]);
+                } else {
+                    // Non-retryable error (e.g. invalid IBAN, invalid account holder)
+                    // Mark as failed immediately
+                    Log::error('Mollie mandate creation failed with non-retryable error', [
+                        'customer_id' => $customer->id,
+                        'member_id' => $member->id,
+                        'payment_method_id' => $paymentMethod->id,
+                        'error' => $e->getMessage(),
+                        'error_code' => $e->getCode(),
+                    ]);
+
+                    $paymentMethod->update(['status' => 'failed']);
+                    $member->update(['status' => 'pending']);
+                    $member->memberships()
+                        ->whereIn('status', ['active', 'pending'])
+                        ->update(['status' => 'pending']);
+
+                    return false;
+                }
             }
         }
 
