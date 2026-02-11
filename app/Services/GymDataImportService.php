@@ -15,11 +15,21 @@ use App\Models\CheckIn;
 use App\Models\EmailTemplate;
 use App\Models\GymLegalUrl;
 use App\Models\GymScanner;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class GymDataImportService
 {
+    private PaymentService $paymentService;
+    private MemberService $memberService;
+
+    public function __construct(PaymentService $paymentService, MemberService $memberService)
+    {
+        $this->paymentService = $paymentService;
+        $this->memberService = $memberService;
+    }
+
     /**
      * ID mappings for resolving references
      */
@@ -378,7 +388,7 @@ class GymDataImportService
 
             // Generate member number if not set
             if (empty($memberData['member_number'])) {
-                $memberData['member_number'] = $this->generateMemberNumber($gymId);
+                $memberData['member_number'] = MemberService::generateMemberNumber(Gym::findOrFail($gymId));
             }
 
             $member = Member::create($memberData);
@@ -695,21 +705,479 @@ class GymDataImportService
     }
 
     /**
-     * Generate a unique member number
+     * Validate CSV data and return preview stats
      */
-    private function generateMemberNumber(int $gymId): string
+    public function validateCsvData(array $rows, int $gymId): array
     {
-        $prefix = 'M' . str_pad($gymId, 3, '0', STR_PAD_LEFT);
-        $lastMember = Member::where('gym_id', $gymId)
-            ->where('member_number', 'like', $prefix . '%')
-            ->orderBy('member_number', 'desc')
-            ->first();
+        $errors = [];
+        $warnings = [];
+        $stats = [
+            'rows' => count($rows),
+            'valid_rows' => 0,
+            'plans_matched' => 0,
+            'existing_members' => 0,
+            'new_members' => 0,
+        ];
 
-        if ($lastMember) {
-            $lastNumber = (int) substr($lastMember->member_number, strlen($prefix));
-            return $prefix . str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+        $requiredColumns = ['name'];
+        if (!empty($rows)) {
+            $columns = array_keys($rows[0]);
+            foreach ($requiredColumns as $col) {
+                if (!in_array($col, $columns)) {
+                    $errors[] = "Pflichtspalte '{$col}' fehlt in der CSV-Datei.";
+                }
+            }
         }
 
-        return $prefix . '00001';
+        if (!empty($errors)) {
+            return ['valid' => false, 'errors' => $errors, 'warnings' => $warnings, 'stats' => $stats];
+        }
+
+        $plans = MembershipPlan::where('gym_id', $gymId)->get();
+
+        foreach ($rows as $index => $row) {
+            $lineNum = $index + 2; // +2 for header row and 1-based indexing
+
+            if (empty(trim($row['name'] ?? ''))) {
+                $warnings[] = "Zeile {$lineNum}: Name fehlt, wird übersprungen.";
+                continue;
+            }
+
+            if (empty(trim($row['email'] ?? ''))) {
+                $warnings[] = "Zeile {$lineNum}: E-Mail fehlt, wird mit Platzhalter-E-Mail importiert.";
+            }
+
+            $stats['valid_rows']++;
+
+            // Check for duplicate email (will be imported with generated email)
+            $existing = Member::where('gym_id', $gymId)->where('email', trim($row['email']))->exists();
+            if ($existing) {
+                $stats['existing_members']++;
+                $warnings[] = "Zeile {$lineNum}: E-Mail '{$row['email']}' existiert bereits — wird mit Platzhalter-E-Mail importiert.";
+            } else {
+                $stats['new_members']++;
+            }
+
+            // Check if plan can be matched by name (tarif) or price (monatsbeitrag)
+            $tarifName = trim($row['tarif'] ?? '');
+            $price = $this->parseCsvPrice($row['monatsbeitrag'] ?? null);
+            $plan = $this->findPlan($plans, $tarifName, $price);
+
+            if ($plan) {
+                $stats['plans_matched']++;
+            } elseif ($tarifName && $price !== null) {
+                $warnings[] = "Zeile {$lineNum}: Kein aktiver Tarif für '{$tarifName}' / {$price} EUR gefunden.";
+            } elseif ($price !== null) {
+                $warnings[] = "Zeile {$lineNum}: Kein aktiver Tarif für Beitrag {$price} EUR gefunden.";
+            } elseif ($tarifName) {
+                $warnings[] = "Zeile {$lineNum}: Kein aktiver Tarif für '{$tarifName}' gefunden.";
+            } else {
+                $warnings[] = "Zeile {$lineNum}: Kein Tarif und kein Monatsbeitrag angegeben.";
+            }
+        }
+
+        return [
+            'valid' => empty($errors) && $stats['valid_rows'] > 0,
+            'errors' => $errors,
+            'warnings' => $warnings,
+            'stats' => $stats,
+        ];
     }
+
+    /**
+     * Import CSV data: creates Members, Memberships, PaymentMethods, and first Payment
+     */
+    public function importCsvData(int $gymId, array $rows, string $startDate, string $paymentMethodType, bool $deleteExisting = false): array
+    {
+        $stats = [
+            'members_created' => 0,
+            'memberships_created' => 0,
+            'payments_created' => 0,
+            'payment_methods_created' => 0,
+            'skipped' => 0,
+            'deleted' => [],
+            'errors' => [],
+        ];
+
+        $gym = \App\Models\Gym::findOrFail($gymId);
+        $plans = MembershipPlan::where('gym_id', $gymId)->get();
+        $startDateCarbon = Carbon::parse($startDate);
+
+        DB::beginTransaction();
+
+        try {
+            if ($deleteExisting) {
+                $stats['deleted'] = $this->deleteAllGymMemberData($gymId);
+            }
+
+            foreach ($rows as $index => $row) {
+                $lineNum = $index + 2;
+
+                try {
+                    $this->importCsvRow($gym, $row, $plans, $startDateCarbon, $paymentMethodType, $stats, $lineNum);
+                } catch (\Exception $e) {
+                    $stats['errors'][] = "Zeile {$lineNum}: {$e->getMessage()}";
+                    $stats['skipped']++;
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Delete all member-related data for a gym
+     */
+    private function deleteAllGymMemberData(int $gymId): array
+    {
+        $gym = Gym::findOrFail($gymId);
+        $memberIds = Member::withTrashed()->where('gym_id', $gymId)->pluck('id');
+
+        // Delete Mollie customers before removing payment methods
+        $mollieCustomerIds = PaymentMethod::withTrashed()
+            ->whereIn('member_id', $memberIds)
+            ->whereNotNull('mollie_customer_id')
+            ->pluck('mollie_customer_id')
+            ->unique();
+
+        $mollieCustomersDeleted = 0;
+        if ($mollieCustomerIds->isNotEmpty()) {
+            $mollieService = app(MollieService::class);
+            foreach ($mollieCustomerIds as $customerId) {
+                try {
+                    $mollieService->deleteCustomer($gym, $customerId);
+                    $mollieCustomersDeleted++;
+                } catch (\Exception $e) {
+                    Log::warning("Mollie-Kunde {$customerId} konnte nicht gelöscht werden: {$e->getMessage()}");
+                }
+            }
+        }
+
+        $deleted = [
+            'payments' => Payment::where('gym_id', $gymId)->delete(),
+            'payment_methods' => PaymentMethod::withTrashed()->whereIn('member_id', $memberIds)->forceDelete(),
+            'memberships' => Membership::withTrashed()->whereIn('member_id', $memberIds)->forceDelete(),
+            'members' => 0,
+            'mollie_customers' => $mollieCustomersDeleted,
+        ];
+
+        $deleted['members'] = Member::withTrashed()->where('gym_id', $gymId)->forceDelete();
+
+        return $deleted;
+    }
+
+    /**
+     * Import a single CSV row
+     */
+    private function importCsvRow(
+        \App\Models\Gym $gym,
+        array $row,
+        $plans,
+        Carbon $startDate,
+        string $paymentMethodType,
+        array &$stats,
+        int $lineNum,
+    ): void {
+        $email = trim($row['email'] ?? '');
+        $name = trim($row['name'] ?? '');
+
+        if (empty($name)) {
+            $stats['skipped']++;
+            return;
+        }
+
+        // Parse name into first_name / last_name
+        $nameParts = $this->splitName($name);
+
+        // Generate placeholder email if missing
+        if (empty($email)) {
+            $email = MemberService::generatePlaceholderEmail();
+        }
+
+        // Map CSV fields to member data
+        $memberData = array_filter([
+            'salutation' => trim($row['anrede'] ?? '') ?: null,
+            'first_name' => $nameParts['first_name'],
+            'last_name' => $nameParts['last_name'],
+            'email' => $email,
+            'phone' => trim($row['telefon'] ?? '') ?: null,
+            'birth_date' => $this->parseCsvDate($row['geburtsdatum'] ?? null),
+            'address' => $this->buildAddress($row),
+            'city' => trim($row['adresse_ort'] ?? '') ?: null,
+            'postal_code' => trim($row['adresse_plz'] ?? '') ?: null,
+        ], fn($v) => $v !== null);
+
+        // Check for duplicate email
+        $existingMember = Member::where('gym_id', $gym->id)->where('email', $email)->first();
+
+        if ($existingMember) {
+            // Duplicate email: create new member with generated unique email
+            $memberData['email'] = MemberService::generatePlaceholderEmail();
+            $memberData['notes'] = "Doppelte E-Mail beim CSV-Import: {$email}";
+        }
+
+        $memberData['gym_id'] = $gym->id;
+        $memberData['member_number'] = MemberService::generateMemberNumber($gym);
+        $memberData['status'] = 'pending';
+        $memberData['joined_date'] = $startDate->format('Y-m-d');
+        $member = Member::create($memberData);
+        $stats['members_created']++;
+
+        // Find matching MembershipPlan by name (tarif) or price (monatsbeitrag)
+        $tarifName = trim($row['tarif'] ?? '');
+        $price = $this->parseCsvPrice($row['monatsbeitrag'] ?? null);
+        $plan = $this->findPlan($plans, $tarifName, $price);
+
+        if (!$plan) {
+            if ($tarifName && $price !== null) {
+                $stats['errors'][] = "Zeile {$lineNum}: Kein aktiver Tarif für '{$tarifName}' / {$price} EUR gefunden.";
+            } elseif ($price !== null) {
+                $stats['errors'][] = "Zeile {$lineNum}: Kein aktiver Tarif für {$price} EUR gefunden.";
+            } elseif ($tarifName) {
+                $stats['errors'][] = "Zeile {$lineNum}: Kein aktiver Tarif für '{$tarifName}' gefunden.";
+            } else {
+                $stats['errors'][] = "Zeile {$lineNum}: Kein Tarif und kein Monatsbeitrag angegeben.";
+            }
+            $stats['skipped']++;
+            return;
+        }
+
+        // Check for existing active membership with same plan
+        $existingMembership = Membership::where('member_id', $member->id)
+            ->where('membership_plan_id', $plan->id)
+            ->whereIn('status', ['active', 'pending'])
+            ->first();
+
+        $hasRealEmail = !str_ends_with($member->email, '@import.local');
+
+        if (!$existingMembership) {
+            $membershipStatus = $hasRealEmail ? 'active' : 'pending';
+
+            $membership = $this->memberService->createMembership($member, $plan, $membershipStatus);
+            $stats['memberships_created']++;
+
+            // Update member status (pending if no real email)
+            $member->update(['status' => $hasRealEmail ? 'active' : 'pending']);
+        } else {
+            $membership = $existingMembership;
+        }
+
+        // Create PaymentMethod (only if member has no active one)
+        $hasActivePaymentMethod = $member->paymentMethods()
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$hasActivePaymentMethod) {
+            $iban = trim($row['iban'] ?? '') ?: null;
+            $accountHolder = trim($row['kontoinhaber'] ?? '') ?: null;
+
+            $paymentMethod = $this->createPaymentMethodForType(
+                $member,
+                $paymentMethodType,
+                $iban,
+                $accountHolder,
+                $gym
+            );
+
+            if ($paymentMethod) {
+                $stats['payment_methods_created']++;
+            }
+        }
+
+        // Create payments via PaymentService (only if membership has no payments yet)
+        $hasPayments = Payment::where('membership_id', $membership->id)->exists();
+
+        if (!$hasPayments) {
+            $activePaymentMethod = $member->paymentMethods()
+                ->where('status', 'active')
+                ->where('is_default', true)
+                ->first();
+
+            // Setup fee payment (only if plan has a setup fee)
+            $setupFeePayment = $this->paymentService->createSetupFeePayment($member, $membership, $activePaymentMethod);
+            if ($setupFeePayment) {
+                $stats['payments_created']++;
+            }
+
+            // Regular pending payment
+            $pendingPayment = $this->paymentService->createPendingPayment($member, $membership, $activePaymentMethod);
+            if ($pendingPayment) {
+                $stats['payments_created']++;
+            }
+        }
+    }
+
+    /**
+     * Create a payment method based on the selected type
+     */
+    private function createPaymentMethodForType(
+        Member $member,
+        string $type,
+        ?string $iban,
+        ?string $accountHolder,
+        \App\Models\Gym $gym
+    ): ?PaymentMethod {
+        if ($type === 'sepa_direct_debit') {
+            return PaymentMethod::createSepaPaymentMethod(
+                $member,
+                true,
+                'sepa_direct_debit',
+                $iban,
+                $accountHolder
+            );
+        }
+
+        if ($type === 'mollie_directdebit') {
+            $hasRealEmail = !str_ends_with($member->email, '@import.local');
+
+            $paymentMethod = $member->paymentMethods()->create([
+                'type' => 'mollie_directdebit',
+                'status' => 'pending',
+                'is_default' => true,
+                'requires_mandate' => true,
+                'iban' => $iban,
+                'account_holder' => $accountHolder,
+                'sepa_mandate_acknowledged' => $hasRealEmail,
+                'sepa_mandate_status' => 'pending',
+            ]);
+
+            if ($hasRealEmail) {
+                $paymentMethod->update([
+                    'sepa_mandate_reference' => $paymentMethod->generateSepaMandateReference(),
+                ]);
+
+                try {
+                    app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
+                } catch (\Exception $e) {
+                    Log::warning("Mollie-Mandat konnte für {$member->email} nicht erstellt werden: {$e->getMessage()}");
+                }
+            }
+
+            return $paymentMethod;
+        }
+
+        // Simple payment methods (cash, banktransfer, invoice, etc.)
+        return $member->paymentMethods()->create([
+            'type' => $type,
+            'status' => 'active',
+            'is_default' => true,
+            'iban' => $iban,
+            'account_holder' => $accountHolder,
+        ]);
+    }
+
+    /**
+     * Split a full name into first_name and last_name
+     */
+    private function splitName(string $name): array
+    {
+        $parts = explode(' ', trim($name));
+
+        if (count($parts) === 1) {
+            return ['first_name' => $parts[0], 'last_name' => ''];
+        }
+
+        $lastName = array_pop($parts);
+        return [
+            'first_name' => implode(' ', $parts),
+            'last_name' => $lastName,
+        ];
+    }
+
+    /**
+     * Build address string from CSV columns
+     */
+    private function buildAddress(array $row): ?string
+    {
+        $strasse = trim($row['adresse_strasse'] ?? '');
+        $hausnummer = trim($row['adresse_hausnummer'] ?? '');
+
+        if (empty($strasse)) {
+            return null;
+        }
+
+        return $hausnummer ? "{$strasse} {$hausnummer}" : $strasse;
+    }
+
+    /**
+     * Find a MembershipPlan by name (tarif) and/or price (monatsbeitrag).
+     * Priority: name+price > name only > price only
+     */
+    private function findPlan($plans, string $tarifName, ?float $price): ?MembershipPlan
+    {
+        // Try matching by name + price together
+        if ($tarifName && $price !== null) {
+            $match = $plans->first(fn($p) => mb_strtolower($p->name) === mb_strtolower($tarifName) && abs((float) $p->price - $price) < 0.01);
+            if ($match) {
+                return $match;
+            }
+        }
+
+        // Fallback: match by name only
+        if ($tarifName) {
+            $match = $plans->first(fn($p) => mb_strtolower($p->name) === mb_strtolower($tarifName));
+            if ($match) {
+                return $match;
+            }
+        }
+
+        // Fallback: match by price only
+        if ($price !== null) {
+            return $plans->first(fn($p) => abs((float) $p->price - $price) < 0.01);
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse a price value from CSV
+     */
+    private function parseCsvPrice(?string $value): ?float
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        // Handle comma as decimal separator
+        $value = str_replace(',', '.', trim($value));
+
+        return is_numeric($value) ? round((float) $value, 2) : null;
+    }
+
+    /**
+     * Parse a date value from CSV (various German formats)
+     */
+    private function parseCsvDate(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $value = trim($value);
+
+        // Already in Y-m-d format
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return $value;
+        }
+
+        try {
+            if (preg_match('/^\d{2}\.\d{2}\.\d{4}$/', $value)) {
+                return Carbon::createFromFormat('d.m.Y', $value)->format('Y-m-d');
+            }
+            if (preg_match('/^\d{1,2}-\d{1,2}-\d{4}/', $value)) {
+                $value = preg_replace('/\s+\d+:\d+:\d+/', '', $value);
+                return Carbon::createFromFormat('j-n-Y', $value)->format('Y-m-d');
+            }
+        } catch (\Exception) {
+            // Fall through
+        }
+
+        return null;
+    }
+
 }

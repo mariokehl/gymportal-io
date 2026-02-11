@@ -36,6 +36,16 @@ class MemberService
     }
 
     /**
+     * Platzhalter-E-Mail generieren für Mitglieder ohne E-Mail-Adresse
+     */
+    public static function generatePlaceholderEmail(): string
+    {
+        $uid = (string) \Illuminate\Support\Str::uuid();
+
+        return "{$uid}@import.local";
+    }
+
+    /**
      * Mitgliedschaft erstellen
      */
     public function createMembership(Member $member, MembershipPlan $plan, string $status = 'active'): Membership

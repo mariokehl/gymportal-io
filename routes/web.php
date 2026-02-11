@@ -166,6 +166,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::get('/export', [DataTransferController::class, 'export'])->name('export');
         Route::post('/validate', [DataTransferController::class, 'validateImport'])->name('validate');
         Route::post('/import', [DataTransferController::class, 'import'])->name('import');
+        Route::post('/validate-csv', [DataTransferController::class, 'validateCsvImport'])->name('validate-csv');
+        Route::post('/import-csv', [DataTransferController::class, 'importCsv'])->name('import-csv');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {

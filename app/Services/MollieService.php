@@ -388,6 +388,19 @@ class MollieService
     }
 
     /**
+     * Delete a customer at Mollie
+     *
+     * @param Gym $gym
+     * @param string $customerId
+     * @return void
+     */
+    public function deleteCustomer(Gym $gym, string $customerId): void
+    {
+        $client = $this->initializeClient($gym);
+        $client->customers->delete($customerId);
+    }
+
+    /**
      * Process webhook callback
      *
      * @deprecated Diese Funktion wird aktuell nicht verwendet.

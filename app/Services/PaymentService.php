@@ -67,7 +67,7 @@ class PaymentService
             ]);
 
             // Create invoice if necessary
-            if ($this->shouldCreateInvoice($paymentMethod)) {
+            if ($this->shouldCreateInvoice($paymentMethod?->type)) {
                 $this->createInvoiceForPayment($payment);
             }
 
@@ -136,7 +136,7 @@ class PaymentService
                 ],
             ]);
 
-            if ($this->shouldCreateInvoice($paymentMethod)) {
+            if ($this->shouldCreateInvoice($paymentMethod?->type)) {
                 $this->createInvoiceForPayment($payment);
             }
 
@@ -295,7 +295,7 @@ class PaymentService
     /**
      * Determines initial payment status based on payment type
      */
-    private function determineInitialPaymentStatus(string $paymentMethod): string
+    private function determineInitialPaymentStatus(?string $paymentMethod): string
     {
         return match($paymentMethod) {
             'cash' => 'pending',
@@ -310,7 +310,7 @@ class PaymentService
     /**
      * Calculates execution date for initial payment
      */
-    private function calculateInitialExecutionDate(Membership $membership, string $paymentMethod, ?Carbon $billingAnchorDate = null): Carbon
+    private function calculateInitialExecutionDate(Membership $membership, ?string $paymentMethod, ?Carbon $billingAnchorDate = null): Carbon
     {
         // Use billing anchor date if provided, otherwise use start_date
         $baseDate = $billingAnchorDate ?? $membership->start_date;
@@ -409,7 +409,7 @@ class PaymentService
     /**
      * Prüft ob Invoice erstellt werden soll
      */
-    private function shouldCreateInvoice(string $paymentMethod): bool
+    private function shouldCreateInvoice(?string $paymentMethod): bool
     {
         return in_array($paymentMethod, ['invoice', 'banktransfer', 'standingorder']);
     }
