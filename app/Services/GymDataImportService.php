@@ -910,6 +910,7 @@ class GymDataImportService
             'address' => $this->buildAddress($row),
             'city' => trim($row['adresse_ort'] ?? '') ?: null,
             'postal_code' => trim($row['adresse_plz'] ?? '') ?: null,
+            'country' => strtoupper(trim($row['land'] ?? '')) ?: 'DE',
         ], fn($v) => $v !== null);
 
         // Check for duplicate email
