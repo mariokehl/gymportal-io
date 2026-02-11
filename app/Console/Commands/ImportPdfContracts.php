@@ -149,18 +149,27 @@ class ImportPdfContracts extends Command
 
     private function extractAddress(string $text): ?array
     {
-        preg_match('/Anschrift\s*\n([^\n]+)\n(\d+)\n([^\n]+)\s+(\d{5})/i', $text, $matches);
-
-        if (!isset($matches[1])) {
-            return null;
+        // Format 1: Straße\nHausnummer\nPLZ Ort
+        if (preg_match('/Anschrift\s*\n([^\n]+)\n(\d+[\s]*[a-zA-Z]?(?:[\/\-]\d+)?)\n(\d{5})\s+([^\n]+)/i', $text, $matches)) {
+            return [
+                'strasse' => trim($matches[1]),
+                'hausnummer' => trim($matches[2]),
+                'plz' => trim($matches[3]),
+                'ort' => trim($matches[4]),
+            ];
         }
 
-        return [
-            'strasse' => trim($matches[1]),
-            'hausnummer' => trim($matches[2]),
-            'ort' => trim($matches[3]),
-            'plz' => trim($matches[4]),
-        ];
+        // Format 2: Straße\nHausnummer\nOrt PLZ
+        if (preg_match('/Anschrift\s*\n([^\n]+)\n(\d+[\s]*[a-zA-Z]?(?:[\/\-]\d+)?)\n([^\n]+)\s+(\d{5})/i', $text, $matches)) {
+            return [
+                'strasse' => trim($matches[1]),
+                'hausnummer' => trim($matches[2]),
+                'ort' => trim($matches[3]),
+                'plz' => trim($matches[4]),
+            ];
+        }
+
+        return null;
     }
 
     private function normalizeIban(?string $iban): ?string
