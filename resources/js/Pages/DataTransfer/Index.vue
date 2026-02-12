@@ -277,7 +277,7 @@
                     <ul class="list-disc list-inside mt-1 space-y-0.5">
                       <li><strong>email</strong>, <strong>name</strong> (Pflicht)</li>
                       <li>anrede, geburtsdatum, telefon</li>
-                      <li>adresse_strasse, adresse_hausnummer, adresse_ort, adresse_plz, land (2-stelliger ISO-Code, Standard: DE)</li>
+                      <li>adresse_strasse, adresse_hausnummer, adresszusatz, adresse_ort, adresse_plz, land (2-stelliger ISO-Code, Standard: DE)</li>
                       <li><strong>monatsbeitrag</strong> (zur Zuordnung des Tarifs), <strong>tarif</strong> (optional, Tarifname zur genauen Zuordnung)</li>
                       <li>kontoinhaber, iban (bei SEPA-Zahlungsarten)</li>
                     </ul>
@@ -903,10 +903,10 @@ const downloadExampleCsv = () => {
   const tarifName = plan?.name ?? 'Standardtarif'
   const price = plan ? parseFloat(plan.price).toFixed(2).replace('.', ',') : '29,90'
 
-  const header = 'email;name;anrede;geburtsdatum;telefon;adresse_strasse;adresse_hausnummer;adresse_ort;adresse_plz;land;monatsbeitrag;tarif;kontoinhaber;iban'
+  const header = 'email;name;anrede;geburtsdatum;telefon;adresse_strasse;adresse_hausnummer;adresszusatz;adresse_ort;adresse_plz;land;monatsbeitrag;tarif;kontoinhaber;iban'
   const rows = [
-    `max.mustermann@example.com;Max Mustermann;Herr;15.03.1990;0170 1234567;Musterstraße;12;Musterstadt;12345;DE;${price};${tarifName};Max Mustermann;DE89370400440532013000`,
-    `erika.musterfrau@example.com;Erika Musterfrau;Frau;22.07.1985;0171 9876543;Beispielweg;3a;Musterstadt;12345;AT;${price};${tarifName};Erika Musterfrau;DE02120300000000202051`,
+    `max.mustermann@example.com;Max Mustermann;Herr;15.03.1990;0170 1234567;Musterstraße;12;Wohnung 4;Musterstadt;12345;DE;${price};${tarifName};Max Mustermann;DE89370400440532013000`,
+    `erika.musterfrau@example.com;Erika Musterfrau;Frau;22.07.1985;0171 9876543;Beispielweg;3a;;Musterstadt;12345;AT;${price};${tarifName};Erika Musterfrau;DE02120300000000202051`,
   ]
 
   const csv = '\uFEFF' + header + '\n' + rows.join('\n') + '\n'

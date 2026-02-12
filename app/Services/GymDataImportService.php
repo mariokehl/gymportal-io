@@ -858,6 +858,9 @@ class GymDataImportService
             }
         }
 
+        // Delete check-ins before members (FK constraint)
+        CheckIn::where('gym_id', $gymId)->delete();
+
         $deleted = [
             'payments' => Payment::where('gym_id', $gymId)->delete(),
             'payment_methods' => PaymentMethod::withTrashed()->whereIn('member_id', $memberIds)->forceDelete(),
@@ -908,6 +911,7 @@ class GymDataImportService
             'phone' => trim($row['telefon'] ?? '') ?: null,
             'birth_date' => $this->parseCsvDate($row['geburtsdatum'] ?? null),
             'address' => $this->buildAddress($row),
+            'address_addition' => trim($row['adresszusatz'] ?? '') ?: null,
             'city' => trim($row['adresse_ort'] ?? '') ?: null,
             'postal_code' => trim($row['adresse_plz'] ?? '') ?: null,
             'country' => strtoupper(trim($row['land'] ?? '')) ?: 'DE',
