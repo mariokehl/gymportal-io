@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\MembershipPlan;
 use App\Services\GymDataExportService;
 use App\Services\GymDataImportService;
 use Illuminate\Http\Request;
@@ -31,10 +32,23 @@ class DataTransferController extends Controller
             abort(403, 'Sie haben keine Berechtigung für den Datenimport/-export.');
         }
 
+        $paymentMethods = array_merge(
+            array_values($gym->getEnabledStandardPaymentMethods()),
+            $gym->getMolliePaymentMethods()
+        );
+
+        $membershipPlans = MembershipPlan::where('gym_id', $gym->id)
+            ->where('is_active', true)
+            ->select('id', 'name', 'price', 'billing_cycle', 'commitment_months')
+            ->orderBy('price')
+            ->get();
+
         return Inertia::render('DataTransfer/Index', [
             'currentGym' => $gym,
             'exportStats' => $this->exportService->getExportStats($gym->id),
             'sensitiveDataWarning' => $this->getSensitiveDataWarning(),
+            'paymentMethods' => $paymentMethods,
+            'membershipPlans' => $membershipPlans,
         ]);
     }
 
@@ -193,6 +207,154 @@ class DataTransferController extends Controller
                 'error' => 'Import fehlgeschlagen: ' . $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Validate CSV import file before processing
+     */
+    public function validateCsvImport(Request $request)
+    {
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (!$this->canAccessDataTransfer($user, $gym)) {
+            return response()->json([
+                'valid' => false,
+                'error' => 'Sie haben keine Berechtigung für den Datenimport.',
+            ], 403);
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:10240', // 10MB max
+        ]);
+
+        $file = $request->file('file');
+
+        if (!in_array($file->getClientOriginalExtension(), ['csv', 'CSV'])) {
+            return response()->json([
+                'valid' => false,
+                'error' => 'Bitte wählen Sie eine CSV-Datei aus.',
+            ], 422);
+        }
+
+        $rows = $this->parseCsvFile($file->path());
+
+        if (empty($rows)) {
+            return response()->json([
+                'valid' => false,
+                'errors' => ['Die CSV-Datei enthält keine Daten.'],
+            ], 422);
+        }
+
+        $validation = $this->importService->validateCsvData($rows, $gym->id);
+
+        return response()->json($validation);
+    }
+
+    /**
+     * Process CSV import
+     */
+    public function importCsv(Request $request)
+    {
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (!$this->canAccessDataTransfer($user, $gym)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Sie haben keine Berechtigung für den Datenimport.',
+            ], 403);
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+            'start_date' => 'required|date',
+            'payment_method_type' => 'required|string',
+        ], [
+            'file.required' => 'Bitte wählen Sie eine Datei aus.',
+            'start_date.required' => 'Bitte wählen Sie ein Startdatum.',
+            'payment_method_type.required' => 'Bitte wählen Sie eine Zahlungsart.',
+        ]);
+
+        $file = $request->file('file');
+
+        if (!in_array($file->getClientOriginalExtension(), ['csv', 'CSV'])) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Bitte wählen Sie eine CSV-Datei aus.',
+            ], 422);
+        }
+
+        $rows = $this->parseCsvFile($file->path());
+
+        if (empty($rows)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Die CSV-Datei enthält keine Daten.',
+            ], 422);
+        }
+
+        try {
+            $result = $this->importService->importCsvData(
+                $gym->id,
+                $rows,
+                $request->input('start_date'),
+                $request->input('payment_method_type'),
+                (bool) $request->input('delete_existing', false)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'CSV-Import erfolgreich',
+                'stats' => $result,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Import fehlgeschlagen: ' . $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Parse a CSV file into an array of associative rows
+     */
+    private function parseCsvFile(string $path): array
+    {
+        // Remove UTF-8 BOM if present
+        $content = file_get_contents($path);
+        if (str_starts_with($content, "\xEF\xBB\xBF")) {
+            $cleanPath = tempnam(sys_get_temp_dir(), 'csv_');
+            file_put_contents($cleanPath, substr($content, 3));
+            $path = $cleanPath;
+        }
+
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return [];
+        }
+
+        $header = fgetcsv($handle, 0, ';');
+        if (!$header) {
+            fclose($handle);
+            return [];
+        }
+        $header = array_map('trim', $header);
+
+        $rows = [];
+        while (($values = fgetcsv($handle, 0, ';')) !== false) {
+            if (count($values) === count($header)) {
+                $rows[] = array_combine($header, $values);
+            }
+        }
+
+        fclose($handle);
+
+        if (isset($cleanPath)) {
+            unlink($cleanPath);
+        }
+
+        return $rows;
     }
 
     /**

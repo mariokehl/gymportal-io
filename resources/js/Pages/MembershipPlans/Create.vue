@@ -160,19 +160,53 @@
             </div>
           </div>
 
+          <!-- Auto Renewal Type (nach Erstlaufzeit) -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Verlängerung nach Erstlaufzeit
+            </label>
+            <div class="space-y-2">
+              <label class="flex items-start space-x-3 cursor-pointer">
+                <input
+                  v-model="form.auto_renew_type"
+                  type="radio"
+                  value="indefinite"
+                  class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                />
+                <div>
+                  <span class="text-sm font-medium text-gray-700">Unbefristet</span>
+                  <p class="text-xs text-gray-500">Vertrag geht nach Erstlaufzeit in unbefristete Mitgliedschaft über</p>
+                </div>
+              </label>
+              <label class="flex items-start space-x-3 cursor-pointer">
+                <input
+                  v-model="form.auto_renew_type"
+                  type="radio"
+                  value="monthly"
+                  class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                />
+                <div>
+                  <span class="text-sm font-medium text-gray-700">Monatlich rollierend</span>
+                  <p class="text-xs text-gray-500">Vertrag verlängert sich monatlich um jeweils 1 Monat</p>
+                </div>
+              </label>
+            </div>
+            <p class="mt-2 text-xs text-gray-400">Gemäß Gesetz für faire Verbraucherverträge (ab 01.03.2022)</p>
+          </div>
+
           <!-- Active Status -->
           <div class="mb-8">
-            <div class="flex items-center">
+            <label for="is_active" class="flex items-start space-x-3 cursor-pointer">
               <input
                 id="is_active"
                 v-model="form.is_active"
                 type="checkbox"
-                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                class="mt-0.5 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
               />
-              <label for="is_active" class="ml-2 text-sm font-medium text-gray-700">
+              <span class="text-sm font-medium text-gray-700">
                 Vertrag ist aktiv und kann von Mitgliedern gewählt werden
-              </label>
-            </div>
+              </span>
+            </label>
             <p class="mt-1 text-xs text-gray-500">
               Inaktive Verträge sind für neue Mitgliedschaften nicht verfügbar
             </p>
@@ -219,7 +253,8 @@ const form = useForm({
   is_active: true,
   commitment_months: '',
   cancellation_period: 30,
-  cancellation_period_unit: 'days'
+  cancellation_period_unit: 'days',
+  auto_renew_type: 'indefinite'
 })
 
 // Computed

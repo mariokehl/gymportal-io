@@ -50,6 +50,9 @@ class Gym extends Model
         'api_key_generated_at',
         'trial_ends_at',
         'scanner_secret_key',
+        'rolling_qr_enabled',
+        'rolling_qr_interval',
+        'rolling_qr_tolerance_windows',
 
         // PWA Theming Fields
         'primary_color',
@@ -74,6 +77,7 @@ class Gym extends Model
         'widget_enabled' => 'boolean',
         'widget_settings' => 'array',
         'contracts_start_first_of_month' => 'boolean',
+        'rolling_qr_enabled' => 'boolean',
         'api_key_generated_at' => 'datetime',
         'pwa_enabled' => 'boolean',
         'pwa_settings' => 'array',
@@ -481,6 +485,8 @@ class Gym extends Model
             'theme' => $this->theme,
             'pwa_enabled' => $this->isPwaEnabled(),
             'legal_urls' => $this->getLegalUrlsArray(),
+            'rolling_qr_enabled' => $this->rolling_qr_enabled,
+            'rolling_qr_interval' => $this->rolling_qr_interval ?? 3,
         ];
     }
 

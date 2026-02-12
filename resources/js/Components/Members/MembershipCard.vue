@@ -19,7 +19,7 @@
           {{ membership.is_free_trial ? 'Kostenloser Testzeitraum' : (membership.membership_plan?.description || 'Keine Beschreibung verfügbar') }}
         </p>
         <div class="mt-2 space-y-1">
-          <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date) }}</p>
+          <p class="text-sm"><span class="font-medium">Laufzeit:</span> {{ formatDate(membership.start_date) }} - {{ membership.end_date ? formatDate(membership.end_date) : (membership.cancellation_date ? formatDate(membership.cancellation_date) : 'unbefristet') }}</p>
           <p v-if="membership.membership_plan?.commitment_months" class="text-sm">
             <span class="font-medium">Mindestlaufzeit:</span> {{ membership.membership_plan.commitment_months }} Monate
           </p>

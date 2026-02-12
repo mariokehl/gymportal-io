@@ -563,16 +563,34 @@ class ProcessMembershipPayments extends Command
     protected function renewMembership(Membership $membership): void
     {
         $plan = $membership->membershipPlan;
-        $newEndDate = $membership->end_date->copy()
-            ->addDay() // 30.11. -> 1.12.
-            ->addMonths($plan->commitment_months ?: 12) // 1.12. -> 1.01.
-            ->subDay(); // 1.01. -> 31.12.
+        $autoRenewType = $plan->auto_renew_type ?? 'indefinite';
+
+        // Gesetz für faire Verbraucherverträge (ab 01.03.2022):
+        // Nach Ablauf der Erstlaufzeit nur noch unbefristete oder monatliche Verlängerung
+        if ($membership->isInitialTermCompleted()) {
+            if ($autoRenewType === 'indefinite') {
+                // Unbefristet: end_date wird auf null gesetzt
+                $newEndDate = null;
+            } else {
+                // Monatlich rollierend: 1 Monat verlängern
+                $newEndDate = $membership->end_date->copy()
+                    ->addDay()
+                    ->addMonths(1)
+                    ->subDay();
+            }
+        } else {
+            $newEndDate = $membership->end_date->copy()
+                ->addDay()
+                ->addMonths($plan->commitment_months ?: 12)
+                ->subDay();
+        }
 
         if ($this->testMode) {
             $this->logTestAction('membership_renewal', [
                 'membership_id' => $membership->id,
                 'old_end_date' => $membership->end_date->toDateString(),
-                'new_end_date' => $newEndDate->toDateString(),
+                'new_end_date' => $newEndDate?->toDateString() ?? 'unbefristet',
+                'auto_renew_type' => $autoRenewType,
             ]);
             return;
         }
@@ -586,6 +604,8 @@ class ProcessMembershipPayments extends Command
                 'metadata' => array_merge($membership->metadata ?? [], [
                     'auto_renewed_at' => now()->toDateTimeString(),
                     'renewal_count' => ($membership->metadata['renewal_count'] ?? 0) + 1,
+                    'auto_renew_type' => $autoRenewType,
+                    'converted_to_indefinite' => $newEndDate === null,
                 ])
             ]);
 
@@ -596,7 +616,8 @@ class ProcessMembershipPayments extends Command
             Log::info('Membership auto-renewed', [
                 'membership_id' => $membership->id,
                 'member_id' => $membership->member_id,
-                'new_end_date' => $newEndDate->toDateString(),
+                'new_end_date' => $newEndDate?->toDateString() ?? 'indefinite',
+                'auto_renew_type' => $autoRenewType,
             ]);
 
             $this->rollbackData['renewals'][] = [

@@ -11,22 +11,38 @@
     </label>
 
     <!-- Input Container -->
-    <div class="relative">
+    <div class="relative flex">
       <input
         :id="inputId"
         v-model="internalValue"
         type="email"
-        :placeholder="placeholder"
-        :disabled="disabled || isCheckingEmail"
-        :class="inputClasses"
+        :placeholder="isPlaceholderEmail ? 'Platzhalter-E-Mail' : placeholder"
+        :disabled="disabled || isCheckingEmail || isPlaceholderEmail"
+        :class="[inputClasses, showGeneratePlaceholder ? 'rounded-r-none' : '']"
         :autocomplete="autocomplete"
         @input="handleInput"
         @blur="handleBlur"
         @focus="handleFocus"
       />
 
+      <!-- Generate Placeholder Button -->
+      <button
+        v-if="showGeneratePlaceholder"
+        type="button"
+        @click="togglePlaceholderEmail"
+        class="inline-flex items-center px-3 border border-l-0 rounded-r-md text-sm font-medium whitespace-nowrap transition-colors"
+        :class="isPlaceholderEmail
+          ? 'border-orange-300 bg-orange-100 text-orange-700 hover:bg-orange-200'
+          : 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100'"
+        :title="isPlaceholderEmail ? 'Platzhalter entfernen' : 'Platzhalter-E-Mail generieren'"
+      >
+        <MailXIcon v-if="isPlaceholderEmail" class="h-4 w-4 mr-1" />
+        <MailPlusIcon v-else class="h-4 w-4 mr-1" />
+        {{ isPlaceholderEmail ? 'Entfernen' : 'Zufällig' }}
+      </button>
+
       <!-- Status Icons -->
-      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none" :class="{ 'mr-[120px]': showGeneratePlaceholder }">
         <!-- Loading Spinner -->
         <LoaderIcon
           v-if="isCheckingEmail"
@@ -74,7 +90,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { CheckIcon, LoaderIcon, AlertCircleIcon } from 'lucide-vue-next'
+import { CheckIcon, LoaderIcon, AlertCircleIcon, MailPlusIcon, MailXIcon } from 'lucide-vue-next'
 import { debounce } from 'lodash'
 import axios from 'axios'
 
@@ -135,6 +151,10 @@ const props = defineProps({
   id: {
     type: String,
     default: null
+  },
+  showGeneratePlaceholder: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -150,6 +170,8 @@ const emit = defineEmits([
 
 // State
 const internalValue = ref(props.modelValue)
+const isPlaceholderEmail = ref(false)
+const previousEmail = ref('')
 const isTouched = ref(false)
 const isFocused = ref(false)
 const isCheckingEmail = ref(false)
@@ -167,6 +189,9 @@ const isValidFormat = computed(() => {
 })
 
 const isValid = computed(() => {
+  // Placeholder emails are always valid
+  if (isPlaceholderEmail.value) return true
+
   // Must have valid format
   if (!isValidFormat.value) return false
 
@@ -386,6 +411,41 @@ const emitValidationChange = () => {
   }
 
   emit('validation-change', state)
+}
+
+// Placeholder email logic
+const generateUuid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
+const togglePlaceholderEmail = () => {
+  if (isPlaceholderEmail.value) {
+    // Remove placeholder, restore previous email
+    isPlaceholderEmail.value = false
+    internalValue.value = previousEmail.value
+    emit('update:modelValue', previousEmail.value)
+    previousEmail.value = ''
+    errorMessage.value = ''
+    lastCheckedEmail.value = ''
+    isTouched.value = false
+    emitValidationChange()
+  } else {
+    // Save current email and generate placeholder
+    previousEmail.value = internalValue.value
+    const placeholderEmail = `${generateUuid()}@import.local`
+    isPlaceholderEmail.value = true
+    internalValue.value = placeholderEmail
+    emit('update:modelValue', placeholderEmail)
+    errorMessage.value = ''
+    lastCheckedEmail.value = placeholderEmail
+    isTouched.value = true
+    checkEmailAvailabilityDebounced.cancel()
+    emitValidationChange()
+  }
 }
 
 // Public methods (exposed via defineExpose)

@@ -67,7 +67,7 @@ class PaymentService
             ]);
 
             // Create invoice if necessary
-            if ($this->shouldCreateInvoice($paymentMethod)) {
+            if ($this->shouldCreateInvoice($paymentMethod?->type)) {
                 $this->createInvoiceForPayment($payment);
             }
 
@@ -136,7 +136,7 @@ class PaymentService
                 ],
             ]);
 
-            if ($this->shouldCreateInvoice($paymentMethod)) {
+            if ($this->shouldCreateInvoice($paymentMethod?->type)) {
                 $this->createInvoiceForPayment($payment);
             }
 
@@ -295,7 +295,7 @@ class PaymentService
     /**
      * Determines initial payment status based on payment type
      */
-    private function determineInitialPaymentStatus(string $paymentMethod): string
+    private function determineInitialPaymentStatus(?string $paymentMethod): string
     {
         return match($paymentMethod) {
             'cash' => 'pending',
@@ -310,7 +310,7 @@ class PaymentService
     /**
      * Calculates execution date for initial payment
      */
-    private function calculateInitialExecutionDate(Membership $membership, string $paymentMethod, ?Carbon $billingAnchorDate = null): Carbon
+    private function calculateInitialExecutionDate(Membership $membership, ?string $paymentMethod, ?Carbon $billingAnchorDate = null): Carbon
     {
         // Use billing anchor date if provided, otherwise use start_date
         $baseDate = $billingAnchorDate ?? $membership->start_date;
@@ -409,7 +409,7 @@ class PaymentService
     /**
      * Prüft ob Invoice erstellt werden soll
      */
-    private function shouldCreateInvoice(string $paymentMethod): bool
+    private function shouldCreateInvoice(?string $paymentMethod): bool
     {
         return in_array($paymentMethod, ['invoice', 'banktransfer', 'standingorder']);
     }
@@ -631,6 +631,65 @@ class PaymentService
     }
 
     /**
+     * Zentrale Methode für Widerruf: Storniert ausstehende Zahlungen
+     * und initiiert Erstattungen falls bereits bezahlt wurde.
+     *
+     * @param Membership $membership Die widerrufene Mitgliedschaft
+     * @return float Der Erstattungsbetrag
+     */
+    public function handleWithdrawalPayments(Membership $membership): float
+    {
+        try {
+            // 1. Ausstehende Zahlungen ohne mollie_payment_id und transaction_id immer stornieren
+            $canceledCount = $this->cancelPendingPayments($membership);
+
+            // 2. Erstattung initiieren falls bereits bezahlt wurde
+            $refundAmount = (float) $membership->payments()
+                ->whereIn('status', ['paid', 'completed'])
+                ->sum('amount');
+
+            if ($refundAmount > 0) {
+                $this->initiateRefund($membership, $refundAmount);
+            }
+
+            Log::info('Withdrawal payments handled', [
+                'membership_id' => $membership->id,
+                'canceled_pending' => $canceledCount,
+                'refund_amount' => $refundAmount,
+            ]);
+
+            return $refundAmount;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to handle withdrawal payments', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Storniert alle ausstehenden Zahlungen ohne mollie_payment_id
+     * und/oder transaction_id für eine Mitgliedschaft.
+     *
+     * @param Membership $membership
+     * @return int Anzahl der stornierten Zahlungen
+     */
+    private function cancelPendingPayments(Membership $membership): int
+    {
+        return $membership->payments()
+            ->where('status', 'pending')
+            ->whereNull('mollie_payment_id')
+            ->whereNull('transaction_id')
+            ->update([
+                'status' => 'canceled',
+                'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Storniert aufgrund Widerruf am " . now()->format('d.m.Y H:i') . "')"),
+            ]);
+    }
+
+    /**
      * Initiiert Erstattung für Widerruf gemäß § 356a BGB
      *
      * Bei einem Widerruf müssen alle geleisteten Zahlungen innerhalb von
@@ -692,14 +751,6 @@ class PaymentService
 
                 $remainingRefund -= $paymentRefundAmount;
             }
-
-            // Alle ausstehenden Zahlungen stornieren
-            $membership->payments()
-                ->where('status', 'pending')
-                ->update([
-                    'status' => 'canceled',
-                    'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Storniert aufgrund Widerruf am " . now()->format('d.m.Y H:i') . "')"),
-                ]);
 
             Log::info('Refund initiated for withdrawal', [
                 'membership_id' => $membership->id,

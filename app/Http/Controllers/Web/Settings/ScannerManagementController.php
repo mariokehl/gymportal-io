@@ -140,6 +140,11 @@ class ScannerManagementController extends Controller
             'ENABLE_HASH_CHECK=true',
             'ENABLE_NFC_CARDS=true',
             '',
+            '# Rolling QR-Code Konfiguration',
+            'ENABLE_ROLLING_QR=' . ($gym->rolling_qr_enabled ? 'True' : 'False'),
+            'ROLLING_QR_INTERVAL_SECONDS=' . ($gym->rolling_qr_interval ?? 3),
+            'ROLLING_QR_TOLERANCE_WINDOWS=' . ($gym->rolling_qr_tolerance_windows ?? 1),
+            '',
             '# Optional IP Whitelist',
             '# ALLOWED_IPS=' . ($scanner->allowed_ips ? implode(',', $scanner->allowed_ips) : ''),
         ];

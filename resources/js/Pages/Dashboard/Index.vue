@@ -61,9 +61,9 @@
                                             :verified-at="member.age_verified_at"
                                             size="sm"
                                         />
-                                        <div class="ml-3">
-                                            <p class="text-sm font-medium">{{ member.name }}</p>
-                                            <p class="text-xs text-gray-500">{{ member.email }}</p>
+                                        <div class="ml-3 min-w-0 max-w-[200px]">
+                                            <p class="text-sm font-medium truncate">{{ member.name }}</p>
+                                            <p class="text-xs text-gray-500 truncate">{{ member.email }}</p>
                                         </div>
                                     </div>
                                 </td>

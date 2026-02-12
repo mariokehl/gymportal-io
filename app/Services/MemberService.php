@@ -36,6 +36,16 @@ class MemberService
     }
 
     /**
+     * Platzhalter-E-Mail generieren für Mitglieder ohne E-Mail-Adresse
+     */
+    public static function generatePlaceholderEmail(): string
+    {
+        $uid = (string) \Illuminate\Support\Str::uuid();
+
+        return "{$uid}@import.local";
+    }
+
+    /**
      * Mitgliedschaft erstellen
      */
     public function createMembership(Member $member, MembershipPlan $plan, string $status = 'active'): Membership
@@ -44,9 +54,11 @@ class MemberService
             'member_id' => $member->id,
             'membership_plan_id' => $plan->id,
             'start_date' => $member->joined_date,
-            'end_date' => Carbon::parse($member->joined_date)
-                ->addMonths($plan->commitment_months)
-                ->subDay(), // Einen Tag abziehen für korrektes Vertragsende
+            'end_date' => $plan->commitment_months > 0
+                ? Carbon::parse($member->joined_date)
+                    ->addMonths($plan->commitment_months)
+                    ->subDay()
+                : null, // Keine Mindestlaufzeit = unbefristet
             'status' => $status
         ]);
     }

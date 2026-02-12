@@ -276,10 +276,19 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                   />
                 </div>
-                <div class="md:col-span-2">
+                <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Straße und Hausnummer</label>
                   <input
                     v-model="form.address"
+                    :disabled="!editMode"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Adresszusatz</label>
+                  <input
+                    v-model="form.address_addition"
                     :disabled="!editMode"
                     type="text"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
@@ -309,7 +318,7 @@
                     id="country"
                     v-model="form.country"
                     :disabled="!editMode"
-                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
                   >
                     <option value="DE">Deutschland</option>
                     <option value="AT">Österreich</option>
@@ -781,7 +790,23 @@
                       <td class="px-4 py-3 text-sm">
                         {{ checkin.check_out_time ? calculateDuration(checkin.check_in_time, checkin.check_out_time) : '-' }}
                       </td>
-                      <td class="px-4 py-3 text-sm">{{ checkin.check_in_method_text || 'Unbekannt' }}</td>
+                      <td class="px-4 py-3 text-sm">
+                        <span
+                            :class="[
+                                'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                                checkin.check_in_method === 'nfc_card'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : checkin.check_in_method === 'manual'
+                                        ? 'bg-gray-100 text-gray-800'
+                                        : 'bg-blue-100 text-blue-800'
+                            ]"
+                        >
+                            <CreditCard v-if="checkin.check_in_method === 'nfc_card'" class="w-3 h-3 mr-1" />
+                            <Edit v-else-if="checkin.check_in_method === 'manual'" class="w-3 h-3 mr-1" />
+                            <QrCode v-else class="w-3 h-3 mr-1" />
+                            {{ checkin.check_in_method_text || 'Unbekannt' }}
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -2388,6 +2413,7 @@ const form = useForm({
   phone: props.member.phone,
   birth_date: formatDateForInput(props.member.birth_date),
   address: props.member.address,
+  address_addition: props.member.address_addition,
   city: props.member.city,
   postal_code: props.member.postal_code,
   country: props.member.country,

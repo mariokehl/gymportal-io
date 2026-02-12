@@ -283,21 +283,15 @@ class MemberController extends Controller
         try {
             DB::beginTransaction();
 
-            // Erstattungsbetrag berechnen
-            $refundAmount = $this->calculateRefundAmount($membership);
+            // Widerruf durchführen: Ausstehende Zahlungen stornieren und ggf. Erstattung initiieren
+            $refundAmount = $paymentService->handleWithdrawalPayments($membership);
 
-            // Widerruf durchführen
             $membership->update([
                 'status' => 'withdrawn',
                 'withdrawn_at' => now(),
                 'withdrawal_confirmation_sent_to' => $confirmationEmail,
                 'withdrawal_refund_amount' => $refundAmount,
             ]);
-
-            // Erstattung initiieren (falls Zahlungen vorhanden)
-            if ($refundAmount > 0) {
-                $paymentService->initiateRefund($membership, $refundAmount);
-            }
 
             // Eingangsbestätigung senden (gemäß § 356a BGB auf dauerhaftem Datenträger)
             // WICHTIG: Die Bestätigung darf nur den Eingang bestätigen,
@@ -416,18 +410,12 @@ class MemberController extends Controller
     }
 
     /**
-     * Berechnet den Erstattungsbetrag für einen Widerruf
+     * QR-Code-Generierung für Mitglieder:
+     * 1. Statischer QR-Code: Zeitstempel-basiert (Standard)
+     * 2. Rolling QR-Code: TOTP-basiert mit konfigurierbarem Intervall
+     *
+     * @return JsonResponse
      */
-    private function calculateRefundAmount(Membership $membership): float
-    {
-        // Alle abgeschlossenen Zahlungen für diese Mitgliedschaft abrufen
-        $totalPaid = $membership->payments()
-            ->whereIn('status', ['paid', 'completed'])
-            ->sum('amount');
-
-        return (float) $totalPaid;
-    }
-
     public function generateQrCode(): JsonResponse
     {
         /** @var Member $member */
@@ -448,23 +436,40 @@ class MemberController extends Controller
         /** @var Gym $gym */
         $gym = $member->gym;
 
-        // Zeitstempel im ISO 8601 Format mit Z-Suffix
-        $timestamp = Carbon::now()->format('Y-m-d\TH:i:s.uP');
+        if ($gym->rolling_qr_enabled) {
+            // Rolling QR-Code: TOTP-basiert mit konfigurierbarem Intervall
+            $interval = $gym->rolling_qr_interval ?: 3;
+            $timeStep = (int) floor(time() / $interval);
 
-        // QR-Code-Daten
-        $qrData = [
-            'member_id' => (string) $member->id,
-            'timestamp' => $timestamp
-        ];
+            $message = $member->id . ':' . $timeStep;
+            $totpHash = hash_hmac(
+                'sha256',
+                $message,
+                $gym->getCurrentScannerKey()
+            );
 
-        // Hash generieren (über member_id und timestamp)
-        $message = $member->id . ':' . $timestamp;
-        $hashValue = hash_hmac(
-            'sha256',
-            $message,
-            $gym->getCurrentScannerKey()
-        );
-        $qrData['hash'] = $hashValue;
+            $qrData = [
+                'member_id' => (string) $member->id,
+                'type' => 'rolling',
+                'totp_hash' => $totpHash,
+            ];
+        } else {
+            // Statischer QR-Code: Zeitstempel-basiert
+            $timestamp = Carbon::now()->format('Y-m-d\TH:i:s.uP');
+
+            $qrData = [
+                'member_id' => (string) $member->id,
+                'timestamp' => $timestamp,
+            ];
+
+            $message = $member->id . ':' . $timestamp;
+            $hashValue = hash_hmac(
+                'sha256',
+                $message,
+                $gym->getCurrentScannerKey()
+            );
+            $qrData['hash'] = $hashValue;
+        }
 
         return response()->json([
             'success' => true,

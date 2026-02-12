@@ -49,6 +49,9 @@ class AccessControlController extends Controller
             'statistics' => $statistics,
             'gymId' => $gym->id,
             'scannerSecretKey' => $gym->getAttributes()['scanner_secret_key'] ?? null,
+            'rollingQrEnabled' => (bool) $gym->rolling_qr_enabled,
+            'rollingQrInterval' => (int) ($gym->rolling_qr_interval ?? 3),
+            'rollingQrToleranceWindows' => (int) ($gym->rolling_qr_tolerance_windows ?? 1),
         ]);
     }
 
@@ -328,6 +331,28 @@ class AccessControlController extends Controller
     }
 
     /**
+     * Update rolling QR code settings
+     */
+    public function updateRollingQrSettings(Request $request)
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $validated = $request->validate([
+            'rolling_qr_enabled' => 'required|boolean',
+            'rolling_qr_interval' => 'required|integer|min:1|max:60',
+            'rolling_qr_tolerance_windows' => 'required|integer|min:0|max:5',
+        ]);
+
+        $gym->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rolling QR-Code Einstellungen wurden gespeichert.',
+        ]);
+    }
+
+    /**
      * Format a log entry for frontend display
      */
     private function formatLogForFrontend(ScannerAccessLog $log): array
@@ -375,6 +400,11 @@ class AccessControlController extends Controller
             'ENABLE_TIMESTAMP_CHECK=True',
             'ENABLE_HASH_CHECK=True',
             'ENABLE_NFC_CARDS=True',
+            '',
+            '# Rolling QR-Code Konfiguration',
+            'ENABLE_ROLLING_QR=' . ($gym->rolling_qr_enabled ? 'True' : 'False'),
+            'ROLLING_QR_INTERVAL_SECONDS=' . ($gym->rolling_qr_interval ?? 3),
+            'ROLLING_QR_TOLERANCE_WINDOWS=' . ($gym->rolling_qr_tolerance_windows ?? 1),
             '',
             '# Optional IP Whitelist',
             '# ALLOWED_IPS=' . ($scanner->allowed_ips ? implode(',', $scanner->allowed_ips) : ''),

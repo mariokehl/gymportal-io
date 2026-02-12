@@ -155,6 +155,9 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Gym Secret Key
         Route::post('/regenerate-secret-key', [AccessControlController::class, 'regenerateSecretKey'])->name('regenerate-secret-key');
+
+        // Rolling QR-Code Settings
+        Route::put('/rolling-qr-settings', [AccessControlController::class, 'updateRollingQrSettings'])->name('rolling-qr-settings.update');
     });
 
     // Data Transfer (Import/Export)
@@ -163,6 +166,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::get('/export', [DataTransferController::class, 'export'])->name('export');
         Route::post('/validate', [DataTransferController::class, 'validateImport'])->name('validate');
         Route::post('/import', [DataTransferController::class, 'import'])->name('import');
+        Route::post('/validate-csv', [DataTransferController::class, 'validateCsvImport'])->name('validate-csv');
+        Route::post('/import-csv', [DataTransferController::class, 'importCsv'])->name('import-csv');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {

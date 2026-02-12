@@ -20,14 +20,26 @@ class ScannerController extends Controller
     ) {}
 
     /**
+     * Scanner meldet sich als online
+     * Route: GET /api/scanner/ping
+     */
+    public function ping(Request $request)
+    {
+        $scanner = $request->get('scanner');
+        $scanner->touch();
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    /**
      * Scanner prüft auf Gültigkeit der Mitgliedschaft
      * Route: GET /api/scanner/verify-membership
      */
     public function verifyMembership(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'scan_type' => 'required|string|in:qr_code,nfc_card',
-            'member_id' => 'required_if:scan_type,qr_code|string',
+            'scan_type' => 'required|string|in:qr_code,nfc_card,rolling_qr',
+            'member_id' => 'required_if:scan_type,qr_code|required_if:scan_type,rolling_qr|string',
             'nfc_card_id' => 'required_if:scan_type,nfc_card|string'
         ]);
 
@@ -37,12 +49,13 @@ class ScannerController extends Controller
 
         $scanner = $request->get('scanner');
         $scanType = $request->input('scan_type');
+        $checkInMethod = $scanType === 'rolling_qr' ? 'qr_code' : $scanType;
         $nfcCardId = $request->input('nfc_card_id');
         $member = null;
 
         try {
             // Mitglied basierend auf Scan-Typ ermitteln
-            if ($scanType === 'qr_code') {
+            if ($scanType === 'qr_code' || $scanType === 'rolling_qr') {
                 $memberId = $request->input('member_id');
                 $member = Member::find($memberId);
             } elseif ($scanType === 'nfc_card') {
@@ -129,7 +142,7 @@ class ScannerController extends Controller
                     'member_id' => $member->id,
                     'gym_id' => $member->gym_id,
                     'check_in_time' => now(),
-                    'check_in_method' => $scanType,
+                    'check_in_method' => $checkInMethod,
                 ]);
 
                 return response()->json([
@@ -173,7 +186,7 @@ class ScannerController extends Controller
                     'member_id' => $member->id,
                     'gym_id' => $member->gym_id,
                     'check_in_time' => now(),
-                    'check_in_method' => $scanType,
+                    'check_in_method' => $checkInMethod,
                 ]);
 
                 return response()->json([

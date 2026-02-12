@@ -52,7 +52,9 @@ class UpdateMembershipStatuses extends Command
         }
 
         // 4. Abgelaufene Mitgliedschaften auf 'expired' setzen
+        // Unbefristete Mitgliedschaften (end_date=null) werden nicht expired
         $expiredCount = Membership::where('status', 'active')
+            ->whereNotNull('end_date')
             ->where('end_date', '<=', $now)
             ->whereNull('cancellation_date')
             ->update(['status' => 'expired']);

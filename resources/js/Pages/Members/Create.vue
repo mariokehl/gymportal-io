@@ -118,6 +118,7 @@
               :check-url="route('members.check-email')"
               help-text="Wir prüfen automatisch, ob diese E-Mail bereits registriert ist"
               placeholder="max@mustermann.de"
+              :show-generate-placeholder="true"
               @validation-change="handleEmailValidationChange"
             />
 
@@ -170,21 +171,35 @@
           <!-- Adresse in Schritt 1 -->
           <h4 class="text-md font-medium text-gray-900 mt-8 mb-4">Adresse</h4>
           <div class="grid grid-cols-1 gap-6">
-            <div>
-              <label for="address" class="block text-sm font-medium text-gray-700 mb-2">
-                Straße und Hausnummer <span class="text-red-500">*</span>
-              </label>
-              <input
-                id="address"
-                v-model="form.address"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.address }"
-                @blur="handleFieldBlur('address', 'Straße und Hausnummer ist erforderlich')"
-              />
-              <p v-if="errors.address" class="mt-1 text-sm text-red-600">
-                {{ errors.address }}
-              </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="address" class="block text-sm font-medium text-gray-700 mb-2">
+                  Straße und Hausnummer <span class="text-red-500">*</span>
+                </label>
+                <input
+                  id="address"
+                  v-model="form.address"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  :class="{ 'border-red-500': errors.address }"
+                  @blur="handleFieldBlur('address', 'Straße und Hausnummer ist erforderlich')"
+                />
+                <p v-if="errors.address" class="mt-1 text-sm text-red-600">
+                  {{ errors.address }}
+                </p>
+              </div>
+
+              <div>
+                <label for="address_addition" class="block text-sm font-medium text-gray-700 mb-2">
+                  Adresszusatz
+                </label>
+                <input
+                  id="address_addition"
+                  v-model="form.address_addition"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -605,7 +620,7 @@
                 <div v-if="form.birth_date"><span class="font-medium">Geburtsdatum:</span> {{ formatDate(form.birth_date) }}</div>
                 <div v-if="form.custom_member_number"><span class="font-medium">Mitgliedsnummer:</span> {{ form.custom_member_number }}</div>
                 <div v-else class="text-gray-500 italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
-                <div><span class="font-medium">Adresse:</span> {{ form.address }}, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
+                <div><span class="font-medium">Adresse:</span> {{ form.address }}<template v-if="form.address_addition">, {{ form.address_addition }}</template>, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
                 <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
                 <div v-if="form.legal_guardian_first_name || form.legal_guardian_last_name"><span class="font-medium">Gesetzlicher Vertreter:</span> {{ form.legal_guardian_first_name }} {{ form.legal_guardian_last_name }}</div>
               </div>
@@ -764,6 +779,7 @@ const form = useForm({
   birth_date: '',
   custom_member_number: '',
   address: '',
+  address_addition: '',
   city: '',
   postal_code: '',
   country: 'DE',
