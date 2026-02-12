@@ -256,6 +256,7 @@ class MemberController extends Controller
                     ->whereNull('deleted_at')
             ],
             'address' => ['nullable', 'string', 'max:255'],
+            'address_addition' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
@@ -487,6 +488,7 @@ class MemberController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
             'address' => ['nullable', 'string', 'max:255'],
+            'address_addition' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
