@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +43,9 @@ class WelcomeMemberMail extends Mailable
             : "Willkommen - {$this->gym->name}";
 
         return new Envelope(
+            replyTo: [
+                new Address($this->gym->email, $this->gym->name),
+            ],
             subject: $subject,
         );
     }

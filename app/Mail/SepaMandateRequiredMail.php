@@ -8,9 +8,10 @@ use App\Models\Gym;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Mail\Mailables\Attachment;
 
 class SepaMandateRequiredMail extends Mailable
 {
@@ -25,6 +26,9 @@ class SepaMandateRequiredMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
+            replyTo: [
+                new Address($this->gym->email, $this->gym->name),
+            ],
             subject: "SEPA-Lastschriftmandat erforderlich - {$this->gym->name}",
         );
     }
