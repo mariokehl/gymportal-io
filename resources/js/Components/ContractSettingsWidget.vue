@@ -405,7 +405,7 @@ const placeholderGroups = {
         { key: '[Abrechnungszyklus]', description: 'Abrechnungszyklus' },
         { key: '[Kuendigungsfrist]', description: 'Kündigungsfrist' },
         { key: '[Aufnahmegebuehr]', description: 'Aufnahmegebühr' },
-        { key: '[Einrichtungsgebuehr]', description: 'Einmalige Einrichtungsgebühr' },
+        { key: '[Aktivierungsgebuehr]', description: 'Einmalige Aktivierungsgebühr' },
     ],
     system: [
         { key: '[Datum]', description: 'Aktuelles Datum' },

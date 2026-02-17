@@ -126,7 +126,7 @@ class ContractService
             '[Vertragsnummer]' => (string) $membership->id,
             '[Vertragsdatum]' => now()->format('d.m.Y'),
             '[Kuendigungsfrist]' => $plan->formatted_cancellation_period ?? 'Keine',
-            '[Einrichtungsgebuehr]' => $plan->setup_fee
+            '[Aktivierungsgebuehr]' => $plan->setup_fee
                 ? number_format($plan->setup_fee, 2, ',', '.') . ' €'
                 : 'Keine',
             '[Aufnahmegebuehr]' => $plan->setup_fee
@@ -181,8 +181,8 @@ class ContractService
                 '[Tarif-Name]' => 'Name des gewählten Tarifs',
                 '[Abrechnungszyklus]' => 'Abrechnungszyklus (monatlich, quartalsweise etc.)',
                 '[Kuendigungsfrist]' => 'Kündigungsfrist',
-                '[Einrichtungsgebuehr]' => 'Einmalige Einrichtungsgebühr',
-                '[Aufnahmegebuehr]' => 'Aufnahmegebühr (Alias für Einrichtungsgebühr)',
+                '[Aktivierungsgebuehr]' => 'Einmalige Aktivierungsgebühr',
+                '[Aufnahmegebuehr]' => 'Aufnahmegebühr (Alias für Aktivierungsgebühr)',
             ],
             'system' => [
                 '[Datum]' => 'Aktuelles Datum',

@@ -493,7 +493,7 @@ class SettingController extends Controller
             '[Tarif-Name]' => 'Premium Mitgliedschaft',
             '[Abrechnungszyklus]' => 'Monatlich',
             '[Kuendigungsfrist]' => '1 Monat',
-            '[Einrichtungsgebuehr]' => 'Keine',
+            '[Aktivierungsgebuehr]' => 'Keine',
             '[Aufnahmegebuehr]' => 'Keine',
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
