@@ -178,7 +178,9 @@ class MemberPaymentController extends Controller
             if ($updateData['status'] === 'paid' && $payment->membership_id) {
                 $membership = $payment->membership;
                 if ($membership && $membership->status !== 'active') {
-                    $membership->update(['status' => 'active']);
+                    if (!$membership->activateMembership()) {
+                        $membership->update(['status' => 'active']);
+                    }
                 }
 
                 $member = $payment->member;
@@ -344,7 +346,9 @@ class MemberPaymentController extends Controller
                 if ($payment->membership_id) {
                     $membership = $payment->membership;
                     if ($membership && $membership->status !== 'active') {
-                        $membership->update(['status' => 'active']);
+                        if (!$membership->activateMembership()) {
+                            $membership->update(['status' => 'active']);
+                        }
                     }
 
                     $member = $payment->member;

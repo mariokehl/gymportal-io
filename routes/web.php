@@ -19,6 +19,7 @@ use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\DataTransferController;
+use App\Http\Controllers\Web\MemberDocumentController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
@@ -111,6 +112,11 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/execute-batch', [MemberPaymentController::class, 'executeBatch'])->name('execute-batch');
         Route::get('/{payment}/invoice', [MemberPaymentController::class, 'invoice'])->name('invoice');
     });
+    Route::prefix('members/{member}/documents')->name('members.documents.')->group(function () {
+        Route::get('/', [MemberDocumentController::class, 'index'])->name('index');
+        Route::get('/{membership}/download', [MemberDocumentController::class, 'download'])->name('download');
+        Route::post('/{membership}/generate', [MemberDocumentController::class, 'generateContract'])->name('generate');
+    });
     Route::prefix('members/{member}/access')->name('members.access.')->group(function () {
         Route::put('/', [MemberAccessController::class, 'update'])->name('update');
         Route::post('/invalidate-qr', [MemberAccessController::class, 'invalidateQr'])->name('invalidate-qr');
@@ -184,6 +190,9 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::delete('/legal-urls/{legalUrl}', [SettingController::class, 'destroyLegalUrl'])->name('legal-urls.destroy');
         // PWA Settings
         Route::put('/pwa/{gym}', [SettingController::class, 'updatePwaSettings'])->name('pwa.update');
+        // Contract Settings
+        Route::put('/contract-settings', [SettingController::class, 'updateContractSettings'])->name('contract-settings.update');
+        Route::post('/contract-template/preview', [SettingController::class, 'previewContractTemplate'])->name('contract-template.preview');
         Route::prefix('payment-methods')->name('payment-methods.')->group(function () {
             Route::get('/', [PaymentMethodsController::class, 'index'])->name('index');
             Route::get('/overview', [PaymentMethodsController::class, 'overview'])->name('overview');
@@ -206,6 +215,10 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
             Route::post('/{emailTemplate}/duplicate', [EmailTemplateController::class, 'duplicate'])->name('duplicate');
             Route::get('/{emailTemplate}/preview', [EmailTemplateController::class, 'preview'])->name('preview');
             Route::post('/{emailTemplate}/render', [EmailTemplateController::class, 'render'])->name('render');
+
+            // Attachments
+            Route::post('/{emailTemplate}/attachments', [EmailTemplateController::class, 'uploadAttachment'])->name('upload-attachment');
+            Route::delete('/{emailTemplate}/attachments/{attachment}', [EmailTemplateController::class, 'deleteAttachment'])->name('delete-attachment');
 
             // Bulk operations
             Route::post('/bulk-update', [EmailTemplateController::class, 'bulkUpdate'])->name('bulk-update');

@@ -383,6 +383,8 @@ class MemberController extends Controller
 
             DB::commit();
 
+            // Vertrag wird erst bei Aktivierung der Mitgliedschaft generiert (MembershipActivated Event)
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -454,7 +456,8 @@ class MemberController extends Controller
             'member' => $member,
             'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
             'membershipPlans' => $membershipPlans,
-            'updatedPayments' => session('updated_payments', false) ? $member->payments : null
+            'updatedPayments' => session('updated_payments', false) ? $member->payments : null,
+            'contractsEnabled' => $member->gym->isOnlineContractEnabled(),
         ]);
     }
 
@@ -819,7 +822,12 @@ class MemberController extends Controller
         $this->authorize('update', $member);
 
         try {
-            app(MemberService::class)->sendWelcomeEmail($member, $member->gym);
+            $contractPath = $member->getMembershipOverview()['paid']
+                ->pluck('contract_file_path')
+                ->filter()
+                ->first();
+
+            app(MemberService::class)->sendWelcomeEmail($member, $member->gym, $contractPath);
 
             return back()->with('success', 'E-Mail wurde erfolgreich versendet.');
 
@@ -967,6 +975,8 @@ class MemberController extends Controller
             $paymentService->createPendingPayment($member, $membership, $defaultPaymentMethod, $billingAnchorDate);
 
             DB::commit();
+
+            // Vertrag wird erst bei Aktivierung der Mitgliedschaft generiert (MembershipActivated Event)
 
             return back()->with('success', 'Mitgliedschaft wurde erfolgreich erstellt.');
 

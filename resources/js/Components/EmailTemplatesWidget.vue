@@ -226,6 +226,16 @@
                             </label>
                         </div>
                     </div>
+
+                    <!-- Anhänge -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h5 class="text-sm font-medium text-gray-900 mb-3">Anhänge (z.B. AGB, Widerrufsbelehrung)</h5>
+                        <EmailAttachmentsDropzone
+                            :template-id="currentTemplate.id"
+                            :attachments="currentTemplate.file_attachments || []"
+                            @attachments-updated="reloadCurrentTemplate"
+                        />
+                    </div>
                 </form>
             </div>
         </div>
@@ -389,6 +399,7 @@ import {
     Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor
 } from 'lucide-vue-next'
 import { formatDate } from '@/utils/formatters'
+import EmailAttachmentsDropzone from '@/Components/EmailAttachmentsDropzone.vue'
 
 // Props
 const props = defineProps({
@@ -463,6 +474,16 @@ const loadSelectedTemplate = async () => {
         console.error('Fehler beim Laden der Vorlage:', error)
         errorMessage.value = 'Fehler beim Laden der Vorlage'
         setTimeout(() => errorMessage.value = '', 3000)
+    }
+}
+
+const reloadCurrentTemplate = async () => {
+    if (!currentTemplate.value) return
+    try {
+        const response = await axios.get(route('settings.email-templates.show', currentTemplate.value.id))
+        currentTemplate.value = response.data.template
+    } catch (error) {
+        console.error('Fehler beim Neuladen der Vorlage:', error)
     }
 }
 

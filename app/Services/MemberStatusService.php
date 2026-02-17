@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\MembershipActivated;
 use App\Mail\PaymentFailedMail;
 use App\Models\Member;
 use App\Models\MemberStatusHistory;
@@ -55,18 +56,26 @@ class MemberStatusService
      */
     private function handlePendingToActive(Member $member, ?User $user, ?string $triggeredBy): void
     {
-        // Aktiviere alle pending Mitgliedschaften
-        $activatedCount = $member->memberships()
+        // Hole alle pending Mitgliedschaften, um Events dispatchen zu können
+        $pendingMemberships = $member->memberships()
             ->where('memberships.status', 'pending')
-            ->update(['status' => 'active']);
+            ->get();
 
-        // Log die Aktivierung in der History
+        $activatedCount = $pendingMemberships->count();
+
         if ($activatedCount > 0) {
-            // Speichere die IDs der aktivierten Mitgliedschaften
-            $activatedMembershipIds = $member->memberships()
-                ->where('memberships.status', 'active')
-                ->pluck('memberships.id')
-                ->toArray();
+            // Aktiviere alle pending Mitgliedschaften
+            $member->memberships()
+                ->where('memberships.status', 'pending')
+                ->update(['status' => 'active']);
+
+            $activatedMembershipIds = $pendingMemberships->pluck('id')->toArray();
+
+            // Event für jede aktivierte Mitgliedschaft dispatchen (z.B. Vertragserstellung)
+            foreach ($pendingMemberships as $membership) {
+                $membership->status = 'active'; // Status aktualisieren für den Event-Listener
+                MembershipActivated::dispatch($membership);
+            }
 
             $this->recordStatusChange($member, 'pending', 'active', $user, [
                 'reason' => "Automatische Aktivierung von {$activatedCount} Mitgliedschaft(en)",

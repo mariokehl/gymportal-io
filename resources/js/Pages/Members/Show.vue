@@ -171,6 +171,14 @@
                 {{ member.status_history.length }}
               </span>
 
+              <!-- Badge für Documents Tab -->
+              <span
+                v-if="tab.id === 'documents' && documentCount > 0"
+                class="ml-1 bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full"
+              >
+                {{ documentCount }}
+              </span>
+
               <!-- Badge für Access Tab -->
               <span
                 v-if="tab.id === 'access' && getActiveAccessCount() > 0"
@@ -238,7 +246,7 @@
                       class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                     />
                     <button
-                      v-if="props.member.memberships.length && props.member.memberships[0].status == 'active'"
+                      v-if="props.member.memberships.some(m => m.status === 'active')"
                       @click="sendWelcomeToMember"
                       class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md text-sm text-indigo-600 hover:text-indigo-800 hover:bg-gray-100 flex items-center gap-1"
                       type="button"
@@ -764,6 +772,11 @@
                 </button>
               </div>
             </div>
+          </div>
+
+          <!-- Documents Tab -->
+          <div v-show="activeTab === 'documents'">
+            <MemberDocumentsTab ref="memberDocumentsTab" :member="member" @documents-loaded="documentCount = $event" />
           </div>
 
           <!-- Check-ins Tab -->
@@ -1942,12 +1955,13 @@ import PaymentsTable from '@/Components/PaymentsTable.vue'
 import IbanInput from '@/Components/IbanInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
+import MemberDocumentsTab from '@/Components/MemberDocumentsTab.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   ArrowLeft, Wallet, AlertCircle, CheckCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
-  Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio
+  Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -1960,6 +1974,10 @@ const props = defineProps({
   membershipPlans: {
     type: Array,
     default: () => []
+  },
+  contractsEnabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -1975,6 +1993,8 @@ const {
 
 const editMode = ref(false)
 const activeTab = ref('personal')
+const documentCount = ref(0)
+const memberDocumentsTab = ref(null)
 
 // Legal Guardian Search
 const legalGuardianSearch = ref('')
@@ -2086,14 +2106,22 @@ const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
 
-const tabs = [
-  { id: 'personal', name: 'Persönliche Daten', icon: User },
-  { id: 'membership', name: 'Mitgliedschaften', icon: FileText },
-  { id: 'payments', name: 'Zahlungen', icon: CreditCard },
-  { id: 'checkins', name: 'Check-Ins', icon: Clock },
-  { id: 'access', name: 'Zugangsverwaltung', icon: Key },
-  { id: 'history', name: 'Status-Verlauf', icon: History },
-]
+const tabs = computed(() => {
+  const baseTabs = [
+    { id: 'personal', name: 'Persönliche Daten', icon: User },
+    { id: 'membership', name: 'Mitgliedschaften', icon: FileText },
+    { id: 'payments', name: 'Zahlungen', icon: CreditCard },
+  ]
+  if (props.contractsEnabled) {
+    baseTabs.push({ id: 'documents', name: 'Dokumente', icon: FolderOpen })
+  }
+  baseTabs.push(
+    { id: 'checkins', name: 'Check-Ins', icon: Clock },
+    { id: 'access', name: 'Zugangsverwaltung', icon: Key },
+    { id: 'history', name: 'Status-Verlauf', icon: History },
+  )
+  return baseTabs
+})
 
 // Payment table columns configuration
 const paymentStatusFilter = ref('')
@@ -2505,6 +2533,10 @@ const handleIbanValidation = (validation, context) => {
 const handleStatusChanged = (newStatus) => {
   console.log('Status wurde geändert zu:', newStatus)
   // Die Seite wird automatisch durch Inertia aktualisiert
+  // Dokumente-Tab neu laden, da bei Aktivierung ggf. Verträge generiert werden
+  if (newStatus === 'active') {
+    memberDocumentsTab.value?.fetchDocuments()
+  }
 }
 
 const handleStatusChanging = (newStatus) => {
@@ -2527,6 +2559,7 @@ const activateMembership = (membership) => {
     preserveScroll: true,
     onSuccess: () => {
       activatingMembership.value = null
+      memberDocumentsTab.value?.fetchDocuments()
     },
     onError: () => {
       activatingMembership.value = null
@@ -2982,6 +3015,7 @@ const activateSepaMandate = (paymentMethod) => {
       if (page.props.flash?.success) {
         console.log('Erfolg:', page.props.flash.success)
       }
+      memberDocumentsTab.value?.fetchDocuments()
     },
     onError: (errors) => {
       activatingMandate.value = null

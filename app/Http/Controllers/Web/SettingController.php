@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Rules\SafeCss;
+use App\Services\ContractService;
 use App\Services\CssSanitizer;
+use App\Services\EmailTemplateService;
 use App\Models\GymLegalUrl;
 use App\Models\GymUser;
 use App\Models\Role;
@@ -400,6 +402,111 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'URL wurde erfolgreich gelöscht.',
+        ]);
+    }
+
+    /**
+     * Vertragseinstellungen aktualisieren
+     */
+    public function updateContractSettings(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (!$gym) {
+            return response()->json(['error' => 'Kein Gym gefunden.'], 404);
+        }
+
+        $this->authorize('update', $gym);
+
+        $validated = $request->validate([
+            'signing_method' => 'required|in:offline,online',
+            'contract_template_body' => 'nullable|string',
+            'contract_template_subject' => 'nullable|string|max:255',
+            'contracts_start_first_of_month' => 'nullable|boolean',
+            'free_trial_membership_name' => 'nullable|string|max:255',
+        ]);
+
+        // Gym-Level Felder separat speichern
+        $gymFields = [];
+        if (array_key_exists('contracts_start_first_of_month', $validated)) {
+            $gymFields['contracts_start_first_of_month'] = $validated['contracts_start_first_of_month'];
+        }
+        if (array_key_exists('free_trial_membership_name', $validated)) {
+            $gymFields['free_trial_membership_name'] = $validated['free_trial_membership_name'];
+        }
+
+        // Contract-Settings (JSON) speichern
+        $contractSettings = [
+            'signing_method' => $validated['signing_method'],
+            'contract_template_body' => $validated['contract_template_body'] ?? null,
+            'contract_template_subject' => $validated['contract_template_subject'] ?? null,
+        ];
+
+        $gym->update(array_merge($gymFields, [
+            'contract_settings' => $contractSettings,
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'contract_settings' => $gym->fresh()->contract_settings,
+            'message' => 'Vertragseinstellungen wurden erfolgreich aktualisiert.',
+        ]);
+    }
+
+    /**
+     * Vertragsvorlage mit Beispieldaten als Vorschau rendern
+     */
+    public function previewContractTemplate(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (!$gym) {
+            return response()->json(['error' => 'Kein Gym gefunden.'], 404);
+        }
+
+        $templateBody = $request->input('contract_template_body', '');
+
+        $sampleData = [
+            '[Vorname]' => 'Max',
+            '[Nachname]' => 'Mustermann',
+            '[Anrede]' => 'Herr',
+            '[E-Mail]' => 'max.mustermann@example.com',
+            '[Mitgliedsnummer]' => 'W001' . date('y') . '0001',
+            '[Geburtsdatum]' => '15.03.1990',
+            '[Strasse]' => 'Musterstraße 42',
+            '[PLZ]' => '10115',
+            '[Ort]' => 'Berlin',
+            '[Fitnessstudio-Name]' => $gym->name,
+            '[Adresse]' => ($gym->address ?? '') . ', ' . ($gym->postal_code ?? '') . ' ' . ($gym->city ?? ''),
+            '[Telefon]' => $gym->phone ?? '',
+            '[Website]' => $gym->website ?? '',
+            '[Vertragslaufzeit]' => '12 Monate',
+            '[Monatsbeitrag]' => '49,90',
+            '[Startdatum]' => now()->format('d.m.Y'),
+            '[Enddatum]' => now()->addYear()->format('d.m.Y'),
+            '[Vertragsnummer]' => '12345',
+            '[Vertragsdatum]' => now()->format('d.m.Y'),
+            '[Tarif-Name]' => 'Premium Mitgliedschaft',
+            '[Abrechnungszyklus]' => 'Monatlich',
+            '[Kuendigungsfrist]' => '1 Monat',
+            '[Einrichtungsgebuehr]' => 'Keine',
+            '[Aufnahmegebuehr]' => 'Keine',
+            '[Datum]' => now()->format('d.m.Y'),
+            '[Uhrzeit]' => now()->format('H:i'),
+        ];
+
+        $renderedBody = $templateBody;
+        foreach ($sampleData as $placeholder => $value) {
+            $renderedBody = str_replace($placeholder, $value, $renderedBody);
+        }
+
+        return response()->json([
+            'preview' => $renderedBody,
+            'sample_data' => $sampleData,
         ]);
     }
 

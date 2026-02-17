@@ -23,11 +23,13 @@ class GymDataImportService
 {
     private PaymentService $paymentService;
     private MemberService $memberService;
+    private ContractService $contractService;
 
-    public function __construct(PaymentService $paymentService, MemberService $memberService)
+    public function __construct(PaymentService $paymentService, MemberService $memberService, ContractService $contractService)
     {
         $this->paymentService = $paymentService;
         $this->memberService = $memberService;
+        $this->contractService = $contractService;
     }
 
     /**
@@ -794,6 +796,7 @@ class GymDataImportService
             'memberships_created' => 0,
             'payments_created' => 0,
             'payment_methods_created' => 0,
+            'contracts_generated' => 0,
             'skipped' => 0,
             'deleted' => [],
             'errors' => [],
@@ -1021,6 +1024,14 @@ class GymDataImportService
             $pendingPayment = $this->paymentService->createPendingPayment($member, $membership, $activePaymentMethod);
             if ($pendingPayment) {
                 $stats['payments_created']++;
+            }
+        }
+
+        // Generate PDF contract for active memberships
+        if ($membership->status === 'active' && !$membership->contract_file_path) {
+            $contractPath = $this->contractService->generateContract($membership);
+            if ($contractPath) {
+                $stats['contracts_generated']++;
             }
         }
     }

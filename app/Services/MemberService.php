@@ -201,10 +201,10 @@ class MemberService
     /**
      * Welcome E-Mail senden
      */
-    public function sendWelcomeEmail(Member $member, Gym $gym): void
+    public function sendWelcomeEmail(Member $member, Gym $gym, ?string $contractPath = null): void
     {
         try {
-            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym));
+            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym, [], $contractPath));
         } catch (\Exception $e) {
             logger()->error('Failed to send welcome email', [
                 'member_id' => $member->id,
