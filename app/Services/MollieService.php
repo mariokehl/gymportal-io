@@ -906,7 +906,7 @@ class MollieService
             $refundData['description'] = $description;
         }
 
-        return $client->payments->get($paymentId)->refunds()->create($refundData);
+        return $client->paymentRefunds->createForId($paymentId, $refundData);
     }
 
     /**

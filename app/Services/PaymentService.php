@@ -15,6 +15,10 @@ use Carbon\Carbon;
 
 class PaymentService
 {
+    public function __construct(
+        private readonly MollieService $mollieService,
+    ) {}
+
     /**
      * Creates pending payments for a new membership
      */
@@ -721,33 +725,53 @@ class PaymentService
 
                 $paymentRefundAmount = min($payment->amount, $remainingRefund);
 
-                // Erstattungszahlung erstellen
-                Payment::create([
-                    'gym_id' => $payment->gym_id,
-                    'membership_id' => $membership->id,
-                    'member_id' => $membership->member_id,
-                    'amount' => -$paymentRefundAmount, // Negativer Betrag für Erstattung
-                    'currency' => $payment->currency,
-                    'description' => "Erstattung Widerruf - Ref: #{$payment->id}",
-                    'status' => 'pending',
-                    'payment_method' => $payment->payment_method,
-                    'execution_date' => now()->addDays(14), // Max. 14 Tage gemäß § 356a BGB
-                    'due_date' => now()->addDays(14),
-                    'transaction_id' => $payment->id, // Verknüpfung zur Original-Zahlung
-                    'notes' => "Erstattung aufgrund Widerruf gemäß § 356a BGB | Original-Zahlung: #{$payment->id}",
-                    'metadata' => [
-                        'payment_type' => 'withdrawal_refund',
-                        'original_payment_id' => $payment->id,
-                        'withdrawal_date' => now()->toIso8601String(),
-                        'membership_id' => $membership->id,
-                    ],
-                ]);
+                if ($payment->isMolliePaymentMethod() && $payment->mollie_payment_id) {
+                    // Mollie-Zahlung: Refund direkt über die Mollie-API auslösen.
+                    // Es wird kein eigenes Payment angelegt und der lokale Status bleibt auf "paid".
+                    // Mollie sendet anschließend automatisch einen Webhook, welcher alle
+                    // weiteren Aktionen im System ausführt (Refund-Eintrag, negatives Payment,
+                    // Status-Update der Original-Zahlung).
+                    $this->mollieService->createRefund(
+                        $membership->member->gym,
+                        $payment->mollie_payment_id,
+                        $paymentRefundAmount,
+                        "Erstattung Widerruf gemäß § 356a BGB - Ref: #{$payment->id}",
+                    );
 
-                // Original-Zahlung als erstattet markieren
-                $payment->update([
-                    'status' => 'refunded',
-                    'notes' => $payment->notes . ' | Erstattet aufgrund Widerruf am ' . now()->format('d.m.Y H:i'),
-                ]);
+                    Log::info('Mollie refund initiated via API', [
+                        'payment_id' => $payment->id,
+                        'mollie_payment_id' => $payment->mollie_payment_id,
+                        'amount' => $paymentRefundAmount,
+                    ]);
+                } else {
+                    // Nicht-Mollie-Zahlung: Erstattungszahlung lokal erstellen
+                    Payment::create([
+                        'gym_id' => $payment->gym_id,
+                        'membership_id' => $membership->id,
+                        'member_id' => $membership->member_id,
+                        'amount' => -$paymentRefundAmount, // Negativer Betrag für Erstattung
+                        'currency' => $payment->currency,
+                        'description' => "Erstattung Widerruf - Ref: #{$payment->id}",
+                        'status' => 'pending',
+                        'payment_method' => $payment->payment_method,
+                        'execution_date' => now()->addDays(14), // Max. 14 Tage gemäß § 356a BGB
+                        'due_date' => now()->addDays(14),
+                        'transaction_id' => $payment->id, // Verknüpfung zur Original-Zahlung
+                        'notes' => "Erstattung aufgrund Widerruf gemäß § 356a BGB | Original-Zahlung: #{$payment->id}",
+                        'metadata' => [
+                            'payment_type' => 'withdrawal_refund',
+                            'original_payment_id' => $payment->id,
+                            'withdrawal_date' => now()->toIso8601String(),
+                            'membership_id' => $membership->id,
+                        ],
+                    ]);
+
+                    // Original-Zahlung als erstattet markieren (nur bei Nicht-Mollie)
+                    $payment->update([
+                        'status' => 'refunded',
+                        'notes' => $payment->notes . ' | Erstattet aufgrund Widerruf am ' . now()->format('d.m.Y H:i'),
+                    ]);
+                }
 
                 $remainingRefund -= $paymentRefundAmount;
             }
