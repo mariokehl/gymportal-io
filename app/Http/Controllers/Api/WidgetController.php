@@ -199,6 +199,7 @@ class WidgetController extends Controller
             'widget_settings' => $gym->widget_settings,
             'contracts_start_first_of_month' => $gym->contracts_start_first_of_month,
             'free_trial_membership_name' => $gym->free_trial_membership_name,
+            'legal_urls' => $gym->getLegalUrlsArray(),
         ];
 
         $html = view('widget.checkout', compact('formData', 'planData', 'gymData'))->render();

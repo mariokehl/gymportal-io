@@ -165,7 +165,25 @@
                 </div>
 
                 <div class="registration-note">
-                    <p>Es gelten unsere Allgemeinen Geschäftsbedingungen. Bitte beachte auch die Widerrufsbelehrung sowie unsere Datenschutzerklärung. Alle angegebenen Preise inkl. Umsatzsteuer.</p>
+                    <p>Es gelten unsere
+                        @if(!empty($gymData['legal_urls']['terms_and_conditions']))
+                            <a href="{{ $gymData['legal_urls']['terms_and_conditions'] }}" target="_blank" rel="noopener">Allgemeinen Geschäftsbedingungen</a>.
+                        @else
+                            Allgemeinen Geschäftsbedingungen.
+                        @endif
+                        Bitte beachte auch die
+                        @if(!empty($gymData['legal_urls']['cancellation_policy']))
+                            <a href="{{ $gymData['legal_urls']['cancellation_policy'] }}" target="_blank" rel="noopener">Widerrufsbelehrung</a>
+                        @else
+                            Widerrufsbelehrung
+                        @endif
+                        sowie unsere
+                        @if(!empty($gymData['legal_urls']['privacy_policy']))
+                            <a href="{{ $gymData['legal_urls']['privacy_policy'] }}" target="_blank" rel="noopener">Datenschutzerklärung</a>.
+                        @else
+                            Datenschutzerklärung.
+                        @endif
+                        Alle angegebenen Preise inkl. Umsatzsteuer.</p>
 
                     {{-- <p><strong>Mach jetzt den ersten Schritt, dein Ziel Muskelaufbau zu erreichen.</strong></p> --}}
                 </div>

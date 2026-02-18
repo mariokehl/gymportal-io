@@ -734,6 +734,15 @@ span.mandatory {
     margin-top: 20px;
 }
 
+.registration-note a {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.registration-note a:hover {
+    text-decoration: none;
+}
+
 .confirmation-section {
     text-align: center;
     padding: 30px;
