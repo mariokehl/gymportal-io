@@ -98,7 +98,7 @@ class WelcomeMemberMail extends Mailable
 
         // Generierter Vertrag anhängen
         if ($this->contractPath && Storage::disk('local')->exists($this->contractPath)) {
-            $attachments[] = Attachment::fromPath(Storage::disk('local')->path($this->contractPath))
+            $attachments[] = Attachment::fromStorageDisk('local', $this->contractPath)
                 ->as('Vertrag_' . $this->member->member_number . '.pdf')
                 ->withMime('application/pdf');
         }
@@ -112,7 +112,7 @@ class WelcomeMemberMail extends Mailable
                 $template->load('fileAttachments');
                 foreach ($template->fileAttachments as $fileAttachment) {
                     if (Storage::disk('local')->exists($fileAttachment->file_path)) {
-                        $attachments[] = Attachment::fromPath(Storage::disk('local')->path($fileAttachment->file_path))
+                        $attachments[] = Attachment::fromStorageDisk('local', $fileAttachment->file_path)
                             ->as($fileAttachment->file_name)
                             ->withMime($fileAttachment->mime_type);
                     }

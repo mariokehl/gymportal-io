@@ -140,12 +140,12 @@ class ContractService
     /**
      * Vollständiger Pfad für einen Vertrag-Download.
      */
-    public function getContractFullPath(Membership $membership): ?string
+    public function getContractContents(Membership $membership): ?string
     {
         if (!$membership->contract_file_path) {
             return null;
         }
-        return Storage::disk('local')->path($membership->contract_file_path);
+        return Storage::disk('local')->get($membership->contract_file_path);
     }
 
     /**

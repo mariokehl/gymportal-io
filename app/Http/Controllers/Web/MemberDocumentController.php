@@ -79,10 +79,9 @@ class MemberDocumentController extends Controller
             abort(404, 'Vertragsdatei nicht gefunden.');
         }
 
-        $path = Storage::disk('local')->path($membership->contract_file_path);
         $fileName = 'Vertrag_' . $member->member_number . '.pdf';
 
-        return response()->download($path, $fileName);
+        return Storage::disk('local')->download($membership->contract_file_path, $fileName);
     }
 
     /**
