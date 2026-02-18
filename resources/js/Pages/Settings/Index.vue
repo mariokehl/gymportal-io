@@ -186,12 +186,6 @@
                     </div>
                 </div>
 
-                <!-- Legal URLs Manager -->
-                <LegalUrlsManager
-                    :current-gym="currentGym"
-                    @success="handleSuccess"
-                    @error="handleError" />
-
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -449,6 +443,12 @@
             <!-- Contract Settings -->
             <div v-if="activeTab === 'contract_settings'" class="space-y-6">
                 <ContractSettingsWidget :current-gym="currentGym" />
+
+                <!-- Legal URLs Manager -->
+                <LegalUrlsManager
+                    :current-gym="currentGym"
+                    @success="handleSuccess"
+                    @error="handleError" />
             </div>
 
             <!-- PWA Settings -->
