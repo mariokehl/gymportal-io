@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\MollieWebhookController;
+use App\Http\Controllers\Api\V1\Public\MollieWebhookController;
 use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\ScannerController;
 use App\Http\Controllers\Api\WidgetController;
