@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EmailTemplate extends Model
 {
@@ -43,6 +44,14 @@ class EmailTemplate extends Model
     public function gym(): BelongsTo
     {
         return $this->belongsTo(Gym::class);
+    }
+
+    /**
+     * Get the attachments for the email template.
+     */
+    public function fileAttachments(): HasMany
+    {
+        return $this->hasMany(EmailTemplateAttachment::class)->orderBy('sort_order');
     }
 
     /**

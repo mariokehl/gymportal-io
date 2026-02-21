@@ -138,23 +138,29 @@ class WidgetController extends Controller
     {
         $methods = [];
 
-        // Standard-Zahlungsmethoden (nur aktivierte)
+        // Standard-Zahlungsmethoden (nur aktivierte, die ein Mandat erfordern)
         $standardMethods = $gym->getEnabledStandardPaymentMethods();
         foreach ($standardMethods as $method) {
+            if (empty($method['requires_mandate'])) {
+                continue;
+            }
             $methods[] = [
                 'key' => $method['key'],
                 'name' => $method['name'],
                 'description' => $method['description'],
                 'type' => 'standard',
                 'icon' => $method['icon'],
-                'requires_mandate' => $method['requires_mandate'] ?? false,
+                'requires_mandate' => true,
             ];
         }
 
-        // Mollie-Zahlungsmethoden
+        // Mollie-Zahlungsmethoden (nur die, die ein Mandat erfordern)
         if ($gym->hasMollieConfigured()) {
             $mollieMethods = $gym->getMolliePaymentMethods();
             foreach ($mollieMethods as $method) {
+                if (empty($method['requires_mandate'])) {
+                    continue;
+                }
                 $methods[] = [
                     'key' => $method['key'],
                     'name' => $method['name'],
@@ -199,6 +205,7 @@ class WidgetController extends Controller
             'widget_settings' => $gym->widget_settings,
             'contracts_start_first_of_month' => $gym->contracts_start_first_of_month,
             'free_trial_membership_name' => $gym->free_trial_membership_name,
+            'legal_urls' => $gym->getLegalUrlsArray(),
         ];
 
         $html = view('widget.checkout', compact('formData', 'planData', 'gymData'))->render();

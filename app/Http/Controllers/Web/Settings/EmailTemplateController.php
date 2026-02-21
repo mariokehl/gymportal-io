@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\EmailTemplate;
+use App\Models\EmailTemplateAttachment;
 use App\Models\Gym;
 use App\Services\EmailTemplateService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,6 +26,7 @@ class EmailTemplateController extends Controller
         $gym = $this->getCurrentGym($request);
 
         $templates = EmailTemplate::forGym($gym->id)
+            ->with('fileAttachments')
             ->orderBy('type')
             ->orderBy('name')
             ->get();
@@ -45,6 +48,8 @@ class EmailTemplateController extends Controller
         if ($emailTemplate->gym_id !== $gym->id) {
             abort(404);
         }
+
+        $emailTemplate->load('fileAttachments');
 
         return response()->json([
             'template' => $emailTemplate,
@@ -337,5 +342,79 @@ class EmailTemplateController extends Controller
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
         ];
+    }
+
+    /**
+     * Anhang zu einer E-Mail-Vorlage hochladen.
+     */
+    public function uploadAttachment(Request $request, EmailTemplate $emailTemplate)
+    {
+        $gym = $this->getCurrentGym();
+
+        if ($emailTemplate->gym_id !== $gym->id) {
+            abort(404);
+        }
+
+        $request->validate([
+            'file' => 'required|file|mimes:pdf|max:10240',
+        ], [
+            'file.required' => 'Bitte wählen Sie eine Datei aus.',
+            'file.mimes' => 'Nur PDF-Dateien sind erlaubt.',
+            'file.max' => 'Die Datei darf maximal 10 MB groß sein.',
+        ]);
+
+        $file = $request->file('file');
+        $fileName = $file->getClientOriginalName();
+        $storagePath = "email-attachments/{$gym->id}/{$emailTemplate->id}";
+        $uniqueName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+
+        $filePath = $file->storeAs($storagePath, $uniqueName, 'local');
+
+        $maxSortOrder = $emailTemplate->fileAttachments()->max('sort_order') ?? 0;
+
+        $attachment = EmailTemplateAttachment::create([
+            'email_template_id' => $emailTemplate->id,
+            'file_name' => $fileName,
+            'file_path' => $filePath,
+            'mime_type' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+            'sort_order' => $maxSortOrder + 1,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'attachment' => [
+                'id' => $attachment->id,
+                'file_name' => $attachment->file_name,
+                'file_size' => $attachment->file_size,
+                'formatted_file_size' => $attachment->formatted_file_size,
+                'sort_order' => $attachment->sort_order,
+            ],
+            'message' => 'Anhang wurde erfolgreich hochgeladen.',
+        ]);
+    }
+
+    /**
+     * Anhang einer E-Mail-Vorlage löschen.
+     */
+    public function deleteAttachment(EmailTemplate $emailTemplate, EmailTemplateAttachment $attachment)
+    {
+        $gym = $this->getCurrentGym();
+
+        if ($emailTemplate->gym_id !== $gym->id) {
+            abort(404);
+        }
+
+        if ($attachment->email_template_id !== $emailTemplate->id) {
+            abort(404);
+        }
+
+        Storage::disk('local')->delete($attachment->file_path);
+        $attachment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Anhang wurde erfolgreich gelöscht.',
+        ]);
     }
 }

@@ -100,10 +100,8 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Mitgliedschaft aktivieren
-            $membership->update([
-                'status' => 'active',
-            ]);
+            // Mitgliedschaft aktivieren (dispatched MembershipActivated Event für Vertragserstellung)
+            $membership->activateMembership();
 
             // Mitglied auch aktivieren, falls noch pending
             if ($member->status === 'pending') {
@@ -115,9 +113,6 @@ class MembershipController extends Controller
                 'notes' => ($membership->notes ? $membership->notes . "\n" : '') .
                           "Manuell aktiviert am " . now()->format('d.m.Y H:i')
             ]);
-
-            // Optional: E-Mail an Mitglied senden
-            // Mail::to($member->email)->send(new MembershipActivated($membership));
 
             DB::commit();
 

@@ -9,6 +9,7 @@ use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
@@ -50,6 +51,9 @@ class WithdrawalConfirmationMail extends Mailable
             : "Eingangsbestätigung Ihres Widerrufs - Vertrag #{$this->membership->id}";
 
         return new Envelope(
+            replyTo: [
+                new Address($this->gym->email, $this->gym->name),
+            ],
             subject: $subject,
         );
     }

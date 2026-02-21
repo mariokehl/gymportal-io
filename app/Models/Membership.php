@@ -151,7 +151,13 @@ class Membership extends Model
             return false;
         }
 
-        return $this->update(['status' => 'active']);
+        $result = $this->update(['status' => 'active']);
+
+        if ($result) {
+            \App\Events\MembershipActivated::dispatch($this);
+        }
+
+        return $result;
     }
 
     public function getNextPaymentAttribute()

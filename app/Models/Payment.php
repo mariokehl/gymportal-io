@@ -206,4 +206,12 @@ class Payment extends Model
     {
         return $this->status === 'paid';
     }
+
+    /**
+     * Check if this payment uses a Mollie payment method.
+     */
+    public function isMolliePaymentMethod(): bool
+    {
+        return str_starts_with($this->payment_method ?? '', 'mollie_');
+    }
 }

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Support\Facades\Mail;
+use App\Events\MembershipActivated;
 
 class WidgetService
 {
@@ -181,7 +182,8 @@ class WidgetService
                 ]
             );
 
-            app(MemberService::class)->sendWelcomeEmail($member, $gym);
+            $membership->refresh();
+            app(MemberService::class)->sendWelcomeEmail($member, $gym, $membership->contract_file_path);
 
             if ($paymentMethod && $paymentMethod->requiresSepaMandate()) {
                 $this->handleSepaMandate($member, $paymentMethod, $gym);
@@ -375,7 +377,16 @@ class WidgetService
 
                 $paymentMethod = $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
 
+                // Mitgliedschaft wurde aktiviert → Event dispatchen (Vertragserstellung etc.)
+                MembershipActivated::dispatch($membership);
+
                 if ($sendNotifications) {
+                    $contractPath = null;
+                    if ($gym->isOnlineContractEnabled()) {
+                        $membership->refresh();
+                        $contractPath = $membership->contract_file_path;
+                    }
+
                     MemberRegistered::dispatch(
                         $member,
                         $membership,
@@ -389,7 +400,7 @@ class WidgetService
                         ]
                     );
 
-                    app(MemberService::class)->sendWelcomeEmail($member, $gym);
+                    app(MemberService::class)->sendWelcomeEmail($member, $gym, $contractPath);
                 }
 
                 $this->trackEvent($gym, 'mollie_payment_completed', 'payment_success', [

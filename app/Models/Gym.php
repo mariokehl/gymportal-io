@@ -68,6 +68,7 @@ class Gym extends Model
         'opening_hours',
         'social_media',
         'member_app_description',
+        'contract_settings',
     ];
 
     protected $casts = [
@@ -83,6 +84,7 @@ class Gym extends Model
         'pwa_settings' => 'array',
         'opening_hours' => 'array',
         'social_media' => 'array',
+        'contract_settings' => 'array',
     ];
 
     protected $hidden = [
@@ -962,5 +964,24 @@ class Gym extends Model
     public function getDisplayName(): string
     {
         return $this->display_name ?: $this->name;
+    }
+
+    // === CONTRACT SETTINGS ===
+
+    public function getContractSettingsAttribute($value): array
+    {
+        $defaults = [
+            'signing_method' => 'offline',
+            'contract_template_body' => null,
+            'contract_template_subject' => 'Mitgliedschaftsvertrag',
+        ];
+
+        $settings = $value ? json_decode($value, true) : [];
+        return array_merge($defaults, $settings);
+    }
+
+    public function isOnlineContractEnabled(): bool
+    {
+        return ($this->contract_settings['signing_method'] ?? 'offline') === 'online';
     }
 }

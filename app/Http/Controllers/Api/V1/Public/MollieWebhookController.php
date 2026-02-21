@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Chargeback;
@@ -113,7 +113,9 @@ class MollieWebhookController extends Controller
         // Member und Membership aktivieren
         $member->update(['status' => 'active']);
         if ($membership) {
-            $membership->update(['status' => 'active']);
+            if (!$membership->activateMembership()) {
+                $membership->update(['status' => 'active']);
+            }
         }
 
         // PaymentMethod mit Mandat-Daten aktivieren
@@ -166,7 +168,9 @@ class MollieWebhookController extends Controller
 
         // Member und Membership aktivieren
         $member->update(['status' => 'active']);
-        $membership->update(['status' => 'active']);
+        if (!$membership->activateMembership()) {
+            $membership->update(['status' => 'active']);
+        }
 
         // Widget-Registrierung abschließen
         WidgetRegistration::where('gym_id', $gym->id)

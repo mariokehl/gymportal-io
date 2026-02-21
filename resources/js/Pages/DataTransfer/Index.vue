@@ -540,6 +540,7 @@
                 <span>Mitgliedschaften: {{ csvImportResult.stats.memberships_created }}</span>
                 <span>Zahlungen: {{ csvImportResult.stats.payments_created }}</span>
                 <span>Zahlungsarten: {{ csvImportResult.stats.payment_methods_created }}</span>
+                <span>Verträge generiert: {{ csvImportResult.stats.contracts_generated }}</span>
                 <span>Übersprungen: {{ csvImportResult.stats.skipped }}</span>
               </div>
               <div v-if="csvImportResult.stats.errors && csvImportResult.stats.errors.length > 0" class="mt-3 text-sm text-yellow-700">

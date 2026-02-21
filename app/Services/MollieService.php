@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\MembershipActivated;
 use App\Jobs\CreateMollieMandate;
 use App\Models\Gym;
 use App\Models\Member;
@@ -735,7 +736,9 @@ class MollieService
             if ($status === 'active') {
                 $member->update(['status' => 'active']);
                 $membership = $member->memberships->first();
-                $membership->update(['status' => 'active']);
+                if (!$membership->activateMembership()) {
+                    $membership->update(['status' => 'active']);
+                }
 
                 $paymentMethod->update([
                     'status' => $status,
@@ -903,7 +906,7 @@ class MollieService
             $refundData['description'] = $description;
         }
 
-        return $client->payments->get($paymentId)->refunds()->create($refundData);
+        return $client->paymentRefunds->createForId($paymentId, $refundData);
     }
 
     /**

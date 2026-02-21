@@ -6,11 +6,14 @@ use App\Models\Member;
 use App\Models\Gym;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class WelcomeMemberMail extends Mailable
 {
@@ -19,7 +22,8 @@ class WelcomeMemberMail extends Mailable
     public function __construct(
         public Member $member,
         public Gym $gym,
-        public array $additionalData = []
+        public array $additionalData = [],
+        public ?string $contractPath = null
     ) {}
 
     public function envelope(): Envelope
@@ -39,6 +43,9 @@ class WelcomeMemberMail extends Mailable
             : "Willkommen - {$this->gym->name}";
 
         return new Envelope(
+            replyTo: [
+                new Address($this->gym->email, $this->gym->name),
+            ],
             subject: $subject,
         );
     }
@@ -78,6 +85,47 @@ class WelcomeMemberMail extends Mailable
                 ]
             );
         }
+    }
+
+    /**
+     * Get the attachments for the message.
+     *
+     * @return array<int, Attachment>
+     */
+    public function attachments(): array
+    {
+        $attachments = [];
+
+        // Generierter Vertrag anhängen
+        if ($this->contractPath && Storage::disk('local')->exists($this->contractPath)) {
+            $attachments[] = Attachment::fromStorageDisk('local', $this->contractPath)
+                ->as('Vertrag_' . $this->member->member_number . '.pdf')
+                ->withMime('application/pdf');
+        }
+
+        // E-Mail-Vorlagen-Anhänge (AGBs, Widerrufsbelehrung etc.)
+        try {
+            $emailTemplateService = new EmailTemplateService();
+            $template = $emailTemplateService->getTemplate($this->gym, 'welcome');
+
+            if ($template) {
+                $template->load('fileAttachments');
+                foreach ($template->fileAttachments as $fileAttachment) {
+                    if (Storage::disk('local')->exists($fileAttachment->file_path)) {
+                        $attachments[] = Attachment::fromStorageDisk('local', $fileAttachment->file_path)
+                            ->as($fileAttachment->file_name)
+                            ->withMime($fileAttachment->mime_type);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to load email template attachments', [
+                'gym_id' => $this->gym->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $attachments;
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
@@ -41,6 +42,9 @@ class CancellationConfirmationMail extends Mailable
             : "Bestätigung Ihrer Kündigung - {$this->gym->name}";
 
         return new Envelope(
+            replyTo: [
+                new Address($this->gym->email, $this->gym->name),
+            ],
             subject: $subject,
         );
     }
