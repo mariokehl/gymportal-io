@@ -130,13 +130,8 @@
         <table>
             <tr>
                 <td class="logo-cell">
-                    @if($gym->logo_path)
-                        @php
-                            $logoPath = storage_path('app/public/' . $gym->logo_path);
-                        @endphp
-                        @if(file_exists($logoPath))
-                            <img src="{{ $logoPath }}" alt="{{ $gym->name }}">
-                        @endif
+                    @if($logoDataUri)
+                        <img src="{{ $logoDataUri }}" alt="{{ $gym->name }}">
                     @endif
                 </td>
                 <td class="gym-info">

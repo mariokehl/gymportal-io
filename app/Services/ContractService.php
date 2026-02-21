@@ -45,6 +45,7 @@ class ContractService
                 'member' => $member,
                 'membership' => $membership,
                 'title' => $contractSettings['contract_template_subject'] ?? 'Mitgliedschaftsvertrag',
+                'logoDataUri' => $this->getLogoDataUri($gym),
             ]);
 
             $pdf->setPaper('a4', 'portrait');
@@ -135,6 +136,30 @@ class ContractService
             '[Abrechnungszyklus]' => $plan->billing_cycle_text ?? $plan->billing_cycle ?? '',
             '[Tarif-Name]' => $plan->name ?? '',
         ];
+    }
+
+    /**
+     * Logo als Base64-Data-URI laden (funktioniert mit lokalem und R2-Storage).
+     */
+    private function getLogoDataUri(Gym $gym): ?string
+    {
+        if (!$gym->logo_path) {
+            return null;
+        }
+
+        try {
+            $contents = Storage::disk('public')->get($gym->logo_path);
+            $mimeType = Storage::disk('public')->mimeType($gym->logo_path);
+
+            return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+        } catch (\Exception $e) {
+            Log::warning('Logo für Vertrag konnte nicht geladen werden', [
+                'gym_id' => $gym->id,
+                'logo_path' => $gym->logo_path,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
