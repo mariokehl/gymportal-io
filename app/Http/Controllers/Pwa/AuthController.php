@@ -32,16 +32,9 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $gym = Gym::where('slug', $request->gym_slug)
-                  ->where('pwa_enabled', true)
-                  ->first();
-
-        if (!$gym) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gym nicht gefunden oder PWA nicht aktiviert',
-                'error_code' => 'GYM_NOT_FOUND'
-            ], 404);
+        $gym = $this->resolveGymOrFail($request);
+        if ($gym instanceof JsonResponse) {
+            return $gym;
         }
 
         $member = Member::where('email', $request->email)
@@ -143,16 +136,9 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $gym = Gym::where('slug', $request->gym_slug)
-                  ->where('pwa_enabled', true)
-                  ->first();
-
-        if (!$gym) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gym nicht gefunden',
-                'error_code' => 'GYM_NOT_FOUND'
-            ], 404);
+        $gym = $this->resolveGymOrFail($request);
+        if ($gym instanceof JsonResponse) {
+            return $gym;
         }
 
         /** @var Member $member */
@@ -261,16 +247,9 @@ class AuthController extends Controller
             ], 429);
         }
 
-        $gym = Gym::where('slug', $request->gym_slug)
-                  ->where('pwa_enabled', true)
-                  ->first();
-
-        if (!$gym) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gym nicht gefunden oder PWA nicht aktiviert',
-                'error_code' => 'GYM_NOT_FOUND'
-            ], 404);
+        $gym = $this->resolveGymOrFail($request);
+        if ($gym instanceof JsonResponse) {
+            return $gym;
         }
 
         // Find member by email and birth_date
@@ -422,6 +401,46 @@ class AuthController extends Controller
             'token_type' => 'full',
             'member' => $this->getFullMemberData($member, $gym)
         ]);
+    }
+
+    /**
+     * Resolve the PWA-enabled gym by slug and check if login is allowed.
+     * Returns the Gym on success, or a JsonResponse with the error on failure.
+     */
+    private function resolveGymOrFail(Request $request): Gym|JsonResponse
+    {
+        $gym = Gym::where('slug', $request->gym_slug)
+                  ->where('pwa_enabled', true)
+                  ->first();
+
+        if (!$gym) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gym nicht gefunden oder PWA nicht aktiviert',
+                'error_code' => 'GYM_NOT_FOUND'
+            ], 404);
+        }
+
+        if ($gym->isPwaLoginDisabled() && $this->isPwaRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Der Login über die PWA ist momentan deaktiviert.',
+                'error_code' => 'PWA_LOGIN_DISABLED',
+                'app_store_links' => $gym->getAppStoreLinks(),
+            ], 403);
+        }
+
+        return $gym;
+    }
+
+    /**
+     * Check if the request comes from the PWA.
+     * The PWA sends X-Client-Type: pwa. Requests without this header
+     * (e.g. from the branded native app) are not considered PWA requests.
+     */
+    private function isPwaRequest(Request $request): bool
+    {
+        return $request->header('X-Client-Type') === 'pwa';
     }
 
     /**

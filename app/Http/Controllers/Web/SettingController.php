@@ -544,6 +544,9 @@ class SettingController extends Controller
             'pwa_settings.offline_support_enabled' => 'nullable|boolean',
             'pwa_settings.push_notifications_enabled' => 'nullable|boolean',
             'pwa_settings.background_sync_enabled' => 'nullable|boolean',
+            'pwa_settings.pwa_login_disabled' => 'nullable|boolean',
+            'pwa_settings.app_store_url_ios' => 'nullable|url|max:2048',
+            'pwa_settings.app_store_url_android' => 'nullable|url|max:2048',
         ]);
 
         // Sanitize custom CSS before storing

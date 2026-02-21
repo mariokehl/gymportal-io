@@ -389,6 +389,9 @@ class Gym extends Model
             'background_sync_enabled' => true,
             'cache_strategy' => 'network_first',
             'cache_duration_hours' => 24,
+            'pwa_login_disabled' => false,
+            'app_store_url_ios' => null,
+            'app_store_url_android' => null,
         ];
     }
 
@@ -398,6 +401,25 @@ class Gym extends Model
     public function isPwaEnabled(): bool
     {
         return $this->pwa_enabled && $this->canAccessPremiumFeatures();
+    }
+
+    /**
+     * Check if PWA login is disabled (only affects PWA, not native app)
+     */
+    public function isPwaLoginDisabled(): bool
+    {
+        return (bool) ($this->pwa_settings['pwa_login_disabled'] ?? false);
+    }
+
+    /**
+     * Get app store links for native app badges
+     */
+    public function getAppStoreLinks(): array
+    {
+        return array_filter([
+            'ios' => $this->pwa_settings['app_store_url_ios'] ?? null,
+            'android' => $this->pwa_settings['app_store_url_android'] ?? null,
+        ]);
     }
 
     /**
@@ -489,6 +511,8 @@ class Gym extends Model
             'legal_urls' => $this->getLegalUrlsArray(),
             'rolling_qr_enabled' => $this->rolling_qr_enabled,
             'rolling_qr_interval' => $this->rolling_qr_interval ?? 3,
+            'pwa_login_disabled' => $this->isPwaLoginDisabled(),
+            'app_store_links' => $this->getAppStoreLinks(),
         ];
     }
 
