@@ -311,6 +311,69 @@
                     </div>
                 </div>
 
+                <!-- PWA-Login & App Store -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <component :is="ShieldOff" class="w-5 h-5 mr-2" />
+                        Login & App Store
+                    </h4>
+
+                    <!-- PWA Login sperren -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-4">
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900">PWA-Login sperren</h4>
+                            <p class="text-sm text-gray-500">
+                                Sperrt den Login über die PWA. Der Login über die native App bleibt unberührt.
+                            </p>
+                        </div>
+                        <div class="relative inline-block w-11 h-5">
+                            <input v-model="form.pwa_settings.pwa_login_disabled" id="pwa-login-switch" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-rose-600 cursor-pointer transition-colors duration-300" />
+                            <label for="pwa-login-switch" class="absolute top-0 left-0 w-5 h-5 bg-white rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-rose-600 cursor-pointer"></label>
+                        </div>
+                    </div>
+
+                    <!-- App Store Links (nur sichtbar wenn Login gesperrt) -->
+                    <div v-if="form.pwa_settings.pwa_login_disabled" class="space-y-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div class="flex items-start space-x-2">
+                            <component :is="Store" class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <p class="text-sm font-medium text-amber-800">App Store Verlinkung</p>
+                                <p class="text-xs text-amber-600">
+                                    Hinterlege Links zu deiner nativen App. Statt dem Login werden die entsprechenden Store-Badges angezeigt, damit Mitglieder die App herunterladen können.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <component :is="Apple" class="w-4 h-4 inline mr-1" />
+                                    Apple App Store
+                                </label>
+                                <input
+                                    type="url"
+                                    v-model="form.pwa_settings.app_store_url_ios"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="https://apps.apple.com/app/..."
+                                >
+                                <p class="mt-1 text-xs text-gray-500">Link zur App im Apple App Store</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <component :is="Play" class="w-4 h-4 inline mr-1" />
+                                    Google Play Store
+                                </label>
+                                <input
+                                    type="url"
+                                    v-model="form.pwa_settings.app_store_url_android"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="https://play.google.com/store/apps/..."
+                                >
+                                <p class="mt-1 text-xs text-gray-500">Link zur App im Google Play Store</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- PWA-spezifische Einstellungen -->
                 <div>
                     <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -414,7 +477,8 @@ import { ref, onMounted } from 'vue'
 import {
     Settings, Palette, FileText, Image, Clock, Share2,
     Smartphone, Code, Save, ExternalLink, Globe,
-    Instagram, Facebook, Youtube, Twitter, Linkedin
+    Instagram, Facebook, Youtube, Twitter, Linkedin,
+    ShieldOff, Store, Apple, Play
 } from 'lucide-vue-next'
 
 // Props
@@ -456,7 +520,10 @@ const getDefaultPwaSettings = () => ({
     push_notifications_enabled: false,
     background_sync_enabled: true,
     cache_strategy: 'network_first',
-    cache_duration_hours: 24
+    cache_duration_hours: 24,
+    pwa_login_disabled: false,
+    app_store_url_ios: '',
+    app_store_url_android: ''
 })
 
 const getDefaultSocialMedia = () => ({
