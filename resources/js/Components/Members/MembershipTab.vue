@@ -440,24 +440,8 @@ const displayableMemberships = computed(() => {
   const result = []
   const processedIds = new Set()
 
+  // First pass: find all linked pairs (paid membership with linked_free_membership_id)
   for (const membership of activeMemberships.value) {
-    if (processedIds.has(membership.id)) continue
-
-    // Check if this is a free trial with a linked membership
-    if (membership.is_free_trial && membership.linked_membership_id) {
-      const linkedMembership = activeMemberships.value.find(m => m.id === membership.linked_membership_id)
-      if (linkedMembership) {
-        result.push({
-          ...membership,
-          linkedMembership: linkedMembership
-        })
-        processedIds.add(membership.id)
-        processedIds.add(linkedMembership.id)
-        continue
-      }
-    }
-
-    // Check if this membership has a linked free trial
     if (membership.linked_free_membership_id) {
       const freeTrial = activeMemberships.value.find(m => m.id === membership.linked_free_membership_id)
       if (freeTrial) {
@@ -467,13 +451,16 @@ const displayableMemberships = computed(() => {
         })
         processedIds.add(membership.id)
         processedIds.add(freeTrial.id)
-        continue
       }
     }
+  }
 
-    // Standalone membership
-    result.push(membership)
-    processedIds.add(membership.id)
+  // Second pass: add standalone memberships that weren't part of a linked pair
+  for (const membership of activeMemberships.value) {
+    if (!processedIds.has(membership.id)) {
+      result.push(membership)
+      processedIds.add(membership.id)
+    }
   }
 
   return result
