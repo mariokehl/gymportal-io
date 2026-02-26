@@ -604,8 +604,8 @@ const getStatusLabel = (scanner) => {
 const isOnline = (lastSeenAt) => {
     if (!lastSeenAt) return false
     const lastSeen = new Date(lastSeenAt)
-    const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000)
-    return lastSeen > sixMinutesAgo
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+    return lastSeen > fiveMinutesAgo
 }
 
 const formatLastSeen = (lastSeenAt) => {
