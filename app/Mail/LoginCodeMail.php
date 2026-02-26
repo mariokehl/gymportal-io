@@ -46,8 +46,7 @@ class LoginCodeMail extends Mailable
                 'member' => $this->member,
                 'gym' => $this->gym,
                 'theme' => $this->gym->theme ?? [],
-                'expiryTime' => $this->loginCode->getFormattedExpiryTime(),
-                'expiryMinutes' => $this->loginCode->expires_at->diffInMinutes(now()),
+                'expiryGrace' => LoginCode::EXPIRY_MINUTES . ' Minuten',
             ]
         );
     }

@@ -26,9 +26,6 @@
                                 Ihr Anmeldecode
                             </p>
                             <p style="margin: 0; font-size: 36px; font-weight: 900; color: #3490dc; letter-spacing: 8px; font-family: 'Courier New', Monaco, monospace;">{{ $code }}</p>
-                            <p style="margin: 8px 0 0; font-size: 13px; color: #b0adc5;">
-                                G&uuml;ltig f&uuml;r {{ $expiryTime }}
-                            </p>
                         </td>
                     </tr>
                 </table>
@@ -71,7 +68,7 @@
                 <table cellpadding="0" cellspacing="0" role="presentation">
                     <tr>
                         <td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td>
-                        <td style="padding: 2px 0; color: #975a16; font-size: 13px;">Dieser Code ist nur <strong>{{ $expiryMinutes }} Minuten</strong> g&uuml;ltig</td>
+                        <td style="padding: 2px 0; color: #975a16; font-size: 13px;">Dieser Code ist nur <strong>{{ $expiryGrace }}</strong> g&uuml;ltig</td>
                     </tr>
                     <tr>
                         <td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td>
@@ -81,14 +78,14 @@
                         <td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td>
                         <td style="padding: 2px 0; color: #975a16; font-size: 13px;">Teilen Sie den Code <strong>niemals</strong> mit anderen</td>
                     </tr>
-                    <tr>
-                        <td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td>
-                        <td style="padding: 2px 0; color: #975a16; font-size: 13px;">Falls Sie diesen Code nicht angefordert haben, ignorieren Sie diese E-Mail</td>
-                    </tr>
                 </table>
             </td>
         </tr>
     </table>
+
+    <p style="color: #718096; font-size: 14px; line-height: 1.5em;">
+        Falls Sie diesen Code nicht angefordert haben, ignorieren Sie diese E-Mail.
+    </p>
 
     @if($gym->member_app_description)
         <p style="font-style: italic; color: #b0adc5; font-size: 14px; margin: 20px 0;">

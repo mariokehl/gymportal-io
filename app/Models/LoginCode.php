@@ -9,6 +9,8 @@ class LoginCode extends Model
 {
     use HasFactory;
 
+    public const EXPIRY_MINUTES = 10;
+
     protected $fillable = [
         'member_id',
         'code',
@@ -112,7 +114,7 @@ class LoginCode extends Model
         return $code;
     }
 
-    public static function createForMember(Member $member, int $expiryMinutes = 10): self
+    public static function createForMember(Member $member, int $expiryMinutes = self::EXPIRY_MINUTES): self
     {
         // Alte Codes für dieses Mitglied invalidieren
         self::where('member_id', $member->id)
