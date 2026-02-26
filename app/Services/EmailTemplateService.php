@@ -99,9 +99,6 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-
-                    <hr>
-                    <p style="font-size: 12px; color: #666;">Diese E-Mail wurde automatisch generiert.</p>
                 '
             ],
             'confirmation' => [
@@ -237,9 +234,6 @@ class EmailTemplateService
 
                     <p>Mit freundlichen Grüßen<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-
-                    <hr>
-                    <p style="font-size: 12px; color: #666;">Diese E-Mail wurde automatisch generiert.</p>
                 '
             ]
         ];

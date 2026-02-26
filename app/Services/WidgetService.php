@@ -185,6 +185,9 @@ class WidgetService
             $membership->refresh();
             app(MemberService::class)->sendWelcomeEmail($member, $gym, $membership->contract_file_path);
 
+            // SEPA-Mandat wird aktuell nicht automatisch versendet.
+            // Später: Bei Standard-SEPA-Lastschrift soll das Mandat manuell aus dem Backend
+            // über den Button "Mandat versenden" ausgelöst werden (Button aktuell ohne Funktion).
             if ($paymentMethod && $paymentMethod->requiresSepaMandate()) {
                 $this->handleSepaMandate($member, $paymentMethod, $gym);
             }
@@ -745,15 +748,22 @@ class WidgetService
 
     /**
      * SEPA-Lastschriftmandat behandeln
+     *
+     * @internal Aktuell nicht verwendet. Wird später für manuellen Versand aus dem Backend genutzt
+     *            (Button "Mandat versenden").
      */
     private function handleSepaMandate(Member $member, PaymentMethod $paymentMethod, Gym $gym): void
     {
+        return; // Absichtlich ohne Funktion!
+
         $this->sendSepaMandateEmail($member, $paymentMethod, $gym);
         $this->notifyGymAboutSepaMandate($member, $paymentMethod, $gym);
     }
 
     /**
      * SEPA-Mandat E-Mail senden
+     *
+     * @internal Aktuell nicht verwendet. Siehe handleSepaMandate().
      */
     private function sendSepaMandateEmail(Member $member, PaymentMethod $paymentMethod, Gym $gym): void
     {
@@ -770,6 +780,8 @@ class WidgetService
 
     /**
      * Gym über neues SEPA-Mandat benachrichtigen
+     *
+     * @internal Aktuell nicht verwendet. Siehe handleSepaMandate().
      */
     private function notifyGymAboutSepaMandate(Member $member, PaymentMethod $paymentMethod, Gym $gym): void
     {

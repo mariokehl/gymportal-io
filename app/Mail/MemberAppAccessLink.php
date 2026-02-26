@@ -44,6 +44,7 @@ class MemberAppAccessLink extends Mailable
             with: [
                 'memberName' => $this->member->full_name,
                 'gymName' => $this->member->gym->name,
+                'gym' => $this->member->gym,
                 'loginUrl' => $this->loginUrl,
                 'expiresIn' => '24 Stunden',
             ],
