@@ -1,154 +1,105 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Zahlung fehlgeschlagen - {{ $gym->name }}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .email-header {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .gym-logo {
-            max-height: 60px;
-            margin-bottom: 10px;
-        }
-        .email-body {
-            padding: 30px;
-        }
-        .email-footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-            font-size: 12px;
-            color: #6c757d;
-        }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        .button:hover {
-            background-color: #0056b3;
-        }
-        .alert-box {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .alert-box h4 {
-            color: #856404;
-            margin-top: 0;
-        }
-        .info-box {
-            background-color: #e9ecef;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <!-- Header -->
-        <div class="email-header">
-            @if($gym->logo_path)
-                <img src="{{ Storage::disk('public')->url($gym->logo_path) }}" alt="{{ $gym->name }}" class="gym-logo">
-            @endif
-            <h1>Zahlung fehlgeschlagen</h1>
-        </div>
+@extends('emails.layouts.custom')
 
-        <!-- Body -->
-        <div class="email-body">
-            <p>Liebe/r {{ $member->first_name }},</p>
+@section('title', 'Zahlung fehlgeschlagen - ' . $gym->name)
 
-            <p>leider konnten wir Ihre letzte Zahlung nicht erfolgreich verarbeiten.</p>
+@section('content')
+    <h1 style="margin-top: 0; color: #2d3748; font-size: 19px; font-weight: bold;">
+        Zahlung fehlgeschlagen
+    </h1>
 
-            <div class="alert-box">
-                <h4>Wichtiger Hinweis: Zugang vorübergehend gesperrt</h4>
-                <p>Aufgrund der fehlgeschlagenen Zahlung wurde Ihr Zugang zu <strong>{{ $gym->name }}</strong> vorübergehend gesperrt. Sie können unsere Einrichtungen derzeit nicht nutzen.</p>
-            </div>
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Liebe/r {{ $member->first_name }},
+    </p>
 
-            <h3>Was ist passiert?</h3>
-            <p>Die automatische Abbuchung Ihres Mitgliedsbeitrags konnte nicht durchgeführt werden. Dies kann verschiedene Gründe haben:</p>
-            <ul>
-                <li>Unzureichende Deckung auf Ihrem Konto</li>
-                <li>Abgelaufene oder gesperrte Zahlungsmethode</li>
-                <li>Technische Probleme bei der Zahlungsabwicklung</li>
-            </ul>
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        leider konnten wir Ihre letzte Zahlung nicht erfolgreich verarbeiten.
+    </p>
 
-            <h3>Was müssen Sie tun?</h3>
-            <p>Um Ihren Zugang wiederherzustellen, bitten wir Sie:</p>
-            <ol>
-                <li>Überprüfen Sie Ihre hinterlegte Zahlungsmethode</li>
-                <li>Stellen Sie sicher, dass ausreichend Guthaben verfügbar ist</li>
-                <li>Loggen Sie sich in Ihren Mitgliederbereich ein, um die Zahlung zu aktualisieren</li>
-            </ol>
+    {{-- Alert Box --}}
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
+        <tr>
+            <td style="padding: 15px 20px; background-color: #fffff0; border: 1px solid #fefcbf; border-radius: 5px;">
+                <p style="margin: 0 0 5px; color: #975a16; font-size: 14px; font-weight: bold;">
+                    Wichtiger Hinweis: Zugang vor&uuml;bergehend gesperrt
+                </p>
+                <p style="margin: 0; color: #975a16; font-size: 14px;">
+                    Aufgrund der fehlgeschlagenen Zahlung wurde Ihr Zugang zu <strong>{{ $gym->name }}</strong> vor&uuml;bergehend gesperrt. Sie k&ouml;nnen unsere Einrichtungen derzeit nicht nutzen.
+                </p>
+            </td>
+        </tr>
+    </table>
 
-            <p style="text-align: center;">
-                <a href="https://members.gymportal.io/{{ $gym->slug }}" class="button">Zum Mitgliederbereich</a>
-            </p>
+    <h2 style="color: #2d3748; font-size: 16px; font-weight: bold;">
+        Was ist passiert?
+    </h2>
 
-            <div class="info-box">
-                <p><strong>Benötigen Sie Hilfe?</strong></p>
-                <p>Unser Team steht Ihnen gerne zur Verfügung. Kontaktieren Sie uns:</p>
-                @if($gym->phone)
-                    <p>Telefon: <strong>{{ $gym->phone }}</strong></p>
-                @endif
-                @if($gym->email)
-                    <p>E-Mail: <strong>{{ $gym->email }}</strong></p>
-                @endif
-            </div>
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Die automatische Abbuchung Ihres Mitgliedsbeitrags konnte nicht durchgef&uuml;hrt werden. Dies kann verschiedene Gr&uuml;nde haben:
+    </p>
 
-            <p>Sobald die Zahlung erfolgreich verarbeitet wurde, wird Ihr Zugang automatisch wieder freigeschaltet.</p>
+    <table cellpadding="0" cellspacing="0" role="presentation" style="margin: 0 0 20px;">
+        <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 15px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 15px;">Unzureichende Deckung auf Ihrem Konto</td></tr>
+        <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 15px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 15px;">Abgelaufene oder gesperrte Zahlungsmethode</td></tr>
+        <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 15px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 15px;">Technische Probleme bei der Zahlungsabwicklung</td></tr>
+    </table>
 
-            <p>Mit freundlichen Grüßen<br>
-            Ihr {{ $gym->name }} Team</p>
+    <h2 style="color: #2d3748; font-size: 16px; font-weight: bold;">
+        Was m&uuml;ssen Sie tun?
+    </h2>
 
-            <hr>
-            <p style="font-size: 12px; color: #666;">Diese E-Mail wurde automatisch generiert. Bei Fragen antworten Sie nicht direkt auf diese E-Mail, sondern nutzen Sie die oben genannten Kontaktmöglichkeiten.</p>
-        </div>
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Um Ihren Zugang wiederherzustellen, bitten wir Sie:
+    </p>
 
-        <!-- Footer -->
-        <div class="email-footer">
-            <p><strong>{{ $gym->name }}</strong></p>
-            @if($gym->address)
-                <p>{{ $gym->address }}<br>
-                {{ $gym->postal_code }} {{ $gym->city }}</p>
-            @endif
-            @if($gym->phone)
-                <p>Telefon: {{ $gym->phone }}</p>
-            @endif
-            @if($gym->email)
-                <p>E-Mail: {{ $gym->email }}</p>
-            @endif
-            @if($gym->website)
-                <p>Website: <a href="{{ $gym->website }}">{{ $gym->website }}</a></p>
-            @endif
-        </div>
-    </div>
-</body>
-</html>
+    <table cellpadding="0" cellspacing="0" role="presentation" style="margin: 0 0 20px;">
+        <tr><td style="padding: 3px 8px 3px 0; color: #718096; font-size: 15px;" valign="top">1.</td><td style="padding: 3px 0; color: #718096; font-size: 15px;">&Uuml;berpr&uuml;fen Sie Ihre hinterlegte Zahlungsmethode</td></tr>
+        <tr><td style="padding: 3px 8px 3px 0; color: #718096; font-size: 15px;" valign="top">2.</td><td style="padding: 3px 0; color: #718096; font-size: 15px;">Stellen Sie sicher, dass ausreichend Guthaben verf&uuml;gbar ist</td></tr>
+        <tr><td style="padding: 3px 8px 3px 0; color: #718096; font-size: 15px;" valign="top">3.</td><td style="padding: 3px 0; color: #718096; font-size: 15px;">Loggen Sie sich in Ihren Mitgliederbereich ein, um die Zahlung zu aktualisieren</td></tr>
+    </table>
+
+    {{-- CTA Button --}}
+    <table class="body-action" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 30px auto; text-align: center;">
+        <tr>
+            <td align="center">
+                <table cellpadding="0" cellspacing="0" role="presentation">
+                    <tr>
+                        <td>
+                            <a href="https://members.gymportal.io/{{ $gym->slug }}" class="button button--red" style="display: inline-block; color: #ffffff; text-decoration: none; border-radius: 3px; background-color: #e3342f; border-top: 10px solid #e3342f; border-right: 18px solid #e3342f; border-bottom: 10px solid #e3342f; border-left: 18px solid #e3342f;">
+                                Zum Mitgliederbereich
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    {{-- Contact Info --}}
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
+        <tr>
+            <td style="padding: 15px 20px; background-color: #f8fafc; border-radius: 5px;">
+                <p style="margin: 0 0 5px; color: #2d3748; font-size: 14px; font-weight: bold;">
+                    Ben&ouml;tigen Sie Hilfe?
+                </p>
+                <p style="margin: 0; color: #718096; font-size: 14px;">
+                    Unser Team steht Ihnen gerne zur Verf&uuml;gung:
+                    @if($gym->phone)
+                        <br>Telefon: <strong style="color: #2d3748;">{{ $gym->phone }}</strong>
+                    @endif
+                    @if($gym->email)
+                        <br>E-Mail: <strong style="color: #2d3748;">{{ $gym->email }}</strong>
+                    @endif
+                </p>
+            </td>
+        </tr>
+    </table>
+
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Sobald die Zahlung erfolgreich verarbeitet wurde, wird Ihr Zugang automatisch wieder freigeschaltet.
+    </p>
+
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Mit freundlichen Gr&uuml;&szlig;en<br>
+        Ihr {{ $gym->name }} Team
+    </p>
+@endsection

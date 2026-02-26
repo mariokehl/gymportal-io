@@ -99,9 +99,6 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-
-                    <hr>
-                    <p style="font-size: 12px; color: #666;">Diese E-Mail wurde automatisch generiert.</p>
                 '
             ],
             'confirmation' => [
@@ -237,9 +234,6 @@ class EmailTemplateService
 
                     <p>Mit freundlichen Grüßen<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-
-                    <hr>
-                    <p style="font-size: 12px; color: #666;">Diese E-Mail wurde automatisch generiert.</p>
                 '
             ]
         ];
@@ -281,7 +275,6 @@ class EmailTemplateService
 
         // System data
         $data = array_merge($data, [
-            '[QR-Code-Link]' => $this->generateQrCodeLink($gym, $member),
             '[Mitgliederbereich-Link]' => $this->generateMemberPortalLink($gym),
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
@@ -328,14 +321,6 @@ class EmailTemplateService
             $gym->postal_code . ' ' . $gym->city
         ]);
         return implode(', ', $parts);
-    }
-
-    private function generateQrCodeLink(Gym $gym, ?Member $member): string
-    {
-        if (!$member) {
-            return 'https://members.gymportal.io/qr-code';
-        }
-        return "https://members.gymportal.io/{$gym->slug}/qr/{$member->id}";
     }
 
     private function generateMemberPortalLink(Gym $gym): string

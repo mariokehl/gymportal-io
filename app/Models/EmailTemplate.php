@@ -155,7 +155,6 @@ class EmailTemplate extends Model
                 '[Enddatum]' => 'Vertragsende',
             ],
             'system' => [
-                '[QR-Code-Link]' => 'Link zum QR-Code',
                 '[Mitgliederbereich-Link]' => 'Link zum Mitgliederbereich',
                 '[Datum]' => 'Aktuelles Datum',
                 '[Uhrzeit]' => 'Aktuelle Uhrzeit',
