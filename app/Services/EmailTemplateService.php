@@ -275,7 +275,6 @@ class EmailTemplateService
 
         // System data
         $data = array_merge($data, [
-            '[QR-Code-Link]' => $this->generateQrCodeLink($gym, $member),
             '[Mitgliederbereich-Link]' => $this->generateMemberPortalLink($gym),
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
@@ -322,14 +321,6 @@ class EmailTemplateService
             $gym->postal_code . ' ' . $gym->city
         ]);
         return implode(', ', $parts);
-    }
-
-    private function generateQrCodeLink(Gym $gym, ?Member $member): string
-    {
-        if (!$member) {
-            return 'https://members.gymportal.io/qr-code';
-        }
-        return "https://members.gymportal.io/{$gym->slug}/qr/{$member->id}";
     }
 
     private function generateMemberPortalLink(Gym $gym): string

@@ -443,7 +443,7 @@ const availablePlaceholders = ref([
     { key: '[Vertragslaufzeit]', description: 'Laufzeit des Vertrags' },
     { key: '[Monatsbeitrag]', description: 'Monatlicher Beitrag' },
     { key: '[Startdatum]', description: 'Vertragsbeginn' },
-    { key: '[QR-Code-Link]', description: 'Link zum QR-Code' },
+    { key: '[Enddatum]', description: 'Vertragsende' },
     { key: '[Mitgliederbereich-Link]', description: 'Link zum Mitgliederbereich' },
     { key: '[Datum]', description: 'Aktuelles Datum' }
 ])
@@ -785,7 +785,7 @@ const replacePlaceholders = (content) => {
         '[Vertragslaufzeit]': '12 Monate',
         '[Monatsbeitrag]': '49,90',
         '[Startdatum]': new Date().toLocaleDateString('de-DE'),
-        '[QR-Code-Link]': 'https://members.gymportal.io/qr-code',
+        '[Enddatum]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
         '[Mitgliederbereich-Link]': 'https://members.gymportal.io',
         '[Datum]': new Date().toLocaleDateString('de-DE')
     }

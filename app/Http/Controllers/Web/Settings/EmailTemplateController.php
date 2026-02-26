@@ -337,7 +337,6 @@ class EmailTemplateController extends Controller
             '[Monatsbeitrag]' => '49,90',
             '[Startdatum]' => now()->format('d.m.Y'),
             '[Enddatum]' => now()->addYear()->format('d.m.Y'),
-            '[QR-Code-Link]' => 'https://members.gymportal.io/qr-code',
             '[Mitgliederbereich-Link]' => 'https://members.gymportal.io/' . $gym->slug,
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
