@@ -64,7 +64,7 @@
     @endif
 
     <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
-        Mit freundlichen Gr&uuml;&szlig;en<br>
+        Sportliche Gr&uuml;&szlig;e<br>
         Ihr {{ $gym->name }} Team
     </p>
 @endsection
