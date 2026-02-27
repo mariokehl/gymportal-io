@@ -67,7 +67,7 @@ class EmailTemplateService
      */
     public function getTemplateDefinitions(): array
     {
-        return [
+        $definitions = [
             'welcome' => [
                 'name' => 'Willkommens-E-Mail',
                 'subject' => 'Herzlich willkommen bei [Fitnessstudio-Name]!',
@@ -119,7 +119,7 @@ class EmailTemplateService
 
                     <p>Sie erhalten in Kürze weitere Informationen zur Nutzung unserer Einrichtungen.</p>
 
-                    <p>Mit freundlichen Grüßen<br>
+                    <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
                 '
             ],
@@ -155,7 +155,7 @@ class EmailTemplateService
 
                     <p>Wir bedauern Ihre Entscheidung und würden uns freuen, Sie vielleicht in Zukunft wieder bei uns begrüßen zu dürfen.</p>
 
-                    <p>Mit freundlichen Grüßen<br>
+                    <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
                 '
             ],
@@ -171,7 +171,7 @@ class EmailTemplateService
 
                     <p>Bei Fragen zur Rechnung stehen wir Ihnen gerne zur Verfügung.</p>
 
-                    <p>Mit freundlichen Grüßen<br>
+                    <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
 
                     <p>Telefon: [Telefon]<br>
@@ -190,7 +190,7 @@ class EmailTemplateService
 
                     <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
 
-                    <p>Mit freundlichen Grüßen<br>
+                    <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
 
                     <p>Kontakt:<br>
@@ -232,11 +232,165 @@ class EmailTemplateService
 
                     <p>Sobald die Zahlung erfolgreich verarbeitet wurde, wird Ihr Zugang automatisch wieder freigeschaltet.</p>
 
-                    <p>Mit freundlichen Grüßen<br>
+                    <p>Sportliche Grüße<br>
+                    Ihr [Fitnessstudio-Name] Team</p>
+                '
+            ],
+            'login_code' => [
+                'name' => 'Anmeldecode',
+                'subject' => 'Ihr Anmeldecode für [Fitnessstudio-Name]',
+                'body' => '
+                    <p>Hallo [Vorname],</p>
+
+                    <p>Sie haben einen Anmeldecode für den Zugang zum [Fitnessstudio-Name] Mitglieder-Portal angefordert.</p>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 30px 0;">
+                        <tr>
+                            <td align="center">
+                                <table cellpadding="0" cellspacing="0" role="presentation" style="border: 2px dashed #3490dc; border-radius: 5px;">
+                                    <tr>
+                                        <td style="padding: 20px 40px; text-align: center;">
+                                            <p style="margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #b0adc5; text-transform: uppercase; letter-spacing: 1px;">Ihr Anmeldecode</p>
+                                            <p style="margin: 0; font-size: 36px; font-weight: 900; color: #3490dc; letter-spacing: 8px; font-family: \'Courier New\', Monaco, monospace;">[Anmeldecode]</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
+                        <tr>
+                            <td style="padding: 15px 20px; background-color: #f8fafc; border-left: 4px solid #3490dc;">
+                                <p style="margin: 0 0 10px; color: #2d3748; font-size: 14px; font-weight: bold;">So melden Sie sich an:</p>
+                                <table cellpadding="0" cellspacing="0" role="presentation">
+                                    <tr><td style="padding: 3px 0; color: #718096; font-size: 14px;" valign="top">1.&nbsp;&nbsp;</td><td style="padding: 3px 0; color: #718096; font-size: 14px;">Öffnen Sie die Mitglieder-App oder Website</td></tr>
+                                    <tr><td style="padding: 3px 0; color: #718096; font-size: 14px;" valign="top">2.&nbsp;&nbsp;</td><td style="padding: 3px 0; color: #718096; font-size: 14px;">Geben Sie diesen 6-stelligen Code ein</td></tr>
+                                    <tr><td style="padding: 3px 0; color: #718096; font-size: 14px;" valign="top">3.&nbsp;&nbsp;</td><td style="padding: 3px 0; color: #718096; font-size: 14px;">Klicken Sie auf &quot;Anmelden&quot;</td></tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
+                        <tr>
+                            <td style="padding: 15px 20px; background-color: #fffff0; border: 1px solid #fefcbf; border-radius: 5px;">
+                                <p style="margin: 0 0 8px; color: #975a16; font-size: 14px; font-weight: bold;">Sicherheitshinweise</p>
+                                <table cellpadding="0" cellspacing="0" role="presentation">
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #975a16; font-size: 13px;">Dieser Code ist nur <strong>wenige Minuten</strong> gültig</td></tr>
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #975a16; font-size: 13px;">Der Code kann nur <strong>einmal</strong> verwendet werden</td></tr>
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #975a16; font-size: 13px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #975a16; font-size: 13px;">Teilen Sie den Code <strong>niemals</strong> mit anderen</td></tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p style="color: #718096; font-size: 14px; line-height: 1.5em;">Falls Sie diesen Code nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
+
+                    <p>Sportliche Grüße<br>
+                    Ihr [Fitnessstudio-Name] Team</p>
+                '
+            ],
+            'member_app_access' => [
+                'name' => 'App-Zugangslink',
+                'subject' => 'Zugang zur [Fitnessstudio-Name] Mitglieder-App',
+                'body' => '
+                    <p>Hallo [Vorname],</p>
+
+                    <p>Sie haben einen Zugangslink zur Mitglieder-App angefordert. Mit diesem Link können Sie sich direkt in der App anmelden und auf alle Ihre Mitgliederfunktionen zugreifen.</p>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 30px auto; text-align: center;">
+                        <tr>
+                            <td align="center">
+                                <table cellpadding="0" cellspacing="0" role="presentation">
+                                    <tr>
+                                        <td>
+                                            <a href="[Mitgliederbereich-Link]" style="display: inline-block; color: #ffffff; text-decoration: none; border-radius: 3px; background-color: #3490dc; border-top: 10px solid #3490dc; border-right: 18px solid #3490dc; border-bottom: 10px solid #3490dc; border-left: 18px solid #3490dc;">Zur Mitglieder-App</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p>Falls der Button nicht funktioniert, können Sie diesen Link kopieren:</p>
+                    <p style="color: #718096; font-size: 13px; line-height: 1.5em; background-color: #f8fafc; padding: 8px 12px; border-radius: 3px; word-break: break-all;">[Mitgliederbereich-Link]</p>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
+                        <tr>
+                            <td style="padding: 15px 20px; background-color: #f8fafc; border-left: 4px solid #3490dc;">
+                                <p style="margin: 0 0 10px; color: #2d3748; font-size: 14px; font-weight: bold;">Was Sie in der App können:</p>
+                                <table cellpadding="0" cellspacing="0" role="presentation">
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">QR-Code für den Gym-Zugang anzeigen</td></tr>
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Ihre Mitgliedschaft verwalten</td></tr>
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Check-in Historie einsehen</td></tr>
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Kontaktdaten aktualisieren</td></tr>
+                                    <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Zusätzliche Services nutzen</td></tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <h2>App installieren (PWA)</h2>
+
+                    <p>Die Mitglieder-App kann als Progressive Web App (PWA) auf Ihrem Smartphone installiert werden:</p>
+
+                    <h3>iOS (iPhone/iPad):</h3>
+                    <ol style="padding-left: 0; margin-left: 0; list-style-position: inside;">
+                        <li>Öffnen Sie den Link in Safari</li>
+                        <li>Tippen Sie auf das Teilen-Symbol</li>
+                        <li>Wählen Sie &quot;Zum Home-Bildschirm&quot;</li>
+                        <li>Tippen Sie auf &quot;Hinzufügen&quot;</li>
+                    </ol>
+
+                    <h3>Android:</h3>
+                    <ol style="padding-left: 0; margin-left: 0; list-style-position: inside;">
+                        <li>Öffnen Sie den Link in Chrome</li>
+                        <li>Tippen Sie auf das Menü (3 Punkte)</li>
+                        <li>Wählen Sie &quot;App installieren&quot; oder &quot;Zum Startbildschirm hinzufügen&quot;</li>
+                        <li>Folgen Sie den Anweisungen</li>
+                    </ol>
+
+                    <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
                 '
             ]
         ];
+
+        // Remove PHP source code indentation from body strings
+        foreach ($definitions as &$definition) {
+            $definition['body'] = $this->dedentHtml($definition['body']);
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * Remove common leading whitespace from a multi-line HTML string.
+     */
+    private function dedentHtml(string $html): string
+    {
+        $html = trim($html, "\n");
+        $lines = explode("\n", $html);
+
+        // Find minimum indentation (ignoring empty lines)
+        $minIndent = PHP_INT_MAX;
+        foreach ($lines as $line) {
+            if (trim($line) === '') continue;
+            $indent = strlen($line) - strlen(ltrim($line));
+            $minIndent = min($minIndent, $indent);
+        }
+
+        if ($minIndent === 0 || $minIndent === PHP_INT_MAX) {
+            return trim($html);
+        }
+
+        // Remove the common indentation from each line
+        $dedented = array_map(function ($line) use ($minIndent) {
+            return strlen($line) >= $minIndent ? substr($line, $minIndent) : $line;
+        }, $lines);
+
+        return implode("\n", $dedented);
     }
 
     /**

@@ -82,6 +82,8 @@
                             <option value="cancellation">Kündigung</option>
                             <option value="invoice">Rechnung</option>
                             <option value="payment_failed">Zahlung fehlgeschlagen</option>
+                            <option value="login_code">Anmeldecode</option>
+                            <option value="member_app_access">App-Zugangslink</option>
                             <option value="general">Allgemein</option>
                         </select>
                     </div>
@@ -373,6 +375,8 @@
                             <option value="cancellation">Kündigung</option>
                             <option value="invoice">Rechnung</option>
                             <option value="payment_failed">Zahlung fehlgeschlagen</option>
+                            <option value="login_code">Anmeldecode</option>
+                            <option value="member_app_access">App-Zugangslink</option>
                             <option value="general">Allgemein</option>
                         </select>
                     </div>
@@ -445,7 +449,8 @@ const availablePlaceholders = ref([
     { key: '[Startdatum]', description: 'Vertragsbeginn' },
     { key: '[Enddatum]', description: 'Vertragsende' },
     { key: '[Mitgliederbereich-Link]', description: 'Link zum Mitgliederbereich' },
-    { key: '[Datum]', description: 'Aktuelles Datum' }
+    { key: '[Datum]', description: 'Aktuelles Datum' },
+    { key: '[Anmeldecode]', description: 'Einmaliger Anmeldecode' }
 ])
 
 // Methods
@@ -554,8 +559,8 @@ const createTemplate = async () => {
         }
     } catch (error) {
         console.error('Fehler beim Erstellen der Vorlage:', error)
-        errorMessage.value = 'Fehler beim Erstellen der Vorlage'
-        setTimeout(() => errorMessage.value = '', 3000)
+        errorMessage.value = error.response?.data?.message || 'Fehler beim Erstellen der Vorlage'
+        setTimeout(() => errorMessage.value = '', 5000)
     } finally {
         isCreating.value = false
     }
@@ -787,7 +792,8 @@ const replacePlaceholders = (content) => {
         '[Startdatum]': new Date().toLocaleDateString('de-DE'),
         '[Enddatum]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
         '[Mitgliederbereich-Link]': 'https://members.gymportal.io',
-        '[Datum]': new Date().toLocaleDateString('de-DE')
+        '[Datum]': new Date().toLocaleDateString('de-DE'),
+        '[Anmeldecode]': '482916'
     }
 
     let replacedContent = content
@@ -806,6 +812,8 @@ const getTypeLabel = (type) => {
         cancellation: 'Kündigung',
         invoice: 'Rechnung',
         payment_failed: 'Mahnung',
+        login_code: 'Anmeldecode',
+        member_app_access: 'App-Zugangslink',
         general: 'Allgemein'
     }
     return labels[type] || type
@@ -819,6 +827,8 @@ const getTypeColor = (type) => {
         cancellation: 'bg-red-100 text-red-800',
         invoice: 'bg-purple-100 text-purple-800',
         payment_failed: 'bg-red-100 text-red-800',
+        login_code: 'bg-cyan-100 text-cyan-800',
+        member_app_access: 'bg-indigo-100 text-indigo-800',
         general: 'bg-gray-100 text-gray-800'
     }
     return colors[type] || 'bg-gray-100 text-gray-800'
