@@ -69,10 +69,6 @@
                 <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['setup_fee'], 'EUR') }} einmalig</span>
             </div>
             <div class="detail-row">
-                <span class="label">Verlängerung:</span>
-                <span class="value">{{ $planData['commitment_months'] ?? 12 }} Monate</span>
-            </div>
-            <div class="detail-row">
                 <span class="label">Kündigungsfrist:</span>
                 <span class="value">
                     @php
