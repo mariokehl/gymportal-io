@@ -3,59 +3,84 @@
 namespace App\Mail;
 
 use App\Models\Member;
+use App\Services\EmailTemplateService;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class MemberAppAccessLink extends Mailable
 {
     use SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(
         public Member $member,
         public string $loginUrl
     ) {}
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
+        $gym = $this->member->gym;
+        $emailTemplateService = new EmailTemplateService();
+
+        $renderedTemplate = $emailTemplateService->getAndRenderTemplate(
+            $gym,
+            'member_app_access',
+            $this->member,
+            ['[Mitgliederbereich-Link]' => $this->loginUrl]
+        );
+
+        $subject = $renderedTemplate
+            ? $renderedTemplate['subject']
+            : 'Zugang zur ' . $gym->name . ' Mitglieder-App';
+
         return new Envelope(
             replyTo: [
-                new Address($this->member->gym->email, $this->member->gym->name),
+                new Address($gym->email, $gym->name),
             ],
-            subject: 'Zugang zur ' . $this->member->gym->name . ' Mitglieder-App',
+            subject: $subject,
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
-        return new Content(
-            view: 'emails.member-app-access',
-            with: [
-                'memberName' => $this->member->full_name,
-                'gymName' => $this->member->gym->name,
-                'gym' => $this->member->gym,
-                'loginUrl' => $this->loginUrl,
-                'expiresIn' => '24 Stunden',
-            ],
+        $gym = $this->member->gym;
+        $emailTemplateService = new EmailTemplateService();
+
+        $renderedTemplate = $emailTemplateService->getAndRenderTemplate(
+            $gym,
+            'member_app_access',
+            $this->member,
+            ['[Mitgliederbereich-Link]' => $this->loginUrl]
         );
+
+        if ($renderedTemplate) {
+            return new Content(
+                view: 'emails.template-based',
+                with: [
+                    'renderedContent' => $renderedTemplate['body'],
+                    'member' => $this->member,
+                    'gym' => $gym,
+                ]
+            );
+        } else {
+            Log::warning("No member_app_access template found for gym {$gym->id}, using fallback");
+
+            return new Content(
+                view: 'emails.member-app-access-fallback',
+                with: [
+                    'memberName' => $this->member->full_name,
+                    'gymName' => $gym->name,
+                    'gym' => $gym,
+                    'loginUrl' => $this->loginUrl,
+                    'expiresIn' => '24 Stunden',
+                ],
+            );
+        }
     }
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
     public function attachments(): array
     {
         return [];

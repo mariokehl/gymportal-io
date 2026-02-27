@@ -39,6 +39,7 @@
         .content-cell h3 { margin-top: 0; color: #2d3748; font-size: 14px; font-weight: bold; text-align: left; }
         .content-cell p { margin-top: 0; color: #718096; font-size: 16px; line-height: 1.5em; text-align: left; }
         .content-cell p.sub { font-size: 12px; }
+        .content-cell ol li { margin-top: 0; color: #718096; font-size: 14px; line-height: 1.5em; text-align: left; }
 
         /* Utility */
         .align-right { text-align: right; }
