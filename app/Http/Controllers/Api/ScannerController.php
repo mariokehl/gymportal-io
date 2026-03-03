@@ -108,15 +108,6 @@ class ScannerController extends Controller
                 ->first();
 
             if ($recentCheckIn) {
-                $this->logAccessFromVerify(
-                    $scanner,
-                    $member->id,
-                    $scanType,
-                    true,
-                    null,
-                    $nfcCardId
-                );
-
                 return response()->json([
                     'member_id' => $member->id,
                     'active' => $member->isActive(),
