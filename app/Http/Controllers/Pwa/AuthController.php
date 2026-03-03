@@ -22,8 +22,10 @@ class AuthController extends Controller
             'gym_slug' => 'required|string'
         ]);
 
+        $email = strtolower($request->email);
+
         // Rate Limiting
-        $key = 'login-code:' . $request->ip() . ':' . $request->email;
+        $key = 'login-code:' . $request->ip() . ':' . $email;
         if (RateLimiter::tooManyAttempts($key, 3)) {
             return response()->json([
                 'success' => false,
@@ -37,7 +39,7 @@ class AuthController extends Controller
             return $gym;
         }
 
-        $member = Member::where('email', $request->email)
+        $member = Member::whereRaw('LOWER(email) = ?', [$email])
                        ->where('gym_id', $gym->id)
                        ->first();
 
@@ -126,8 +128,10 @@ class AuthController extends Controller
             'gym_slug' => 'required|string'
         ]);
 
+        $email = strtolower($request->email);
+
         // Rate Limiting für Code-Verifikation
-        $key = 'verify-code:' . $request->ip() . ':' . $request->email;
+        $key = 'verify-code:' . $request->ip() . ':' . $email;
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
                 'success' => false,
@@ -142,7 +146,7 @@ class AuthController extends Controller
         }
 
         /** @var Member $member */
-        $member = Member::where('email', $request->email)
+        $member = Member::whereRaw('LOWER(email) = ?', [$email])
                        ->where('gym_id', $gym->id)
                        ->first();
 
@@ -237,8 +241,10 @@ class AuthController extends Controller
             'gym_slug' => 'required|string'
         ]);
 
+        $email = strtolower($request->email);
+
         // Rate Limiting
-        $key = 'link-contract:' . $request->ip() . ':' . $request->email;
+        $key = 'link-contract:' . $request->ip() . ':' . $email;
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
                 'success' => false,
@@ -253,7 +259,7 @@ class AuthController extends Controller
         }
 
         // Find member by email and birth_date
-        $member = Member::where('email', $request->email)
+        $member = Member::whereRaw('LOWER(email) = ?', [$email])
                        ->where('gym_id', $gym->id)
                        ->whereDate('birth_date', $request->birth_date)
                        ->first();

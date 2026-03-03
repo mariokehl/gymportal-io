@@ -10,6 +10,7 @@ use App\Models\ScannerAccessLog;
 use App\Services\ScannerValidationService;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -22,11 +23,24 @@ class ScannerController extends Controller
     /**
      * Scanner meldet sich als online
      * Route: GET /api/scanner/ping
+     *
+     * Cache-First-Heartbeat: Schreibt einen Zeitstempel in den Cache bei jedem Ping,
+     * aktualisiert die DB (last_seen_at) aber maximal 1x pro 60 Minuten.
      */
     public function ping(Request $request)
     {
         $scanner = $request->get('scanner');
-        $scanner->touch();
+        $cacheKey = "scanner_heartbeat:{$scanner->id}";
+
+        // Cache-Zeitstempel bei jedem Ping aktualisieren (TTL 25 Min → toleriert einen ausgefallenen 12-Min-Ping)
+        Cache::put($cacheKey, now()->toIso8601String(), now()->addMinutes(25));
+
+        // DB nur aktualisieren, wenn letzter DB-Write > 60 Minuten her
+        $dbThrottleKey = "scanner_db_throttle:{$scanner->id}";
+        if (!Cache::has($dbThrottleKey)) {
+            $scanner->touch();
+            Cache::put($dbThrottleKey, true, now()->addMinutes(60));
+        }
 
         return response()->json(['status' => 'ok']);
     }
@@ -108,15 +122,6 @@ class ScannerController extends Controller
                 ->first();
 
             if ($recentCheckIn) {
-                $this->logAccessFromVerify(
-                    $scanner,
-                    $member->id,
-                    $scanType,
-                    true,
-                    null,
-                    $nfcCardId
-                );
-
                 return response()->json([
                     'member_id' => $member->id,
                     'active' => $member->isActive(),

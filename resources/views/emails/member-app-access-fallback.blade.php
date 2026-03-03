@@ -32,6 +32,13 @@
         </tr>
     </table>
 
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em; margin-top: 25px;">
+        Falls der Button nicht funktioniert, k&ouml;nnen Sie diesen Link kopieren:
+    </p>
+    <p style="color: #718096; font-size: 13px; line-height: 1.5em; background-color: #f8fafc; padding: 8px 12px; border-radius: 3px; word-break: break-all;">
+        {{ $loginUrl }}
+    </p>
+
     {{-- Features --}}
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
         <tr>
@@ -46,17 +53,6 @@
                     <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Kontaktdaten aktualisieren</td></tr>
                     <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">&bull;</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Zus&auml;tzliche Services nutzen</td></tr>
                 </table>
-            </td>
-        </tr>
-    </table>
-
-    {{-- Warning --}}
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 25px 0;">
-        <tr>
-            <td style="padding: 15px 20px; background-color: #fff5f5; border: 1px solid #fed7d7; border-radius: 5px;">
-                <p style="margin: 0; color: #c53030; font-size: 14px;">
-                    <strong>Wichtig:</strong> Dieser Link ist aus Sicherheitsgr&uuml;nden nur <strong>{{ $expiresIn }}</strong> g&uuml;ltig. Danach m&uuml;ssen Sie einen neuen Link anfordern.
-                </p>
             </td>
         </tr>
     </table>
@@ -86,10 +82,8 @@
         <tr><td style="padding: 2px 8px 2px 0; color: #718096; font-size: 14px;" valign="top">4.</td><td style="padding: 2px 0; color: #718096; font-size: 14px;">Folgen Sie den Anweisungen</td></tr>
     </table>
 
-    <p style="color: #718096; font-size: 16px; line-height: 1.5em; margin-top: 25px;">
-        Falls der Button nicht funktioniert, k&ouml;nnen Sie diesen Link kopieren:
-    </p>
-    <p style="color: #718096; font-size: 13px; line-height: 1.5em; background-color: #f8fafc; padding: 8px 12px; border-radius: 3px; word-break: break-all;">
-        {{ $loginUrl }}
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Sportliche Gr&uuml;&szlig;e<br>
+        Ihr {{ $gym->name }} Team
     </p>
 @endsection

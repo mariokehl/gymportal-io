@@ -8,7 +8,7 @@
     </h1>
 
     <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
-        Hallo <strong>{{ $member->first_name }}</strong>,
+        Hallo {{ $member->first_name }},
     </p>
 
     <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
@@ -87,9 +87,8 @@
         Falls Sie diesen Code nicht angefordert haben, ignorieren Sie diese E-Mail.
     </p>
 
-    @if($gym->member_app_description)
-        <p style="font-style: italic; color: #b0adc5; font-size: 14px; margin: 20px 0;">
-            {{ $gym->member_app_description }}
-        </p>
-    @endif
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        Sportliche Gr&uuml;&szlig;e<br>
+        Ihr {{ $gym->name }} Team
+    </p>
 @endsection

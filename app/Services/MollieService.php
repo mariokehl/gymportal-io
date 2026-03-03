@@ -723,7 +723,7 @@ class MollieService
                     'amount' => 0,
                     'description' => '1. Zahlung zur Authorisierung',
                     'metadata' => [
-                        'membership_id' => $member->memberships->first()?->id,
+                        'membership_id' => $member->pendingPaidMembership()?->id,
                         'member_id' => $member->id
                     ]
                 ];
@@ -735,7 +735,7 @@ class MollieService
             $status = $mandateId ? 'active' : 'pending';
             if ($status === 'active') {
                 $member->update(['status' => 'active']);
-                $membership = $member->memberships->first();
+                $membership = $member->pendingPaidMembership();
                 if (!$membership->activateMembership()) {
                     $membership->update(['status' => 'active']);
                 }

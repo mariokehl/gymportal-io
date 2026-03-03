@@ -35,6 +35,8 @@ class EmailTemplate extends Model
         'cancellation' => 'Kündigung',
         'invoice' => 'Rechnung',
         'payment_failed' => 'Zahlung fehlgeschlagen',
+        'login_code' => 'Anmeldecode',
+        'member_app_access' => 'App-Zugangslink',
         'general' => 'Allgemein',
     ];
 
@@ -158,6 +160,7 @@ class EmailTemplate extends Model
                 '[Mitgliederbereich-Link]' => 'Link zum Mitgliederbereich',
                 '[Datum]' => 'Aktuelles Datum',
                 '[Uhrzeit]' => 'Aktuelle Uhrzeit',
+                '[Anmeldecode]' => 'Einmaliger Anmeldecode',
             ]
         ];
     }

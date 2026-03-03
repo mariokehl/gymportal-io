@@ -234,6 +234,21 @@ class Member extends Authenticatable
     }
 
     /**
+     * Findet die bezahlte pending Mitgliedschaft für die Aktivierung nach Zahlungseingang.
+     * Funktioniert für beide Varianten:
+     * 1. Nur bezahlte Mitgliedschaft (ohne Gratis-Testzeitraum)
+     * 2. Gratis-Testzeitraum + bezahlte Mitgliedschaft
+     */
+    public function pendingPaidMembership(): ?Membership
+    {
+        return $this->memberships()
+            ->where('status', 'pending')
+            ->whereHas('membershipPlan', fn ($q) => $q->where('is_free_trial_plan', false))
+            ->first()
+            ?? $this->memberships()->where('status', 'pending')->first();
+    }
+
+    /**
      * Gibt eine strukturierte Übersicht aller Mitgliedschaften zurück
      *
      * @return array{
