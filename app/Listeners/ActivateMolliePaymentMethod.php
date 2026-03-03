@@ -31,7 +31,7 @@ class ActivateMolliePaymentMethod implements ShouldQueue
         // Activate member and membership
         $member->update(['status' => 'active']);
 
-        $membership = $member->memberships->first();
+        $membership = $member->pendingPaidMembership();
         if ($membership) {
             if (!$membership->activateMembership()) {
                 $membership->update(['status' => 'active']);
