@@ -8,6 +8,7 @@ use App\Models\ScannerAccessLog;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,7 +33,15 @@ class AccessControlController extends Controller
                 'today_scans'
             )
             ->orderBy('device_number')
-            ->get();
+            ->get()
+            ->map(function ($scanner) {
+                // Cache-Heartbeat hat Vorrang vor DB-Zeitstempel für "Zuletzt gesehen"
+                $cachedHeartbeat = Cache::get("scanner_heartbeat:{$scanner->id}");
+                if ($cachedHeartbeat) {
+                    $scanner->last_seen_at = $cachedHeartbeat;
+                }
+                return $scanner;
+            });
 
         $recentLogs = ScannerAccessLog::forGym($gym->id)
             ->with(['scanner', 'member'])
