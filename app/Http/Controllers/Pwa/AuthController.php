@@ -258,7 +258,10 @@ class AuthController extends Controller
             return $gym;
         }
 
-        // Find member by email and birth_date
+        /**
+         * Find member by email and birth_date
+         * @var Member|null $member
+         */
         $member = Member::whereRaw('LOWER(email) = ?', [$email])
                        ->where('gym_id', $gym->id)
                        ->whereDate('birth_date', $request->birth_date)
@@ -273,7 +276,9 @@ class AuthController extends Controller
         }
 
         // Create anonymous token with limited abilities
-        $token = $member->createToken('member-pwa-anonymous', ['member-pwa', 'anonymous'])->plainTextToken;
+        $token = $member->createToken(
+            'member-pwa-anonymous', ['member-pwa', 'anonymous'], now()->plus(days: 90)
+        )->plainTextToken;
 
         // Send verification code for potential upgrade
         //try {
