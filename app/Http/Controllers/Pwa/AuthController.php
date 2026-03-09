@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pwa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\MemberDevice;
 use App\Models\Gym;
 use App\Models\LoginCode;
 use App\Mail\LoginCodeMail;
@@ -78,6 +79,26 @@ class AuthController extends Controller
                 'message' => 'Anmeldecode wurde versendet',
                 'expires_in' => 600 // 10 Minuten in Sekunden (same as normal flow)
             ]);
+        }
+
+        // Check device limit for branded app requests (skip for static login code / App Store review)
+        if ($this->isBrandedAppRequest($request)) {
+            $deviceToken = $request->header('X-Device-Token');
+
+            if ($deviceToken) {
+                // If this device is already registered for this member, allow it
+                $existingDevice = MemberDevice::where('device_token', $deviceToken)
+                    ->where('member_id', $member->id)
+                    ->first();
+
+                if (!$existingDevice && MemberDevice::hasReachedLimit($member->id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gerät nicht autorisiert. Maximale Anzahl an Geräten erreicht. Bitte wenden Sie sich an Ihr Fitnessstudio.',
+                        'error_code' => 'DEVICE_LIMIT_REACHED'
+                    ], 403);
+                }
+            }
         }
 
         try {
@@ -194,7 +215,25 @@ class AuthController extends Controller
         }
 
         // Token erstellen (full session - user verified via email code)
-        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'])->plainTextToken;
+        // Branded App mit Device-Token: 90 Tage Session, sonst default
+        $deviceToken = $request->header('X-Device-Token');
+        $expiration = ($this->isBrandedAppRequest($request) && $deviceToken)
+            ? now()->addDays(90)
+            : null;
+        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $expiration)->plainTextToken;
+
+        // Register device token for branded app requests (skip for static login code / App Store review)
+        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
+        if ($this->isBrandedAppRequest($request) && !$hasStaticCode) {
+            if ($deviceToken) {
+                MemberDevice::registerForMember(
+                    $member->id,
+                    $deviceToken,
+                    $request->ip(),
+                    $request->userAgent()
+                );
+            }
+        }
 
         // Rate limit zurücksetzen bei erfolgreichem Login
         RateLimiter::clear($key);
@@ -258,7 +297,10 @@ class AuthController extends Controller
             return $gym;
         }
 
-        // Find member by email and birth_date
+        /**
+         * Find member by email and birth_date
+         * @var Member|null $member
+         */
         $member = Member::whereRaw('LOWER(email) = ?', [$email])
                        ->where('gym_id', $gym->id)
                        ->whereDate('birth_date', $request->birth_date)
@@ -273,7 +315,9 @@ class AuthController extends Controller
         }
 
         // Create anonymous token with limited abilities
-        $token = $member->createToken('member-pwa-anonymous', ['member-pwa', 'anonymous'])->plainTextToken;
+        $token = $member->createToken(
+            'member-pwa-anonymous', ['member-pwa', 'anonymous'], now()->plus(days: 90)
+        )->plainTextToken;
 
         // Send verification code for potential upgrade
         //try {
@@ -447,6 +491,11 @@ class AuthController extends Controller
     private function isPwaRequest(Request $request): bool
     {
         return $request->header('X-Client-Type') === 'pwa';
+    }
+
+    private function isBrandedAppRequest(Request $request): bool
+    {
+        return $request->header('X-Client-Type') === 'branded-app';
     }
 
     /**

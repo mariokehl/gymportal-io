@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
+use App\Models\MemberDevice;
 use App\Mail\MemberAppAccessLink;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -400,6 +401,34 @@ class MemberAccessController extends Controller
                 'old_values' => $config->getOriginal(),
             ],
         ]);
+    }
+
+    /**
+     * Remove a linked device from a member.
+     */
+    public function removeDevice(Member $member, MemberDevice $device)
+    {
+        $this->authorize('update', $member);
+
+        if ($device->member_id !== $member->id) {
+            abort(403);
+        }
+
+        $deviceToken = $device->device_token;
+        $device->delete();
+
+        MemberAccessLog::create([
+            'member_id' => $member->id,
+            'action' => 'device_removed',
+            'performed_by' => auth()->id(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => [
+                'device_token' => substr($deviceToken, 0, 8) . '...',
+            ],
+        ]);
+
+        return back()->with('success', 'Gerät wurde entfernt.');
     }
 
     /**

@@ -123,6 +123,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/send-app-link', [MemberAccessController::class, 'sendAppLink'])->name('send-app-link');
         Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');
         Route::post('/consume-credit', [MemberAccessController::class, 'consumeCredit'])->name('consume-credit');
+        Route::delete('/devices/{device}', [MemberAccessController::class, 'removeDevice'])->name('remove-device');
     });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');

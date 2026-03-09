@@ -1106,6 +1106,14 @@ class Member extends Authenticatable
     }
 
     /**
+     * Get linked devices for the member (branded app)
+     */
+    public function devices()
+    {
+        return $this->hasMany(MemberDevice::class);
+    }
+
+    /**
      * Get or create access configuration
      */
     public function getOrCreateAccessConfig(): MemberAccessConfig
