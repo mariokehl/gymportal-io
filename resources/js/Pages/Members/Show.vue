@@ -1140,6 +1140,60 @@
               </div>
             </div>
 
+            <!-- Linked Devices (only visible when PWA login is disabled, i.e. branded app only) -->
+            <div v-if="member.gym?.pwa_settings?.pwa_login_disabled">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Verknüpfte Geräte</h3>
+
+              <div v-if="member.devices && member.devices.length > 0" class="space-y-3">
+                <div class="bg-amber-50 p-3 rounded-lg mb-4">
+                  <div class="flex items-start gap-2">
+                    <Info class="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div class="text-sm text-amber-800">
+                      <p>Maximal 2 Geräte können mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  v-for="device in member.devices"
+                  :key="device.id"
+                  class="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="p-2 bg-gray-100 rounded-lg">
+                      <Smartphone class="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">
+                        {{ device.device_name || 'Unbekanntes Gerät' }}
+                      </p>
+                      <p class="text-xs text-gray-500 font-mono">
+                        {{ device.device_token.substring(0, 8) }}...
+                      </p>
+                      <p v-if="device.last_used_at" class="text-xs text-gray-400">
+                        Zuletzt aktiv: {{ formatDateTime(device.last_used_at) }}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    @click="removeDevice(device)"
+                    :disabled="removingDeviceId === device.id"
+                    class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Gerät entfernen"
+                  >
+                    <Loader2 v-if="removingDeviceId === device.id" class="w-5 h-5 animate-spin" />
+                    <X v-else class="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
+                <Smartphone class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p class="text-gray-500">Keine Geräte verknüpft</p>
+                <p class="text-xs text-gray-400 mt-1">Geräte werden beim Login über die Branded App automatisch registriert</p>
+              </div>
+            </div>
+
             <!-- Access Log -->
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Zugangshistorie</h3>
@@ -1961,7 +2015,8 @@ import {
   ArrowLeft, Wallet, AlertCircle, CheckCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
-  Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen
+  Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
+  Smartphone, X
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -2050,6 +2105,9 @@ const nfcInputValue = ref('')
 const normalizedNfcId = ref('')
 const isNfcValid = ref(false)
 const accessLogs = ref([])
+
+// Device management
+const removingDeviceId = ref(null)
 
 // NFC Scanning state
 const isNfcScanning = ref(false)
@@ -2209,6 +2267,20 @@ const getActiveAccessCount = () => {
   if (accessForm.massage_enabled) count++
   if (accessForm.coffee_flat_enabled) count++
   return count
+}
+
+// Device management
+const removeDevice = (device) => {
+  if (!confirm('Möchten Sie dieses Gerät wirklich entfernen? Das Mitglied kann sich dann mit einem neuen Gerät anmelden.')) {
+    return
+  }
+  removingDeviceId.value = device.id
+  router.delete(route('members.access.remove-device', { member: props.member.id, device: device.id }), {
+    preserveScroll: true,
+    onFinish: () => {
+      removingDeviceId.value = null
+    }
+  })
 }
 
 // NFC ID Normalisierung

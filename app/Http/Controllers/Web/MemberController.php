@@ -423,6 +423,7 @@ class MemberController extends Controller
                 $query->latest()->take(10);
             },
             'accessConfig',
+            'devices',
             'statusHistory.changedBy:id,first_name,last_name',
             'ageVerifiedByUser:id,first_name,last_name',
             'legalGuardian:id,first_name,last_name,member_number'
