@@ -736,7 +736,7 @@ class MollieService
             if ($status === 'active') {
                 $member->update(['status' => 'active']);
                 $membership = $member->pendingPaidMembership();
-                if (!$membership->activateMembership()) {
+                if ($membership && !$membership->activateMembership()) {
                     $membership->update(['status' => 'active']);
                 }
 
