@@ -215,12 +215,16 @@ class AuthController extends Controller
         }
 
         // Token erstellen (full session - user verified via email code)
-        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'])->plainTextToken;
+        // Branded App mit Device-Token: 90 Tage Session, sonst default
+        $deviceToken = $request->header('X-Device-Token');
+        $expiration = ($this->isBrandedAppRequest($request) && $deviceToken)
+            ? now()->addDays(90)
+            : null;
+        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $expiration)->plainTextToken;
 
         // Register device token for branded app requests (skip for static login code / App Store review)
         $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
         if ($this->isBrandedAppRequest($request) && !$hasStaticCode) {
-            $deviceToken = $request->header('X-Device-Token');
             if ($deviceToken) {
                 MemberDevice::registerForMember(
                     $member->id,
