@@ -9,7 +9,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class MemberAppAccessLink extends Mailable
 {
@@ -66,8 +65,6 @@ class MemberAppAccessLink extends Mailable
                 ]
             );
         } else {
-            Log::warning("No member_app_access template found for gym {$gym->id}, using fallback");
-
             return new Content(
                 view: 'emails.member-app-access-fallback',
                 with: [

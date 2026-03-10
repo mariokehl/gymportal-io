@@ -12,7 +12,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Eingangsbestätigung für Widerruf gemäß § 356a BGB
@@ -81,9 +80,6 @@ class WithdrawalConfirmationMail extends Mailable
                 ]
             );
         } else {
-            // Fallback to default template
-            Log::info("No withdrawal template found for gym {$this->gym->id}, using fallback");
-
             return new Content(
                 view: 'emails.withdrawal-confirmation',
                 with: [

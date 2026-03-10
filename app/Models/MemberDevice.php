@@ -20,7 +20,10 @@ class MemberDevice extends Model
         'last_used_at' => 'datetime',
     ];
 
-    public const MAX_DEVICES_PER_MEMBER = 2;
+    public static function maxDevicesPerMember(): int
+    {
+        return (int) env('MAX_DEVICES_PER_MEMBER', 2);
+    }
 
     public function member(): BelongsTo
     {
@@ -32,7 +35,7 @@ class MemberDevice extends Model
      */
     public static function hasReachedLimit(int $memberId): bool
     {
-        return static::where('member_id', $memberId)->count() >= static::MAX_DEVICES_PER_MEMBER;
+        return static::where('member_id', $memberId)->count() >= static::maxDevicesPerMember();
     }
 
     /**
