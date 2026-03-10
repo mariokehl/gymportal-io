@@ -34,7 +34,7 @@ class EnsureFullSession
         if (!$token || !$token->can('full')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vollständige Verifizierung erforderlich. Bitte verifizieren Sie Ihre Identität.',
+                'message' => 'Vollständige Verifizierung erforderlich. Bitte verifiziere deine Identität.',
                 'error_code' => 'VERIFICATION_REQUIRED',
                 'is_verified' => false
             ], 403);
