@@ -63,6 +63,7 @@ class DashboardController extends Controller
                         'status' => $member->status,
                         'age_verified' => $member->age_verified,
                         'age_verified_at' => $member->age_verified_at?->toISOString(),
+                        'guest_access' => $member->guest_access,
                     ];
                 }
 
@@ -76,6 +77,7 @@ class DashboardController extends Controller
                     'last_check_in' => $member->last_check_in,
                     'age_verified' => $member->age_verified,
                     'age_verified_at' => $member->age_verified_at?->toISOString(),
+                    'guest_access' => $member->guest_access,
                 ];
             });
 

@@ -3,7 +3,8 @@
     <!-- Avatar mit Initialen -->
     <div
       :class="[
-        'rounded-full bg-indigo-500 text-white flex items-center justify-center font-semibold',
+        'rounded-full text-white flex items-center justify-center font-semibold',
+        isGuest ? 'bg-orange-500' : 'bg-indigo-500',
         sizeClasses
       ]"
     >
@@ -40,6 +41,10 @@ const props = defineProps({
   verifiedAt: {
     type: String,
     default: null
+  },
+  isGuest: {
+    type: Boolean,
+    default: false
   },
   size: {
     type: String,

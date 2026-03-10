@@ -59,6 +59,7 @@
                                             :initials="member.initials"
                                             :age-verified="member.age_verified"
                                             :verified-at="member.age_verified_at"
+                                            :is-guest="member.guest_access"
                                             size="sm"
                                         />
                                         <div class="ml-3 min-w-0 max-w-[200px]">
