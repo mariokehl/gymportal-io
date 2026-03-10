@@ -1149,7 +1149,7 @@
                   <div class="flex items-start gap-2">
                     <Info class="w-5 h-5 text-amber-600 mt-0.5" />
                     <div class="text-sm text-amber-800">
-                      <p>Maximal 2 Geräte können mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
+                      <p>Maximal {{ props.maxDevicesPerMember }} {{ props.maxDevicesPerMember === 1 ? 'Gerät kann' : 'Geräte können' }} mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
                     </div>
                   </div>
                 </div>
@@ -2033,6 +2033,10 @@ const props = defineProps({
   contractsEnabled: {
     type: Boolean,
     default: false
+  },
+  maxDevicesPerMember: {
+    type: Number,
+    default: 2
   }
 })
 
