@@ -34,7 +34,7 @@
                         :href="route('members.create')"
                         class="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-indigo-600 transition-colors">
                         <Plus class="w-4 h-4 mr-1" />
-                        Neuer Vertrag
+                        Neues Mitglied
                     </Link>
                 </div>
 
