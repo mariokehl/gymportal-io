@@ -22,9 +22,6 @@
                 <table cellpadding="0" cellspacing="0" role="presentation" style="border: 2px dashed #3490dc; border-radius: 5px;">
                     <tr>
                         <td style="padding: 20px 40px; text-align: center;">
-                            <p style="margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #b0adc5; text-transform: uppercase; letter-spacing: 1px;">
-                                Ihr Anmeldecode
-                            </p>
                             <p style="margin: 0; font-size: 36px; font-weight: 900; color: #3490dc; letter-spacing: 8px; font-family: 'Courier New', Monaco, monospace;">{{ $code }}</p>
                         </td>
                     </tr>
