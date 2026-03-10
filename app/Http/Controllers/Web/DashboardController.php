@@ -51,7 +51,7 @@ class DashboardController extends Controller
             ->limit(10) // Limit for dashboard view
             ->get()
             ->map(function ($member) {
-                $firstMembership = $member->memberships->first();
+                $firstMembership = $member->activeMembership();
 
                 if (!$firstMembership) {
                     return [
