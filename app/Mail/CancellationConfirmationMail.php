@@ -12,7 +12,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class CancellationConfirmationMail extends Mailable
 {
@@ -72,9 +71,6 @@ class CancellationConfirmationMail extends Mailable
                 ]
             );
         } else {
-            // Fallback to original template
-            Log::warning("No cancellation template found for gym {$this->gym->id}, using fallback");
-
             return new Content(
                 view: 'emails.cancellation-fallback',
                 with: [

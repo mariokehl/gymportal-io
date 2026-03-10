@@ -12,7 +12,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class LoginCodeMail extends Mailable
 {
@@ -73,8 +72,6 @@ class LoginCodeMail extends Mailable
                 ]
             );
         } else {
-            Log::warning("No login_code template found for gym {$this->gym->id}, using fallback");
-
             return new Content(
                 view: 'emails.login-code-fallback',
                 with: [

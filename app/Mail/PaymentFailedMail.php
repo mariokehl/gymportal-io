@@ -11,7 +11,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class PaymentFailedMail extends Mailable
 {
@@ -70,9 +69,6 @@ class PaymentFailedMail extends Mailable
                 ]
             );
         } else {
-            // Fallback to original template
-            Log::warning("No payment_failed template found for gym {$this->gym->id}, using fallback");
-
             return new Content(
                 view: 'emails.payment-failed-fallback',
                 with: [

@@ -73,9 +73,6 @@ class WelcomeMemberMail extends Mailable
                 ]
             );
         } else {
-            // Fallback to original template
-            Log::warning("No welcome template found for gym {$this->gym->id}, using fallback");
-
             return new Content(
                 view: 'emails.welcome-member-fallback',
                 with: [
