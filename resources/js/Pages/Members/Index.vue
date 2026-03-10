@@ -95,6 +95,7 @@
                         :initials="getInitials(member.first_name, member.last_name)"
                         :age-verified="member.age_verified"
                         :verified-at="member.age_verified_at"
+                        :is-guest="member.guest_access"
                         size="md"
                       />
                     </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\MemberDevice;
 use App\Models\MemberStatusHistory;
 use App\Models\MembershipPlan;
 use App\Models\PaymentMethod;
@@ -459,6 +460,7 @@ class MemberController extends Controller
             'membershipPlans' => $membershipPlans,
             'updatedPayments' => session('updated_payments', false) ? $member->payments : null,
             'contractsEnabled' => $member->gym->isOnlineContractEnabled(),
+            'maxDevicesPerMember' => MemberDevice::maxDevicesPerMember(),
         ]);
     }
 

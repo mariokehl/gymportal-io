@@ -21,6 +21,7 @@
               :initials="getInitials(member.first_name, member.last_name)"
               :age-verified="member.age_verified"
               :verified-at="member.age_verified_at"
+              :is-guest="member.guest_access"
               size="xl"
             />
             <div>
@@ -42,7 +43,7 @@
               </div>
               <p v-else class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
 
-              <div class="mt-2">
+              <div class="mt-2 flex items-center gap-2">
                 <!-- Im Bearbeitungsmodus: Editierbare Status-Komponente -->
                 <MemberStatusEditor
                   v-if="editMode"
@@ -58,6 +59,11 @@
                   :status="member.status"
                   :show-icon="true"
                 />
+
+                <!-- Alter -->
+                <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                  {{ memberAge }} Jahre
+                </span>
               </div>
             </div>
           </div>
@@ -1149,7 +1155,7 @@
                   <div class="flex items-start gap-2">
                     <Info class="w-5 h-5 text-amber-600 mt-0.5" />
                     <div class="text-sm text-amber-800">
-                      <p>Maximal 2 Geräte können mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
+                      <p>Maximal {{ props.maxDevicesPerMember }} {{ props.maxDevicesPerMember === 1 ? 'Gerät kann' : 'Geräte können' }} mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
                     </div>
                   </div>
                 </div>
@@ -2033,6 +2039,10 @@ const props = defineProps({
   contractsEnabled: {
     type: Boolean,
     default: false
+  },
+  maxDevicesPerMember: {
+    type: Number,
+    default: 2
   }
 })
 
@@ -2163,6 +2173,19 @@ const deactivating = ref(null)
 const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
+
+const memberAge = computed(() => {
+  const birthDate = form.birth_date
+  if (!birthDate) return null
+  const birth = new Date(birthDate)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age
+})
 
 const tabs = computed(() => {
   const baseTabs = [

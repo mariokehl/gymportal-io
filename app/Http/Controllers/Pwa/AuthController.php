@@ -30,7 +30,7 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($key, 3)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Zu viele Versuche. Bitte warten Sie vor dem nächsten Versuch.',
+                'message' => 'Zu viele Versuche. Bitte warte vor dem nächsten Versuch.',
                 'error_code' => 'RATE_LIMITED'
             ], 429);
         }
@@ -94,7 +94,7 @@ class AuthController extends Controller
                 if (!$existingDevice && MemberDevice::hasReachedLimit($member->id)) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Gerät nicht autorisiert. Maximale Anzahl an Geräten erreicht. Bitte wenden Sie sich an Ihr Fitnessstudio.',
+                        'message' => 'Dein Account ist bereits auf einem anderen Gerät aktiv. Aus Sicherheitsgründen kann die App nur auf einem Gerät gleichzeitig genutzt werden. Wenn du das Gerät wechseln möchtest, melde dich bitte kurz bei deinem Studio.',
                         'error_code' => 'DEVICE_LIMIT_REACHED'
                     ], 403);
                 }
@@ -135,7 +135,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Fehler beim Versenden der E-Mail. Bitte versuchen Sie es später erneut.',
+                'message' => 'Fehler beim Versenden der E-Mail. Bitte versuche es später erneut.',
                 'error_code' => 'EMAIL_SEND_FAILED'
             ], 500);
         }
@@ -156,7 +156,7 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warten Sie.',
+                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warte.',
                 'error_code' => 'RATE_LIMITED'
             ], 429);
         }
@@ -287,7 +287,7 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Zu viele Versuche. Bitte warten Sie vor dem nächsten Versuch.',
+                'message' => 'Zu viele Versuche. Bitte warte vor dem nächsten Versuch.',
                 'error_code' => 'RATE_LIMITED'
             ], 429);
         }
@@ -373,7 +373,7 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warten Sie.',
+                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warte.',
                 'error_code' => 'RATE_LIMITED'
             ], 429);
         }
