@@ -47,7 +47,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 60 * 24), // 24 Stunden für PWA
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', null),
 
     /*
     |--------------------------------------------------------------------------

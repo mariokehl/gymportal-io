@@ -215,14 +215,10 @@ class AuthController extends Controller
         }
 
         // Token erstellen (full session - user verified via email code)
-        // Branded App mit Device-Token: 90 Tage Session, sonst default
-        $deviceToken = $request->header('X-Device-Token');
-        $expiration = ($this->isBrandedAppRequest($request) && $deviceToken)
-            ? now()->addDays(90)
-            : null;
-        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $expiration)->plainTextToken;
+        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $this->getTokenExpiration($request))->plainTextToken;
 
         // Register device token for branded app requests (skip for static login code / App Store review)
+        $deviceToken = $request->header('X-Device-Token');
         $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
         if ($this->isBrandedAppRequest($request) && !$hasStaticCode) {
             if ($deviceToken) {
@@ -316,7 +312,7 @@ class AuthController extends Controller
 
         // Create anonymous token with limited abilities
         $token = $member->createToken(
-            'member-pwa-anonymous', ['member-pwa', 'anonymous'], now()->plus(days: 90)
+            'member-pwa-anonymous', ['member-pwa', 'anonymous'], now()->addDays(365)
         )->plainTextToken;
 
         // Send verification code for potential upgrade
@@ -436,7 +432,7 @@ class AuthController extends Controller
         $member->currentAccessToken()->delete();
 
         // Create new full session token
-        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'])->plainTextToken;
+        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $this->getTokenExpiration($request))->plainTextToken;
 
         RateLimiter::clear($key);
 
@@ -493,9 +489,27 @@ class AuthController extends Controller
         return $request->header('X-Client-Type') === 'pwa';
     }
 
+    /**
+     * Check if the request comes from a branded native app (not the generic PWA).
+     */
     private function isBrandedAppRequest(Request $request): bool
     {
         return $request->header('X-Client-Type') === 'branded-app';
+    }
+
+    /**
+     * Get the token expiration date based on the request context.
+     * Branded app with device token: 90 days, otherwise: 7 days.
+     */
+    private function getTokenExpiration(Request $request): \DateTimeInterface
+    {
+        $deviceToken = $request->header('X-Device-Token');
+
+        if ($this->isBrandedAppRequest($request) && $deviceToken) {
+            return now()->addDays(90);
+        }
+
+        return now()->addDays(7);
     }
 
     /**
