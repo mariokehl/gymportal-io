@@ -2540,7 +2540,6 @@ const form = useForm({
   city: props.member.city,
   postal_code: props.member.postal_code,
   country: props.member.country,
-  status: props.member.status,
   emergency_contact_name: props.member.emergency_contact_name,
   emergency_contact_phone: props.member.emergency_contact_phone,
   legal_guardian_member_id: props.member.legal_guardian_member_id,
