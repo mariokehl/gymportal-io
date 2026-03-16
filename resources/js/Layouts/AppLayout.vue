@@ -19,10 +19,28 @@
         <SidebarItem
           :icon="Users"
           label="Mitglieder"
-          :active="route().current('members.index')"
+          :active="route().current('members.*') || route().current('blocklist.*')"
           :href="route('members.index')"
           :disabled="!canAccessPremiumFeatures"
-        />
+        >
+          <template #children>
+            <Link
+              v-if="isOwnerOrAdmin"
+              :href="route('blocklist.index')"
+              :class="[
+                'flex items-center px-4 py-2 text-xs font-medium transition-colors',
+                route().current('blocklist.*')
+                  ? 'text-indigo-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              ]"
+            >
+              <span class="w-5 mr-3 flex justify-center">
+                <span class="w-px h-full min-h-4 bg-gray-300" />
+              </span>
+              Sperrliste
+            </Link>
+          </template>
+        </SidebarItem>
         <SidebarItem
           :icon="FilePlus"
           label="Verträge"
@@ -171,7 +189,7 @@ import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
   FilePlus, Shield, DoorOpen,
-  ArrowDownUp
+  ArrowDownUp, ShieldX
 } from 'lucide-vue-next'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'

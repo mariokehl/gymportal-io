@@ -469,7 +469,8 @@ class Member extends Authenticatable
             'inactive' => 'Inaktiv',
             'paused' => 'Pausiert',
             'overdue' => 'Überfällig',
-            'pending' => 'Ausstehend', // Neu hinzugefügt
+            'pending' => 'Ausstehend',
+            'blocked' => 'Gesperrt',
         ][$this->status] ?? $this->status;
     }
 
@@ -480,7 +481,8 @@ class Member extends Authenticatable
             'inactive' => 'gray',
             'paused' => 'yellow',
             'overdue' => 'red',
-            'pending' => 'orange', // Neu hinzugefügt
+            'pending' => 'orange',
+            'blocked' => 'black',
         ][$this->status] ?? 'gray';
     }
 
@@ -492,6 +494,7 @@ class Member extends Authenticatable
             'paused' => 'Mitgliedschaft ist temporär pausiert',
             'overdue' => 'Zahlung ist überfällig',
             'pending' => 'Mitgliedschaft wartet auf Aktivierung (z.B. Zahlungsbestätigung oder SEPA-Mandat)',
+            'blocked' => 'Mitglied ist gesperrt (Sperrliste)',
             default => 'Unbekannter Status'
         };
     }
@@ -500,6 +503,13 @@ class Member extends Authenticatable
     public function getInitialsAttribute(): string
     {
         return substr($this->first_name, 0, 1) . substr($this->last_name, 0, 1);
+    }
+
+    public function getIsFraudFlaggedAttribute(): bool
+    {
+        return FraudCheck::where('member_id', $this->id)
+            ->where('action', 'flagged')
+            ->exists();
     }
 
     public function fullName()
@@ -647,7 +657,8 @@ class Member extends Authenticatable
             'inactive' => ['active', 'pending'],
             'paused' => ['active', 'inactive', 'overdue'],
             'overdue' => ['active', 'inactive'],
-            'pending' => ['active', 'inactive']
+            'pending' => ['active', 'inactive'],
+            'blocked' => ['active', 'inactive']
         ];
 
         return $transitions[$current] ?? [];

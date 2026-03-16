@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\MollieMandateCreated;
+use App\Models\FraudCheck;
 use App\Services\MemberService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -27,6 +28,18 @@ class ActivateMolliePaymentMethod implements ShouldQueue
         ]);
 
         $paymentMethod->activateSepaMandate();
+
+        // Nicht aktivieren wenn Fraud-Flag vorliegt — Admin muss manuell freigeben
+        $hasFraudFlag = FraudCheck::where('member_id', $member->id)
+            ->where('action', 'flagged')
+            ->exists();
+
+        if ($hasFraudFlag) {
+            Log::info('Member activation skipped due to fraud flag', [
+                'member_id' => $member->id,
+            ]);
+            return;
+        }
 
         // Activate member and membership
         $member->update(['status' => 'active']);

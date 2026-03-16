@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\MemberBlocklist;
 use App\Services\SchedulerHealthCheckService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
@@ -80,3 +81,35 @@ Schedule::call(function () {
 
 // Update Laravel Disposable Email
 Schedule::command('disposable:update')->daily();
+
+// ===================================
+// FRAUD PREVENTION / BLOCKLIST CLEANUP
+// ===================================
+
+// Abgelaufene Sperren aufräumen (DSGVO) + temporär gesperrte Mitglieder reaktivieren
+Schedule::call(function () {
+    $expireDays = (int) config('fraud.blocklist_expire_days', 1095);
+
+    // Abgelaufene Einträge löschen (DSGVO: nach konfigurierten Tagen)
+    $deleted = MemberBlocklist::where('blocked_until', '<', now()->subDays(30))->delete();
+
+    // Alte Einträge nach Ablaufzeit löschen
+    $purged = MemberBlocklist::where('created_at', '<', now()->subDays($expireDays))->delete();
+
+    // Mitglieder reaktivieren, deren temporäre Sperre abgelaufen ist
+    MemberBlocklist::where('blocked_until', '<', now())
+        ->where('blocked_until', '>', now()->subDay()) // Nur kürzlich abgelaufen
+        ->whereNotNull('original_member_id')
+        ->with('member')
+        ->each(function ($entry) {
+            $entry->member?->update(['status' => 'active']);
+        });
+
+    if ($deleted || $purged) {
+        Log::info("Fraud cleanup: {$deleted} abgelaufene + {$purged} alte Sperren entfernt");
+    }
+})->daily()
+  ->at('04:00')
+  ->timezone('Europe/Berlin')
+  ->name('fraud.cleanup')
+  ->withoutOverlapping();

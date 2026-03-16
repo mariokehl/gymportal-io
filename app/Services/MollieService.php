@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\MembershipActivated;
 use App\Jobs\CreateMollieMandate;
+use App\Models\FraudCheck;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Payment;
@@ -734,10 +735,17 @@ class MollieService
             $mandateId = $mandate?->id ?? $this->getMandate($member->gym, $customer->id)?->id;
             $status = $mandateId ? 'active' : 'pending';
             if ($status === 'active') {
-                $member->update(['status' => 'active']);
-                $membership = $member->pendingPaidMembership();
-                if ($membership && !$membership->activateMembership()) {
-                    $membership->update(['status' => 'active']);
+                // Nicht aktivieren wenn Fraud-Flag vorliegt — Admin muss manuell freigeben
+                $hasFraudFlag = FraudCheck::where('member_id', $member->id)
+                    ->where('action', 'flagged')
+                    ->exists();
+
+                if (!$hasFraudFlag) {
+                    $member->update(['status' => 'active']);
+                    $membership = $member->pendingPaidMembership();
+                    if ($membership && !$membership->activateMembership()) {
+                        $membership->update(['status' => 'active']);
+                    }
                 }
 
                 $paymentMethod->update([

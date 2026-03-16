@@ -34,6 +34,7 @@
               <option value="paused">Pausiert</option>
               <option value="pending">Ausstehend</option>
               <option value="overdue">Überfällig</option>
+              <option value="blocked">Gesperrt</option>
             </select>
 
             <!-- Neu anlegen Button -->

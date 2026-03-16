@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\FraudCheck;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\MemberDevice;
@@ -454,6 +455,13 @@ class MemberController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Fraud-Check laden falls vorhanden (für Warnbanner)
+        $fraudCheck = FraudCheck::where('member_id', $member->id)
+            ->where('action', 'flagged')
+            ->with('blocklistEntry:id,reason,notes')
+            ->latest('checked_at')
+            ->first();
+
         return Inertia::render('Members/Show', [
             'member' => $member,
             'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
@@ -461,6 +469,7 @@ class MemberController extends Controller
             'updatedPayments' => session('updated_payments', false) ? $member->payments : null,
             'contractsEnabled' => $member->gym->isOnlineContractEnabled(),
             'maxDevicesPerMember' => MemberDevice::maxDevicesPerMember(),
+            'fraudCheck' => $fraudCheck,
         ]);
     }
 
@@ -498,7 +507,6 @@ class MemberController extends Controller
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
             'joined_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],

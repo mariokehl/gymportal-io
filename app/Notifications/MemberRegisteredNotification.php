@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\FraudCheck;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\Gym;
@@ -40,10 +41,16 @@ class MemberRegisteredNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        return [
+        $fraudCheck = $this->getFraudCheck();
+        $isFlagged = $fraudCheck !== null;
+
+        $data = [
             'type' => 'member_registered',
-            'title' => 'Neues Mitglied registriert',
-            'message' => "{$this->member->first_name} {$this->member->last_name} hat sich über {$this->registrationSource} registriert.",
+            'title' => $isFlagged ? 'Verdächtige Registrierung' : 'Neues Mitglied registriert',
+            'message' => $isFlagged
+                ? "{$this->member->first_name} {$this->member->last_name} wurde als verdächtig eingestuft (Score: {$fraudCheck->fraud_score}/100). Übereinstimmungen: "
+                    . collect($fraudCheck->matched_fields)->except('_combination_bonus')->keys()->join(', ')
+                : "{$this->member->first_name} {$this->member->last_name} hat sich über {$this->registrationSource} registriert.",
             'member' => [
                 'id' => $this->member->id,
                 'member_number' => $this->member->member_number,
@@ -61,6 +68,16 @@ class MemberRegisteredNotification extends Notification implements ShouldQueue
             'registration_source' => $this->registrationSource,
             'timestamp' => now()->toIso8601String(),
         ];
+
+        if ($isFlagged) {
+            $data['fraud'] = [
+                'score' => $fraudCheck->fraud_score,
+                'action' => $fraudCheck->action,
+                'matched_fields' => $fraudCheck->matched_fields,
+            ];
+        }
+
+        return $data;
     }
 
     /**
@@ -70,13 +87,26 @@ class MemberRegisteredNotification extends Notification implements ShouldQueue
      */
     public function toBroadcast(object $notifiable): array
     {
+        $fraudCheck = $this->getFraudCheck();
+        $isFlagged = $fraudCheck !== null;
+
         return [
             'type' => 'member_registered',
-            'title' => 'Neues Mitglied registriert',
-            'message' => "{$this->member->first_name} {$this->member->last_name} hat sich über {$this->registrationSource} registriert.",
+            'title' => $isFlagged ? 'Verdächtige Registrierung' : 'Neues Mitglied registriert',
+            'message' => $isFlagged
+                ? "{$this->member->first_name} {$this->member->last_name} – Score: {$fraudCheck->fraud_score}/100"
+                : "{$this->member->first_name} {$this->member->last_name} hat sich über {$this->registrationSource} registriert.",
             'member_id' => $this->member->id,
             'member_number' => $this->member->member_number,
             'gym_id' => $this->gym->id,
         ];
+    }
+
+    private function getFraudCheck(): ?FraudCheck
+    {
+        return FraudCheck::where('member_id', $this->member->id)
+            ->where('action', '!=', 'allowed')
+            ->latest('checked_at')
+            ->first();
     }
 }

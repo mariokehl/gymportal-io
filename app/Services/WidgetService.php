@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Dto\PaymentCreationResult;
 use App\Events\MemberRegistered;
 use App\Mail\SepaMandateRequiredMail;
+use App\Models\FraudCheck;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
@@ -14,6 +15,7 @@ use App\Models\PaymentMethod;
 use App\Models\WidgetRegistration;
 use App\Models\WidgetAnalytics;
 use Illuminate\Support\Facades\DB;
+use App\Services\Fraud\FraudDetectionService;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
@@ -66,6 +68,24 @@ class WidgetService
                 ];
             }
 
+            // Betrugsprävention: Registrierungsdaten gegen Sperrliste prüfen
+            $fraudResult = app(FraudDetectionService::class)->checkRegistration($gym->id, $data);
+
+            if ($fraudResult->isBlocked()) {
+                DB::rollBack();
+
+                Log::warning('Widget-Registrierung durch Fraud Detection blockiert', [
+                    'gym_id' => $gym->id,
+                    'email'  => $data['email'] ?? null,
+                    'score'  => $fraudResult->score,
+                ]);
+
+                return [
+                    'error' => 'Die Registrierung konnte leider nicht abgeschlossen werden. '
+                             . 'Bitte wende dich direkt an das Studio.',
+                ];
+            }
+
             $member = Member::create([
                 'gym_id' => $gym->id,
                 'member_number' => MemberService::generateMemberNumber($gym, 'W'),
@@ -93,6 +113,17 @@ class WidgetService
                     'registered_at' => now()->toISOString(),
                 ],
             ]);
+
+            // FraudCheck mit Member verknüpfen (Audit-Trail)
+            if ($fraudResult->fraudCheckId) {
+                FraudCheck::where('id', $fraudResult->fraudCheckId)
+                    ->update(['member_id' => $member->id]);
+            }
+
+            // Flagged: Status auf pending setzen
+            if ($fraudResult->isFlagged()) {
+                $member->update(['status' => 'pending']);
+            }
 
             $plan = MembershipPlan::findOrFail($data['plan_id']);
 
@@ -368,8 +399,15 @@ class WidgetService
             ]);
 
             if ($molliePayment->isPaid()) {
-                $member->update(['status' => 'active']);
-                $membership->update(['status' => 'active']);
+                // Nicht aktivieren wenn Fraud-Flag vorliegt — Admin muss manuell freigeben
+                $hasFraudFlag = FraudCheck::where('member_id', $member->id)
+                    ->where('action', 'flagged')
+                    ->exists();
+
+                if (!$hasFraudFlag) {
+                    $member->update(['status' => 'active']);
+                    $membership->update(['status' => 'active']);
+                }
 
                 WidgetRegistration::where('gym_id', $gym->id)
                     ->where('session_id', $sessionId)
