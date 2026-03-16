@@ -8,6 +8,8 @@ use App\Models\Member;
 use App\Models\MemberStatusHistory;
 use App\Models\User;
 use App\Notifications\PaymentFailedNotification;
+use App\Services\Fraud\BlocklistService;
+use App\Services\Fraud\FraudIdentifierNormalizer;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -228,6 +230,9 @@ class MemberStatusService
         // Send email to member
         $this->sendPaymentFailedEmail($member, $paymentData);
 
+        // Mitglied auf Sperrliste setzen (für zukünftige Registrierungen)
+        $this->addToBlocklistOnPaymentFailure($member, $paymentData);
+
         Log::info('Payment failed handling completed', [
             'member_id' => $member->id,
             'old_status' => $oldStatus,
@@ -304,6 +309,77 @@ class MemberStatusService
             Log::error('Failed to send payment failed email to member', [
                 'member_id' => $member->id,
                 'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Mitglied bei Zahlungsausfall auf Sperrliste setzen.
+     * IBAN wird aus dem Mollie-Mandat der Standard-Zahlungsart abgerufen.
+     * Der Member-Status bleibt auf 'overdue' (wird nicht auf 'blocked' geändert).
+     */
+    private function addToBlocklistOnPaymentFailure(Member $member, array $paymentData): void
+    {
+        try {
+            $reason = ($paymentData['reason'] ?? null) === 'chargeback' ? 'chargeback' : 'payment_failed';
+            $iban = null;
+
+            // IBAN aus dem Mollie-Mandat der Standard-Zahlungsart abrufen
+            $defaultPaymentMethod = $member->defaultPaymentMethod;
+
+            if ($defaultPaymentMethod?->mollie_customer_id) {
+                try {
+                    $mollieService = app(MollieService::class);
+                    $mandate = $mollieService->getMandate($member->gym, $defaultPaymentMethod->mollie_customer_id);
+
+                    if ($mandate && isset($mandate->details->consumerAccount)) {
+                        $iban = $mandate->details->consumerAccount;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Konnte IBAN nicht aus Mollie-Mandat abrufen', [
+                        'member_id' => $member->id,
+                        'customer_id' => $defaultPaymentMethod->mollie_customer_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Fallback: IBAN aus lokaler PaymentMethod
+            if (!$iban) {
+                $iban = $defaultPaymentMethod?->iban
+                    ?? $member->activeSepaPaymentMethod?->iban
+                    ?? $member->paymentMethods()->whereNotNull('iban')->value('iban');
+            }
+
+            $n = FraudIdentifierNormalizer::class;
+
+            $blocklistService = app(BlocklistService::class);
+            $entry = $blocklistService->addMember(
+                gymId:  $member->gym_id,
+                member: $member,
+                reason: $reason,
+                notes:  "Automatisch gesperrt: Zahlungsausfall via Mollie Webhook."
+                      . ($paymentData['mollie_payment_id'] ?? '' ? " Payment: {$paymentData['mollie_payment_id']}" : '')
+                      . ($paymentData['amount'] ?? '' ? " Betrag: {$paymentData['amount']} EUR" : ''),
+            );
+
+            // Falls IBAN aus Mollie abgerufen wurde und lokal keine hinterlegt war: Hash nachträglich setzen
+            if ($iban && !$entry->hash_iban) {
+                $entry->update([
+                    'hash_iban' => $n::hash($n::normalizeIban($iban)),
+                ]);
+            }
+
+            Log::info('Mitglied nach Zahlungsausfall auf Sperrliste gesetzt', [
+                'member_id' => $member->id,
+                'blocklist_entry_id' => $entry->id,
+                'reason' => $reason,
+                'iban_source' => $iban ? 'mollie_mandate' : 'none',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Fehler beim Hinzufügen zur Sperrliste nach Zahlungsausfall', [
+                'member_id' => $member->id,
+                'error' => $e->getMessage(),
             ]);
         }
     }

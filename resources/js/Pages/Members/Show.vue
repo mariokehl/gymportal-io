@@ -147,6 +147,37 @@
               <Edit class="w-4 h-4" />
               {{ editMode ? 'Bearbeitung aktiv' : 'Bearbeiten' }}
             </button>
+            <button
+              @click="showBlockModal = true"
+              class="px-4 py-2 rounded-lg flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+            >
+              <ShieldX class="w-4 h-4" />
+              Sperren
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fraud-Warnbanner -->
+      <div v-if="fraudCheck" class="bg-amber-50 border border-amber-300 rounded-lg shadow p-4">
+        <div class="flex items-start gap-3">
+          <AlertCircle class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div class="flex-1">
+            <h3 class="text-sm font-semibold text-amber-800">Verdächtige Registrierung erkannt</h3>
+            <p class="mt-1 text-sm text-amber-700">
+              Fraud-Score: <span class="font-semibold">{{ fraudCheck.fraud_score }}/100</span>
+              — Übereinstimmungen:
+              <span class="font-medium">
+                {{ Object.keys(fraudCheck.matched_fields || {}).filter(k => k !== '_combination_bonus').join(', ') }}
+              </span>
+            </p>
+            <p v-if="fraudCheck.blocklist_entry" class="mt-1 text-sm text-amber-700">
+              Sperrgrund: {{ fraudCheck.blocklist_entry.reason === 'chargeback' ? 'Rücklastschrift' : (fraudCheck.blocklist_entry.reason === 'payment_failed' ? 'Zahlungsausfall' : fraudCheck.blocklist_entry.reason) }}
+              <template v-if="fraudCheck.blocklist_entry.notes"> — {{ fraudCheck.blocklist_entry.notes }}</template>
+            </p>
+            <p class="mt-2 text-xs text-amber-600">
+              Dieses Mitglied muss manuell aktiviert werden. Geprüft am {{ new Date(fraudCheck.checked_at).toLocaleDateString('de-DE') }}.
+            </p>
           </div>
         </div>
       </div>
@@ -1999,6 +2030,60 @@
         </div>
       </div>
     </teleport>
+
+    <!-- Sperrliste Modal -->
+    <teleport to="body">
+      <div v-if="showBlockModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showBlockModal = false">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-gray-900">Mitglied auf Sperrliste setzen</h3>
+            <button @click="showBlockModal = false" class="text-gray-400 hover:text-gray-600">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <p class="text-sm text-gray-600">
+            <strong>{{ member.first_name }} {{ member.last_name }}</strong> wird gesperrt.
+            Alle Identifikatoren (IBAN, Telefon, Adresse, Name) werden gehashed und
+            bei zukünftigen Registrierungen abgeglichen.
+          </p>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grund *</label>
+            <select v-model="blockForm.reason" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="payment_failed">Zahlungsausfall</option>
+              <option value="chargeback">Rückbuchung</option>
+              <option value="fraud">Betrugsverdacht</option>
+              <option value="manual">Manuell</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Begründung * (min. 10 Zeichen)</label>
+            <textarea
+              v-model="blockForm.notes"
+              rows="3"
+              placeholder="z.B. Mehrfache SEPA-Rücklastschriften, kein Kontakt möglich..."
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <p v-if="blockForm.errors.notes" class="text-red-600 text-xs mt-1">{{ blockForm.errors.notes }}</p>
+          </div>
+
+          <div class="flex gap-3 justify-end">
+            <button @click="showBlockModal = false" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+              Abbrechen
+            </button>
+            <button
+              @click="submitBlock"
+              :disabled="blockForm.processing || blockForm.notes.length < 10"
+              class="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Auf Sperrliste setzen
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </AppLayout>
 </template>
 
@@ -2022,7 +2107,7 @@ import {
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
-  Smartphone, X
+  Smartphone, X, ShieldX
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -2043,6 +2128,10 @@ const props = defineProps({
   maxDevicesPerMember: {
     type: Number,
     default: 2
+  },
+  fraudCheck: {
+    type: Object,
+    default: null
   }
 })
 
@@ -2057,6 +2146,19 @@ const {
 } = useInertiaPayments(props.member.id)
 
 const editMode = ref(false)
+
+// Sperrliste
+const showBlockModal = ref(false)
+const blockForm = useForm({
+  reason: 'payment_failed',
+  notes: '',
+})
+
+const submitBlock = () => {
+  blockForm.post(route('blocklist.block-member', { member: props.member.id }), {
+    onSuccess: () => { showBlockModal.value = false },
+  })
+}
 const activeTab = ref('personal')
 const documentCount = ref(0)
 const memberDocumentsTab = ref(null)

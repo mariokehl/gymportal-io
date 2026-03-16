@@ -19,6 +19,7 @@ use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\DataTransferController;
+use App\Http\Controllers\Web\BlocklistController;
 use App\Http\Controllers\Web\MemberDocumentController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
@@ -165,6 +166,14 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Rolling QR-Code Settings
         Route::put('/rolling-qr-settings', [AccessControlController::class, 'updateRollingQrSettings'])->name('rolling-qr-settings.update');
+    });
+
+    // Sperrliste / Betrugsprävention
+    Route::prefix('blocklist')->name('blocklist.')->group(function () {
+        Route::get('/', [BlocklistController::class, 'index'])->name('index');
+        Route::post('/manual', [BlocklistController::class, 'storeManual'])->name('store-manual');
+        Route::post('/member/{member}/block', [BlocklistController::class, 'blockMember'])->name('block-member');
+        Route::post('/{entry}/unblock', [BlocklistController::class, 'unblock'])->name('unblock');
     });
 
     // Data Transfer (Import/Export)

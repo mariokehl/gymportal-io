@@ -38,7 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_blocked' => 'boolean',
     ];
 
-    protected $appends = ['full_name'];
+    protected $appends = ['full_name', 'name'];
 
     protected static function boot()
     {
@@ -101,6 +101,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    public function getNameAttribute(): string
+    {
+        return $this->full_name;
     }
 
     public function isAdmin()
