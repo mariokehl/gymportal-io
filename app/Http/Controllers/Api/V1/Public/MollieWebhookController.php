@@ -250,6 +250,16 @@ class MollieWebhookController extends Controller
                             'status' => $this->mapMollieRefundStatus($mollieRefund->status),
                             'mollie_status' => $mollieRefund->status,
                         ]);
+
+                        // Zugehöriges Refund-Payment aktualisieren
+                        $refundPayment = Payment::where('mollie_payment_id', $mollieRefund->id)->first();
+                        if ($refundPayment) {
+                            $refundPayment->update([
+                                'status' => $this->mapMollieRefundStatus($mollieRefund->status) === 'refunded' ? 'refunded' : 'pending',
+                                'mollie_status' => $mollieRefund->status,
+                                'paid_date' => $mollieRefund->status === 'refunded' ? now() : $refundPayment->paid_date,
+                            ]);
+                        }
                     }
                     continue;
                 }
