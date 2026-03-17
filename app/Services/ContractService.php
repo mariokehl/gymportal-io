@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
+use App\Models\MembershipPlan;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -114,7 +115,9 @@ class ContractService
      */
     private function getContractSpecificPlaceholders(Membership $membership): array
     {
+        /** @var Member $member */
         $member = $membership->member;
+        /** @var MembershipPlan $plan */
         $plan = $membership->membershipPlan;
 
         return [
@@ -123,6 +126,7 @@ class ContractService
             '[Strasse]' => $member->address ?? '',
             '[PLZ]' => $member->postal_code ?? '',
             '[Ort]' => $member->city ?? '',
+            '[Mitgliedsnummer]' => $member->member_number,
             // Vertragsdaten
             '[Vertragsnummer]' => (string) $membership->id,
             '[Vertragsdatum]' => now()->format('d.m.Y'),
@@ -182,7 +186,7 @@ class ContractService
             'member' => [
                 '[Vorname]' => 'Vorname des Mitglieds',
                 '[Nachname]' => 'Nachname des Mitglieds',
-                '[Anrede]' => 'Anrede (Herr/Frau)',
+                '[Anrede]' => 'Anrede (Herr/Frau/Divers)',
                 '[E-Mail]' => 'E-Mail-Adresse',
                 '[Mitgliedsnummer]' => 'Mitgliedsnummer',
                 '[Geburtsdatum]' => 'Geburtsdatum des Mitglieds',
