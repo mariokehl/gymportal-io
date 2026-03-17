@@ -207,6 +207,11 @@ class ProcessMembershipPayments extends Command
             throw new \Exception("No default payment method for member #{$member->id}");
         }
 
+        if ($paymentMethod->status !== 'active') {
+            $this->warn("Skipping payment #{$payment->id}: payment method #{$paymentMethod->id} is not active (status: {$paymentMethod->status})");
+            return;
+        }
+
         // In test mode, simulate the payment
         if ($this->testMode) {
             $this->logTestAction('payment_process', [
