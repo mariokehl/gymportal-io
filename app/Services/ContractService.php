@@ -186,7 +186,7 @@ class ContractService
             'member' => [
                 '[Vorname]' => 'Vorname des Mitglieds',
                 '[Nachname]' => 'Nachname des Mitglieds',
-                '[Anrede]' => 'Anrede (Herr/Frau)',
+                '[Anrede]' => 'Anrede (Herr/Frau/Divers)',
                 '[E-Mail]' => 'E-Mail-Adresse',
                 '[Mitgliedsnummer]' => 'Mitgliedsnummer',
                 '[Geburtsdatum]' => 'Geburtsdatum des Mitglieds',

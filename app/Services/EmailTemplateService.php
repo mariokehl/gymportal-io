@@ -464,7 +464,7 @@ class EmailTemplateService
     private function getAnrede(?Member $member): string
     {
         if (!$member) return '';
-        return isset($member->gender) && $member->gender === 'female' ? 'Frau' : 'Herr';
+        return $member->salutation ?? '';
     }
 
     private function formatAddress(Gym $gym): string
