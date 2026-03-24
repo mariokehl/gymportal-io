@@ -112,6 +112,7 @@
           <!-- E-Mail und Telefon in zweiter Zeile -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
             <EmailInput
+              ref="emailInputRef"
               v-model="form.email"
               label="E-Mail"
               :required="true"
@@ -711,7 +712,6 @@
               @click="nextStep"
               v-show="currentStep < steps.length - 1"
               class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              :disabled="!isCurrentStepValid()"
             >
               Weiter
             </button>
@@ -768,6 +768,7 @@ const steps = [
 
 const currentStep = ref(0)
 const processing = ref(false)
+const emailInputRef = ref(null)
 
 const form = useForm({
   // Persönliche Daten
@@ -1112,6 +1113,9 @@ const nextStep = () => {
     requiredFields.forEach(({ field, message }) => {
       validateRequiredField(field, form[field], message)
     })
+
+    // EmailInput-Komponente direkt validieren (hat eigene interne Validierung)
+    emailInputRef.value?.validate()
   } else if (currentStep.value === 1) {
     // Validierung für Schritt 2: Mitgliedschaftsdatum
     markFieldAsTouched('joined_date')
@@ -1164,9 +1168,17 @@ const getBillingCycleText = (cycle) => {
 const getEndDate = () => {
     if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
 
-    const startDate = new Date(form.joined_date)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+
+    // Wenn ein Gratis-Testzeitraum existiert (Vertrag beginnt nicht am 1. und contracts_start_first_of_month aktiv),
+    // muss die Laufzeit ab dem 1. des Folgemonats berechnet werden
+    let startDate
+    if (shouldShowFreePeriodInfo.value && paidMembershipStartDate.value) {
+        startDate = new Date(paidMembershipStartDate.value)
+    } else {
+        startDate = new Date(form.joined_date)
+    }
 
     // Berechne das Enddatum: Einen Tag vor dem Startdatum im Zielmonat
     // Beispiel: Start 1.1.2025 + 12 Monate = 31.12.2025 (einen Tag vor 1.1.2026)

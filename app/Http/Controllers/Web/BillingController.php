@@ -70,7 +70,7 @@ class BillingController extends Controller
                 'email' => auth()->user()->email,
                 'address' => [
                     'countryCode' => $gym->country,
-                    'postalCode' => $gym->postal_code,
+                    //'postalCode' => $gym->postal_code,
                 ]
             ]
         ];

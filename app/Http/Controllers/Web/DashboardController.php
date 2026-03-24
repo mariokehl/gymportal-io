@@ -34,9 +34,10 @@ class DashboardController extends Controller
         // Get paginated members with search functionality
         $members = Member::query()
             ->when(request('search'), function ($query, $search) {
-                $query->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                $search = mb_strtolower($search);
+                $query->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
+                      ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
+                      ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
             })
             ->when(request('status'), function ($query, $status) {
                 $query->where('status', $status);
