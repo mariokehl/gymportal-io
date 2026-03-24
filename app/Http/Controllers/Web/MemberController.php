@@ -41,13 +41,13 @@ class MemberController extends Controller
 
         // Search functionality
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = mb_strtolower($request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('member_number', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%");
+                $q->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(member_number) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(notes) like ?', ["%{$search}%"]);
             });
         }
 
@@ -907,10 +907,11 @@ class MemberController extends Controller
         }
 
         if ($search) {
+            $search = mb_strtolower($search);
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('member_number', 'like', "%{$search}%");
+                $q->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(member_number) like ?', ["%{$search}%"]);
             });
         }
 

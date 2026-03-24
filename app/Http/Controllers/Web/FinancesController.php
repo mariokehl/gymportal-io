@@ -22,14 +22,14 @@ class FinancesController extends Controller
 
         // Apply filters
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = mb_strtolower($request->input('search'));
             $query->where(function($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('transaction_id', 'like', "%{$search}%")
+                $q->whereRaw('LOWER(description) like ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(transaction_id) like ?', ["%{$search}%"])
                   ->orWhereHas('membership.member', function($memberQuery) use ($search) {
-                      $memberQuery->where('first_name', 'like', "%{$search}%")
-                                  ->orWhere('last_name', 'like', "%{$search}%")
-                                  ->orWhere('email', 'like', "%{$search}%");
+                      $memberQuery->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
+                                  ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
+                                  ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
                   });
             });
         }
