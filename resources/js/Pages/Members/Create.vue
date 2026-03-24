@@ -1164,9 +1164,17 @@ const getBillingCycleText = (cycle) => {
 const getEndDate = () => {
     if (!selectedPlan.value || !form.joined_date || selectedPlan.value.commitment_months === 0) return 'Unbefristet'
 
-    const startDate = new Date(form.joined_date)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+
+    // Wenn ein Gratis-Testzeitraum existiert (Vertrag beginnt nicht am 1. und contracts_start_first_of_month aktiv),
+    // muss die Laufzeit ab dem 1. des Folgemonats berechnet werden
+    let startDate
+    if (shouldShowFreePeriodInfo.value && paidMembershipStartDate.value) {
+        startDate = new Date(paidMembershipStartDate.value)
+    } else {
+        startDate = new Date(form.joined_date)
+    }
 
     // Berechne das Enddatum: Einen Tag vor dem Startdatum im Zielmonat
     // Beispiel: Start 1.1.2025 + 12 Monate = 31.12.2025 (einen Tag vor 1.1.2026)
