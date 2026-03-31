@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Membership extends Model
 {
@@ -21,6 +23,7 @@ class Membership extends Model
         'cancellation_date',
         'cancellation_reason',
         'contract_file_path',
+        'metadata',
         'notes',
         'linked_free_membership_id',
         // Widerrufs-Felder (§ 356a BGB)
@@ -36,6 +39,7 @@ class Membership extends Model
         'pause_start_date' => 'date',
         'pause_end_date' => 'date',
         'cancellation_date' => 'date',
+        'metadata' => 'array',
         // Widerrufs-Felder (§ 356a BGB)
         'withdrawn_at' => 'datetime',
         'withdrawal_refund_processed_at' => 'datetime',
@@ -183,6 +187,46 @@ class Membership extends Model
     public function scopeExpired($query)
     {
         return $query->where('status', 'expired');
+    }
+
+    /**
+     * Scope: Mitgliedschaften, die als expired markiert werden sollten.
+     * Erst expired wenn der komplette End-Tag vergangen ist (end_date < today).
+     */
+    public function scopeShouldBeExpired($query)
+    {
+        return $query->whereIn('status', ['active', 'paused'])
+            ->whereNotNull('end_date')
+            ->whereDate('end_date', '<', Carbon::today())
+            ->whereNull('cancellation_date');
+    }
+
+    /**
+     * Markiert diese Mitgliedschaft als expired und deaktiviert ggf. das Mitglied.
+     */
+    public function markAsExpired(string $source = 'system'): void
+    {
+        if ($this->status === 'expired') {
+            return;
+        }
+
+        $this->update([
+            'status' => 'expired',
+            'metadata' => array_merge($this->metadata ?? [], [
+                'expired_at' => now()->toDateTimeString(),
+                'expired_by' => $source,
+            ])
+        ]);
+
+        $member = $this->member;
+        if ($member && !$member->memberships()->where('status', 'active')->exists()) {
+            $member->update(['status' => 'inactive']);
+        }
+
+        Log::info("Membership expired by {$source}", [
+            'membership_id' => $this->id,
+            'member_id' => $this->member_id,
+        ]);
     }
 
     public function scopePending($query)

@@ -501,8 +501,8 @@ class ProcessMembershipPayments extends Command
                     if ($this->verboseLog) {
                         $this->info("✓ Renewed membership #{$membership->id}");
                     }
-                } else if ($membership->end_date->isToday() || $membership->end_date->isPast()) {
-                    // Nur expiren wenn noch nicht expired
+                } else if ($membership->end_date->lt(Carbon::today())) {
+                    // Erst expired wenn der komplette End-Tag vergangen ist (end_date < today)
                     if ($membership->status !== 'expired') {
                         $this->expireMembership($membership);
                         $stats['expired']++;
@@ -642,7 +642,6 @@ class ProcessMembershipPayments extends Command
      */
     protected function expireMembership(Membership $membership): void
     {
-        // Prüfen ob bereits expired durch anderen Prozess
         if ($membership->status === 'expired') {
             if ($this->verboseLog) {
                 $this->info("→ Membership #{$membership->id} already expired, skipping");
@@ -658,24 +657,7 @@ class ProcessMembershipPayments extends Command
             return;
         }
 
-        $membership->update([
-            'status' => 'expired',
-            'metadata' => array_merge($membership->metadata ?? [], [
-                'expired_at' => now()->toDateTimeString(),
-                'expired_by' => 'payment_processor', // Kennzeichnung der Quelle
-            ])
-        ]);
-
-        // Update member status if no other active memberships
-        $member = $membership->member;
-        if (!$member->memberships()->where('status', 'active')->exists()) {
-            $member->update(['status' => 'inactive']);
-        }
-
-        Log::info('Membership expired by payment processor', [
-            'membership_id' => $membership->id,
-            'member_id' => $membership->member_id,
-        ]);
+        $membership->markAsExpired('payment_processor');
     }
 
     /**
