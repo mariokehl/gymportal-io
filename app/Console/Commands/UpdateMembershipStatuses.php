@@ -52,16 +52,17 @@ class UpdateMembershipStatuses extends Command
         }
 
         // 4. Abgelaufene Mitgliedschaften auf 'expired' setzen
+        // Erst expired wenn der komplette End-Tag vergangen ist (end_date < today)
         // Unbefristete Mitgliedschaften (end_date=null) werden nicht expired
-        $expiredCount = Membership::where('status', 'active')
-            ->whereNotNull('end_date')
-            ->where('end_date', '<=', $now)
-            ->whereNull('cancellation_date')
-            ->update(['status' => 'expired']);
+        $expiredMemberships = Membership::shouldBeExpired()->get();
 
-        if ($expiredCount > 0) {
-            $updated += $expiredCount;
-            $this->info("$expiredCount Mitgliedschaft(en) sind abgelaufen.");
+        foreach ($expiredMemberships as $membership) {
+            $membership->markAsExpired('status_updater');
+            $updated++;
+        }
+
+        if ($expiredMemberships->count() > 0) {
+            $this->info("{$expiredMemberships->count()} Mitgliedschaft(en) sind abgelaufen.");
         }
 
         // 5. Ausstehende Mitgliedschaften prüfen (z.B. nach 30 Tagen automatisch stornieren)
