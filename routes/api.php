@@ -4,6 +4,11 @@ use App\Http\Controllers\Api\V1\Public\MollieWebhookController;
 use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\ScannerController;
 use App\Http\Controllers\Api\WidgetController;
+use App\Http\Controllers\Guest\GuestAuthController;
+use App\Http\Controllers\Guest\GuestGymController;
+use App\Http\Controllers\Guest\GuestProfileController;
+use App\Http\Controllers\Guest\GuestShopController;
+use App\Http\Controllers\Guest\GuestWalletController;
 use App\Http\Controllers\Pwa\AuthController;
 use App\Http\Controllers\Pwa\CheckInController;
 use App\Http\Controllers\Pwa\GymController;
@@ -114,6 +119,40 @@ Route::group(['prefix' => 'widget', 'middleware' => ['widget']], function () {
 });
 Route::prefix('widget')->group(function () {
     Route::get('/mollie/return/{gym}/{session}', [WidgetController::class, 'handleMollieReturn'])->name('widget.mollie.return');
+});
+
+/*
+| Guest Routes
+*/
+Route::group(['prefix' => 'guests'], function () {
+    // Public routes
+    Route::get('gyms/{slug}', [GuestGymController::class, 'show']);
+    Route::prefix('auth')->group(function () {
+        Route::post('register', [GuestAuthController::class, 'register']);
+        Route::post('send-code', [GuestAuthController::class, 'sendLoginCode']);
+        Route::post('verify-code', [GuestAuthController::class, 'verifyCode']);
+    });
+
+    // Authenticated routes
+    Route::middleware(['auth:member-pwa'])->group(function () {
+        Route::post('auth/logout', [GuestAuthController::class, 'logout']);
+        Route::get('profile', [GuestProfileController::class, 'show']);
+        Route::post('age-verification', [GuestProfileController::class, 'initiateAgeVerification']);
+        Route::get('qr-code', [GuestProfileController::class, 'generateQrCode']);
+        Route::get('purchases', [GuestProfileController::class, 'purchases']);
+        Route::get('balance', [GuestProfileController::class, 'balance']);
+
+        // Wallet passes
+        Route::get('wallet/apple-pass', [GuestWalletController::class, 'applePass']);
+        Route::get('wallet/google-pass', [GuestWalletController::class, 'googlePass']);
+
+        // Shop (requires age verification)
+        Route::middleware(['age.verified'])->group(function () {
+            Route::get('shop/products', [GuestShopController::class, 'products']);
+            Route::post('shop/checkout', [GuestShopController::class, 'checkout']);
+            Route::get('shop/payment-status/{paymentId}', [GuestShopController::class, 'paymentStatus']);
+        });
+    });
 });
 
 /**

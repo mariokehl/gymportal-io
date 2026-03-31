@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Chargeback;
+use App\Models\GuestPurchase;
 use App\Models\Gym;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Refund;
 use App\Models\WidgetRegistration;
+use App\Services\GuestService;
 use App\Services\MemberStatusService;
 use App\Services\MollieService;
 use App\Services\WidgetService;
@@ -163,6 +165,22 @@ class MollieWebhookController extends Controller
      */
     private function handlePaymentPaid(Gym $gym, Payment $localPayment, $molliePayment, MollieService $mollieService, string $paymentId): void
     {
+        // Guest purchase handling
+        $guestPurchaseId = data_get($localPayment->metadata, 'guest_purchase_id');
+        if ($guestPurchaseId) {
+            $guestPurchase = GuestPurchase::find($guestPurchaseId);
+            if ($guestPurchase) {
+                app(GuestService::class)->activatePurchase($guestPurchase);
+                Log::info('Mollie webhook: Guest purchase activated', [
+                    'gym_id' => $gym->id,
+                    'member_id' => $localPayment->member_id,
+                    'guest_purchase_id' => $guestPurchaseId,
+                    'payment_id' => $paymentId,
+                ]);
+            }
+            return;
+        }
+
         $member = $localPayment->member;
         $membership = $localPayment->membership;
 

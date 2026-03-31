@@ -149,7 +149,7 @@ class Member extends Authenticatable
         return $this->update([
             'age_verified' => true,
             'age_verified_at' => now(),
-            'age_verified_by' => $verifiedBy ?? auth()->id(),
+            'age_verified_by' => $verifiedBy,
         ]);
     }
 
@@ -1106,6 +1106,11 @@ class Member extends Authenticatable
     public function accessConfig()
     {
         return $this->hasOne(MemberAccessConfig::class);
+    }
+
+    public function guestPurchases()
+    {
+        return $this->hasMany(GuestPurchase::class);
     }
 
     /**
