@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Chargeback;
-use App\Models\GuestPurchase;
+use App\Models\GuestProduct;
 use App\Models\Gym;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
@@ -165,16 +165,16 @@ class MollieWebhookController extends Controller
      */
     private function handlePaymentPaid(Gym $gym, Payment $localPayment, $molliePayment, MollieService $mollieService, string $paymentId): void
     {
-        // Guest purchase handling
-        $guestPurchaseId = data_get($localPayment->metadata, 'guest_purchase_id');
-        if ($guestPurchaseId) {
-            $guestPurchase = GuestPurchase::find($guestPurchaseId);
-            if ($guestPurchase) {
-                app(GuestService::class)->activatePurchase($guestPurchase);
-                Log::info('Mollie webhook: Guest purchase activated', [
+        // Guest purchase handling — credit MemberAccessConfig
+        $guestProductId = data_get($localPayment->metadata, 'guest_product_id');
+        if ($guestProductId && data_get($localPayment->metadata, 'type') === 'guest_purchase') {
+            $product = GuestProduct::find($guestProductId);
+            if ($product) {
+                app(GuestService::class)->activatePurchase($localPayment, $product);
+                Log::info('Mollie webhook: Guest purchase credited to access config', [
                     'gym_id' => $gym->id,
                     'member_id' => $localPayment->member_id,
-                    'guest_purchase_id' => $guestPurchaseId,
+                    'guest_product_id' => $guestProductId,
                     'payment_id' => $paymentId,
                 ]);
             }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Guest;
 
 use App\Http\Controllers\Controller;
-use App\Models\GuestPurchase;
 use App\Models\Member;
+use App\Models\Payment;
 use App\Services\GuestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -100,21 +100,21 @@ class GuestProfileController extends Controller
     }
 
     /**
-     * Get purchase history.
+     * Get purchase history from payments.
      */
     public function purchases(Request $request): JsonResponse
     {
         /** @var Member $member */
         $member = $request->user();
 
-        $purchases = GuestPurchase::forMember($member->id)
-            ->with('product:id,name,type,price,value')
+        $payments = Payment::where('member_id', $member->id)
+            ->whereJsonContains('metadata->type', 'guest_purchase')
             ->orderByDesc('created_at')
             ->paginate(20);
 
         return response()->json([
             'success' => true,
-            'data' => $purchases,
+            'data' => $payments,
         ]);
     }
 

@@ -1174,6 +1174,59 @@
                     </label>
                   </div>
                 </div>
+                <!-- Day Pass -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="p-2 bg-rose-100 rounded-lg">
+                        <Ticket class="w-5 h-5 text-rose-600" />
+                      </div>
+                      <div>
+                        <h5 class="font-medium text-gray-900">Tageskarte</h5>
+                        <p class="text-sm text-gray-500">Zugang für einen Tag</p>
+                        <p v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
+                          Gültig bis: {{ accessForm.day_pass_valid_until ? formatDate(accessForm.day_pass_valid_until) : 'Nicht gesetzt' }}
+                        </p>
+                      </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.day_pass_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Visit Card (10er-Karte) -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="p-2 bg-teal-100 rounded-lg">
+                        <Hash class="w-5 h-5 text-teal-600" />
+                      </div>
+                      <div>
+                        <h5 class="font-medium text-gray-900">10er-Karte</h5>
+                        <p class="text-sm text-gray-500">Mehrfacheintritte</p>
+                        <p v-if="accessForm.visit_card_enabled" class="text-xs text-gray-400 mt-1">
+                          {{ accessForm.visit_card_entries || 0 }} Eintritte verfügbar
+                        </p>
+                      </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        v-model="accessForm.visit_card_enabled"
+                        type="checkbox"
+                        class="sr-only peer"
+                        @change="updateAccessSettings"
+                      >
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2107,7 +2160,7 @@ import {
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
-  Smartphone, X, ShieldX
+  Smartphone, X, ShieldX, Ticket, Hash
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -2245,6 +2298,12 @@ const accessForm = useForm({
 
   coffee_flat_enabled: props.member.access_config?.coffee_flat_enabled || false,
   coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
+
+  day_pass_enabled: props.member.access_config?.day_pass_enabled || false,
+  day_pass_valid_until: props.member.access_config?.day_pass_valid_until || null,
+
+  visit_card_enabled: props.member.access_config?.visit_card_enabled || false,
+  visit_card_entries: props.member.access_config?.visit_card_entries || 0,
 })
 
 // Age verification state

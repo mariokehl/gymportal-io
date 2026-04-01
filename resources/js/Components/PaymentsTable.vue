@@ -125,14 +125,14 @@
                 <template v-else-if="column.key === 'member'">
                   <div class="flex items-center">
                     <div class="w-8 h-8 shrink-0 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
-                      {{ getMemberInitials(payment.membership?.member) }}
+                      {{ getMemberInitials(payment.member) }}
                     </div>
                     <div class="min-w-0 max-w-[250px]">
                       <div class="text-sm font-medium text-gray-900 truncate">
-                        {{ payment.membership?.member?.first_name }} {{ payment.membership?.member?.last_name }}
+                        {{ payment.member?.first_name }} {{ payment.member?.last_name }}
                       </div>
                       <div class="text-sm text-gray-500 truncate">
-                        {{ payment.membership?.member?.email }}
+                        {{ payment.member?.email }}
                       </div>
                     </div>
                   </div>
@@ -394,17 +394,17 @@
             </div>
           </div>
 
-          <div v-if="selectedPayment.membership?.member">
+          <div v-if="selectedPayment.member">
             <label class="block text-sm font-medium text-gray-700">Mitglied</label>
             <div class="mt-1 flex items-center">
               <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
-                {{ getMemberInitials(selectedPayment.membership.member) }}
+                {{ getMemberInitials(selectedPayment.member) }}
               </div>
               <div>
                 <p class="text-sm font-medium text-gray-900">
-                  {{ selectedPayment.membership.member.first_name }} {{ selectedPayment.membership.member.last_name }}
+                  {{ selectedPayment.member.first_name }} {{ selectedPayment.member.last_name }}
                 </p>
-                <p class="text-sm text-gray-500">{{ selectedPayment.membership.member.email }}</p>
+                <p class="text-sm text-gray-500">{{ selectedPayment.member.email }}</p>
               </div>
             </div>
           </div>

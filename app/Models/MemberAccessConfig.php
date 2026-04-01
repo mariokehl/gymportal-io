@@ -28,6 +28,10 @@ class MemberAccessConfig extends Model
         'massage_sessions',
         'coffee_flat_enabled',
         'coffee_flat_expiry',
+        'day_pass_enabled',
+        'day_pass_valid_until',
+        'visit_card_enabled',
+        'visit_card_entries',
         'additional_services',
     ];
 
@@ -44,6 +48,10 @@ class MemberAccessConfig extends Model
         'massage_sessions' => 'integer',
         'coffee_flat_enabled' => 'boolean',
         'coffee_flat_expiry' => 'date',
+        'day_pass_enabled' => 'boolean',
+        'day_pass_valid_until' => 'date',
+        'visit_card_enabled' => 'boolean',
+        'visit_card_entries' => 'integer',
         'additional_services' => 'array',
     ];
 
@@ -84,7 +92,9 @@ class MemberAccessConfig extends Model
         return $this->solarium_enabled ||
                $this->vending_enabled ||
                $this->massage_enabled ||
-               $this->coffee_flat_enabled;
+               $this->coffee_flat_enabled ||
+               $this->day_pass_enabled ||
+               $this->visit_card_enabled;
     }
 
     /**
@@ -100,6 +110,8 @@ class MemberAccessConfig extends Model
         if ($this->vending_enabled) $count++;
         if ($this->massage_enabled) $count++;
         if ($this->coffee_flat_enabled) $count++;
+        if ($this->day_pass_enabled) $count++;
+        if ($this->visit_card_enabled) $count++;
 
         return $count;
     }
@@ -178,9 +190,31 @@ class MemberAccessConfig extends Model
             case 'coffee':
                 return $this->isCoffeeFlatValid();
 
+            case 'day_pass':
+                return $this->day_pass_enabled && $this->isDayPassValid();
+
+            case 'visit_card':
+                return $this->visit_card_enabled && $this->visit_card_entries > 0;
+
             default:
                 return false;
         }
+    }
+
+    /**
+     * Check if the day pass is still valid (today or future)
+     */
+    public function isDayPassValid(): bool
+    {
+        if (!$this->day_pass_enabled) {
+            return false;
+        }
+
+        if (!$this->day_pass_valid_until) {
+            return false;
+        }
+
+        return $this->day_pass_valid_until->isFuture() || $this->day_pass_valid_until->isToday();
     }
 
     /**
@@ -209,6 +243,13 @@ class MemberAccessConfig extends Model
                     return true;
                 }
                 break;
+
+            case 'visit_card':
+                if ($this->visit_card_entries >= $amount) {
+                    $this->decrement('visit_card_entries', $amount);
+                    return true;
+                }
+                break;
         }
 
         return false;
@@ -230,6 +271,10 @@ class MemberAccessConfig extends Model
 
             case 'massage':
                 $this->increment('massage_sessions', $amount);
+                break;
+
+            case 'visit_card':
+                $this->increment('visit_card_entries', $amount);
                 break;
         }
     }
@@ -264,6 +309,10 @@ class MemberAccessConfig extends Model
                 return $query->where('massage_enabled', true);
             case 'coffee':
                 return $query->where('coffee_flat_enabled', true);
+            case 'day_pass':
+                return $query->where('day_pass_enabled', true);
+            case 'visit_card':
+                return $query->where('visit_card_enabled', true);
             default:
                 return $query;
         }

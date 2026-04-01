@@ -59,6 +59,10 @@ class MemberAccessController extends Controller
             'massage_sessions' => 'nullable|integer|min:0',
             'coffee_flat_enabled' => 'boolean',
             'coffee_flat_expiry' => 'nullable|date|after:today',
+            'day_pass_enabled' => 'boolean',
+            'day_pass_valid_until' => 'nullable|date',
+            'visit_card_enabled' => 'boolean',
+            'visit_card_entries' => 'nullable|integer|min:0',
         ]);
 
         // Normalisiere NFC-UID vor dem Speichern

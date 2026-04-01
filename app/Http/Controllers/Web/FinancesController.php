@@ -17,7 +17,7 @@ class FinancesController extends Controller
     {
         $gymId = Auth::user()->current_gym_id;
 
-        $query = Payment::with(['membership.member', 'invoice', 'chargebacks', 'refunds'])
+        $query = Payment::with(['member', 'invoice', 'chargebacks', 'refunds'])
             ->where('gym_id', $gymId);
 
         // Apply filters
@@ -26,7 +26,7 @@ class FinancesController extends Controller
             $query->where(function($q) use ($search) {
                 $q->whereRaw('LOWER(description) like ?', ["%{$search}%"])
                   ->orWhereRaw('LOWER(transaction_id) like ?', ["%{$search}%"])
-                  ->orWhereHas('membership.member', function($memberQuery) use ($search) {
+                  ->orWhereHas('member', function($memberQuery) use ($search) {
                       $memberQuery->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
                                   ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
                                   ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
@@ -123,7 +123,7 @@ class FinancesController extends Controller
         $paymentIds = $request->input('payment_ids', []);
         $exportType = $request->input('export_type', 'csv');
 
-        $payments = Payment::with(['membership.member', 'invoice'])
+        $payments = Payment::with(['member', 'invoice'])
             ->where('gym_id', $gymId)
             ->whereIn('id', $paymentIds)
             ->get();

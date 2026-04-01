@@ -504,20 +504,36 @@ class MollieService
     }
 
     /**
-     * Perform additional actions based on status
+     * List payment methods
+     *
+     * @param Gym $gym
+     * @param string|null $sequenceType oneoff, first, or recurring
+     * @return array
      */
-    public function getAvailableMethods(Gym $gym): array
+    public function getAvailableMethods(Gym $gym, ?string $sequenceType = null): array
     {
         $client = $this->initializeClient($gym);
         $config = $this->getConfig($gym);
 
-        /** @var MethodCollection $methods */
-        $methods = $client->methods->allEnabled();
-        $enabledMethods = $config['enabled_methods'] ?? [];
+        $params = [
+            'locale' => 'de_DE',
+        ];
+        if ($sequenceType) {
+            $params['sequenceType'] = $sequenceType;
+        }
 
-        return array_filter($methods->toArray(), function($method) use ($enabledMethods) {
-            return in_array($method->id, $enabledMethods);
-        });
+        /** @var MethodCollection $methods */
+        $methods = $client->methods->allEnabled($params);
+
+        if ($sequenceType === 'recurring') {
+            $enabledMethods = $config['enabled_methods'] ?? [];
+
+            return $methods->filter(function($method) use ($enabledMethods) {
+                return in_array($method->id, $enabledMethods);
+            })->getArrayCopy();
+        }
+
+        return $methods->getArrayCopy();
     }
 
     /**
@@ -579,7 +595,7 @@ class MollieService
             'user_id' => $paymentData['metadata']['user_id'] ?? null,
             'member_id' => $paymentData['metadata']['member_id'] ?? null,
             'invoice_id' => $paymentData['metadata']['invoice_id'] ?? null,
-            'metadata' => $paymentData['metdata'] ?? null,
+            'metadata' => $paymentData['metadata'] ?? null,
             'execution_date' => Carbon::now()->format('Y-m-d'),
             'due_date' => Carbon::now()->format('Y-m-d'),
             'created_at' => now(),

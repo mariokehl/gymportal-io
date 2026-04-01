@@ -149,6 +149,7 @@ Route::group(['prefix' => 'guests'], function () {
         // Shop (requires age verification)
         Route::middleware(['age.verified'])->group(function () {
             Route::get('shop/products', [GuestShopController::class, 'products']);
+            Route::get('shop/payment-methods', [GuestShopController::class, 'paymentMethods']);
             Route::post('shop/checkout', [GuestShopController::class, 'checkout']);
             Route::get('shop/payment-status/{paymentId}', [GuestShopController::class, 'paymentStatus']);
         });

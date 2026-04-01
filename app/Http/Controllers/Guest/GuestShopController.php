@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Guest;
 
 use App\Http\Controllers\Controller;
 use App\Models\GuestProduct;
-use App\Models\GuestPurchase;
 use App\Models\Member;
 use App\Models\Payment;
 use App\Services\MollieService;
@@ -18,6 +17,46 @@ class GuestShopController extends Controller
     public function __construct(
         private MollieService $mollieService
     ) {}
+
+    /**
+     * List available oneoff payment methods for the guest's gym.
+     */
+    public function paymentMethods(Request $request): JsonResponse
+    {
+        /** @var Member $member */
+        $member = $request->user();
+        $gym = $member->gym;
+
+        if (!$gym->hasMollieConfigured()) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        try {
+            $methods = $this->mollieService->getAvailableMethods($gym, 'oneoff');
+
+            return response()->json([
+                'success' => true,
+                'data' => array_map(fn ($method) => [
+                    'id' => 'mollie_' . $method->id,
+                    'description' => $method->description,
+                    'image' => $method->image->svg ?? null,
+                ], array_values($methods)),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to load payment methods', [
+                'gym_id' => $gym->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Zahlungsmethoden konnten nicht geladen werden.',
+            ], 500);
+        }
+    }
 
     /**
      * List available products for the guest's gym.
@@ -76,50 +115,38 @@ class GuestShopController extends Controller
         }
 
         try {
-            return DB::transaction(function () use ($member, $gym, $product, $request) {
-                // Create purchase record
-                $purchase = GuestPurchase::create([
+            $molliePayment = $this->mollieService->createPayment($gym, [
+                'amount' => $product->price,
+                'currency' => 'EUR',
+                'description' => 'Einmalkauf: ' . $product->service_description,
+                'method' => $request->payment_method,
+                'redirectUrl' => config('gymportal.guests_url')
+                    . '/' . $gym->slug . '/payment-result',
+                'webhookUrl' => url('/api/v1/public/mollie/webhook'),
+                'metadata' => [
+                    'description' => $product->service_description,
                     'member_id' => $member->id,
                     'guest_product_id' => $product->id,
-                    'status' => 'pending',
-                ]);
+                    'type' => 'guest_purchase',
+                ],
+            ]);
 
-                // Create Mollie payment (also stores local Payment record via storePayment)
-                $molliePayment = $this->mollieService->createPayment($gym, [
-                    'amount' => $product->price,
-                    'currency' => 'EUR',
-                    'description' => $gym->getDisplayName() . ' - ' . $product->name,
-                    'method' => $request->payment_method,
-                    'redirectUrl' => config('app.guests_url', 'https://guests.gymportal.io')
-                        . '/' . $gym->slug . '/payment-result?purchase_id=' . $purchase->id,
-                    'webhookUrl' => url('/api/v1/public/mollie/webhook'),
-                    'metadata' => [
-                        'member_id' => $member->id,
-                        'guest_purchase_id' => $purchase->id,
-                        'type' => 'guest_purchase',
-                    ],
-                ]);
+            $payment = Payment::where('mollie_payment_id', $molliePayment->id)->first();
 
-                // Find the payment record created by storePayment
-                $payment = Payment::where('mollie_payment_id', $molliePayment->id)->first();
-                $purchase->update(['payment_id' => $payment->id]);
+            Log::info('Guest checkout initiated', [
+                'member_id' => $member->id,
+                'product_id' => $product->id,
+                'payment_id' => $payment->id,
+                'mollie_id' => $molliePayment->id,
+            ]);
 
-                Log::info('Guest checkout initiated', [
-                    'member_id' => $member->id,
-                    'product_id' => $product->id,
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'checkout_url' => $molliePayment->getCheckoutUrl(),
                     'payment_id' => $payment->id,
-                    'mollie_id' => $molliePayment->id,
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'checkout_url' => $molliePayment->getCheckoutUrl(),
-                        'payment_id' => $payment->id,
-                        'purchase_id' => $purchase->id,
-                    ],
-                ]);
-            });
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Guest checkout failed', [
                 'member_id' => $member->id,
@@ -154,15 +181,10 @@ class GuestShopController extends Controller
             ], 404);
         }
 
-        $purchaseId = data_get($payment->metadata, 'guest_purchase_id');
-        $purchase = $purchaseId ? GuestPurchase::find($purchaseId) : null;
-
         return response()->json([
             'success' => true,
             'data' => [
                 'payment_status' => $payment->status,
-                'purchase_status' => $purchase?->status,
-                'purchase_active' => $purchase?->isActive() ?? false,
             ],
         ]);
     }

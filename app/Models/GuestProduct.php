@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GuestProduct extends Model
 {
@@ -34,11 +33,6 @@ class GuestProduct extends Model
         return $this->belongsTo(Gym::class);
     }
 
-    public function purchases(): HasMany
-    {
-        return $this->hasMany(GuestPurchase::class);
-    }
-
     public function scopeActive($query)
     {
         return $query->where('active', true);
@@ -47,5 +41,30 @@ class GuestProduct extends Model
     public function scopeByType($query, string $type)
     {
         return $query->where('type', $type);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'solarium_minutes' => 'Solarium',
+            'visit_card' => '10er-Karte',
+            'day_pass' => 'Tageskarte',
+            default => $this->type,
+        };
+    }
+
+    public function getValueLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'solarium_minutes' => $this->value . ' Minuten',
+            'visit_card' => $this->value . ' Eintritte',
+            'day_pass' => 'Tagespass',
+            default => (string) $this->value,
+        };
+    }
+
+    public function getServiceDescriptionAttribute(): string
+    {
+        return "{$this->name} ({$this->type_label}, {$this->value_label})";
     }
 }

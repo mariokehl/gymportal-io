@@ -4,10 +4,11 @@ namespace App\Services;
 
 use App\Models\Gym;
 use App\Models\GuestProduct;
-use App\Models\GuestPurchase;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
+use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class GuestService
 {
@@ -39,47 +40,62 @@ class GuestService
     }
 
     /**
-     * Activate a guest purchase after successful payment.
+     * Activate a guest purchase after successful payment by crediting MemberAccessConfig.
      */
-    public function activatePurchase(GuestPurchase $purchase): void
+    public function activatePurchase(Payment $payment, GuestProduct $product): void
     {
-        $purchase->activate();
+        $member = Member::findOrFail($payment->member_id);
+        $config = $member->getOrCreateAccessConfig();
+
+        switch ($product->type) {
+            case 'solarium_minutes':
+                $config->update(['solarium_enabled' => true]);
+                $config->addCredit('solarium', $product->value);
+                break;
+
+            case 'visit_card':
+                $config->update(['visit_card_enabled' => true]);
+                $config->addCredit('visit_card', $product->value);
+                break;
+
+            case 'day_pass':
+                $config->update([
+                    'day_pass_enabled' => true,
+                    'day_pass_valid_until' => now()->endOfDay(),
+                ]);
+                break;
+        }
+
+        Log::info('Guest purchase credited to MemberAccessConfig', [
+            'member_id' => $member->id,
+            'product_type' => $product->type,
+            'product_value' => $product->value,
+            'payment_id' => $payment->id,
+        ]);
     }
 
     /**
-     * Get aggregated balance for a guest member.
+     * Get aggregated balance for a guest member from MemberAccessConfig.
      */
     public function getBalance(Member $member): array
     {
-        $activePurchases = GuestPurchase::forMember($member->id)
-            ->active()
-            ->with('product')
-            ->get();
+        $config = $member->accessConfig;
 
-        $balance = [
-            'solarium_minutes' => 0,
-            'visit_entries' => 0,
-            'day_passes' => [],
-        ];
-
-        foreach ($activePurchases as $purchase) {
-            switch ($purchase->product->type) {
-                case 'solarium_minutes':
-                    $balance['solarium_minutes'] += $purchase->credits_remaining;
-                    break;
-                case 'visit_card':
-                    $balance['visit_entries'] += $purchase->credits_remaining;
-                    break;
-                case 'day_pass':
-                    $balance['day_passes'][] = [
-                        'id' => $purchase->id,
-                        'valid_until' => $purchase->valid_until?->toIso8601String(),
-                    ];
-                    break;
-            }
+        if (!$config) {
+            return [
+                'solarium_minutes' => 0,
+                'visit_entries' => 0,
+                'day_pass' => null,
+            ];
         }
 
-        return $balance;
+        return [
+            'solarium_minutes' => $config->solarium_enabled ? $config->solarium_minutes : 0,
+            'visit_entries' => $config->visit_card_enabled ? $config->visit_card_entries : 0,
+            'day_pass' => $config->day_pass_enabled && $config->isDayPassValid()
+                ? $config->day_pass_valid_until?->toIso8601String()
+                : null,
+        ];
     }
 
     /**
