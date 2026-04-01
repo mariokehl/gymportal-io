@@ -52,8 +52,8 @@ class ScannerController extends Controller
     public function verifyMembership(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'scan_type' => 'required|string|in:qr_code,nfc_card,rolling_qr',
-            'member_id' => 'required_if:scan_type,qr_code|required_if:scan_type,rolling_qr|string',
+            'scan_type' => 'required|string|in:qr_code,nfc_card,rolling_qr,guest_service',
+            'member_id' => 'required_if:scan_type,qr_code|required_if:scan_type,rolling_qr|required_if:scan_type,guest_service|string',
             'nfc_card_id' => 'required_if:scan_type,nfc_card|string'
         ]);
 
@@ -63,7 +63,11 @@ class ScannerController extends Controller
 
         $scanner = $request->get('scanner');
         $scanType = $request->input('scan_type');
-        $checkInMethod = $scanType === 'rolling_qr' ? 'qr_code' : $scanType;
+        $checkInMethod = match ($scanType) {
+            'rolling_qr' => 'qr_code',
+            'guest_service' => 'guest_service',
+            default => $scanType,
+        };
         $nfcCardId = $request->input('nfc_card_id');
         $member = null;
 
@@ -129,6 +133,75 @@ class ScannerController extends Controller
                     'access_allowed' => true,
                     'scan_type' => $scanType,
                     'message' => 'Zugang bereits gewährt',
+                ]);
+            }
+
+            // Guest-Service QR-Code: Fundamental anderes Format als der normale Zugangs-QR.
+            // Tageskarte/10er-Karte gewähren Zugang, reines Solarium-Guthaben nicht.
+            if ($scanType === 'guest_service') {
+                $config = $member->accessConfig;
+
+                if (!$config) {
+                    $this->logAccessFromVerify(
+                        $scanner, $member->id, $scanType, false,
+                        'Keine Zugangs-Konfiguration vorhanden', $nfcCardId
+                    );
+                    return response(status: 403);
+                }
+
+                // Verfügbare Service-Guthaben ermitteln
+                $services = [];
+                if ($config->solarium_enabled && $config->solarium_minutes > 0) {
+                    $services['solarium_minutes'] = $config->solarium_minutes;
+                }
+                if ($config->visit_card_enabled && $config->visit_card_entries > 0) {
+                    $services['visit_card_entries'] = $config->visit_card_entries;
+                }
+                if ($config->day_pass_enabled && $config->isDayPassValid()) {
+                    $services['day_pass_valid_until'] = $config->day_pass_valid_until->toIso8601String();
+                }
+
+                if (empty($services)) {
+                    $this->logAccessFromVerify(
+                        $scanner, $member->id, $scanType, false,
+                        'Kein Service-Guthaben vorhanden', $nfcCardId
+                    );
+                    return response()->json([
+                        'member_id' => $member->id,
+                        'access_allowed' => false,
+                        'scan_type' => 'guest_service',
+                        'message' => 'Kein Guthaben vorhanden',
+                    ], 403);
+                }
+
+                // Tageskarte oder 10er-Karte berechtigen zum Zugang (Tür öffnen),
+                // reines Solarium-Guthaben hingegen NICHT.
+                $hasAccessEntitlement = ($config->day_pass_enabled && $config->isDayPassValid())
+                    || ($config->visit_card_enabled && $config->visit_card_entries > 0);
+
+                if ($hasAccessEntitlement) {
+                    CheckIn::create([
+                        'member_id' => $member->id,
+                        'gym_id' => $member->gym_id,
+                        'check_in_time' => now(),
+                        'check_in_method' => 'guest_service',
+                    ]);
+                }
+
+                $this->logAccessFromVerify(
+                    $scanner, $member->id, $scanType, true, null, $nfcCardId
+                );
+
+                return response()->json([
+                    'member_id' => $member->id,
+                    'access_allowed' => $hasAccessEntitlement,
+                    'service_allowed' => true,
+                    'scan_type' => 'guest_service',
+                    'services' => $services,
+                    'member' => $member->only(['first_name', 'last_name', 'member_number']),
+                    'message' => $hasAccessEntitlement
+                        ? 'Zugang gewährt (Gäste-Service)'
+                        : 'Service-Guthaben verfügbar (kein Zugang)',
                 ]);
             }
 
@@ -306,6 +379,16 @@ class ScannerController extends Controller
                 'valid' => false,
                 'scan_type' => 'qr_code',
                 'message' => 'Invalid JSON format'
+            ];
+        }
+
+        // Guest-Service QR-Codes dürfen NICHT als normaler Zugang validiert werden
+        if (($qrData['type'] ?? null) === 'guest_service') {
+            return [
+                'valid' => false,
+                'scan_type' => 'guest_service',
+                'member_id' => $qrData['mid'] ?? null,
+                'message' => 'Guest-Service QR-Code ist kein Zugangs-QR'
             ];
         }
 

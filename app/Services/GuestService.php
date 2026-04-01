@@ -98,19 +98,32 @@ class GuestService
 
     /**
      * Generate static QR code data for a guest member.
+     *
+     * IMPORTANT: This QR code uses a fundamentally different structure than the
+     * standard member QR code (MemberController::generateQrCode) to prevent
+     * misuse as a gym access pass. Differences:
+     * - Uses 'type' => 'guest_service' (member QR has no type or 'rolling')
+     * - HMAC message uses 'guest_service:' prefix
+     * - Contains 'purpose' field instead of bare member_id/timestamp
+     *
+     * The POI scanner is programmed to handle this format separately,
+     * performing service-credit validation instead of access validation.
      */
     public function generateStaticQrData(Member $member): array
     {
         $gym = $member->gym;
         $timestamp = Carbon::now()->format('Y-m-d\TH:i:s.uP');
 
-        $message = $member->id . ':' . $timestamp;
+        // Distinct HMAC prefix ensures this hash can never collide with access QR hashes
+        $message = 'guest_service:' . $member->id . ':' . $timestamp;
         $hash = hash_hmac('sha256', $message, $gym->getCurrentScannerKey());
 
         return [
             'qr_code' => json_encode([
-                'member_id' => (string) $member->id,
-                'timestamp' => $timestamp,
+                'type' => 'guest_service',
+                'purpose' => 'service_credit',
+                'mid' => (string) $member->id,
+                'ts' => $timestamp,
                 'hash' => $hash,
             ]),
             'member' => $member->only(['first_name', 'last_name', 'member_number']),
