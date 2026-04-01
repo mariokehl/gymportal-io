@@ -62,17 +62,9 @@ class GuestAuthController extends Controller
             ->first();
 
         if ($existingMember) {
-            if ($existingMember->guest_access) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Du hast bereits ein Gäste-Konto. Bitte melde dich an.',
-                    'error_code' => 'GUEST_EXISTS',
-                ], 409);
-            }
-
             return response()->json([
                 'success' => false,
-                'message' => 'Du bist bereits Mitglied. Bitte nutze die Mitglieder-App.',
+                'message' => 'Du hast bereits ein Konto oder bist Mitglied. Bitte melde dich an.',
                 'error_code' => 'MEMBER_EXISTS',
             ], 409);
         }
@@ -153,15 +145,14 @@ class GuestAuthController extends Controller
 
         $member = Member::whereRaw('LOWER(email) = ?', [$email])
             ->where('gym_id', $gym->id)
-            ->where('guest_access', true)
             ->first();
 
         if (!$member) {
             RateLimiter::hit($key, 300);
             return response()->json([
                 'success' => false,
-                'message' => 'Kein Gäste-Konto mit dieser E-Mail gefunden.',
-                'error_code' => 'GUEST_NOT_FOUND',
+                'message' => 'Kein Konto mit dieser E-Mail gefunden.',
+                'error_code' => 'MEMBER_NOT_FOUND',
             ], 404);
         }
 
@@ -227,15 +218,14 @@ class GuestAuthController extends Controller
 
         $member = Member::whereRaw('LOWER(email) = ?', [$email])
             ->where('gym_id', $gym->id)
-            ->where('guest_access', true)
             ->first();
 
         if (!$member) {
             RateLimiter::hit($key, 300);
             return response()->json([
                 'success' => false,
-                'message' => 'Gast nicht gefunden.',
-                'error_code' => 'GUEST_NOT_FOUND',
+                'message' => 'Kein Konto mit dieser E-Mail gefunden.',
+                'error_code' => 'MEMBER_NOT_FOUND',
             ], 404);
         }
 

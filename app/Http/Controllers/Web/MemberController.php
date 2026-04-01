@@ -262,7 +262,7 @@ class MemberController extends Controller
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
+            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending', 'extern'])],
             'notes' => ['nullable', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
@@ -529,7 +529,7 @@ class MemberController extends Controller
         $this->authorize('update', $member);
 
         $validated = $request->validate([
-            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending'])],
+            'status' => ['required', Rule::in(['active', 'inactive', 'paused', 'overdue', 'pending', 'extern'])],
             'reason' => ['nullable', 'string', 'max:500'],
             'previous_status' => ['nullable', 'string'] // Für Frontend-Validierung
         ]);

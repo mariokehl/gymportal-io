@@ -24,10 +24,8 @@ class GuestService
             'last_name' => $data['last_name'],
             'email' => $data['email'],
             'birth_date' => $data['birth_date'],
-            'status' => 'active',
+            'status' => 'extern',
             'registration_source' => 'guest',
-            'guest_access' => true,
-            'guest_access_granted_at' => now(),
             'joined_date' => now(),
         ]);
 

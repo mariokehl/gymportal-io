@@ -347,6 +347,11 @@ class MemberAccessController extends Controller
      */
     private function checkServiceAccess(Member $member, $service)
     {
+        // Externe haben Zugang basierend auf ihrem AccessConfig, ohne Mitgliedschafts-Prüfung
+        if ($member->isExtern()) {
+            return $member->accessConfig !== null;
+        }
+
         // Prüfe Mitgliedsstatus
         if ($member->status !== 'active') {
             return false;

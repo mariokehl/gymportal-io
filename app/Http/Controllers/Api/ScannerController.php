@@ -103,8 +103,8 @@ class ScannerController extends Controller
                 return response(status: 404);
             }
 
-            // Mitglied ist nicht aktiv (z.B. gesperrt, gekündigt, ausstehend)
-            if (!$member->isActive()) {
+            // Mitglied ist nicht aktiv und kein Externer (z.B. gesperrt, gekündigt, ausstehend)
+            if (!$member->isActive() && !$member->isExtern()) {
                 $this->logAccessFromVerify(
                     $scanner,
                     $member->id,

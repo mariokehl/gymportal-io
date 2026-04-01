@@ -2,7 +2,7 @@
 // Gemeinsame Utilities für Member-Status, die in mehreren Komponenten verwendet werden
 
 import {
-  UserCheck, UserX, Pause, Clock, AlertTriangle, ShieldX
+  UserCheck, UserX, Pause, Clock, AlertTriangle, ShieldX, UserRound
 } from 'lucide-vue-next'
 import { formatDate, formatDateTime, formatTime, formatRelativeTime } from './formatters'
 
@@ -51,6 +51,13 @@ export const statusConfig = {
     classes: 'bg-gray-900 text-white',
     icon: ShieldX,
     description: 'Mitglied ist gesperrt'
+  },
+  extern: {
+    label: 'Extern',
+    color: 'blue',
+    classes: 'bg-blue-100 text-blue-700',
+    icon: UserRound,
+    description: 'Laufkunde, kein reguläres Mitglied'
   }
 }
 

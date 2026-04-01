@@ -55,7 +55,7 @@ class AuthController extends Controller
             ], 404);
         }
 
-        if ($member->status !== 'active') {
+        if (!in_array($member->status, ['active', 'extern'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Mitgliedschaft ist nicht aktiv',
