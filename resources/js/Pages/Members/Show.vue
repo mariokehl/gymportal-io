@@ -208,6 +208,14 @@
                 {{ member.status_history.length }}
               </span>
 
+              <!-- Badge für Zahlungen Tab bei offenen Posten -->
+              <span
+                v-if="tab.id === 'payments' && outstandingBalance"
+                class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-600"
+              >
+                <AlertTriangle class="w-3 h-3" />
+              </span>
+
               <!-- Badge für Documents Tab -->
               <span
                 v-if="tab.id === 'documents' && documentCount > 0"
@@ -719,7 +727,13 @@
             <!-- Payment History Section with PaymentsTable -->
             <div class="space-y-6">
               <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-900">Zahlungshistorie</h3>
+                <div class="flex items-center gap-3">
+                  <h3 class="text-lg font-semibold text-gray-900">Zahlungshistorie</h3>
+                  <span v-if="outstandingBalance" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    <AlertTriangle class="w-3 h-3" />
+                    Offene Posten: {{ outstandingBalance.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
+                  </span>
+                </div>
                 <div class="flex items-center space-x-2">
                   <!-- Filter -->
                   <select
@@ -2107,7 +2121,7 @@ import {
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
-  Smartphone, X, ShieldX
+  Smartphone, X, ShieldX, AlertTriangle
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -2144,6 +2158,14 @@ const {
   updateLocalPayments,
   isPaymentExecuting
 } = useInertiaPayments(props.member.id)
+
+const outstandingBalance = computed(() => {
+  const list = payments.value || props.member.payments || []
+  const sum = list
+    .filter(p => p.status === 'chargeback')
+    .reduce((acc, p) => acc + parseFloat(p.amount), 0)
+  return sum < 0 ? Math.abs(sum) : null
+})
 
 const editMode = ref(false)
 
