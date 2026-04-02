@@ -2161,10 +2161,12 @@ const {
 
 const outstandingBalance = computed(() => {
   const list = payments.value || props.member.payments || []
-  const sum = list
-    .filter(p => p.status === 'chargeback')
-    .reduce((acc, p) => acc + parseFloat(p.amount), 0)
-  return sum < 0 ? Math.abs(sum) : null
+  const chargebacks = list.filter(p => p.status === 'chargeback')
+  const sum = chargebacks.reduce((acc, cb) => {
+    const hasSettlement = list.some(p => p.status === 'paid' && p.notes === cb.mollie_payment_id)
+    return hasSettlement ? acc : acc + Math.abs(parseFloat(cb.amount))
+  }, 0)
+  return sum > 0 ? sum : null
 })
 
 const editMode = ref(false)

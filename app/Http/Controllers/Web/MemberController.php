@@ -40,7 +40,7 @@ class MemberController extends Controller
             ->where('gym_id', $user->current_gym_id)
             ->addSelect(['members.*'])
             ->selectSub(
-                'SELECT ABS(COALESCE(SUM(amount), 0)) FROM payments WHERE payments.member_id = members.id AND payments.status = \'chargeback\' HAVING SUM(amount) < 0',
+                'SELECT COALESCE(SUM(ABS(cb.amount)), 0) FROM payments cb WHERE cb.member_id = members.id AND cb.status = \'chargeback\' AND NOT EXISTS (SELECT 1 FROM payments settlement WHERE settlement.notes = cb.mollie_payment_id AND settlement.status = \'paid\')',
                 'outstanding_balance'
             );
 
