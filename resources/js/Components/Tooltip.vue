@@ -97,19 +97,23 @@ const tooltipStyles = computed(() => {
   }
 })
 
+const darkArrowPositions = {
+  top: 'top-full left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900',
+  right: 'right-full top-1/2 -translate-y-1/2 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-gray-900',
+  bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gray-900',
+  left: 'left-full top-1/2 -translate-y-1/2 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-gray-900'
+}
+
+const lightArrowPositions = {
+  top: 'top-full left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-white',
+  right: 'right-full top-1/2 -translate-y-1/2 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-white',
+  bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white',
+  left: 'left-full top-1/2 -translate-y-1/2 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-white'
+}
+
 const arrowClasses = computed(() => {
-  const baseClasses = 'absolute w-0 h-0 border-solid'
-
-  const arrowColor = props.theme === 'dark' ? 'gray-900' : 'white'
-
-  const arrowPositions = {
-    top: `top-full left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-${arrowColor}`,
-    right: `right-full top-1/2 -translate-y-1/2 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-${arrowColor}`,
-    bottom: `bottom-full left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-${arrowColor}`,
-    left: `left-full top-1/2 -translate-y-1/2 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-${arrowColor}`
-  }
-
-  return `${baseClasses} ${arrowPositions[props.position]}`
+  const positions = props.theme === 'dark' ? darkArrowPositions : lightArrowPositions
+  return `absolute w-0 h-0 border-solid ${positions[props.position]}`
 })
 </script>
 

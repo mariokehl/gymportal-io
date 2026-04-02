@@ -173,7 +173,6 @@ class CleanupTestData extends Command
         $member->paymentMethods()->delete();
         $member->checkIns()->delete();
         $member->courseBookings()->delete();
-        $member->notificationRecipients()->delete();
         $member->widgetRegistrations()->delete();
 
         // Delete memberships and their payments

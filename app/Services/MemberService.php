@@ -146,7 +146,7 @@ class MemberService
      */
     public function calculatePaidMembershipStartDate(Carbon $startDate): Carbon
     {
-        return $startDate->copy()->addMonth()->startOfMonth();
+        return $startDate->copy()->startOfMonth()->addMonth();
     }
 
     /**

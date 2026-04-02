@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -321,36 +320,20 @@ class Member extends Authenticatable
     /**
      * Alle Zahlungen des Mitglieds über alle Mitgliedschaften
      */
-    public function payments(): HasManyThrough
-    {
-        return $this->hasManyThrough(
-            Payment::class,
-            Membership::class,
-            'member_id',      // Foreign key auf memberships table
-            'membership_id',  // Foreign key auf payments table
-            'id',            // Local key auf members table
-            'id'             // Local key auf memberships table
-        )->orderBy('payments.created_at', 'desc');
-    }
-
-    /**
-     * Direkte Zahlungen des Mitglieds (falls es auch direkte Zahlungen gibt)
-     */
-    public function directPayments(): HasMany
+    public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'member_id')->orderBy('created_at', 'desc');
     }
 
     /**
-     * Alle Zahlungen des Mitglieds (sowohl über Mitgliedschaften als auch direkte)
+     * Scope: Nur Mitglieder mit negativem Kontostand (offene Posten).
      */
-    public function allPayments()
+    public function scopeHasOutstandingBalance($query)
     {
-        // Kombiniert Zahlungen über Mitgliedschaften und direkte Zahlungen
-        $membershipPayments = $this->payments()->get();
-        $directPayments = $this->directPayments()->get();
-
-        return $membershipPayments->merge($directPayments)->sortByDesc('created_at');
+        return $query->whereRaw(
+            '(SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payments.member_id = members.id AND payments.status = ?) < 0',
+            ['chargeback']
+        );
     }
 
     public function checkIns()
@@ -366,11 +349,6 @@ class Member extends Authenticatable
     public function widgetRegistrations()
     {
         return $this->hasMany(WidgetRegistration::class);
-    }
-
-    public function notificationRecipients()
-    {
-        return $this->hasMany(NotificationRecipient::class);
     }
 
     // SEPA-spezifische Relationships
