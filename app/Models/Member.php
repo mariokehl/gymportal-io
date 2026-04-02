@@ -351,11 +351,6 @@ class Member extends Authenticatable
         return $this->hasMany(WidgetRegistration::class);
     }
 
-    public function notificationRecipients()
-    {
-        return $this->hasMany(NotificationRecipient::class);
-    }
-
     // SEPA-spezifische Relationships
     public function sepaPaymentMethods(): HasMany
     {
