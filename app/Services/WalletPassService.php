@@ -7,34 +7,27 @@ use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use PKPass\PKPassException;
 
 class WalletPassService
 {
-    /**
-     * Generate an Apple Wallet .pkpass file for the given member.
-     *
-     * Requires: composer require pkpass/pkpass
-     * Config keys in .env:
-     *   APPLE_PASS_CERTIFICATE_PATH - Path to .p12 certificate
-     *   APPLE_PASS_CERTIFICATE_PASSWORD - Certificate password
-     *   APPLE_PASS_TYPE_IDENTIFIER - e.g. pass.io.gymportal.guest
-     *   APPLE_PASS_TEAM_IDENTIFIER - Apple Developer Team ID
-     */
     public function generateApplePass(Member $member): string
     {
         $gym = $member->gym;
         $qrData = app(GuestService::class)->generateStaticQrData($member);
 
-        $certPath = config('services.apple_wallet.certificate_path');
+        $certBase64 = config('services.apple_wallet.certificate_base64');
         $certPassword = config('services.apple_wallet.certificate_password');
         $passTypeId = config('services.apple_wallet.pass_type_identifier');
         $teamId = config('services.apple_wallet.team_identifier');
 
-        if (!$certPath || !file_exists($certPath)) {
+        if (!$certBase64) {
             throw new \RuntimeException('Apple Wallet certificate not configured');
         }
 
-        $pass = new \PKPass\PKPass($certPath, $certPassword);
+        $pass = new \PKPass\PKPass();
+        $pass->setCertificateString(base64_decode($certBase64));
+        $pass->setCertificatePassword($certPassword);
 
         $passData = [
             'formatVersion' => 1,
@@ -43,8 +36,8 @@ class WalletPassService
             'teamIdentifier' => $teamId,
             'organizationName' => $gym->getDisplayName(),
             'description' => 'Gäste-Zugang ' . $gym->getDisplayName(),
-            'foregroundColor' => 'rgb(255, 255, 255)',
-            'backgroundColor' => $this->hexToRgb($gym->primary_color ?? '#1a1a2e'),
+            'foregroundColor' => $this->hexToRgb($gym->text_color ?? '#1f2937'),
+            'backgroundColor' => $this->hexToRgb($gym->background_color ?? '#ffffff'),
             'generic' => [
                 'primaryFields' => [
                     [
@@ -99,43 +92,35 @@ class WalletPassService
 
         // Add logo if available
         if ($gym->logo_path) {
-            $logoPath = Storage::disk('s3')->temporaryUrl($gym->logo_path, now()->addMinutes(5));
-            $logoContent = file_get_contents($logoPath);
+            $logoContent = Storage::disk('public')->get($gym->logo_path);
             if ($logoContent) {
-                $pass->addFile('icon.png', $logoContent);
-                $pass->addFile('logo.png', $logoContent);
+                $pass->addFileContent($logoContent, 'logo.png');
+                $pass->addFileContent($logoContent, 'icon.png');
             }
         }
 
-        $pkpass = $pass->create(true);
-
-        if (!$pkpass) {
-            throw new \RuntimeException('Failed to generate Apple Wallet pass: ' . $pass->getError());
+        try {
+            $pkpass = $pass->create();
+        } catch (PKPassException $e) {
+            throw new \RuntimeException('Failed to generate Apple Wallet pass: ' . $e->getMessage());
         }
 
         return $pkpass;
     }
 
-    /**
-     * Generate a Google Wallet save URL for the given member.
-     *
-     * Config keys in .env:
-     *   GOOGLE_WALLET_ISSUER_ID - Google Wallet issuer ID
-     *   GOOGLE_WALLET_SERVICE_ACCOUNT_KEY_PATH - Path to service account JSON key
-     */
     public function generateGoogleWalletUrl(Member $member): string
     {
         $gym = $member->gym;
         $qrData = app(GuestService::class)->generateStaticQrData($member);
 
         $issuerId = config('services.google_wallet.issuer_id');
-        $keyPath = config('services.google_wallet.service_account_key_path');
+        $serviceAccountBase64 = config('services.google_wallet.service_account_base64');
 
-        if (!$issuerId || !$keyPath || !file_exists($keyPath)) {
+        if (!$issuerId || !$serviceAccountBase64) {
             throw new \RuntimeException('Google Wallet not configured');
         }
 
-        $serviceAccount = json_decode(file_get_contents($keyPath), true);
+        $serviceAccount = json_decode(base64_decode($serviceAccountBase64), true);
 
         $objectId = $issuerId . '.guest-' . $member->id;
 
@@ -150,7 +135,7 @@ class WalletPassService
                         'id' => $objectId,
                         'classId' => $issuerId . '.gymportal-guest-pass',
                         'genericType' => 'GENERIC_TYPE_UNSPECIFIED',
-                        'hexBackgroundColor' => $gym->primary_color ?? '#1a1a2e',
+                        'hexBackgroundColor' => $gym->background_color ?? '#ffffff',
                         'cardTitle' => [
                             'defaultValue' => [
                                 'language' => 'de',
@@ -167,6 +152,13 @@ class WalletPassService
                             'defaultValue' => [
                                 'language' => 'de',
                                 'value' => $member->first_name . ' ' . $member->last_name,
+                            ],
+                        ],
+                        'textModulesData' => [
+                            [
+                                'id' => 'gym',
+                                'header' => 'Studio',
+                                'body' => $gym->getDisplayName(),
                             ],
                         ],
                         'barcode' => [
