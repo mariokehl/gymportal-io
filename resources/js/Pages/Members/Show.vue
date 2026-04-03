@@ -1199,7 +1199,7 @@
                         <h5 class="font-medium text-gray-900">Tageskarte</h5>
                         <p class="text-sm text-gray-500">Zugang für einen Tag</p>
                         <p v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
-                          Gültig bis: {{ accessForm.day_pass_valid_until ? formatDate(accessForm.day_pass_valid_until) : 'Nicht gesetzt' }}
+                          Gültig am: {{ accessForm.day_pass_valid_until ? formatDate(accessForm.day_pass_valid_until) : 'Nicht gesetzt' }}
                         </p>
                       </div>
                     </div>
