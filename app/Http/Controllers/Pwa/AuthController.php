@@ -2,506 +2,23 @@
 
 namespace App\Http\Controllers\Pwa;
 
-use App\Http\Controllers\Controller;
-use App\Models\Member;
-use App\Models\MemberDevice;
 use App\Models\Gym;
 use App\Models\LoginCode;
-use App\Mail\LoginCodeMail;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use App\Models\Member;
+use App\Models\MemberDevice;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 
-class AuthController extends Controller
+class AuthController extends PwaAuthController
 {
-    public function sendLoginCode(Request $request): JsonResponse
+    protected function tokenScope(): string
     {
-        $request->validate([
-            'email' => 'required|email',
-            'gym_slug' => 'required|string'
-        ]);
-
-        $email = strtolower($request->email);
-
-        // Rate Limiting
-        $key = 'login-code:' . $request->ip() . ':' . $email;
-        if (RateLimiter::tooManyAttempts($key, 3)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Zu viele Versuche. Bitte warte vor dem nächsten Versuch.',
-                'error_code' => 'RATE_LIMITED'
-            ], 429);
-        }
-
-        $gym = $this->resolveGymOrFail($request);
-        if ($gym instanceof JsonResponse) {
-            return $gym;
-        }
-
-        $member = Member::whereRaw('LOWER(email) = ?', [$email])
-                       ->where('gym_id', $gym->id)
-                       ->first();
-
-        if (!$member) {
-            // Rate limiting auch für ungültige E-Mails
-            RateLimiter::hit($key, 300); // 5 Minuten
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Mitglied nicht gefunden',
-                'error_code' => 'MEMBER_NOT_FOUND'
-            ], 404);
-        }
-
-        if (!in_array($member->status, ['active', 'extern'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mitgliedschaft ist nicht aktiv',
-                'error_code' => 'MEMBER_INACTIVE'
-            ], 403);
-        }
-
-        // Check if member has a static login code configured (for App Store review)
-        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
-            // Rate limiting für erfolgreiche Anfragen
-            RateLimiter::hit($key, 60); // 1 Minute
-
-            Log::info('Static login code requested (no email sent)', [
-                'member_id' => $member->id,
-                'gym_id' => $gym->id,
-                'ip' => $request->ip()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Anmeldecode wurde versendet',
-                'expires_in' => 600 // 10 Minuten in Sekunden (same as normal flow)
-            ]);
-        }
-
-        // Check device limit for branded app requests (skip for static login code / App Store review)
-        if ($this->isBrandedAppRequest($request)) {
-            $deviceToken = $request->header('X-Device-Token');
-
-            if ($deviceToken) {
-                // If this device is already registered for this member, allow it
-                $existingDevice = MemberDevice::where('device_token', $deviceToken)
-                    ->where('member_id', $member->id)
-                    ->first();
-
-                if (!$existingDevice && MemberDevice::hasReachedLimit($member->id)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Dein Account ist bereits auf einem anderen Gerät aktiv. Aus Sicherheitsgründen kann die App nur auf einem Gerät gleichzeitig genutzt werden. Wenn du das Gerät wechseln möchtest, melde dich bitte kurz bei deinem Studio.',
-                        'error_code' => 'DEVICE_LIMIT_REACHED'
-                    ], 403);
-                }
-            }
-        }
-
-        try {
-            // LoginCode erstellen
-            $loginCode = LoginCode::createForMember($member);
-
-            // E-Mail senden
-            Mail::to($member->email)->send(
-                new LoginCodeMail($loginCode, $member, $gym)
-            );
-
-            // Rate limiting für erfolgreiche Anfragen
-            RateLimiter::hit($key, 60); // 1 Minute
-
-            Log::info('Login code sent', [
-                'member_id' => $member->id,
-                'gym_id' => $gym->id,
-                'ip' => $request->ip()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Anmeldecode wurde versendet',
-                'expires_in' => 600 // 10 Minuten in Sekunden
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Failed to send login code', [
-                'member_id' => $member->id,
-                'gym_id' => $gym->id,
-                'error' => $e->getMessage(),
-                'ip' => $request->ip()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Fehler beim Versenden der E-Mail. Bitte versuche es später erneut.',
-                'error_code' => 'EMAIL_SEND_FAILED'
-            ], 500);
-        }
+        return 'member-pwa';
     }
 
-    public function verifyCode(Request $request): JsonResponse
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'code' => 'required|string|size:6',
-            'gym_slug' => 'required|string'
-        ]);
-
-        $email = strtolower($request->email);
-
-        // Rate Limiting für Code-Verifikation
-        $key = 'verify-code:' . $request->ip() . ':' . $email;
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warte.',
-                'error_code' => 'RATE_LIMITED'
-            ], 429);
-        }
-
-        $gym = $this->resolveGymOrFail($request);
-        if ($gym instanceof JsonResponse) {
-            return $gym;
-        }
-
-        /** @var Member $member */
-        $member = Member::whereRaw('LOWER(email) = ?', [$email])
-                       ->where('gym_id', $gym->id)
-                       ->first();
-
-        if (!$member) {
-            RateLimiter::hit($key, 300);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Mitglied nicht gefunden',
-                'error_code' => 'MEMBER_NOT_FOUND'
-            ], 404);
-        }
-
-        // Check if member has a static login code configured
-        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
-            // Verify against static code
-            if ($request->code !== $member->accessConfig->static_login_code) {
-                RateLimiter::hit($key, 60);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ungültiger oder abgelaufener Code',
-                    'error_code' => 'INVALID_CODE'
-                ], 422);
-            }
-
-            // Static code is valid - no need to mark as used
-            // (it can be reused for App Store review)
-        } else {
-            // Normal flow: check database login code
-            $loginCode = LoginCode::findValidCode($request->code, $member->id);
-
-            if (!$loginCode) {
-                RateLimiter::hit($key, 60);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ungültiger oder abgelaufener Code',
-                    'error_code' => 'INVALID_CODE'
-                ], 422);
-            }
-
-            // Code als verwendet markieren
-            $loginCode->markAsUsed();
-        }
-
-        // Token erstellen (full session - user verified via email code)
-        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $this->getTokenExpiration($request))->plainTextToken;
-
-        // Register device token for branded app requests (skip for static login code / App Store review)
-        $deviceToken = $request->header('X-Device-Token');
-        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
-        if ($this->isBrandedAppRequest($request) && !$hasStaticCode) {
-            if ($deviceToken) {
-                MemberDevice::registerForMember(
-                    $member->id,
-                    $deviceToken,
-                    $request->ip(),
-                    $request->userAgent()
-                );
-            }
-        }
-
-        // Rate limit zurücksetzen bei erfolgreichem Login
-        RateLimiter::clear($key);
-
-        Log::info('Member logged in successfully', [
-            'member_id' => $member->id,
-            'gym_id' => $gym->id,
-            'ip' => $request->ip()
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Anmeldung erfolgreich',
-            'token' => $token,
-            'token_type' => 'full',
-            'member' => $this->getFullMemberData($member, $gym),
-            'gym' => $gym->getMemberAppData()
-        ]);
-    }
-
-    public function logout(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if ($user) {
-            $user->currentAccessToken()->delete();
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout erfolgreich'
-        ]);
-    }
-
-    /**
-     * Link a contract anonymously using email and birth date.
-     * Returns a limited anonymous token with masked member data.
-     */
-    public function linkContractAnonymous(Request $request): JsonResponse
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'birth_date' => 'required|date',
-            'gym_slug' => 'required|string'
-        ]);
-
-        $email = strtolower($request->email);
-
-        // Rate Limiting
-        $key = 'link-contract:' . $request->ip() . ':' . $email;
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Zu viele Versuche. Bitte warte vor dem nächsten Versuch.',
-                'error_code' => 'RATE_LIMITED'
-            ], 429);
-        }
-
-        $gym = $this->resolveGymOrFail($request);
-        if ($gym instanceof JsonResponse) {
-            return $gym;
-        }
-
-        /**
-         * Find member by email and birth_date
-         * @var Member|null $member
-         */
-        $member = Member::whereRaw('LOWER(email) = ?', [$email])
-                       ->where('gym_id', $gym->id)
-                       ->whereDate('birth_date', $request->birth_date)
-                       ->first();
-
-        if (!$member) {
-            RateLimiter::hit($key, 300);
-
-            return response()->json([
-                'message' => 'Kein Vertrag mit dieser E-Mail und Geburtsdatum gefunden.'
-            ], 404);
-        }
-
-        // Create anonymous token with limited abilities
-        $token = $member->createToken(
-            'member-pwa-anonymous', ['member-pwa', 'anonymous'], now()->addDays(365)
-        )->plainTextToken;
-
-        // Send verification code for potential upgrade
-        //try {
-        //    $loginCode = LoginCode::createForMember($member);
-        //    Mail::to($member->email)->send(
-        //        new LoginCodeMail($loginCode, $member, $gym)
-        //    );
-        //} catch (\Exception $e) {
-        //    Log::warning('Failed to send verification code during anonymous link', [
-        //        'member_id' => $member->id,
-        //        'error' => $e->getMessage()
-        //    ]);
-        //}
-
-        RateLimiter::clear($key);
-
-        Log::info('Member linked contract anonymously', [
-            'member_id' => $member->id,
-            'gym_id' => $gym->id,
-            'ip' => $request->ip()
-        ]);
-
-        return response()->json([
-            'token' => $token,
-            'token_type' => 'anonymous',
-            'member' => $this->getMaskedMemberData($member, $gym)
-        ]);
-    }
-
-    /**
-     * Upgrade an anonymous session to a full session using verification code.
-     */
-    public function upgradeSession(Request $request): JsonResponse
-    {
-        $request->validate([
-            'code' => 'required|string|size:6',
-            'gym_slug' => 'required|string'
-        ]);
-
-        /** @var Member $member */
-        $member = $request->user();
-
-        if (!$member) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Nicht authentifiziert',
-                'error_code' => 'UNAUTHENTICATED'
-            ], 401);
-        }
-
-        // Rate Limiting
-        $key = 'upgrade-session:' . $request->ip() . ':' . $member->id;
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warte.',
-                'error_code' => 'RATE_LIMITED'
-            ], 429);
-        }
-
-        $gym = Gym::where('slug', $request->gym_slug)
-                  ->where('pwa_enabled', true)
-                  ->first();
-
-        if (!$gym) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gym nicht gefunden',
-                'error_code' => 'GYM_NOT_FOUND'
-            ], 404);
-        }
-
-        // Verify member belongs to this gym
-        if ($member->gym_id !== $gym->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ungültige Gym-Zuordnung',
-                'error_code' => 'INVALID_GYM'
-            ], 403);
-        }
-
-        // Check if member has a static login code configured
-        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
-            // Verify against static code
-            if ($request->code !== $member->accessConfig->static_login_code) {
-                RateLimiter::hit($key, 60);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ungültiger oder abgelaufener Code',
-                    'error_code' => 'INVALID_CODE'
-                ], 422);
-            }
-
-            // Static code is valid - no need to mark as used
-            // (it can be reused for App Store review)
-        } else {
-            // Normal flow: check database login code
-            $loginCode = LoginCode::findValidCode($request->code, $member->id);
-
-            if (!$loginCode) {
-                RateLimiter::hit($key, 60);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ungültiger oder abgelaufener Code',
-                    'error_code' => 'INVALID_CODE'
-                ], 422);
-            }
-
-            // Mark code as used
-            $loginCode->markAsUsed();
-        }
-
-        // Delete current anonymous token
-        $member->currentAccessToken()->delete();
-
-        // Create new full session token
-        $token = $member->createToken('member-pwa-full', ['member-pwa', 'full'], $this->getTokenExpiration($request))->plainTextToken;
-
-        RateLimiter::clear($key);
-
-        Log::info('Member upgraded to full session', [
-            'member_id' => $member->id,
-            'gym_id' => $gym->id,
-            'ip' => $request->ip()
-        ]);
-
-        return response()->json([
-            'token' => $token,
-            'token_type' => 'full',
-            'member' => $this->getFullMemberData($member, $gym)
-        ]);
-    }
-
-    /**
-     * Resolve the PWA-enabled gym by slug and check if login is allowed.
-     * Returns the Gym on success, or a JsonResponse with the error on failure.
-     */
-    private function resolveGymOrFail(Request $request): Gym|JsonResponse
-    {
-        $gym = Gym::where('slug', $request->gym_slug)
-                  ->where('pwa_enabled', true)
-                  ->first();
-
-        if (!$gym) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gym nicht gefunden oder PWA nicht aktiviert',
-                'error_code' => 'GYM_NOT_FOUND'
-            ], 404);
-        }
-
-        if ($gym->isPwaLoginDisabled() && $this->isPwaRequest($request)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Der Login über die PWA ist momentan deaktiviert.',
-                'error_code' => 'PWA_LOGIN_DISABLED',
-                'app_store_links' => $gym->getAppStoreLinks(),
-            ], 403);
-        }
-
-        return $gym;
-    }
-
-    /**
-     * Check if the request comes from the PWA.
-     * The PWA sends X-Client-Type: pwa. Requests without this header
-     * (e.g. from the branded native app) are not considered PWA requests.
-     */
-    private function isPwaRequest(Request $request): bool
-    {
-        return $request->header('X-Client-Type') === 'pwa';
-    }
-
-    /**
-     * Check if the request comes from a branded native app (not the generic PWA).
-     */
-    private function isBrandedAppRequest(Request $request): bool
-    {
-        return $request->header('X-Client-Type') === 'branded-app';
-    }
-
-    /**
-     * Get the token expiration date based on the request context.
-     * Branded app with device token: 90 days, otherwise: 7 days.
-     */
-    private function getTokenExpiration(Request $request): \DateTimeInterface
+    protected function tokenExpiration(Request $request): \DateTimeInterface
     {
         $deviceToken = $request->header('X-Device-Token');
 
@@ -512,9 +29,285 @@ class AuthController extends Controller
         return now()->addDays(7);
     }
 
-    /**
-     * Get masked member data for anonymous sessions.
-     */
+    protected function gymFilterScope(): array
+    {
+        return ['pwa_enabled' => true];
+    }
+
+    protected function rateLimitPrefix(): string
+    {
+        return 'pwa';
+    }
+
+    protected function memberResponseData(Member $member, Gym $gym): array
+    {
+        return $this->getFullMemberData($member, $gym);
+    }
+
+    protected function gymResponseData(Gym $gym): array
+    {
+        return $gym->getMemberAppData();
+    }
+
+    // ------------------------------------------------------------------
+    // PWA-specific: resolve gym with login-disabled check
+    // ------------------------------------------------------------------
+
+    protected function isMemberEligible(Member $member): bool
+    {
+        return $member->status === 'active';
+    }
+
+    protected function resolveGymOrFail(Request $request): Gym|JsonResponse
+    {
+        $result = parent::resolveGymOrFail($request);
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        if ($result->isPwaLoginDisabled() && $this->isPwaRequest($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Der Login über die PWA ist momentan deaktiviert.',
+                'error_code' => 'PWA_LOGIN_DISABLED',
+                'app_store_links' => $result->getAppStoreLinks(),
+            ], 403);
+        }
+
+        return $result;
+    }
+
+    // ------------------------------------------------------------------
+    // PWA-specific hooks: static login codes & device limiting
+    // ------------------------------------------------------------------
+
+    protected function beforeSendLoginCode(Request $request, Member $member, Gym $gym): ?JsonResponse
+    {
+        // Static login code (App Store review)
+        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+            RateLimiter::hit('pwa-login:' . $request->ip() . ':' . strtolower($request->email), 60);
+
+            Log::info('Static login code requested (no email sent)', [
+                'member_id' => $member->id,
+                'gym_id' => $gym->id,
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Anmeldecode wurde versendet',
+                'expires_in' => 600,
+            ]);
+        }
+
+        // Device limit for branded apps
+        if ($this->isBrandedAppRequest($request)) {
+            $deviceToken = $request->header('X-Device-Token');
+
+            if ($deviceToken) {
+                $existingDevice = MemberDevice::where('device_token', $deviceToken)
+                    ->where('member_id', $member->id)
+                    ->first();
+
+                if (!$existingDevice && MemberDevice::hasReachedLimit($member->id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Dein Account ist bereits auf einem anderen Gerät aktiv. Aus Sicherheitsgründen kann die App nur auf einem Gerät gleichzeitig genutzt werden. Wenn du das Gerät wechseln möchtest, melde dich bitte kurz bei deinem Studio.',
+                        'error_code' => 'DEVICE_LIMIT_REACHED',
+                    ], 403);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function verifyLoginCode(Request $request, Member $member): ?JsonResponse
+    {
+        // Static login code check
+        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+            if ($request->code !== $member->accessConfig->static_login_code) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ungültiger oder abgelaufener Code',
+                    'error_code' => 'INVALID_CODE',
+                ], 422);
+            }
+
+            return null; // static code valid
+        }
+
+        return parent::verifyLoginCode($request, $member);
+    }
+
+    protected function afterVerifyCode(Request $request, Member $member, Gym $gym): void
+    {
+        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
+
+        if ($this->isBrandedAppRequest($request) && !$hasStaticCode) {
+            $deviceToken = $request->header('X-Device-Token');
+
+            if ($deviceToken) {
+                MemberDevice::registerForMember(
+                    $member->id,
+                    $deviceToken,
+                    $request->ip(),
+                    $request->userAgent()
+                );
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // PWA-specific endpoints: anonymous link & session upgrade
+    // ------------------------------------------------------------------
+
+    public function linkContractAnonymous(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'birth_date' => 'required|date',
+            'gym_slug' => 'required|string',
+        ]);
+
+        $email = strtolower($request->email);
+
+        $key = 'link-contract:' . $request->ip() . ':' . $email;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return $this->rateLimitedResponse();
+        }
+
+        $gym = $this->resolveGymOrFail($request);
+        if ($gym instanceof JsonResponse) {
+            return $gym;
+        }
+
+        $member = Member::whereRaw('LOWER(email) = ?', [$email])
+            ->where('gym_id', $gym->id)
+            ->whereDate('birth_date', $request->birth_date)
+            ->first();
+
+        if (!$member) {
+            RateLimiter::hit($key, 300);
+
+            return response()->json([
+                'message' => 'Kein Vertrag mit dieser E-Mail und Geburtsdatum gefunden.',
+            ], 404);
+        }
+
+        $token = $member->createToken(
+            'member-pwa-anonymous',
+            ['member-pwa', 'anonymous'],
+            now()->addDays(365)
+        )->plainTextToken;
+
+        RateLimiter::clear($key);
+
+        Log::info('Member linked contract anonymously', [
+            'member_id' => $member->id,
+            'gym_id' => $gym->id,
+            'ip' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'anonymous',
+            'member' => $this->getMaskedMemberData($member, $gym),
+        ]);
+    }
+
+    public function upgradeSession(Request $request): JsonResponse
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+            'gym_slug' => 'required|string',
+        ]);
+
+        /** @var Member $member */
+        $member = $request->user();
+
+        if (!$member) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nicht authentifiziert',
+                'error_code' => 'UNAUTHENTICATED',
+            ], 401);
+        }
+
+        $key = 'upgrade-session:' . $request->ip() . ':' . $member->id;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Zu viele fehlgeschlagene Versuche. Bitte warte.',
+                'error_code' => 'RATE_LIMITED',
+            ], 429);
+        }
+
+        $gym = Gym::where('slug', $request->gym_slug)
+            ->where('pwa_enabled', true)
+            ->first();
+
+        if (!$gym) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gym nicht gefunden',
+                'error_code' => 'GYM_NOT_FOUND',
+            ], 404);
+        }
+
+        if ($member->gym_id !== $gym->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ungültige Gym-Zuordnung',
+                'error_code' => 'INVALID_GYM',
+            ], 403);
+        }
+
+        $codeResult = $this->verifyLoginCode($request, $member);
+        if ($codeResult instanceof JsonResponse) {
+            RateLimiter::hit($key, 60);
+
+            return $codeResult;
+        }
+
+        $member->currentAccessToken()->delete();
+
+        $token = $member->createToken(
+            'member-pwa-full',
+            ['member-pwa', 'full'],
+            $this->tokenExpiration($request)
+        )->plainTextToken;
+
+        RateLimiter::clear($key);
+
+        Log::info('Member upgraded to full session', [
+            'member_id' => $member->id,
+            'gym_id' => $gym->id,
+            'ip' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'full',
+            'member' => $this->getFullMemberData($member, $gym),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+
+    private function isPwaRequest(Request $request): bool
+    {
+        return $request->header('X-Client-Type') === 'pwa';
+    }
+
+    private function isBrandedAppRequest(Request $request): bool
+    {
+        return $request->header('X-Client-Type') === 'branded-app';
+    }
+
     private function getMaskedMemberData(Member $member, Gym $gym): array
     {
         return [
@@ -534,15 +327,12 @@ class AuthController extends Controller
             'gym' => [
                 'id' => $gym->id,
                 'name' => $gym->name,
-                'slug' => $gym->slug
+                'slug' => $gym->slug,
             ],
-            'is_verified' => false
+            'is_verified' => false,
         ];
     }
 
-    /**
-     * Get full member data for verified sessions.
-     */
     private function getFullMemberData(Member $member, Gym $gym): array
     {
         return [
@@ -555,7 +345,6 @@ class AuthController extends Controller
             'address' => $member->address,
             'postal_code' => $member->postal_code,
             'city' => $member->city,
-            'status' => $member->status,
             'birth_date' => $member->birth_date?->format('Y-m-d'),
             'status' => $member->status,
             'avatar_url' => null,
@@ -563,9 +352,9 @@ class AuthController extends Controller
             'gym' => [
                 'id' => $gym->id,
                 'name' => $gym->name,
-                'slug' => $gym->slug
+                'slug' => $gym->slug,
             ],
-            'is_verified' => true
+            'is_verified' => true,
         ];
     }
 }
