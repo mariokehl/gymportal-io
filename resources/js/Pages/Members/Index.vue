@@ -22,6 +22,17 @@
           </div>
 
           <div class="flex items-center gap-3">
+            <!-- Offene Posten Filter -->
+            <label class="inline-flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none">
+              <input
+                v-model="filters.outstandingBalance"
+                type="checkbox"
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                @change="handleFilter"
+              />
+              Offene Posten
+            </label>
+
             <!-- Status Filter -->
             <select
               v-model="filters.status"
@@ -114,7 +125,7 @@
                   {{ member.member_number }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <MemberStatusBadge :status="member.status" />
+                  <MemberStatusBadge :status="member.status" :outstanding-balance="member.outstanding_balance" />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ member.last_check_in ? formatDate(member.last_check_in.check_in_time) : 'Noch nie' }}
@@ -310,6 +321,7 @@ const props = defineProps({
 const filters = reactive({
   search: props.filters?.search || '',
   status: props.filters?.status || '',
+  outstandingBalance: props.filters?.outstandingBalance === 'true' || props.filters?.outstandingBalance === true,
   sortBy: props.filters?.sortBy || 'member_number',
   sortDirection: props.filters?.sortDirection || 'asc'
 })

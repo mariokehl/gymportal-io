@@ -37,7 +37,12 @@ class MemberController extends Controller
 
         $query = Member::query()
             ->with(['user', 'gym'])
-            ->where('gym_id', $user->current_gym_id);
+            ->where('gym_id', $user->current_gym_id)
+            ->addSelect(['members.*'])
+            ->selectSub(
+                'SELECT COALESCE(SUM(ABS(cb.amount)), 0) FROM payments cb WHERE cb.member_id = members.id AND cb.status = \'chargeback\' AND NOT EXISTS (SELECT 1 FROM payments settlement WHERE settlement.notes = cb.mollie_payment_id AND settlement.status = \'paid\')',
+                'outstanding_balance'
+            );
 
         // Search functionality
         if ($request->filled('search')) {
@@ -54,6 +59,11 @@ class MemberController extends Controller
         // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        // Filter: nur Mitglieder mit offenen Posten
+        if ($request->boolean('outstandingBalance')) {
+            $query->hasOutstandingBalance();
         }
 
         // Sorting logic
@@ -177,6 +187,7 @@ class MemberController extends Controller
         $members->getCollection()->transform(function ($member) {
             $member->last_check_in = $member->last_check_in;
             $member->contract_end_date = $member->activeMembership()?->cancellation_date;
+            $member->outstanding_balance = $member->outstanding_balance ? (float) $member->outstanding_balance : null;
             $member->can_delete = $member->canBeDeleted();
             if (!$member->can_delete) {
                 $deleteBlockInfo = $member->getDeleteBlockReason();
@@ -188,7 +199,7 @@ class MemberController extends Controller
 
         return Inertia::render('Members/Index', [
             'members' => $members,
-            'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection'])
+            'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection', 'outstandingBalance'])
         ]);
     }
 

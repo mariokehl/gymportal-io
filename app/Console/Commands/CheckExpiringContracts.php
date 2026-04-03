@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\Membership;
 use App\Models\Member;
-use App\Models\Notification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;

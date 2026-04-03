@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 class Member extends Authenticatable
@@ -325,6 +326,26 @@ class Member extends Authenticatable
         return $this->hasMany(Payment::class, 'member_id')->orderBy('created_at', 'desc');
     }
 
+    /**
+     * Scope: Nur Mitglieder mit offenen Posten (OPOS).
+     * Offen = Chargeback-Payment ohne zugehörige Ausgleichszahlung (transaction_id → mollie_payment_id).
+     */
+    public function scopeHasOutstandingBalance($query)
+    {
+        return $query->whereExists(function ($q) {
+            $q->select(DB::raw(1))
+              ->from('payments as cb')
+              ->whereColumn('cb.member_id', 'members.id')
+              ->where('cb.status', 'chargeback')
+              ->whereNotExists(function ($sub) {
+                  $sub->select(DB::raw(1))
+                      ->from('payments as settlement')
+                      ->whereColumn('settlement.notes', 'cb.mollie_payment_id')
+                      ->where('settlement.status', 'paid');
+              });
+        });
+    }
+
     public function checkIns()
     {
         return $this->hasMany(CheckIn::class);
@@ -338,11 +359,6 @@ class Member extends Authenticatable
     public function widgetRegistrations()
     {
         return $this->hasMany(WidgetRegistration::class);
-    }
-
-    public function notificationRecipients()
-    {
-        return $this->hasMany(NotificationRecipient::class);
     }
 
     // SEPA-spezifische Relationships
