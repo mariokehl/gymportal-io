@@ -446,9 +446,50 @@
             <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedPayment.mollie_payment_id }}</p>
           </div>
 
-          <div v-if="selectedPayment.notes">
-            <label class="block text-sm font-medium text-gray-500">Notizen</label>
-            <p class="mt-1 text-sm text-gray-900">{{ selectedPayment.notes }}</p>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-medium text-gray-500">Notizen</label>
+              <button
+                v-if="!editingNotes"
+                @click="startEditingNotes"
+                class="text-gray-400 hover:text-indigo-600 transition-colors"
+                title="Notizen bearbeiten"
+              >
+                <Pencil class="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div v-if="editingNotes" class="mt-1">
+              <textarea
+                ref="notesTextarea"
+                v-model="notesForm"
+                rows="3"
+                class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Notizen hinzufügen..."
+                @keydown.ctrl.enter="saveNotes"
+                @keydown.meta.enter="saveNotes"
+                @keydown.escape="cancelEditingNotes"
+              ></textarea>
+              <div class="flex items-center justify-end gap-2 mt-1.5">
+                <button
+                  @click="cancelEditingNotes"
+                  :disabled="savingNotes"
+                  class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  @click="saveNotes"
+                  :disabled="savingNotes"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  <Loader2 v-if="savingNotes" class="w-3 h-3 animate-spin" />
+                  <Check v-else class="w-3 h-3" />
+                  Speichern
+                </button>
+              </div>
+            </div>
+            <p v-else-if="selectedPayment.notes" class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ selectedPayment.notes }}</p>
+            <p v-else class="mt-1 text-sm text-gray-400 italic cursor-pointer hover:text-indigo-600" @click="startEditingNotes">Notiz hinzufügen...</p>
           </div>
 
           <!-- Mollie Zahlungslink -->
@@ -506,7 +547,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
@@ -525,7 +566,10 @@ import {
   ClipboardCheck,
   ExternalLink,
   Ban,
-  Link2
+  Link2,
+  Pencil,
+  Check,
+  Loader2
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 
@@ -637,6 +681,10 @@ const isProcessing = ref(false)
 const expandedRows = ref(new Set())
 const creatingPaymentLink = ref(false)
 const paymentLinkCopied = ref(false)
+const editingNotes = ref(false)
+const notesForm = ref('')
+const savingNotes = ref(false)
+const notesTextarea = ref(null)
 
 // Watch for external changes to selectedIds
 watch(() => props.selectedIds, (newVal) => {
@@ -766,6 +814,8 @@ const viewPayment = (payment) => {
 const closePaymentModal = () => {
   showPaymentModal.value = false
   selectedPayment.value = null
+  editingNotes.value = false
+  notesForm.value = ''
 }
 
 const markAsPaid = async (payment) => {
@@ -857,6 +907,39 @@ const createPaymentLink = async () => {
     alert(message)
   } finally {
     creatingPaymentLink.value = false
+  }
+}
+
+const startEditingNotes = () => {
+  notesForm.value = selectedPayment.value.notes || ''
+  editingNotes.value = true
+  nextTick(() => {
+    notesTextarea.value?.focus()
+  })
+}
+
+const cancelEditingNotes = () => {
+  editingNotes.value = false
+  notesForm.value = ''
+}
+
+const saveNotes = async () => {
+  savingNotes.value = true
+  try {
+    const response = await axios.patch(route('payments.update-notes', selectedPayment.value.id), {
+      notes: notesForm.value || null,
+    })
+    selectedPayment.value.notes = response.data.notes
+    const payment = props.payments.data.find(p => p.id === selectedPayment.value.id)
+    if (payment) {
+      payment.notes = response.data.notes
+    }
+    editingNotes.value = false
+  } catch (error) {
+    const message = error.response?.data?.message || 'Notizen konnten nicht gespeichert werden.'
+    alert(message)
+  } finally {
+    savingNotes.value = false
   }
 }
 
