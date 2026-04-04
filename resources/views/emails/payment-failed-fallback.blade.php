@@ -57,6 +57,25 @@
         <tr><td style="padding: 3px 8px 3px 0; color: #718096; font-size: 15px;" valign="top">3.</td><td style="padding: 3px 0; color: #718096; font-size: 15px;">Loggen Sie sich in Ihren Mitgliederbereich ein, um die Zahlung zu aktualisieren</td></tr>
     </table>
 
+    {{-- Mollie Zahlungslink --}}
+    @if(!empty($paymentData['checkout_url']))
+    <table class="body-action" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 30px auto; text-align: center;">
+        <tr>
+            <td align="center">
+                <table cellpadding="0" cellspacing="0" role="presentation">
+                    <tr>
+                        <td>
+                            <a href="{{ $paymentData['checkout_url'] }}" style="display: inline-block; color: #ffffff; text-decoration: none; border-radius: 3px; background-color: #3490dc; border-top: 10px solid #3490dc; border-right: 18px solid #3490dc; border-bottom: 10px solid #3490dc; border-left: 18px solid #3490dc;">
+                                Jetzt bezahlen
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    @endif
+
     {{-- CTA Button --}}
     <table class="body-action" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 30px auto; text-align: center;">
         <tr>

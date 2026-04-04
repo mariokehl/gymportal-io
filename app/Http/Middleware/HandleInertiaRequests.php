@@ -105,6 +105,8 @@ class HandleInertiaRequests extends Middleware
                 $isInTrial = now()->lt($trialEndsAt);
                 $trialDaysLeft = $isInTrial ? now()->diffInDays($trialEndsAt) : 0;
 
+                $shared['mollie_configured'] = $gym->hasMollieConfigured();
+
                 $shared['subscription_status'] = [
                     'trial' => [
                         'is_active' => $isInTrial,

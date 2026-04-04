@@ -149,6 +149,7 @@ class Payment extends Model
             'mollie_paypal' => 'Mollie: PayPal',
             'mollie_klarna' => 'Mollie: Klarna',
             'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
+            'mollie_paymentlink' => 'Mollie: Zahlungslink',
         ][$this->payment_method] ?? $this->payment_method;
     }
 

@@ -28,6 +28,8 @@ use Mollie\Api\Types\MandateMethod;
 
 class MollieService
 {
+    public const CHARGEBACK_FEE = 10.00;
+
     protected $client;
 
     public function __construct()
@@ -310,6 +312,44 @@ class MollieService
         }
 
         return $mollieParams;
+    }
+
+    /**
+     * Create a Mollie payment link for an existing local payment.
+     * This creates a oneoff Mollie payment and stores the checkout URL.
+     */
+    public function createPaymentLink(Payment $payment): MolliePayment
+    {
+        $gym = $payment->gym;
+        $client = $this->initializeClient($gym);
+        $config = $this->getConfig($gym);
+
+        $mollieParams = [
+            'amount' => [
+                'currency' => $payment->currency ?? 'EUR',
+                'value' => number_format($payment->amount, 2, '.', ''),
+            ],
+            'description' => $this->formatDescription($config, $payment->description),
+            'redirectUrl' => $config['redirect_url'] ?? url('/'),
+            'webhookUrl' => $config['webhook_url'] ?? '',
+            'metadata' => [
+                'payment_id' => $payment->id,
+                'member_id' => $payment->member_id,
+                'membership_id' => $payment->membership_id,
+                'gym_id' => $gym->id,
+            ],
+        ];
+
+        $molliePayment = $client->payments->create($mollieParams);
+
+        $payment->update([
+            'mollie_payment_id' => $molliePayment->id,
+            'checkout_url' => $molliePayment->getCheckoutUrl(),
+            'payment_method' => 'mollie_paymentlink',
+            'mollie_status' => $molliePayment->status,
+        ]);
+
+        return $molliePayment;
     }
 
     /**

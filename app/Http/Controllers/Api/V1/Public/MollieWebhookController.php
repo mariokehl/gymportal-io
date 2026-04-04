@@ -60,7 +60,16 @@ class MollieWebhookController extends Controller
             $oldStatus = $localPayment->status;
             $localPayment->update([
                 'status' => $molliePayment->status,
-                'paid_date' => $molliePayment->isPaid() ? now() : null
+                'mollie_status' => $molliePayment->status,
+                'paid_date' => $molliePayment->isPaid() ? now() : null,
+                'failed_at' => $molliePayment->isFailed() ? now() : null,
+                'canceled_at' => $molliePayment->isCanceled() ? now() : null,
+                'expired_at' => $molliePayment->isExpired() ? now() : null,
+                'metadata' => array_filter([
+                    ...($localPayment->metadata ?? []),
+                    'change_payment_state_url' => $molliePayment->_links->changePaymentState->href ?? null,
+                ]),
+                'webhook_processed_at' => now(),
             ]);
 
             // Prüfen ob es sich um eine 1. Zahlung zur Kreditkarten-Authorisierung handelt
@@ -167,9 +176,13 @@ class MollieWebhookController extends Controller
         $membership = $localPayment->membership;
 
         // Member und Membership aktivieren
-        $member->update(['status' => 'active']);
-        if (!$membership->activateMembership()) {
-            $membership->update(['status' => 'active']);
+        if ($member) {
+            $member->update(['status' => 'active']);
+        }
+        if ($membership) {
+            if (!$membership->activateMembership()) {
+                $membership->update(['status' => 'active']);
+            }
         }
 
         // Widget-Registrierung abschließen
@@ -180,21 +193,23 @@ class MollieWebhookController extends Controller
                 'completed_at' => now()
             ]);
 
-        // PaymentMethod aktualisieren
-        $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
+        // PaymentMethod aktualisieren (nicht für Zahlungslinks)
+        if ($member && $localPayment->payment_method !== 'mollie_paymentlink') {
+            $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
+        }
 
         // Analytics
         $this->widgetService->trackEvent($gym, 'mollie_webhook_paid', 'payment_webhook', [
-            'member_id' => $member->id,
-            'membership_id' => $membership->id,
-            'payment_method' => $localPayment->method,
+            'member_id' => $member?->id,
+            'membership_id' => $membership?->id,
+            'payment_method' => $localPayment->payment_method,
             'amount' => $localPayment->amount,
             'mollie_payment_id' => $paymentId
         ]);
 
         Log::info('Mollie webhook: Payment completed', [
             'gym_id' => $gym->id,
-            'member_id' => $member->id,
+            'member_id' => $member?->id,
             'payment_id' => $paymentId
         ]);
     }
@@ -362,6 +377,33 @@ class MollieWebhookController extends Controller
                     'paid_date' => now(),
                 ]);
 
+                // Ausgleichszahlung mit Mollie-Zahlungslink erstellen
+                $compensationPayment = Payment::create([
+                    'gym_id' => $localPayment->gym_id,
+                    'membership_id' => $localPayment->membership_id,
+                    'member_id' => $localPayment->member_id,
+                    'amount' => abs($mollieChargeback->amount->value) + MollieService::CHARGEBACK_FEE,
+                    'currency' => $mollieChargeback->amount->currency,
+                    'description' => 'Ausgleichszahlung inkl. ' . number_format(MollieService::CHARGEBACK_FEE, 2, ',', '') . ' € Gebühr: ' . $localPayment->description,
+                    'status' => 'pending',
+                    'payment_method' => 'mollie_paymentlink',
+                    'due_date' => now()->format('Y-m-d'),
+                    'notes' => $mollieChargeback->id,
+                ]);
+
+                // Mollie-Zahlungslink für die Ausgleichszahlung erstellen
+                $checkoutUrl = null;
+                try {
+                    $mollieService->createPaymentLink($compensationPayment);
+                    $compensationPayment->refresh();
+                    $checkoutUrl = $compensationPayment->checkout_url;
+                } catch (\Exception $e) {
+                    Log::error('Mollie webhook: Failed to create payment link for chargeback compensation', [
+                        'compensation_payment_id' => $compensationPayment->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 // Mitglied auf overdue setzen bei Chargeback
                 $member = $localPayment->member;
                 if ($member && $member->status === 'active') {
@@ -372,6 +414,7 @@ class MollieWebhookController extends Controller
                         'payment_method' => $localPayment->payment_method,
                         'gym_id' => $gym->id,
                         'reason' => 'chargeback',
+                        'checkout_url' => $checkoutUrl,
                     ]);
                 }
 
