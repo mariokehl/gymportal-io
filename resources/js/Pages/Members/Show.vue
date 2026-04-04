@@ -2368,6 +2368,8 @@ const filteredPayments = computed(() => {
     paymentList = paymentList.filter(p => p.status === paymentStatusFilter.value)
   }
 
+  paymentList = [...paymentList].sort((a, b) => b.id - a.id)
+
   return {
     data: paymentList,
     total: paymentList.length

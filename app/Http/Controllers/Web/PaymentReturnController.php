@@ -5,18 +5,20 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class PaymentReturnController extends Controller
 {
     /**
      * Handle the return from a payment provider.
-     * Redirects to the gym's website or shows a fallback page.
+     * Shows a "payment completed" page by default.
+     * Pass ?redirect=1 to force redirect to the gym's website instead.
      */
-    public function __invoke(Gym $organization): RedirectResponse|Response
+    public function __invoke(Request $request, Gym $organization): RedirectResponse|Response
     {
-        // If the gym has a website configured, redirect there
-        if ($organization->website) {
+        // Only redirect to website if explicitly requested
+        if ($request->boolean('redirect') && $organization->website) {
             $url = $organization->website;
 
             // Ensure the URL has a protocol
