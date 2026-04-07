@@ -36,6 +36,20 @@ class MollieWebhookController extends Controller
                 return response('OK', 200);
             }
 
+            // Payment Link Event (z.B. payment-link.paid)
+            if (data_get($payload, 'resource') === 'event' &&
+                str_starts_with(data_get($payload, 'type', ''), 'payment-link.')) {
+                Log::info('Mollie webhook: Payment link event received', [
+                    'event_id' => data_get($payload, 'id'),
+                    'type' => data_get($payload, 'type'),
+                    'entity_id' => data_get($payload, 'entityId'),
+                    'paid_at' => data_get($payload, '_embedded.entity.paidAt'),
+                    'amount' => data_get($payload, '_embedded.entity.amount'),
+                ]);
+
+                return response(null, 204);
+            }
+
             $paymentId = $request->input('id');
 
             if (!$paymentId) {
@@ -53,8 +67,27 @@ class MollieWebhookController extends Controller
             $gym = Gym::findOrFail($localPayment->gym_id);
             $mollieService = app(MollieService::class);
 
-            // Aktuellen Payment-Status von Mollie abrufen
-            $molliePayment = $mollieService->getPayment($gym, $paymentId);
+            // Payment Link Handling: Status über zugehörige Payments ermitteln
+            if (str_starts_with($paymentId, 'pl_')) {
+                $molliePayment = $mollieService->getPaidPaymentForLink($gym, $paymentId);
+
+                if (!$molliePayment) {
+                    Log::info('Mollie webhook: Payment link has no paid payment yet', ['payment_link_id' => $paymentId]);
+                    return response('OK', 200);
+                }
+
+                // Mollie Payment ID mit der tatsächlichen Payment ID überschreiben
+                $localPayment->update(['mollie_payment_id' => $molliePayment->id]);
+                $paymentId = $molliePayment->id;
+
+                Log::info('Mollie webhook: Resolved payment link to payment', [
+                    'payment_link_id' => $localPayment->getOriginal('mollie_payment_id'),
+                    'mollie_payment_id' => $paymentId,
+                ]);
+            } else {
+                // Aktuellen Payment-Status von Mollie abrufen
+                $molliePayment = $mollieService->getPayment($gym, $paymentId);
+            }
 
             // Status aktualisieren
             $oldStatus = $localPayment->status;
