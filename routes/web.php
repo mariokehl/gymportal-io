@@ -145,6 +145,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::delete('/{payment}/cancel', [PaymentController::class, 'cancel'])->name('cancel');
         Route::post('/{payment}/refund', [PaymentController::class, 'refund'])->name('refund');
         Route::post('/{payment}/create-payment-link', [PaymentController::class, 'createPaymentLink'])->name('create-payment-link');
+        Route::patch('/{payment}/notes', [PaymentController::class, 'updateNotes'])->name('update-notes');
     });
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 

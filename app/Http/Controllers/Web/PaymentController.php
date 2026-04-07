@@ -9,6 +9,7 @@ use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -121,6 +122,23 @@ class PaymentController extends Controller
                 'error' => 'Mollie-Zahlungslink konnte nicht erstellt werden: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function updateNotes(Request $request, Payment $payment): JsonResponse
+    {
+        $this->authorize('update', $payment);
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $payment->update([
+            'notes' => $validated['notes'],
+        ]);
+
+        return response()->json([
+            'notes' => $payment->notes,
+        ]);
     }
 
     public function refund(Payment $payment): RedirectResponse
