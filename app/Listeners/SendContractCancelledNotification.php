@@ -2,30 +2,31 @@
 
 namespace App\Listeners;
 
-use App\Events\MemberRegistered;
+use App\Events\ContractCancelled;
 use App\Notifications\Concerns\NotifiesGymUsers;
-use App\Notifications\MemberRegisteredNotification;
+use App\Notifications\ContractCancelledNotification;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class SendMemberRegisteredNotification
+class SendContractCancelledNotification
 {
     use NotifiesGymUsers;
 
-    public function handle(MemberRegistered $event): void
+    public function handle(ContractCancelled $event): void
     {
         try {
             $this->notifyGymUsers(
                 $event->gym,
-                new MemberRegisteredNotification($event->member, $event->membership, $event->gym, $event->registrationSource),
+                new ContractCancelledNotification($event->member, $event->membership, $event->gym),
                 [
                     'member_id' => $event->member->id,
+                    'membership_id' => $event->membership->id,
                 ]
             );
         } catch (Exception $e) {
-            Log::error('Failed to send member registered notification', [
+            Log::error('Failed to send contract cancelled notification', [
                 'member_id' => $event->member->id,
-                'gym_id' => $event->gym->id,
+                'membership_id' => $event->membership->id,
                 'error' => $e->getMessage(),
             ]);
         }
