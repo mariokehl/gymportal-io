@@ -531,6 +531,7 @@
               @revoke-cancellation="revokeCancellation"
               @abort="abortMembership"
               @withdraw="openWithdrawMembership"
+              @force-status="handleForceStatus"
             />
           </div>
 
@@ -2870,14 +2871,18 @@ const abortMembership = (membership) => {
 }
 
 // Widerruf gemäß § 356a BGB
-const openWithdrawMembership = (membership) => {
+const forceWithdraw = ref(false)
+
+const openWithdrawMembership = (membership, force = false) => {
   selectedMembership.value = membership
+  forceWithdraw.value = force
   showWithdrawMembershipModal.value = true
 }
 
 const closeWithdrawMembership = () => {
   showWithdrawMembershipModal.value = false
   selectedMembership.value = null
+  forceWithdraw.value = false
 }
 
 const withdrawMembership = () => {
@@ -2890,7 +2895,9 @@ const withdrawMembership = () => {
   router.put(route('members.memberships.withdraw', {
     member: props.member.id,
     membership: selectedMembership.value.id
-  }), {}, {
+  }), {
+    force: forceWithdraw.value,
+  }, {
     preserveScroll: true,
     onSuccess: () => {
       withdrawingMembership.value = null
@@ -2951,6 +2958,56 @@ const revokeCancellation = (membership) => {
     onError: () => {
       revokingCancellation.value = null
       alert('Die Kündigung konnte nicht zurückgenommen werden.')
+    }
+  })
+}
+
+// Force-Status Handler für Mitgliedschaften
+const forcingMembershipStatus = ref(null)
+
+const handleForceStatus = (membership, newStatus) => {
+  // Für bestimmte Status die vorhandenen Modals als Bestätigung nutzen
+  if (newStatus === 'paused') {
+    openPauseMembership(membership)
+    return
+  }
+
+  if (newStatus === 'cancelled') {
+    openCancelMembership(membership)
+    return
+  }
+
+  if (newStatus === 'withdrawn') {
+    openWithdrawMembership(membership, true)
+    return
+  }
+
+  // Für alle anderen Stati: direkte Bestätigung und API-Call
+  const statusLabels = {
+    'active': 'Aktiv',
+    'expired': 'Abgelaufen',
+    'pending': 'Ausstehend',
+  }
+
+  if (!confirm(`Möchten Sie den Status dieser Mitgliedschaft wirklich auf "${statusLabels[newStatus] || newStatus}" forcieren?`)) {
+    return
+  }
+
+  forcingMembershipStatus.value = membership.id
+
+  router.put(route('members.memberships.force-status', {
+    member: props.member.id,
+    membership: membership.id
+  }), {
+    status: newStatus
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      forcingMembershipStatus.value = null
+    },
+    onError: () => {
+      forcingMembershipStatus.value = null
+      alert('Der Status konnte nicht geändert werden.')
     }
   })
 }
