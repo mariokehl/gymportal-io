@@ -11,9 +11,11 @@
             <span v-if="membership.membership_plan?.deleted_at" class="text-red-600">Gelöschter Vertrag: </span>
             {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
           </template>
-          <span :class="getStatusBadgeClass(membership.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-1">
-            {{ getStatusText(membership.status) }}
-          </span>
+          <MembershipStatusEditor
+            :membership="membership"
+            class="ml-1"
+            @force-status="(m, s) => $emit('force-status', m, s)"
+          />
         </h4>
         <p :class="isSecondary ? 'text-gray-500' : 'text-gray-600'">
           {{ membership.is_free_trial ? 'Kostenloser Testzeitraum' : (membership.membership_plan?.description || 'Keine Beschreibung verfügbar') }}
@@ -180,6 +182,7 @@ import {
   RotateCcw, AlertCircle, Gift, Undo2
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+import MembershipStatusEditor from '@/Components/Members/MembershipStatusEditor.vue'
 
 defineProps({
   membership: {
@@ -220,33 +223,9 @@ defineProps({
   }
 })
 
-defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw'])
+defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw', 'force-status'])
 
 // Helper functions
-const getStatusBadgeClass = (status) => {
-  const classes = {
-    'active': 'bg-green-100 text-green-800',
-    'pending': 'bg-orange-100 text-orange-800',
-    'paused': 'bg-yellow-100 text-yellow-800',
-    'cancelled': 'bg-red-100 text-red-800',
-    'expired': 'bg-gray-100 text-gray-800',
-    'withdrawn': 'bg-purple-100 text-purple-800'
-  }
-  return classes[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusText = (status) => {
-  const texts = {
-    'active': 'Aktiv',
-    'pending': 'Ausstehend',
-    'paused': 'Pausiert',
-    'cancelled': 'Gekündigt',
-    'expired': 'Abgelaufen',
-    'withdrawn': 'Widerrufen'
-  }
-  return texts[status] || status
-}
-
 const getBillingCycleText = (cycle) => {
   const cycles = {
     'monthly': 'Monat',

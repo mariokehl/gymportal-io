@@ -7,6 +7,7 @@ use App\Mail\PaymentFailedMail;
 use App\Models\Member;
 use App\Models\MemberStatusHistory;
 use App\Models\User;
+use App\Notifications\Concerns\NotifiesGymUsers;
 use App\Notifications\PaymentFailedNotification;
 use App\Services\Fraud\BlocklistService;
 use App\Services\Fraud\FraudIdentifierNormalizer;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Mail;
 
 class MemberStatusService
 {
+    use NotifiesGymUsers;
+
     /**
      * Handle status change actions for a member.
      * Refactored from MemberController to be reusable across the application.
@@ -249,33 +252,11 @@ class MemberStatusService
         try {
             $gym = $member->gym;
 
-            // Notify all users who have this gym as their current gym
-            $gymUsers = User::where('current_gym_id', $gym->id)
-                ->where('is_blocked', false)
-                ->whereNull('deleted_at')
-                ->get();
-
-            // Add the gym owner if they haven't selected this gym as their current gym
-            if ($gym->owner_id && !$gymUsers->contains('id', $gym->owner_id)) {
-                $owner = User::where('id', $gym->owner_id)
-                    ->where('is_blocked', false)
-                    ->whereNull('deleted_at')
-                    ->first();
-
-                if ($owner) {
-                    $gymUsers->push($owner);
-                }
-            }
-
-            foreach ($gymUsers as $user) {
-                $user->notify(new PaymentFailedNotification($member, $gym, $paymentData));
-            }
-
-            Log::info('Payment failed notification sent to gym staff', [
-                'gym_id' => $gym->id,
-                'member_id' => $member->id,
-                'notified_users' => $gymUsers->count()
-            ]);
+            $this->notifyGymUsers(
+                $gym,
+                new PaymentFailedNotification($member, $gym, $paymentData),
+                ['member_id' => $member->id]
+            );
         } catch (\Exception $e) {
             Log::error('Failed to send payment failed notification', [
                 'member_id' => $member->id,

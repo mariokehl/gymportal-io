@@ -10,8 +10,8 @@ use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
-use App\Models\User;
-use App\Notifications\ContractWithdrawnNotification;
+use App\Events\ContractCancelled;
+use App\Events\ContractWithdrawn;
 use App\Services\PaymentService;
 use Carbon\Carbon;
 use Exception;
@@ -232,6 +232,8 @@ class MemberController extends Controller
             ]);
         }
 
+        ContractCancelled::dispatch($member, $membership->fresh(), $member->gym);
+
         return response()->json([
             'success' => true,
             'message' => 'Vertrag erfolgreich gekündigt',
@@ -310,7 +312,7 @@ class MemberController extends Controller
             DB::commit();
 
             // Notification an Gym-Mitarbeiter senden (außerhalb der Transaktion)
-            $this->notifyGymUsersAboutWithdrawal($member, $membership->fresh(), $refundAmount);
+            ContractWithdrawn::dispatch($member, $membership->fresh(), $member->gym, $refundAmount);
 
             Log::info('Contract withdrawn successfully', [
                 'member_id' => $member->id,
@@ -574,55 +576,4 @@ class MemberController extends Controller
         return (int) round(($activeCheckIns / $gym->max_capacity) * 100);
     }
 
-    /**
-     * Benachrichtigt alle Gym-Mitarbeiter über einen Vertragswiderruf
-     */
-    private function notifyGymUsersAboutWithdrawal(Member $member, Membership $membership, float $refundAmount): void
-    {
-        try {
-            $gym = $member->gym;
-
-            // Alle User des Gyms abrufen (nicht gelöscht, nicht blockiert)
-            $gymUsers = User::where('current_gym_id', $gym->id)
-                ->where('is_blocked', false)
-                ->whereNull('deleted_at')
-                ->get();
-
-            // Owner hinzufügen, falls nicht bereits in der Liste
-            if ($gym->owner_id && !$gymUsers->contains('id', $gym->owner_id)) {
-                $owner = User::where('id', $gym->owner_id)
-                    ->where('is_blocked', false)
-                    ->whereNull('deleted_at')
-                    ->first();
-
-                if ($owner) {
-                    $gymUsers->push($owner);
-                }
-            }
-
-            // Notification an alle User senden
-            foreach ($gymUsers as $user) {
-                $user->notify(new ContractWithdrawnNotification(
-                    $member,
-                    $membership,
-                    $gym,
-                    $refundAmount
-                ));
-            }
-
-            Log::info('Contract withdrawal notification sent', [
-                'member_id' => $member->id,
-                'membership_id' => $membership->id,
-                'gym_id' => $gym->id,
-                'notified_users' => $gymUsers->count(),
-            ]);
-        } catch (Exception $e) {
-            // Notification-Fehler sollten den Widerruf nicht beeinflussen
-            Log::error('Failed to send contract withdrawal notification', [
-                'member_id' => $member->id,
-                'membership_id' => $membership->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
 }

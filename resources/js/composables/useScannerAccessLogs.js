@@ -96,8 +96,14 @@ export function useScannerAccessLogs(gymId, options = {}) {
         if (filters.scanner && log.device_number !== filters.scanner) {
             return false
         }
-        if (filters.type && log.scan_type !== filters.type) {
-            return false
+        if (filters.type) {
+            if (filters.type === 'qr_code') {
+                if (log.scan_type !== 'qr_code' && log.scan_type !== 'rolling_qr') {
+                    return false
+                }
+            } else if (log.scan_type !== filters.type) {
+                return false
+            }
         }
         if (filters.status === 'granted' && !log.access_granted) {
             return false
