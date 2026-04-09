@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Services\MemberService;
 use App\Services\PaymentService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,8 @@ use Inertia\Inertia;
 
 class MembershipController extends Controller
 {
+    use AuthorizesRequests;
+
     public function __construct(
         private MemberService $memberService
     ) {}
@@ -26,6 +29,8 @@ class MembershipController extends Controller
      */
     public function storeFreePeriod(Request $request, Member $member)
     {
+        $this->authorize('create', Membership::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -86,6 +91,8 @@ class MembershipController extends Controller
      */
     public function activate(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -130,6 +137,8 @@ class MembershipController extends Controller
      */
     public function pause(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Validierung
         $validated = $request->validate([
             'pause_start_date' => 'required|date|after_or_equal:today',
@@ -196,6 +205,8 @@ class MembershipController extends Controller
      */
     public function resume(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -254,6 +265,8 @@ class MembershipController extends Controller
      */
     public function cancel(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Validierung
         $validated = $request->validate([
             'cancellation_date' => 'required|date|after_or_equal:today',
@@ -379,6 +392,8 @@ class MembershipController extends Controller
      */
     public function revokeCancellation(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -435,6 +450,8 @@ class MembershipController extends Controller
      */
     public function abort(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -484,6 +501,8 @@ class MembershipController extends Controller
      */
     public function forceStatus(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         $validated = $request->validate([
             'status' => 'required|string|in:active,paused,cancelled,expired,pending,withdrawn',
         ]);
@@ -547,6 +566,8 @@ class MembershipController extends Controller
      */
     public function withdraw(Request $request, Member $member, Membership $membership, PaymentService $paymentService)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');

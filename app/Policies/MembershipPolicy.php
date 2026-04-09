@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Membership;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class MembershipPolicy
 {
@@ -13,7 +12,7 @@ class MembershipPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,7 +20,7 @@ class MembershipPolicy
      */
     public function view(User $user, Membership $membership): bool
     {
-        return false;
+        return $user->current_gym_id === $membership->member->gym_id;
     }
 
     /**
@@ -29,7 +28,7 @@ class MembershipPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->current_gym_id > 0;
     }
 
     /**
@@ -37,7 +36,7 @@ class MembershipPolicy
      */
     public function update(User $user, Membership $membership): bool
     {
-        return false;
+        return $user->current_gym_id === $membership->member->gym_id;
     }
 
     /**
@@ -45,7 +44,7 @@ class MembershipPolicy
      */
     public function delete(User $user, Membership $membership): bool
     {
-        return false;
+        return $user->current_gym_id === $membership->member->gym_id;
     }
 
     /**
