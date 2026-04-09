@@ -436,6 +436,9 @@ class MemberController extends Controller
                 $query->latest()->take(10);
             },
             'accessConfig',
+            'accessLogs' => function ($query) {
+                $query->latest()->take(50);
+            },
             'devices',
             'statusHistory.changedBy:id,first_name,last_name',
             'ageVerifiedByUser:id,first_name,last_name',

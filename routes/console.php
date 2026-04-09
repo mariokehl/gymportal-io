@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\MemberAccessConfig;
 use App\Models\MemberBlocklist;
 use App\Services\SchedulerHealthCheckService;
 use Illuminate\Support\Facades\Log;
@@ -81,6 +82,25 @@ Schedule::call(function () {
 
 // Update Laravel Disposable Email
 Schedule::command('disposable:update')->daily();
+
+// ===================================
+// GUEST SERVICE: ABGELAUFENE TAGESKARTEN ZURÜCKSETZEN
+// ===================================
+
+Schedule::call(function () {
+    $expired = MemberAccessConfig::where('day_pass_enabled', true)
+        ->where('day_pass_valid_until', '<', now()->startOfDay())
+        ->update([
+            'day_pass_enabled' => false,
+        ]);
+
+    if ($expired > 0) {
+        Log::info("Guest Service Cleanup: {$expired} abgelaufene Tageskarte(n) deaktiviert");
+    }
+})->dailyAt('02:30')
+  ->timezone('Europe/Berlin')
+  ->name('guest-service.expire-day-passes')
+  ->withoutOverlapping();
 
 // ===================================
 // FRAUD PREVENTION / BLOCKLIST CLEANUP

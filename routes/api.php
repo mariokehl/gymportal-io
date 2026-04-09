@@ -93,6 +93,8 @@ Route::prefix('scanner')->group(function () {
     Route::middleware(['scanner.auth'])->group(function () {
         Route::get('ping', [ScannerController::class, 'ping']);
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
+        Route::post('consume-service', [ScannerController::class, 'consumeService']);
+        Route::post('rollback-service', [ScannerController::class, 'rollbackService']);
         //Route::post('validate', [ScannerController::class, 'validateAccess']);
         //Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
     });

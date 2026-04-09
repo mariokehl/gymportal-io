@@ -24,6 +24,13 @@ class MemberAccessLog extends Model
         'accessed_at',
     ];
 
+    protected $appends = [
+        'action_name',
+        'service_name',
+        'method_name',
+        'formatted_time',
+    ];
+
     protected $casts = [
         'success' => 'boolean',
         'metadata' => 'array',
@@ -35,6 +42,7 @@ class MemberAccessLog extends Model
      */
     const ACTION_ACCESS_ATTEMPT = 'access_attempt';
     const ACTION_CONFIG_UPDATED = 'config_updated';
+    const ACTION_DEVICE_REMOVED = 'device_removed';
     const ACTION_QR_INVALIDATED = 'qr_invalidated';
     const ACTION_APP_LINK_SENT = 'app_link_sent';
     const ACTION_CREDIT_CONSUMED = 'credit_consumed';
@@ -82,6 +90,7 @@ class MemberAccessLog extends Model
         $actions = [
             self::ACTION_ACCESS_ATTEMPT => 'Zugangsversuch',
             self::ACTION_CONFIG_UPDATED => 'Konfiguration aktualisiert',
+            self::ACTION_DEVICE_REMOVED => 'Geräteregistrierung entfernt',
             self::ACTION_QR_INVALIDATED => 'QR-Code invalidiert',
             self::ACTION_APP_LINK_SENT => 'App-Link versendet',
             self::ACTION_CREDIT_CONSUMED => 'Guthaben verbraucht',

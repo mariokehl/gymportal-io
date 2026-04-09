@@ -104,7 +104,8 @@ class MemberAccessController extends Controller
         // Log die Aktion
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'qr_invalidated',
+            'action' => MemberAccessLog::ACTION_QR_INVALIDATED,
+            'success' => true,
             'performed_by' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -134,7 +135,8 @@ class MemberAccessController extends Controller
         // Log die Aktion
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'app_link_sent',
+            'action' => MemberAccessLog::ACTION_APP_LINK_SENT,
+            'success' => true,
             'performed_by' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -210,20 +212,11 @@ class MemberAccessController extends Controller
 
         // Log den Zugangsversuch
         if ($member) {
-            MemberAccessLog::create([
-                'member_id' => $member->id,
-                'action' => 'access_attempt',
-                'service' => $service,
-                'method' => $validated['method'],
-                'success' => $success,
-                'device_id' => $validated['device_id'] ?? null,
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'metadata' => [
-                    'message' => $message,
-                    'identifier' => substr($validated['identifier'], 0, 4) . '***',
-                ],
-            ]);
+            if ($success) {
+                $member->logSuccessfulAccess($service, $validated['method'], $validated['device_id'] ?? null);
+            } else {
+                $member->logFailedAccess($service, $validated['method'], $message, $validated['device_id'] ?? null);
+            }
         }
 
         return response()->json([
@@ -401,7 +394,9 @@ class MemberAccessController extends Controller
 
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'config_updated',
+            'action' => MemberAccessLog::ACTION_CONFIG_UPDATED,
+            'success' => true,
+            'method' => MemberAccessLog::METHOD_MANUAL,
             'performed_by' => $user->id,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -428,7 +423,8 @@ class MemberAccessController extends Controller
 
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'device_removed',
+            'action' => MemberAccessLog::ACTION_DEVICE_REMOVED,
+            'success'=> true,
             'performed_by' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -485,7 +481,8 @@ class MemberAccessController extends Controller
             // Log den Verbrauch
             MemberAccessLog::create([
                 'member_id' => $member->id,
-                'action' => 'credit_consumed',
+                'action' => MemberAccessLog::ACTION_CREDIT_CONSUMED,
+                'success' => true,
                 'service' => $validated['service'],
                 'performed_by' => auth()->id(),
                 'ip_address' => request()->ip(),

@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\CheckIn;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
+use App\Models\MemberAccessLog;
 use App\Models\ScannerAccessLog;
 use App\Services\ScannerValidationService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -73,7 +75,7 @@ class ScannerController extends Controller
 
         try {
             // Mitglied basierend auf Scan-Typ ermitteln
-            if ($scanType === 'qr_code' || $scanType === 'rolling_qr') {
+            if ($scanType === 'qr_code' || $scanType === 'rolling_qr' || $scanType === 'guest_service') {
                 $memberId = $request->input('member_id');
                 $member = Member::find($memberId);
             } elseif ($scanType === 'nfc_card') {
@@ -157,8 +159,8 @@ class ScannerController extends Controller
                 if ($config->visit_card_enabled && $config->visit_card_entries > 0) {
                     $services['visit_card_entries'] = $config->visit_card_entries;
                 }
-                if ($config->day_pass_enabled && $config->isDayPassValid()) {
-                    $services['day_pass_valid_until'] = $config->day_pass_valid_until->toIso8601String();
+                if ($config->day_pass_enabled && ($config->isDayPassValid() || !$config->day_pass_valid_until)) {
+                    $services['day_pass_valid_until'] = $config->day_pass_valid_until?->toIso8601String();
                 }
 
                 if (empty($services)) {
@@ -176,15 +178,76 @@ class ScannerController extends Controller
 
                 // Tageskarte oder 10er-Karte berechtigen zum Zugang (Tür öffnen),
                 // reines Solarium-Guthaben hingegen NICHT.
-                $hasAccessEntitlement = ($config->day_pass_enabled && $config->isDayPassValid())
-                    || ($config->visit_card_enabled && $config->visit_card_entries > 0);
+                $hasAccessEntitlement = false;
+
+                // Tageskarte: Erster Check-In löst den Pass für heute ein
+                if ($config->day_pass_enabled) {
+                    if (!$config->day_pass_valid_until) {
+                        $config->update(['day_pass_valid_until' => now()->endOfDay()]);
+                        $services['day_pass_valid_until'] = $config->day_pass_valid_until->toIso8601String();
+
+                        MemberAccessLog::create([
+                            'member_id' => $member->id,
+                            'action' => MemberAccessLog::ACTION_CREDIT_CONSUMED,
+                            'success' => true,
+                            'method' => MemberAccessLog::METHOD_QR,
+                            'service' => MemberAccessLog::SERVICE_GYM,
+                            'ip_address' => request()->ip(),
+                            'user_agent' => request()->userAgent(),
+                            'metadata' => [
+                                'type' => 'day_pass_redeemed',
+                                'valid_until' => $config->day_pass_valid_until->toIso8601String(),
+                                'scanner_device' => $scanner->device_number ?? null,
+                            ],
+                        ]);
+                    }
+
+                    if ($config->isDayPassValid()) {
+                        $hasAccessEntitlement = true;
+                    }
+                }
+
+                // 10er-Karte: Eintritt decrementieren bei jedem Scan
+                if ($config->visit_card_enabled && $config->visit_card_entries > 0) {
+                    $config->decrement('visit_card_entries');
+                    if ($config->fresh()->visit_card_entries <= 0) {
+                        $config->update(['visit_card_enabled' => false]);
+                    }
+
+                    // Services-Array mit aktuellem Stand aktualisieren
+                    $freshConfig = $config->fresh();
+                    if ($freshConfig->visit_card_entries > 0) {
+                        $services['visit_card_entries'] = $freshConfig->visit_card_entries;
+                    } else {
+                        unset($services['visit_card_entries']);
+                    }
+
+                    MemberAccessLog::create([
+                        'member_id' => $member->id,
+                        'action' => MemberAccessLog::ACTION_CREDIT_CONSUMED,
+                        'success' => true,
+                        'method' => MemberAccessLog::METHOD_QR,
+                        'service' => MemberAccessLog::SERVICE_GYM,
+                        'performed_by' => null,
+                        'ip_address' => request()->ip(),
+                        'user_agent' => request()->userAgent(),
+                        'metadata' => [
+                            'amount' => 1,
+                            'scanner_device' => $scanner->device_number ?? null,
+                            'method' => 'scanner',
+                            'remaining' => $freshConfig->visit_card_entries,
+                        ],
+                    ]);
+
+                    $hasAccessEntitlement = true;
+                }
 
                 if ($hasAccessEntitlement) {
                     CheckIn::create([
                         'member_id' => $member->id,
                         'gym_id' => $member->gym_id,
                         'check_in_time' => now(),
-                        'check_in_method' => 'guest_service',
+                        'check_in_method' => 'qr_code',
                     ]);
                 }
 
@@ -307,6 +370,177 @@ class ScannerController extends Controller
             }
 
             return response(status: 500);
+        }
+    }
+
+    /**
+     * Scanner löst Service-Guthaben ein (z.B. Solarium-Minuten)
+     * Route: POST /api/scanner/consume-service
+     */
+    public function consumeService(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'member_id' => 'required|string',
+            'service' => 'required|string|in:solarium',
+            'amount' => 'required|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed', 'details' => $validator->errors()], 422);
+        }
+
+        $scanner = $request->get('scanner');
+        $member = Member::find($request->input('member_id'));
+
+        if (!$member) {
+            return response()->json(['error' => 'Mitglied nicht gefunden'], 404);
+        }
+
+        $config = $member->accessConfig;
+        if (!$config) {
+            return response()->json(['error' => 'Keine Zugangskonfiguration vorhanden'], 404);
+        }
+
+        $service = $request->input('service');
+        $amount = $request->input('amount');
+
+        try {
+            DB::transaction(function () use ($config, $service, $amount, $member, $scanner) {
+                switch ($service) {
+                    case 'solarium':
+                        if (!$config->solarium_enabled || $config->solarium_minutes < $amount) {
+                            throw new Exception('Nicht genügend Solarium-Minuten verfügbar');
+                        }
+                        $config->decrement('solarium_minutes', $amount);
+                        if ($config->fresh()->solarium_minutes <= 0) {
+                            $config->update(['solarium_enabled' => false, 'solarium_minutes' => 0]);
+                        }
+                        break;
+                }
+
+                MemberAccessLog::create([
+                    'member_id' => $member->id,
+                    'action' => MemberAccessLog::ACTION_CREDIT_CONSUMED,
+                    'success' => true,
+                    'service' => $service,
+                    'performed_by' => null,
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'metadata' => [
+                        'amount' => $amount,
+                        'scanner_device' => $scanner->device_number ?? null,
+                        'method' => 'scanner',
+                        'remaining' => $config->fresh()->only([
+                            'solarium_minutes', 'solarium_enabled',
+                        ]),
+                    ],
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Service-Guthaben eingelöst',
+                'remaining' => $config->fresh()->only([
+                    'solarium_minutes', 'solarium_enabled',
+                ]),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Service consume error', [
+                'member_id' => $member->id,
+                'service' => $service,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 403);
+        }
+    }
+
+    /**
+     * Rollback von Service-Guthaben (z.B. bei Shelly-Relay-Fehler)
+     * Route: POST /api/scanner/rollback-service
+     */
+    public function rollbackService(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'member_id' => 'required|string',
+            'service' => 'required|string|in:solarium',
+            'amount' => 'required|integer|min:1',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed', 'details' => $validator->errors()], 422);
+        }
+
+        $scanner = $request->get('scanner');
+        $member = Member::find($request->input('member_id'));
+
+        if (!$member) {
+            return response()->json(['error' => 'Mitglied nicht gefunden'], 404);
+        }
+
+        $config = $member->accessConfig;
+        if (!$config) {
+            return response()->json(['error' => 'Keine Zugangskonfiguration vorhanden'], 404);
+        }
+
+        $service = $request->input('service');
+        $amount = $request->input('amount');
+        $reason = $request->input('reason');
+
+        try {
+            DB::transaction(function () use ($config, $service, $amount, $member, $scanner, $reason) {
+                switch ($service) {
+                    case 'solarium':
+                        $config->increment('solarium_minutes', $amount);
+                        if (!$config->solarium_enabled) {
+                            $config->update(['solarium_enabled' => true]);
+                        }
+                        break;
+                }
+
+                MemberAccessLog::create([
+                    'member_id' => $member->id,
+                    'action' => MemberAccessLog::ACTION_CREDIT_ADDED,
+                    'success' => true,
+                    'service' => $service,
+                    'performed_by' => null,
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'metadata' => [
+                        'amount' => $amount,
+                        'reason' => $reason,
+                        'scanner_device' => $scanner->device_number ?? null,
+                        'method' => 'scanner_rollback',
+                        'remaining' => $config->fresh()->only([
+                            'solarium_minutes', 'solarium_enabled',
+                        ]),
+                    ],
+                ]);
+            });
+
+            Log::warning('Service rollback executed', [
+                'member_id' => $member->id,
+                'service' => $service,
+                'amount' => $amount,
+                'reason' => $reason,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Service-Guthaben zurückgebucht',
+                'remaining' => $config->fresh()->only([
+                    'solarium_minutes', 'solarium_enabled',
+                ]),
+            ]);
+        } catch (Exception $e) {
+            Log::error('Service rollback error', [
+                'member_id' => $member->id,
+                'service' => $service,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

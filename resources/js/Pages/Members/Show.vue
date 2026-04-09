@@ -1308,6 +1308,7 @@
                   <thead class="bg-gray-50">
                     <tr>
                       <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zeitpunkt</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aktion</th>
                       <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
                       <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Methode</th>
                       <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -1315,12 +1316,28 @@
                   </thead>
                   <tbody class="divide-y divide-gray-200">
                     <tr v-for="log in accessLogs" :key="log.id" class="hover:bg-gray-50">
-                      <td class="px-4 py-3 text-sm">{{ formatDateTime(log.accessed_at) }}</td>
+                      <td class="px-4 py-3 text-sm">{{ log.formatted_time }}</td>
+                      <td class="px-4 py-3 text-sm">
+                        <span class="inline-flex items-center gap-1">
+                          {{ log.action_name }}
+                          <Tooltip v-if="log.metadata && Object.keys(log.metadata).length" position="right">
+                            <Info class="w-3.5 h-3.5 text-gray-400 cursor-help" />
+                            <template #content>
+                              <div class="space-y-1 text-xs">
+                                <div v-for="(value, key) in log.metadata" :key="key" class="flex gap-2">
+                                  <span class="text-gray-400 font-medium">{{ key }}:</span>
+                                  <span class="text-white">{{ typeof value === 'object' ? JSON.stringify(value) : value }}</span>
+                                </div>
+                              </div>
+                            </template>
+                          </Tooltip>
+                        </span>
+                      </td>
                       <td class="px-4 py-3 text-sm">{{ log.service_name }}</td>
                       <td class="px-4 py-3 text-sm">
                         <span class="inline-flex items-center gap-1">
                           <component :is="getAccessMethodIcon(log.method)" class="w-4 h-4" />
-                          {{ log.method }}
+                          {{ log.method_name }}
                         </span>
                       </td>
                       <td class="px-4 py-3 text-sm">
@@ -2169,6 +2186,7 @@ import IbanInput from '@/Components/IbanInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
 import MemberDocumentsTab from '@/Components/MemberDocumentsTab.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,
   ArrowLeft, Wallet, AlertCircle, CheckCircle,
