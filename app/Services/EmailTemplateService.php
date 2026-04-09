@@ -227,6 +227,9 @@ class EmailTemplateService
 
                     <p style="text-align: center;"><strong><a href="[Mitgliederbereich-Link]">→ Zum Mitgliederbereich</a></strong></p>
 
+                    <p>Alternativ können Sie Ihre offene Zahlung direkt über folgenden Link begleichen:<br>
+                    <strong><a href="[Mollie-Zahlungslink]">→ Jetzt bezahlen</a></strong></p>
+
                     <p><strong>Benötigen Sie Hilfe?</strong><br>
                     Unser Team steht Ihnen gerne zur Verfügung. Kontaktieren Sie uns unter <strong>[Telefon]</strong>.</p>
 
@@ -432,6 +435,9 @@ class EmailTemplateService
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
         ]);
+
+        // Payment data
+        $data['[Mollie-Zahlungslink]'] = $additionalData['checkout_url'] ?? '';
 
         // Contract data (if member has active contract)
         // Prioritize linked paid membership if available (e.g., when current membership is a free trial)

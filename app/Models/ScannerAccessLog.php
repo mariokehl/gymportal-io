@@ -252,7 +252,7 @@ class ScannerAccessLog extends Model
      */
     public function scopeQrCode(Builder $query): Builder
     {
-        return $query->where('scan_type', self::SCAN_TYPE_QR);
+        return $query->whereIn('scan_type', [self::SCAN_TYPE_QR, self::SCAN_TYPE_ROLLING_QR]);
     }
 
     /**

@@ -9,6 +9,7 @@ use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -84,6 +85,60 @@ class PaymentController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Zahlung wurde erfolgreich abgebrochen.');
+    }
+
+    public function createPaymentLink(Payment $payment): JsonResponse
+    {
+        $this->authorize('update', $payment);
+
+        if ($payment->mollie_payment_id) {
+            return response()->json([
+                'error' => 'Für diese Zahlung existiert bereits eine Mollie-Zahlungs-ID.',
+            ], 422);
+        }
+
+        if ($payment->status !== 'pending') {
+            return response()->json([
+                'error' => 'Ein Zahlungslink kann nur für ausstehende Zahlungen erstellt werden.',
+            ], 422);
+        }
+
+        try {
+            $mollieService = app(MollieService::class);
+            $molliePayment = $mollieService->createPaymentLink($payment);
+
+            return response()->json([
+                'checkout_url' => $molliePayment->getCheckoutUrl(),
+                'mollie_payment_id' => $molliePayment->id,
+                'payment_method' => 'mollie_paymentlink',
+                'payment_method_text' => 'Mollie: Zahlungslink',
+            ]);
+        } catch (Exception $e) {
+            Log::error('Failed to create Mollie payment link: ' . $e->getMessage(), [
+                'payment_id' => $payment->id,
+            ]);
+
+            return response()->json([
+                'error' => 'Mollie-Zahlungslink konnte nicht erstellt werden: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateNotes(Request $request, Payment $payment): JsonResponse
+    {
+        $this->authorize('update', $payment);
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $payment->update([
+            'notes' => $validated['notes'],
+        ]);
+
+        return response()->json([
+            'notes' => $payment->notes,
+        ]);
     }
 
     public function refund(Payment $payment): RedirectResponse

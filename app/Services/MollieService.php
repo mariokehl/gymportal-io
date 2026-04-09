@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Events\MembershipActivated;
 use App\Jobs\CreateMollieMandate;
 use App\Models\FraudCheck;
 use App\Models\Gym;
@@ -20,14 +19,17 @@ use Mollie\Api\Resources\Customer;
 use Mollie\Api\Resources\Mandate;
 use Mollie\Api\Resources\Payment as MolliePayment;
 use Mollie\Api\Resources\MethodCollection;
-use Mollie\Api\Resources\Refund;
+use Mollie\Api\Resources\Refund as MollieRefund;
 use Mollie\Api\Resources\RefundCollection;
 use Mollie\Api\Resources\Chargeback as MollieChargeback;
 use Mollie\Api\Resources\ChargebackCollection;
+use Mollie\Api\Resources\PaymentLink as MolliePaymentLink;
 use Mollie\Api\Types\MandateMethod;
 
 class MollieService
 {
+    public const CHARGEBACK_FEE = 10.00;
+
     protected $client;
 
     public function __construct()
@@ -313,6 +315,44 @@ class MollieService
     }
 
     /**
+     * Create a Mollie payment link for an existing local payment.
+     * This creates a oneoff Mollie payment and stores the checkout URL.
+     */
+    public function createPaymentLink(Payment $payment): MolliePaymentLink
+    {
+        $gym = $payment->gym;
+        $client = $this->initializeClient($gym);
+        $config = $this->getConfig($gym);
+
+        $mollieParams = [
+            'amount' => [
+                'currency' => $payment->currency ?? 'EUR',
+                'value' => number_format($payment->amount, 2, '.', ''),
+            ],
+            'description' => $this->formatDescription($config, $payment->description),
+            'redirectUrl' => $config['redirect_url'] ?? url('/'),
+            'webhookUrl' => $config['webhook_url'] ?? '',
+            'metadata' => [
+                'payment_id' => $payment->id,
+                'member_id' => $payment->member_id,
+                'membership_id' => $payment->membership_id,
+                'gym_id' => $gym->id,
+            ],
+            'expiresAt' => now()->addDays(14)->toIso8601String(),
+        ];
+
+        $molliePayment = $client->paymentLinks->create($mollieParams);
+
+        $payment->update([
+            'mollie_payment_id' => $molliePayment->id,
+            'checkout_url' => $molliePayment->getCheckoutUrl(),
+            'payment_method' => 'mollie_paymentlink',
+        ]);
+
+        return $molliePayment;
+    }
+
+    /**
      * Get a payment from Mollie
      */
     public function getPayment(Gym $gym, string $paymentId): MolliePayment
@@ -320,6 +360,45 @@ class MollieService
         $client = $this->initializeClient($gym);
 
         return $client->payments->get($paymentId);
+    }
+
+    /**
+     * Get the paid payment for a payment link from Mollie API
+     */
+    public function getPaidPaymentForLink(Gym $gym, string $paymentLinkId): ?MolliePayment
+    {
+        $config = $this->getConfig($gym);
+        $apiKey = $config['api_key'] ?? null;
+
+        if (!$apiKey) {
+            throw new Exception('Mollie API-Schlüssel nicht konfiguriert');
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+        ])->get("https://api.mollie.com/v2/payment-links/{$paymentLinkId}/payments");
+
+        if (!$response->successful()) {
+            Log::error('Mollie: Failed to fetch payment link payments', [
+                'payment_link_id' => $paymentLinkId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return null;
+        }
+
+        $payments = $response->json('_embedded.payments', []);
+
+        foreach ($payments as $paymentData) {
+            if ($paymentData['status'] === 'paid') {
+                $client = $this->initializeClient($gym);
+
+                return $client->payments->get($paymentData['id']);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -912,7 +991,7 @@ class MollieService
     /**
      * Create refund
      */
-    public function createRefund(Gym $gym, string $paymentId, ?float $amount = null, ?string $description = null): Refund
+    public function createRefund(Gym $gym, string $paymentId, ?float $amount = null, ?string $description = null): MollieRefund
     {
         $client = $this->initializeClient($gym);
         $molliePayment = $this->getPayment($gym, $paymentId);
@@ -1014,7 +1093,7 @@ class MollieService
     /**
      * Get a specific refund
      */
-    public function getRefund(Gym $gym, string $paymentId, string $refundId): Refund
+    public function getRefund(Gym $gym, string $paymentId, string $refundId): MollieRefund
     {
         $client = $this->initializeClient($gym);
 

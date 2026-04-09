@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Services\MemberService;
 use App\Services\PaymentService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,8 @@ use Inertia\Inertia;
 
 class MembershipController extends Controller
 {
+    use AuthorizesRequests;
+
     public function __construct(
         private MemberService $memberService
     ) {}
@@ -26,6 +29,8 @@ class MembershipController extends Controller
      */
     public function storeFreePeriod(Request $request, Member $member)
     {
+        $this->authorize('create', Membership::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -86,6 +91,8 @@ class MembershipController extends Controller
      */
     public function activate(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -130,6 +137,8 @@ class MembershipController extends Controller
      */
     public function pause(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Validierung
         $validated = $request->validate([
             'pause_start_date' => 'required|date|after_or_equal:today',
@@ -196,6 +205,8 @@ class MembershipController extends Controller
      */
     public function resume(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -254,6 +265,8 @@ class MembershipController extends Controller
      */
     public function cancel(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Validierung
         $validated = $request->validate([
             'cancellation_date' => 'required|date|after_or_equal:today',
@@ -379,6 +392,8 @@ class MembershipController extends Controller
      */
     public function revokeCancellation(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -435,6 +450,8 @@ class MembershipController extends Controller
      */
     public function abort(Request $request, Member $member, Membership $membership)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -480,6 +497,68 @@ class MembershipController extends Controller
     }
 
     /**
+     * Forciert einen Statuswechsel ohne weitere Prüfungen
+     */
+    public function forceStatus(Request $request, Member $member, Membership $membership)
+    {
+        $this->authorize('update', $membership);
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:active,paused,cancelled,expired,pending,withdrawn',
+        ]);
+
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        $newStatus = $validated['status'];
+
+        if ($membership->status === $newStatus) {
+            return back()->withErrors([
+                'status' => 'Die Mitgliedschaft befindet sich bereits im Status "' . $newStatus . '".'
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            $previousStatus = $membership->status;
+
+            $membership->update([
+                'status' => $newStatus,
+                'notes' => ($membership->notes ? $membership->notes . "\n" : '') .
+                          "Status forciert: {$previousStatus} → {$newStatus} am " . now()->format('d.m.Y H:i') .
+                          " (durch " . auth()->user()->name . ")"
+            ]);
+
+            Log::info('Membership status force-changed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'previous_status' => $previousStatus,
+                'new_status' => $newStatus,
+                'admin_user_id' => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            $statusLabels = [
+                'active' => 'Aktiv',
+                'paused' => 'Pausiert',
+                'cancelled' => 'Gekündigt',
+                'expired' => 'Abgelaufen',
+                'pending' => 'Ausstehend',
+                'withdrawn' => 'Widerrufen',
+            ];
+
+            return back()->with('success', 'Der Mitgliedschafts-Status wurde auf "' . ($statusLabels[$newStatus] ?? $newStatus) . '" geändert.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors([
+                'error' => 'Der Status konnte nicht geändert werden: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Widerruft eine Mitgliedschaft gemäß § 356a BGB
      *
      * Der manuelle Widerruf aus dem Admin-Bereich löst ebenfalls
@@ -487,6 +566,8 @@ class MembershipController extends Controller
      */
     public function withdraw(Request $request, Member $member, Membership $membership, PaymentService $paymentService)
     {
+        $this->authorize('update', $membership);
+
         // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
@@ -495,49 +576,55 @@ class MembershipController extends Controller
         // Validierung
         $validated = $request->validate([
             'confirmation_email' => 'nullable|email|max:255',
+            'force' => 'nullable|boolean',
         ]);
 
-        // Prüfen ob Widerruf möglich ist
-        if ($membership->is_free_trial) {
-            return back()->withErrors([
-                'error' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.'
-            ]);
-        }
+        $force = $request->boolean('force');
 
-        if ($membership->withdrawn_at) {
-            return back()->withErrors([
-                'error' => 'Diese Mitgliedschaft wurde bereits widerrufen.'
-            ]);
-        }
+        // Prüfungen überspringen wenn forciert
+        if (!$force) {
+            // Prüfen ob Widerruf möglich ist
+            if ($membership->is_free_trial) {
+                return back()->withErrors([
+                    'error' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.'
+                ]);
+            }
 
-        if ($membership->status === 'cancelled') {
-            return back()->withErrors([
-                'error' => 'Gekündigte Verträge können nicht widerrufen werden.'
-            ]);
-        }
+            if ($membership->withdrawn_at) {
+                return back()->withErrors([
+                    'error' => 'Diese Mitgliedschaft wurde bereits widerrufen.'
+                ]);
+            }
 
-        if (!in_array($membership->status, ['active', 'pending'])) {
-            return back()->withErrors([
-                'error' => 'Diese Mitgliedschaft kann nicht widerrufen werden.'
-            ]);
-        }
+            if ($membership->status === 'cancelled') {
+                return back()->withErrors([
+                    'error' => 'Gekündigte Verträge können nicht widerrufen werden.'
+                ]);
+            }
 
-        // Widerrufsfrist prüfen (14 Tage)
-        $contractStartDate = $membership->contract_start_date;
-        if (!$contractStartDate) {
-            return back()->withErrors([
-                'error' => 'Vertragsstartdatum konnte nicht ermittelt werden.'
-            ]);
-        }
+            if (!in_array($membership->status, ['active', 'pending'])) {
+                return back()->withErrors([
+                    'error' => 'Diese Mitgliedschaft kann nicht widerrufen werden.'
+                ]);
+            }
 
-        $startDate = Carbon::parse($contractStartDate);
-        $withdrawalDeadline = $startDate->copy()->addDays(14)->endOfDay();
+            // Widerrufsfrist prüfen (14 Tage)
+            $contractStartDate = $membership->contract_start_date;
+            if (!$contractStartDate) {
+                return back()->withErrors([
+                    'error' => 'Vertragsstartdatum konnte nicht ermittelt werden.'
+                ]);
+            }
 
-        if (now()->isAfter($withdrawalDeadline)) {
-            return back()->withErrors([
-                'error' => 'Die 14-tägige Widerrufsfrist ist bereits abgelaufen (Fristende: ' .
-                          $withdrawalDeadline->format('d.m.Y H:i') . ').'
-            ]);
+            $startDate = Carbon::parse($contractStartDate);
+            $withdrawalDeadline = $startDate->copy()->addDays(14)->endOfDay();
+
+            if (now()->isAfter($withdrawalDeadline)) {
+                return back()->withErrors([
+                    'error' => 'Die 14-tägige Widerrufsfrist ist bereits abgelaufen (Fristende: ' .
+                              $withdrawalDeadline->format('d.m.Y H:i') . ').'
+                ]);
+            }
         }
 
         // E-Mail aus Request oder Member-Profil
