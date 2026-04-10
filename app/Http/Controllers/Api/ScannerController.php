@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CheckIn;
+use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
+use App\Models\PendingSolariumRedemption;
 use App\Models\ScannerAccessLog;
 use App\Services\ScannerValidationService;
 use Exception;
@@ -176,9 +178,15 @@ class ScannerController extends Controller
                     ], 403);
                 }
 
-                // Tageskarte oder 10er-Karte berechtigen zum Zugang (Tür öffnen),
-                // reines Solarium-Guthaben hingegen NICHT.
+                // An einem Solarium-POI reicht bereits Solarium-Guthaben für Zugang
+                // (Tür zum Solarium-Raum öffnen). An Eingangs-POIs gewähren nur
+                // Tageskarte oder 10er-Karte Zugang.
+                $isSolariumPoi = ($scanner->poi_type ?? GymScanner::POI_TYPE_ENTRANCE) === GymScanner::POI_TYPE_SOLARIUM;
                 $hasAccessEntitlement = false;
+
+                if ($isSolariumPoi && $config->solarium_enabled && $config->solarium_minutes > 0) {
+                    $hasAccessEntitlement = true;
+                }
 
                 // Tageskarte: Erster Check-In löst den Pass für heute ein
                 if ($config->day_pass_enabled) {
@@ -247,7 +255,7 @@ class ScannerController extends Controller
                         'member_id' => $member->id,
                         'gym_id' => $member->gym_id,
                         'check_in_time' => now(),
-                        'check_in_method' => 'qr_code',
+                        'check_in_method' => $isSolariumPoi ? 'guest_service' : 'qr_code',
                     ]);
                 }
 
@@ -541,6 +549,207 @@ class ScannerController extends Controller
             ]);
 
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Scanner (Solarium-POI) holt alle offenen Solarium-Redemptions für sein Gym.
+     * Route: GET /api/scanner/pending-solarium-redemptions
+     *
+     * Gibt zusätzlich ein has_recent_checkins Flag zurück, damit der Pi in einen
+     * Hot-Poll Modus wechseln kann, wenn kürzlich ein Gast am Solarium-POI
+     * eingecheckt hat.
+     */
+    public function pendingSolariumRedemptions(Request $request)
+    {
+        $scanner = $request->get('scanner');
+
+        // Nur Solarium-POIs dürfen pollen
+        if (($scanner->poi_type ?? null) !== GymScanner::POI_TYPE_SOLARIUM) {
+            return response()->json([
+                'error' => 'Dieser Scanner ist kein Solarium-POI',
+            ], 403);
+        }
+
+        // Abgelaufene Redemptions on-read bereinigen (Guthaben zurückbuchen)
+        $this->expireStalePendingRedemptions($scanner->gym_id);
+
+        $redemptions = PendingSolariumRedemption::where('gym_id', $scanner->gym_id)
+            ->where('status', PendingSolariumRedemption::STATUS_PENDING)
+            ->orderBy('created_at', 'asc')
+            ->get(['id', 'member_id', 'minutes', 'created_at']);
+
+        // Hot-Poll Window: Gab es in den letzten 2 Minuten einen Check-In
+        // an einem Solarium-POI dieses Gyms?
+        $hasRecentCheckins = CheckIn::where('gym_id', $scanner->gym_id)
+            ->where('check_in_method', 'guest_service')
+            ->where('check_in_time', '>=', now()->subMinutes(2))
+            ->exists();
+
+        return response()->json([
+            'redemptions' => $redemptions->map(fn ($r) => [
+                'id' => $r->id,
+                'member_id' => $r->member_id,
+                'minutes' => $r->minutes,
+                'created_at' => $r->created_at->toIso8601String(),
+            ])->values(),
+            'has_recent_checkins' => $hasRecentCheckins,
+        ]);
+    }
+
+    /**
+     * Scanner (Solarium-POI) bestätigt eine Redemption.
+     * Route: POST /api/scanner/pending-solarium-redemptions/{id}/acknowledge
+     *
+     * Bei status=completed: Redemption wird abgeschlossen.
+     * Bei status=failed: Redemption schlägt fehl, reservierte Minuten werden
+     * an den Member zurückgebucht.
+     */
+    public function acknowledgeSolariumRedemption(Request $request, int $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:completed,failed',
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed'], 422);
+        }
+
+        $scanner = $request->get('scanner');
+
+        if (($scanner->poi_type ?? null) !== GymScanner::POI_TYPE_SOLARIUM) {
+            return response()->json([
+                'error' => 'Dieser Scanner ist kein Solarium-POI',
+            ], 403);
+        }
+
+        $redemption = PendingSolariumRedemption::where('id', $id)
+            ->where('gym_id', $scanner->gym_id)
+            ->first();
+
+        if (!$redemption) {
+            return response()->json(['error' => 'Redemption nicht gefunden'], 404);
+        }
+
+        if (!$redemption->isPending()) {
+            return response()->json([
+                'error' => 'Redemption ist nicht mehr im pending Status',
+                'current_status' => $redemption->status,
+            ], 409);
+        }
+
+        $status = $request->input('status');
+        $reason = $request->input('reason');
+
+        try {
+            DB::transaction(function () use ($redemption, $scanner, $status, $reason) {
+                $redemption->update([
+                    'status' => $status === 'completed'
+                        ? PendingSolariumRedemption::STATUS_COMPLETED
+                        : PendingSolariumRedemption::STATUS_FAILED,
+                    'failure_reason' => $reason,
+                    'acknowledged_by_scanner_id' => $scanner->id,
+                    'acknowledged_at' => now(),
+                ]);
+
+                // Bei Fehlschlag: Guthaben zurückbuchen
+                if ($status === 'failed') {
+                    $config = MemberAccessConfig::where('member_id', $redemption->member_id)->first();
+                    if ($config) {
+                        $config->increment('solarium_minutes', $redemption->minutes);
+                        if (!$config->solarium_enabled) {
+                            $config->update(['solarium_enabled' => true]);
+                        }
+
+                        MemberAccessLog::create([
+                            'member_id' => $redemption->member_id,
+                            'action' => MemberAccessLog::ACTION_CREDIT_ADDED,
+                            'success' => true,
+                            'method' => MemberAccessLog::METHOD_QR,
+                            'service' => MemberAccessLog::SERVICE_SOLARIUM,
+                            'ip_address' => request()->ip(),
+                            'user_agent' => request()->userAgent(),
+                            'metadata' => [
+                                'amount' => $redemption->minutes,
+                                'reason' => 'redemption_failed: ' . ($reason ?? 'unknown'),
+                                'scanner_device' => $scanner->device_number,
+                                'redemption_id' => $redemption->id,
+                            ],
+                        ]);
+                    }
+                }
+            });
+
+            Log::info('Solarium redemption acknowledged', [
+                'redemption_id' => $redemption->id,
+                'status' => $status,
+                'scanner_device' => $scanner->device_number,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'status' => $redemption->fresh()->status,
+            ]);
+        } catch (Exception $e) {
+            Log::error('Acknowledge redemption error', [
+                'redemption_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Acknowledge fehlgeschlagen'], 500);
+        }
+    }
+
+    /**
+     * Läuft durch alle pending redemptions eines Gyms und markiert solche als
+     * expired, die älter als EXPIRY_SECONDS sind. Reserviertes Guthaben wird
+     * zurückgebucht.
+     */
+    private function expireStalePendingRedemptions(int $gymId): void
+    {
+        $cutoff = now()->subSeconds(PendingSolariumRedemption::EXPIRY_SECONDS);
+
+        $stale = PendingSolariumRedemption::where('gym_id', $gymId)
+            ->where('status', PendingSolariumRedemption::STATUS_PENDING)
+            ->where('created_at', '<', $cutoff)
+            ->get();
+
+        foreach ($stale as $redemption) {
+            try {
+                DB::transaction(function () use ($redemption) {
+                    $redemption->update([
+                        'status' => PendingSolariumRedemption::STATUS_EXPIRED,
+                        'failure_reason' => 'auto_expired_no_acknowledge',
+                    ]);
+
+                    $config = MemberAccessConfig::where('member_id', $redemption->member_id)->first();
+                    if ($config) {
+                        $config->increment('solarium_minutes', $redemption->minutes);
+                        if (!$config->solarium_enabled) {
+                            $config->update(['solarium_enabled' => true]);
+                        }
+
+                        MemberAccessLog::create([
+                            'member_id' => $redemption->member_id,
+                            'action' => MemberAccessLog::ACTION_CREDIT_ADDED,
+                            'success' => true,
+                            'method' => MemberAccessLog::METHOD_QR,
+                            'service' => MemberAccessLog::SERVICE_SOLARIUM,
+                            'metadata' => [
+                                'amount' => $redemption->minutes,
+                                'reason' => 'redemption_expired',
+                                'redemption_id' => $redemption->id,
+                            ],
+                        ]);
+                    }
+                });
+            } catch (Exception $e) {
+                Log::error('Expire stale redemption failed', [
+                    'redemption_id' => $redemption->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

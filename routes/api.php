@@ -8,6 +8,7 @@ use App\Http\Controllers\Guest\GuestAuthController;
 use App\Http\Controllers\Guest\GuestGymController;
 use App\Http\Controllers\Guest\GuestProfileController;
 use App\Http\Controllers\Guest\GuestShopController;
+use App\Http\Controllers\Guest\GuestSolariumController;
 use App\Http\Controllers\Guest\GuestWalletController;
 use App\Http\Controllers\Pwa\AuthController;
 use App\Http\Controllers\Pwa\CheckInController;
@@ -95,6 +96,8 @@ Route::prefix('scanner')->group(function () {
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
         Route::post('consume-service', [ScannerController::class, 'consumeService']);
         Route::post('rollback-service', [ScannerController::class, 'rollbackService']);
+        Route::get('pending-solarium-redemptions', [ScannerController::class, 'pendingSolariumRedemptions']);
+        Route::post('pending-solarium-redemptions/{id}/acknowledge', [ScannerController::class, 'acknowledgeSolariumRedemption']);
         //Route::post('validate', [ScannerController::class, 'validateAccess']);
         //Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
     });
@@ -143,6 +146,11 @@ Route::group(['prefix' => 'guests'], function () {
         Route::get('qr-code', [GuestProfileController::class, 'generateQrCode']);
         Route::get('purchases', [GuestProfileController::class, 'purchases']);
         Route::get('balance', [GuestProfileController::class, 'balance']);
+
+        // Solarium Redemption
+        Route::post('solarium/redeem', [GuestSolariumController::class, 'redeem']);
+        Route::get('solarium/redemption/{id}/status', [GuestSolariumController::class, 'status']);
+        Route::delete('solarium/redemption/{id}', [GuestSolariumController::class, 'cancel']);
 
         // Wallet passes
         Route::get('wallet/apple-pass', [GuestWalletController::class, 'applePass']);

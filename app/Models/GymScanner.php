@@ -7,10 +7,14 @@ use Illuminate\Support\Str;
 
 class GymScanner extends Model
 {
+    public const POI_TYPE_ENTRANCE = 'entrance';
+    public const POI_TYPE_SOLARIUM = 'solarium';
+
     protected $fillable = [
         'gym_id',
         'device_number',
         'device_name',
+        'poi_type',
         'ip_address',
         'is_active',
         'allowed_ips',

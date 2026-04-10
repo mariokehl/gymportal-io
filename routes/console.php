@@ -1,8 +1,11 @@
 <?php
 
 use App\Models\MemberAccessConfig;
+use App\Models\MemberAccessLog;
 use App\Models\MemberBlocklist;
+use App\Models\PendingSolariumRedemption;
 use App\Services\SchedulerHealthCheckService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
@@ -82,6 +85,67 @@ Schedule::call(function () {
 
 // Update Laravel Disposable Email
 Schedule::command('disposable:update')->daily();
+
+// ===================================
+// GUEST SERVICE: PENDING SOLARIUM REDEMPTIONS EXPIREN
+// ===================================
+
+// Läuft jede Minute: Markiert pending redemptions älter als EXPIRY_SECONDS
+// als expired und bucht das reservierte Guthaben zurück. Das ist ein
+// Safety-Net falls weder Pi noch PWA den Eintrag abräumen.
+Schedule::call(function () {
+    $cutoff = now()->subSeconds(PendingSolariumRedemption::EXPIRY_SECONDS);
+
+    $stale = PendingSolariumRedemption::where('status', PendingSolariumRedemption::STATUS_PENDING)
+        ->where('created_at', '<', $cutoff)
+        ->get();
+
+    $expiredCount = 0;
+
+    foreach ($stale as $redemption) {
+        try {
+            DB::transaction(function () use ($redemption, &$expiredCount) {
+                $redemption->update([
+                    'status' => PendingSolariumRedemption::STATUS_EXPIRED,
+                    'failure_reason' => 'auto_expired_scheduled',
+                ]);
+
+                $config = MemberAccessConfig::where('member_id', $redemption->member_id)->first();
+                if ($config) {
+                    $config->increment('solarium_minutes', $redemption->minutes);
+                    if (!$config->solarium_enabled) {
+                        $config->update(['solarium_enabled' => true]);
+                    }
+
+                    MemberAccessLog::create([
+                        'member_id' => $redemption->member_id,
+                        'action' => MemberAccessLog::ACTION_CREDIT_ADDED,
+                        'success' => true,
+                        'method' => MemberAccessLog::METHOD_QR,
+                        'service' => MemberAccessLog::SERVICE_SOLARIUM,
+                        'metadata' => [
+                            'amount' => $redemption->minutes,
+                            'reason' => 'redemption_expired_scheduled',
+                            'redemption_id' => $redemption->id,
+                        ],
+                    ]);
+                }
+                $expiredCount++;
+            });
+        } catch (\Exception $e) {
+            Log::error('Scheduled expire redemption failed', [
+                'redemption_id' => $redemption->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    if ($expiredCount > 0) {
+        Log::info("Solarium Redemption Cleanup: {$expiredCount} Redemption(s) expired");
+    }
+})->everyMinute()
+  ->name('solarium.expire-pending-redemptions')
+  ->withoutOverlapping();
 
 // ===================================
 // GUEST SERVICE: ABGELAUFENE TAGESKARTEN ZURÜCKSETZEN
