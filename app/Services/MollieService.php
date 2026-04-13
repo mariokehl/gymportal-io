@@ -28,6 +28,8 @@ use Mollie\Api\Types\MandateMethod;
 
 class MollieService
 {
+    private const MOLLIE_DESCRIPTION_MAX_LENGTH = 255;
+
     public const CHARGEBACK_FEE = 10.00;
 
     protected $client;
@@ -187,13 +189,15 @@ class MollieService
         // Validate payment details
         $this->validatePaymentData($paymentData);
 
+        $member = $this->resolveMemberFromPaymentData($paymentData);
+
         // Basis-Parameter für Mollie Payment
         $mollieParams = [
             'amount' => [
                 'currency' => $paymentData['currency'] ?? 'EUR',
                 'value' => number_format($paymentData['amount'], 2, '.', '')
             ],
-            'description' => $this->formatDescription($config, $paymentData['description']),
+            'description' => $this->formatDescription($config, $paymentData['description'], $member),
             'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
             'webhookUrl' => $config['webhook_url'] ?? '',
             'method' => str_starts_with($paymentData['method'], 'mollie_')
@@ -233,11 +237,12 @@ class MollieService
         $paymentData = [
             'amount' => $payment->amount,
             'currency' => $payment->currency ?? 'EUR',
-            'description' => $this->formatDescription($config, $payment->description),
+            'description' => $payment->description,
             'method' => $paymentMethod->type,
             'customerId' => $paymentMethod->mollie_customer_id,
             'sequenceType' => 'recurring', // (also for one-off payments with an existing mandate)
             'mandateId' => $paymentMethod->mollie_mandate_id,
+            'member' => $member,
             'metadata' => [
                 'payment_id' => $payment->id,
                 'member_id' => $member->id,
@@ -284,12 +289,14 @@ class MollieService
      */
     private function getMollieParamsBy(array $paymentData, array $config): array
     {
+        $member = $this->resolveMemberFromPaymentData($paymentData);
+
         $mollieParams = [
             'amount' => [
                 'currency' => $paymentData['currency'] ?? 'EUR',
                 'value' => number_format($paymentData['amount'], 2, '.', '')
             ],
-            'description' => $this->formatDescription($config, $paymentData['description']),
+            'description' => $this->formatDescription($config, $paymentData['description'], $member),
             'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
             'webhookUrl' => $paymentData['webhookUrl'] ?? $config['webhook_url'],
             'method' => str_starts_with($paymentData['method'], 'mollie_')
@@ -329,7 +336,7 @@ class MollieService
                 'currency' => $payment->currency ?? 'EUR',
                 'value' => number_format($payment->amount, 2, '.', ''),
             ],
-            'description' => $this->formatDescription($config, $payment->description),
+            'description' => $this->formatDescription($config, $payment->description, $payment->member),
             'redirectUrl' => $config['redirect_url'] ?? url('/'),
             'webhookUrl' => $config['webhook_url'] ?? '',
             'metadata' => [
@@ -626,17 +633,73 @@ class MollieService
     }
 
     /**
-     * Format payment description with prefix
+     * Format payment description with prefix and member suffix.
+     *
+     * The suffix (member number + first initial + last name) helps members
+     * identify charges on their bank statements. Mollie limits descriptions
+     * to 255 characters, so the base description is truncated if necessary
+     * to keep the suffix intact.
      */
-    protected function formatDescription(array $config, string $description): string
+    protected function formatDescription(array $config, string $description, ?Member $member = null): string
     {
         $prefix = $config['description_prefix'] ?? '';
 
         if ($prefix && !str_starts_with($description, $prefix)) {
-            return $prefix . ' - ' . $description;
+            $description = $prefix . ' - ' . $description;
         }
 
-        return $description;
+        $suffix = $this->buildMemberSuffix($member);
+
+        if ($suffix === '') {
+            return mb_substr($description, 0, self::MOLLIE_DESCRIPTION_MAX_LENGTH);
+        }
+
+        $maxBaseLength = self::MOLLIE_DESCRIPTION_MAX_LENGTH - mb_strlen($suffix);
+
+        if ($maxBaseLength <= 0) {
+            return mb_substr($suffix, 0, self::MOLLIE_DESCRIPTION_MAX_LENGTH);
+        }
+
+        return mb_substr($description, 0, $maxBaseLength) . $suffix;
+    }
+
+    /**
+     * Resolve the Member from a payment data array.
+     *
+     * Prefers an already-loaded `member` instance to avoid an extra query;
+     * falls back to looking up `metadata.member_id`.
+     */
+    protected function resolveMemberFromPaymentData(array $paymentData): ?Member
+    {
+        if (isset($paymentData['member']) && $paymentData['member'] instanceof Member) {
+            return $paymentData['member'];
+        }
+
+        $memberId = $paymentData['metadata']['member_id'] ?? null;
+
+        return $memberId ? Member::find($memberId) : null;
+    }
+
+    /**
+     * Build the member identification suffix appended to payment descriptions.
+     */
+    protected function buildMemberSuffix(?Member $member): string
+    {
+        if (!$member) {
+            return '';
+        }
+
+        $parts = array_filter([
+            $member->member_number,
+            mb_substr((string) $member->first_name, 0, 1),
+            $member->last_name,
+        ], fn ($value) => $value !== null && $value !== '');
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return ' - ' . implode(' ', $parts);
     }
 
     /**
