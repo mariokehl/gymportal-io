@@ -431,14 +431,13 @@ class PaymentService
         return Invoice::create([
             'gym_id' => $payment->gym_id,
             'member_id' => $payment->member_id,
-            'payment_id' => $payment->id,
             'invoice_number' => $invoiceNumber,
             'amount' => $payment->amount,
             'currency' => $payment->currency,
-            'status' => 'pending',
+            'status' => 'draft',
+            'invoice_date' => now()->toDateString(),
             'due_date' => $payment->due_date,
             'description' => $payment->description,
-            'issued_at' => now(),
         ]);
     }
 
