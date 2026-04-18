@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Contracts\MemberMail;
 use App\Models\Member;
 use App\Services\EmailTemplateService;
 use Illuminate\Mail\Mailable;
@@ -10,7 +11,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class MemberAppAccessLink extends Mailable
+class MemberAppAccessLink extends Mailable implements MemberMail
 {
     use SerializesModels;
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\MembershipActivated;
+use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\PaymentFailedMail;
 use App\Models\Member;
 use App\Models\MemberStatusHistory;
@@ -12,11 +13,15 @@ use App\Notifications\PaymentFailedNotification;
 use App\Services\Fraud\BlocklistService;
 use App\Services\Fraud\FraudIdentifierNormalizer;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class MemberStatusService
 {
     use NotifiesGymUsers;
+
+    public function __construct(
+        private readonly MemberMailDispatcher $mailDispatcher,
+    ) {
+    }
 
     /**
      * Handle status change actions for a member.
@@ -270,28 +275,10 @@ class MemberStatusService
      */
     private function sendPaymentFailedEmail(Member $member, array $paymentData): void
     {
-        try {
-            if (!$member->email) {
-                Log::warning('Cannot send payment failed email - member has no email', [
-                    'member_id' => $member->id
-                ]);
-                return;
-            }
-
-            $gym = $member->gym;
-
-            Mail::to($member->email)->send(new PaymentFailedMail($member, $gym, $paymentData));
-
-            Log::info('Payment failed email sent to member', [
-                'member_id' => $member->id,
-                'email' => $member->email
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to send payment failed email to member', [
-                'member_id' => $member->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        $this->mailDispatcher->sendToMember(
+            $member,
+            new PaymentFailedMail($member, $member->gym, $paymentData),
+        );
     }
 
     /**

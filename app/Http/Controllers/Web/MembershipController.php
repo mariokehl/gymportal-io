@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Member;
 use App\Models\Membership;
@@ -13,7 +14,6 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class MembershipController extends Controller
@@ -21,7 +21,8 @@ class MembershipController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        private MemberService $memberService
+        private MemberService $memberService,
+        private MemberMailDispatcher $mailDispatcher,
     ) {}
 
     /**
@@ -651,8 +652,11 @@ class MembershipController extends Controller
             ]);
 
             // Eingangsbestätigung per E-Mail senden (§ 356a BGB)
-            try {
-                Mail::to($confirmationEmail)->send(new WithdrawalConfirmationMail(
+            // Dispatcher übernimmt: Synthetic-/Missing-Adresse-Checks, Logging, Exception-Kapselung.
+            // Ein Fehler beim Mailversand darf den Widerruf nicht zurückrollen.
+            $this->mailDispatcher->sendToAddress(
+                $member,
+                new WithdrawalConfirmationMail(
                     $member,
                     $membership->fresh(),
                     $member->gym,
@@ -661,15 +665,9 @@ class MembershipController extends Controller
                         'withdrawal_time' => now()->format('H:i'),
                         'refund_amount' => $refundAmount,
                     ]
-                ));
-            } catch (\Exception $mailException) {
-                Log::error('Failed to send withdrawal confirmation email', [
-                    'member_id' => $member->id,
-                    'membership_id' => $membership->id,
-                    'error' => $mailException->getMessage(),
-                ]);
-                // E-Mail-Fehler sollte den Widerruf nicht rückgängig machen
-            }
+                ),
+                $confirmationEmail,
+            );
 
             DB::commit();
 

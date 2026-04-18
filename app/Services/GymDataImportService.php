@@ -961,7 +961,7 @@ class GymDataImportService
             ->whereIn('status', ['active', 'pending'])
             ->first();
 
-        $hasRealEmail = !str_ends_with($member->email, '@import.local');
+        $hasRealEmail = $member->canReceiveEmails();
 
         if (!$existingMembership) {
             $membershipStatus = $hasRealEmail ? 'active' : 'pending';
@@ -1058,7 +1058,7 @@ class GymDataImportService
         }
 
         if ($type === 'mollie_directdebit') {
-            $hasRealEmail = !str_ends_with($member->email, '@import.local');
+            $hasRealEmail = $member->canReceiveEmails();
 
             $paymentMethod = $member->paymentMethods()->create([
                 'type' => 'mollie_directdebit',

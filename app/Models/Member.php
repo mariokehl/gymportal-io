@@ -14,6 +14,13 @@ class Member extends Authenticatable
 {
     use HasFactory, SoftDeletes, HasApiTokens;
 
+    /**
+     * Domain-Suffix für synthetische E-Mails, die Mitgliedern ohne echte
+     * E-Mail-Adresse beim Import zugewiesen werden. Solche Adressen dürfen
+     * niemals angeschrieben werden.
+     */
+    public const SYNTHETIC_EMAIL_DOMAIN = '@import.local';
+
     protected $fillable = [
         'gym_id',
         'user_id',
@@ -503,6 +510,27 @@ class Member extends Authenticatable
     public function fullName()
     {
         return $this->first_name . ' ' . $this->last_name;
+    }
+
+    /**
+     * Prüft ob eine E-Mail-Adresse synthetisch ist (Import-Platzhalter).
+     */
+    public static function isSyntheticEmail(?string $email): bool
+    {
+        if (!$email) {
+            return false;
+        }
+
+        return str_ends_with(strtolower($email), self::SYNTHETIC_EMAIL_DOMAIN);
+    }
+
+    /**
+     * Prüft ob an dieses Mitglied E-Mails gesendet werden dürfen.
+     */
+    public function canReceiveEmails(): bool
+    {
+        return $this->email !== null
+            && !self::isSyntheticEmail($this->email);
     }
 
     public function getFullNameAttribute(): string
