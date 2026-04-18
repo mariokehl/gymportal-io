@@ -401,8 +401,14 @@ class MemberController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
+            Log::error('Failed to create member for member', [
+                ...$memberData,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return back()
-                ->withErrors(['general' => 'Fehler beim Erstellen des Mitglieds. Bitte versuchen Sie es erneut.'])
+                ->withErrors(['general' => 'Mitglied konnte nicht gespeichert werden: ' . $e->getMessage()])
                 ->withInput();
         }
 
