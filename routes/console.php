@@ -82,6 +82,9 @@ Schedule::call(function () {
 // Update Laravel Disposable Email
 Schedule::command('disposable:update')->daily();
 
+// Prune expired personal access tokens - runs daily
+Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
 // ===================================
 // FRAUD PREVENTION / BLOCKLIST CLEANUP
 // ===================================
