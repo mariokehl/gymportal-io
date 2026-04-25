@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Contracts\MemberMail;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\Gym;
@@ -22,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  * - Darf NICHT formulieren, dass der Widerruf "wirksam ausgeübt wurde"
  *   (nur Eingangsbestätigung, keine Wirksamkeitsbestätigung)
  */
-class WithdrawalConfirmationMail extends Mailable
+class WithdrawalConfirmationMail extends Mailable implements MemberMail
 {
     use Queueable, SerializesModels;
 

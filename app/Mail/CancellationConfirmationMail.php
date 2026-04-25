@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Contracts\MemberMail;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\Gym;
@@ -13,7 +14,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class CancellationConfirmationMail extends Mailable
+class CancellationConfirmationMail extends Mailable implements MemberMail
 {
     use Queueable, SerializesModels;
 

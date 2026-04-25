@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Dto\PaymentCreationResult;
 use App\Events\MemberRegistered;
+use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\SepaMandateRequiredMail;
 use App\Models\FraudCheck;
 use App\Models\Gym;
@@ -19,11 +20,15 @@ use App\Services\Fraud\FraudDetectionService;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
-use Illuminate\Support\Facades\Mail;
 use App\Events\MembershipActivated;
 
 class WidgetService
 {
+    public function __construct(
+        private readonly MemberMailDispatcher $mailDispatcher,
+    ) {
+    }
+
     /**
      * Widget-Registrierung initialisieren
      */
@@ -805,15 +810,10 @@ class WidgetService
      */
     private function sendSepaMandateEmail(Member $member, PaymentMethod $paymentMethod, Gym $gym): void
     {
-        try {
-            Mail::to($member->email)->send(new SepaMandateRequiredMail($member, $paymentMethod, $gym));
-        } catch (\Exception $e) {
-            logger()->error('Failed to send SEPA mandate email', [
-                'member_id' => $member->id,
-                'payment_method_id' => $paymentMethod->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        $this->mailDispatcher->sendToMember(
+            $member,
+            new SepaMandateRequiredMail($member, $paymentMethod, $gym),
+        );
     }
 
     /**
