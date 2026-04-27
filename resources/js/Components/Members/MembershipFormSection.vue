@@ -43,7 +43,6 @@
                 {{ plan.name }}
               </label>
             </div>
-            <p v-if="plan.description" class="text-sm text-gray-600 mb-3">{{ plan.description }}</p>
             <div class="flex justify-between items-center">
               <span class="text-lg font-bold text-indigo-600">
                 {{ formatCurrency(plan.price) }}
