@@ -2,16 +2,21 @@
 
 namespace App\Services;
 
+use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\WelcomeMemberMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Mail;
 
 class MemberService
 {
+    public function __construct(
+        private readonly MemberMailDispatcher $mailDispatcher,
+    ) {
+    }
+
     /**
      * Mitgliedsnummer generieren
      */
@@ -203,14 +208,10 @@ class MemberService
      */
     public function sendWelcomeEmail(Member $member, Gym $gym, ?string $contractPath = null): void
     {
-        try {
-            Mail::to($member->email)->send(new WelcomeMemberMail($member, $gym, [], $contractPath));
-        } catch (\Exception $e) {
-            logger()->error('Failed to send welcome email', [
-                'member_id' => $member->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        $this->mailDispatcher->sendToMember(
+            $member,
+            new WelcomeMemberMail($member, $gym, [], $contractPath),
+        );
     }
 
     /**

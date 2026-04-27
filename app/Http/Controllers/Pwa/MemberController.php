@@ -2,24 +2,24 @@
 
 namespace App\Http\Controllers\Pwa;
 
+use App\Events\ContractCancelled;
+use App\Events\ContractWithdrawn;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\WithdrawContractRequest;
 use App\Mail\CancellationConfirmationMail;
+use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
-use App\Events\ContractCancelled;
-use App\Events\ContractWithdrawn;
 use App\Services\PaymentService;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class MemberController extends Controller
 {
@@ -180,7 +180,7 @@ class MemberController extends Controller
         ]);
     }
 
-    public function cancelContract(): JsonResponse
+    public function cancelContract(MemberMailDispatcher $mailDispatcher): JsonResponse
     {
         /** @var Member $member */
         $member = request()->user();
@@ -215,22 +215,14 @@ class MemberController extends Controller
             'notes' => 'Gekündigt am ' . now()->format('d.m.Y H:i')
         ]);
 
-        // Send cancellation confirmation email
-        try {
-            Mail::to($member->email)->send(
-                new CancellationConfirmationMail(
-                    $member,
-                    $membership->fresh(),
-                    $member->gym
-                )
-            );
-        } catch (Exception $e) {
-            Log::error('Failed to send cancellation confirmation email', [
-                'member_id' => $member->id,
-                'membership_id' => $membership->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        $mailDispatcher->sendToMember(
+            $member,
+            new CancellationConfirmationMail(
+                $member,
+                $membership->fresh(),
+                $member->gym,
+            ),
+        );
 
         ContractCancelled::dispatch($member, $membership->fresh(), $member->gym);
 
@@ -253,7 +245,11 @@ class MemberController extends Controller
      * - Eingangsbestätigung auf dauerhaftem Datenträger (E-Mail)
      * - Widerrufsgrund darf NICHT abgefragt werden
      */
-    public function withdrawContract(WithdrawContractRequest $request, PaymentService $paymentService): JsonResponse
+    public function withdrawContract(
+        WithdrawContractRequest $request,
+        PaymentService $paymentService,
+        MemberMailDispatcher $mailDispatcher,
+    ): JsonResponse
     {
         /** @var Member $member */
         $member = request()->user();
@@ -298,16 +294,20 @@ class MemberController extends Controller
             // Eingangsbestätigung senden (gemäß § 356a BGB auf dauerhaftem Datenträger)
             // WICHTIG: Die Bestätigung darf nur den Eingang bestätigen,
             // NICHT dass der Widerruf "wirksam" ist
-            Mail::to($confirmationEmail)->send(new WithdrawalConfirmationMail(
+            $mailDispatcher->sendToAddress(
                 $member,
-                $membership->fresh(),
-                $member->gym,
-                [
-                    'withdrawal_date' => now()->format('d.m.Y'),
-                    'withdrawal_time' => now()->format('H:i'),
-                    'refund_amount' => $refundAmount,
-                ]
-            ));
+                new WithdrawalConfirmationMail(
+                    $member,
+                    $membership->fresh(),
+                    $member->gym,
+                    [
+                        'withdrawal_date' => now()->format('d.m.Y'),
+                        'withdrawal_time' => now()->format('H:i'),
+                        'refund_amount' => $refundAmount,
+                    ]
+                ),
+                $confirmationEmail,
+            );
 
             DB::commit();
 

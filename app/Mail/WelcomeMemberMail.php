@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Contracts\MemberMail;
 use App\Models\Member;
 use App\Models\Gym;
 use App\Services\EmailTemplateService;
@@ -15,7 +16,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
-class WelcomeMemberMail extends Mailable
+class WelcomeMemberMail extends Mailable implements MemberMail
 {
     use Queueable, SerializesModels;
 

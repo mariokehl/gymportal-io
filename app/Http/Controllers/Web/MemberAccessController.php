@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Dispatching\MemberMailDispatcher;
+use App\Mail\MemberAppAccessLink;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
 use App\Models\MemberDevice;
-use App\Mail\MemberAppAccessLink;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -115,7 +115,7 @@ class MemberAccessController extends Controller
     /**
      * Send app access link to member via email
      */
-    public function sendAppLink(Member $member)
+    public function sendAppLink(Member $member, MemberMailDispatcher $mailDispatcher)
     {
         $this->authorize('update', $member);
 
@@ -124,8 +124,15 @@ class MemberAccessController extends Controller
         $gymSlug = $member->gym->slug;
         $loginUrl = "{$appUrl}/{$gymSlug}/login";
 
-        // Sende E-Mail
-        Mail::to($member->email)->send(new MemberAppAccessLink($member, $loginUrl));
+        $result = $mailDispatcher->sendToMember($member, new MemberAppAccessLink($member, $loginUrl));
+
+        if ($result->wasSkipped()) {
+            return back()->with('error', 'App-Link konnte nicht versendet werden: ' . $result->reason);
+        }
+
+        if ($result->hasFailed()) {
+            return back()->with('error', 'App-Link konnte nicht versendet werden. Bitte später erneut versuchen.');
+        }
 
         // Log die Aktion
         MemberAccessLog::create([

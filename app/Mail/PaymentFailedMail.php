@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Contracts\MemberMail;
 use App\Models\Member;
 use App\Models\Gym;
 use App\Services\EmailTemplateService;
@@ -12,7 +13,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class PaymentFailedMail extends Mailable
+class PaymentFailedMail extends Mailable implements MemberMail
 {
     use Queueable, SerializesModels;
 

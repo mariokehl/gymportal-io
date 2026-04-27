@@ -1,0 +1,18 @@
+stages:
+  - test
+
+unit-tests:
+  stage: test
+  image: serversideup/php:8.2-cli
+  before_script:
+    - cp .env.example .env
+    - composer install --no-interaction --prefer-dist --no-progress --no-scripts
+    - php artisan package:discover --ansi
+    - php artisan key:generate
+  script:
+    - php artisan config:clear
+    - php artisan test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - vendor/

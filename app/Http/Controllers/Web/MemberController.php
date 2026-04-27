@@ -468,7 +468,6 @@ class MemberController extends Controller
 
         // Get available membership plans for adding new memberships
         $membershipPlans = MembershipPlan::where('gym_id', $member->gym_id)
-            ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
@@ -970,7 +969,6 @@ class MemberController extends Controller
         // Verify membership plan belongs to the same gym
         $membershipPlan = MembershipPlan::where('id', $validated['membership_plan_id'])
             ->where('gym_id', $gym->id)
-            ->where('is_active', true)
             ->firstOrFail();
 
         try {

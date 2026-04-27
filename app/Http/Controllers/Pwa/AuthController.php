@@ -3,20 +3,20 @@
 namespace App\Http\Controllers\Pwa;
 
 use App\Http\Controllers\Controller;
-use App\Models\Member;
-use App\Models\MemberDevice;
+use App\Mail\Dispatching\MemberMailDispatcher;
+use App\Mail\LoginCodeMail;
 use App\Models\Gym;
 use App\Models\LoginCode;
-use App\Mail\LoginCodeMail;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use App\Models\Member;
+use App\Models\MemberDevice;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
-    public function sendLoginCode(Request $request): JsonResponse
+    public function sendLoginCode(Request $request, MemberMailDispatcher $mailDispatcher): JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
@@ -101,44 +101,32 @@ class AuthController extends Controller
             }
         }
 
-        try {
-            // LoginCode erstellen
-            $loginCode = LoginCode::createForMember($member);
+        $loginCode = LoginCode::createForMember($member);
+        $result = $mailDispatcher->sendToMember($member, new LoginCodeMail($loginCode, $member, $gym));
 
-            // E-Mail senden
-            Mail::to($member->email)->send(
-                new LoginCodeMail($loginCode, $member, $gym)
-            );
-
-            // Rate limiting für erfolgreiche Anfragen
-            RateLimiter::hit($key, 60); // 1 Minute
-
-            Log::info('Login code sent', [
-                'member_id' => $member->id,
-                'gym_id' => $gym->id,
-                'ip' => $request->ip()
-            ]);
-
+        if ($result->wasSkipped()) {
             return response()->json([
-                'success' => true,
-                'message' => 'Anmeldecode wurde versendet',
-                'expires_in' => 600 // 10 Minuten in Sekunden
-            ]);
+                'success' => false,
+                'message' => 'Für dieses Konto ist keine E-Mail-Adresse hinterlegt. Bitte wende dich an dein Studio.',
+                'error_code' => $result->errorCode ?? 'MEMBER_NO_EMAIL',
+            ], 422);
+        }
 
-        } catch (\Exception $e) {
-            Log::error('Failed to send login code', [
-                'member_id' => $member->id,
-                'gym_id' => $gym->id,
-                'error' => $e->getMessage(),
-                'ip' => $request->ip()
-            ]);
-
+        if ($result->hasFailed()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Fehler beim Versenden der E-Mail. Bitte versuche es später erneut.',
-                'error_code' => 'EMAIL_SEND_FAILED'
+                'error_code' => 'EMAIL_SEND_FAILED',
             ], 500);
         }
+
+        RateLimiter::hit($key, 60);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Anmeldecode wurde versendet',
+            'expires_in' => 600,
+        ]);
     }
 
     public function verifyCode(Request $request): JsonResponse
