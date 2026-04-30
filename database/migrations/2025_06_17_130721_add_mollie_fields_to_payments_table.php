@@ -74,6 +74,18 @@ return new class extends Migration
                 WHERE payments.membership_id = m.id
                 AND payments.gym_id IS NULL
             ');
+        } elseif ($this->driver === 'sqlite') {
+            DB::statement('
+                UPDATE payments
+                SET gym_id = (
+                    SELECT mem.gym_id
+                    FROM memberships m
+                    INNER JOIN members mem ON m.member_id = mem.id
+                    WHERE payments.membership_id = m.id
+                )
+                WHERE gym_id IS NULL
+                  AND membership_id IS NOT NULL
+            ');
         } else {
             // MySQL Syntax
             DB::statement('

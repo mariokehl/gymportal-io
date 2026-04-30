@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('members', function (Blueprint $table) {
+            $table->dropUnique(['nfc_card_id']);
             $table->dropIndex(['nfc_card_id']);
+        });
+        Schema::table('members', function (Blueprint $table) {
             $table->dropColumn('nfc_card_id');
         });
     }

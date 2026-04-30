@@ -19,12 +19,12 @@ return new class extends Migration
         $driver = Schema::getConnection()->getDriverName();
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: Laravel nutzt CHECK-Constraints für enum-Spalten
             $typeList = "'" . implode("', '", $this->newTypes) . "'";
             DB::statement("ALTER TABLE scanner_access_logs DROP CONSTRAINT IF EXISTS scanner_access_logs_scan_type_check");
             DB::statement("ALTER TABLE scanner_access_logs ADD CONSTRAINT scanner_access_logs_scan_type_check CHECK (scan_type IN ({$typeList}))");
+        } elseif ($driver === 'sqlite') {
+            // SQLite: ENUMs are not enforced; nothing to do.
         } else {
-            // MySQL/MariaDB: ENUM-Spalte mit neuem Wert neu definieren
             $typeList = "'" . implode("', '", $this->newTypes) . "'";
             DB::statement("ALTER TABLE scanner_access_logs MODIFY scan_type ENUM({$typeList}) NOT NULL");
         }
@@ -46,6 +46,8 @@ return new class extends Migration
             $typeList = "'" . implode("', '", $this->oldTypes) . "'";
             DB::statement("ALTER TABLE scanner_access_logs DROP CONSTRAINT IF EXISTS scanner_access_logs_scan_type_check");
             DB::statement("ALTER TABLE scanner_access_logs ADD CONSTRAINT scanner_access_logs_scan_type_check CHECK (scan_type IN ({$typeList}))");
+        } elseif ($driver === 'sqlite') {
+            // SQLite: ENUMs are not enforced; nothing to do.
         } else {
             $typeList = "'" . implode("', '", $this->oldTypes) . "'";
             DB::statement("ALTER TABLE scanner_access_logs MODIFY scan_type ENUM({$typeList}) NOT NULL");
