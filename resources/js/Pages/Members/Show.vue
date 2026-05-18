@@ -312,6 +312,15 @@
                       class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
                     />
                     <a
+                      v-if="telLink"
+                      :href="telLink"
+                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 hover:bg-gray-100 text-gray-500 hover:text-indigo-600 flex items-center justify-center"
+                      :class="{ 'rounded-r-md': !whatsappLink }"
+                      title="Anrufen"
+                    >
+                      <Phone class="w-5 h-5" />
+                    </a>
+                    <a
                       v-if="whatsappLink"
                       :href="whatsappLink"
                       target="_blank"
@@ -2137,7 +2146,7 @@ import {
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
-  Smartphone, X, ShieldX, AlertTriangle
+  Smartphone, X, ShieldX, AlertTriangle, Phone
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -2337,7 +2346,8 @@ const COUNTRY_DIAL_CODES = {
   DK: '45', GB: '44',
 }
 
-const whatsappLink = computed(() => {
+// Telefonnummer in internationale Ziffern (ohne +) normalisieren
+const normalizedPhoneDigits = computed(() => {
   const raw = form.phone
   if (!raw) return null
   // Nur Ziffern und führendes + behalten
@@ -2354,8 +2364,17 @@ const whatsappLink = computed(() => {
     // Nationale Nummer ohne Ländervorwahl -> Vorwahl des Studios
     digits = dialCode + digits.slice(1)
   }
-  if (!digits) return null
-  return `https://wa.me/${digits}`
+  return digits || null
+})
+
+const whatsappLink = computed(() => {
+  const digits = normalizedPhoneDigits.value
+  return digits ? `https://wa.me/${digits}` : null
+})
+
+const telLink = computed(() => {
+  const digits = normalizedPhoneDigits.value
+  return digits ? `tel:+${digits}` : null
 })
 
 const tabs = computed(() => {
