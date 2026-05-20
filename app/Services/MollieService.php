@@ -345,7 +345,11 @@ class MollieService
                 'membership_id' => $payment->membership_id,
                 'gym_id' => $gym->id,
             ],
-            'expiresAt' => now()->addDays(14)->toIso8601String(),
+            // Per Mollie docs (https://docs.mollie.com/reference/create-payment-link):
+            // If no expiresAt is provided, the payment link will not expire automatically.
+            // This saves us from having to implement a process to mark links as expired
+            // and a refresh flow for cases where a member wants to pay e.g. 30 days later.
+            // 'expiresAt' => now()->addDays(14)->toIso8601String(),
         ];
 
         $molliePayment = $client->paymentLinks->create($mollieParams);

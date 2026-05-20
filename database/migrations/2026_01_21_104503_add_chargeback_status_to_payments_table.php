@@ -17,12 +17,12 @@ return new class extends Migration
         $driver = Schema::getConnection()->getDriverName();
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: Laravel uses CHECK constraints for enum columns
             $statusList = "'" . implode("', '", $this->newStatuses) . "'";
             DB::statement("ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check");
             DB::statement("ALTER TABLE payments ADD CONSTRAINT payments_status_check CHECK (status IN ({$statusList}))");
+        } elseif ($driver === 'sqlite') {
+            // SQLite: ENUMs are not enforced; nothing to do.
         } else {
-            // MySQL/MariaDB: Modify the enum column
             $statusList = "'" . implode("', '", $this->newStatuses) . "'";
             DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM({$statusList}) DEFAULT 'pending'");
         }
@@ -36,12 +36,12 @@ return new class extends Migration
         $driver = Schema::getConnection()->getDriverName();
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: Restore original CHECK constraint
             $statusList = "'" . implode("', '", $this->oldStatuses) . "'";
             DB::statement("ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check");
             DB::statement("ALTER TABLE payments ADD CONSTRAINT payments_status_check CHECK (status IN ({$statusList}))");
+        } elseif ($driver === 'sqlite') {
+            // SQLite: ENUMs are not enforced; nothing to do.
         } else {
-            // MySQL/MariaDB: Restore original enum
             $statusList = "'" . implode("', '", $this->oldStatuses) . "'";
             DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM({$statusList}) DEFAULT 'pending'");
         }

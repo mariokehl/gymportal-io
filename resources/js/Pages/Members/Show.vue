@@ -304,12 +304,36 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Mobilfunknummer</label>
-                  <input
-                    v-model="form.phone"
-                    :disabled="!editMode"
-                    type="tel"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
+                  <div class="flex rounded-md shadow-sm">
+                    <input
+                      v-model="form.phone"
+                      :disabled="!editMode"
+                      type="tel"
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+                    />
+                    <a
+                      v-if="telLink"
+                      :href="telLink"
+                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 hover:bg-gray-100 text-gray-500 hover:text-indigo-600 flex items-center justify-center"
+                      :class="{ 'rounded-r-md': !whatsappLink }"
+                      title="Anrufen"
+                    >
+                      <Phone class="w-5 h-5" />
+                    </a>
+                    <a
+                      v-if="whatsappLink"
+                      :href="whatsappLink"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-100 flex items-center justify-center"
+                      title="Chat on WhatsApp"
+                    >
+                      <svg class="w-5 h-5" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#25d366" d="M360,0C161.18,0,0,161.18,0,360c0,65.41,17.45,126.75,47.94,179.61L0,720l187.02-44.21c51.34,28.18,110.28,44.21,172.98,44.21,198.82,0,360-161.18,360-360S558.82,0,360,0ZM360,655.52c-60.17,0-116.13-17.98-162.82-48.87l-110.49,28.14,30.99-105.61c-33.53-47.93-53.2-106.26-53.2-169.19,0-163.21,132.31-295.52,295.52-295.52s295.52,132.31,295.52,295.52-132.31,295.52-295.52,295.52Z" />
+                        <path fill="#25d366" d="M444.35,407.52l87.1,41.06c4,1.88,6.56,5.94,6.2,10.34-.94,11.46-5.54,34.43-26.13,55.02-58.12,58.12-162.49-7.64-166.74-10.18-25.67-13.79-50.06-32.24-73.19-55.36-23.12-23.12-41.58-47.52-55.37-73.19-2.55-4.24-68.31-108.61-10.18-166.74,20.59-20.59,43.56-25.19,55.02-26.13,4.41-.36,8.46,2.2,10.34,6.2l41.07,87.1c1.94,4.12,1.09,9.02-2.13,12.24l-30.61,30.61c-6.62,6.62-8.56,16.93-4,25.11,11.17,20.03,26.19,39.32,43.59,57.07,17.75,17.4,37.04,32.43,57.07,43.59,8.18,4.56,18.48,2.62,25.11-4l30.61-30.61c3.22-3.22,8.12-4.08,12.24-2.13Z" />
+                      </svg>
+                    </a>
+                  </div>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Geburtsdatum</label>
@@ -2122,7 +2146,7 @@ import {
   Download, Building2, Banknote, PlayCircle, WalletCards,
   XCircle, History, Key, QrCode, Nfc,
   Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
-  Smartphone, X, ShieldX, AlertTriangle
+  Smartphone, X, ShieldX, AlertTriangle, Phone
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -2312,6 +2336,45 @@ const memberAge = computed(() => {
     age--
   }
   return age
+})
+
+// ISO-3166-Alpha-2 -> internationale Telefon-Vorwahl
+const COUNTRY_DIAL_CODES = {
+  DE: '49', AT: '43', CH: '41', LI: '423',
+  NL: '31', BE: '32', LU: '352', FR: '33',
+  IT: '39', ES: '34', PL: '48', CZ: '420',
+  DK: '45', GB: '44',
+}
+
+// Telefonnummer in internationale Ziffern (ohne +) normalisieren
+const normalizedPhoneDigits = computed(() => {
+  const raw = form.phone
+  if (!raw) return null
+  // Nur Ziffern und führendes + behalten
+  let digits = raw.replace(/[^\d+]/g, '')
+  if (!digits) return null
+  // Vorwahl aus der Studio-Einstellung ableiten (Fallback: Deutschland)
+  const country = props.member.gym?.country?.toUpperCase()
+  const dialCode = COUNTRY_DIAL_CODES[country] ?? '49'
+  if (digits.startsWith('+')) {
+    digits = digits.slice(1)
+  } else if (digits.startsWith('00')) {
+    digits = digits.slice(2)
+  } else if (digits.startsWith('0')) {
+    // Nationale Nummer ohne Ländervorwahl -> Vorwahl des Studios
+    digits = dialCode + digits.slice(1)
+  }
+  return digits || null
+})
+
+const whatsappLink = computed(() => {
+  const digits = normalizedPhoneDigits.value
+  return digits ? `https://wa.me/${digits}` : null
+})
+
+const telLink = computed(() => {
+  const digits = normalizedPhoneDigits.value
+  return digits ? `tel:+${digits}` : null
 })
 
 const tabs = computed(() => {

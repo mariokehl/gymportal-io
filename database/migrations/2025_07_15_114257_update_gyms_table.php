@@ -40,6 +40,9 @@ return new class extends Migration
             // PostgreSQL Syntax
             DB::statement('ALTER TABLE gyms ALTER COLUMN subscription_status TYPE VARCHAR(255), ALTER COLUMN subscription_status SET DEFAULT NULL, ALTER COLUMN subscription_status DROP NOT NULL');
             DB::statement('ALTER TABLE gyms ALTER COLUMN subscription_plan TYPE VARCHAR(255), ALTER COLUMN subscription_plan SET DEFAULT NULL, ALTER COLUMN subscription_plan DROP NOT NULL');
+        } elseif ($driver === 'sqlite') {
+            // SQLite has no MODIFY COLUMN; defaults/NOT NULL are not enforced in
+            // testing. Skip — schema is already adequate for tests.
         } else {
             // MySQL Syntax
             DB::statement('ALTER TABLE `gyms` MODIFY COLUMN `subscription_status` VARCHAR(255) NULL DEFAULT NULL');
@@ -65,6 +68,8 @@ return new class extends Migration
             // PostgreSQL Syntax
             DB::statement('ALTER TABLE gyms ALTER COLUMN subscription_status TYPE VARCHAR(255), ALTER COLUMN subscription_status SET DEFAULT \'active\', ALTER COLUMN subscription_status SET NOT NULL');
             DB::statement('ALTER TABLE gyms ALTER COLUMN subscription_plan TYPE VARCHAR(255), ALTER COLUMN subscription_plan SET DEFAULT \'free\', ALTER COLUMN subscription_plan SET NOT NULL');
+        } elseif ($driver === 'sqlite') {
+            // SQLite has no MODIFY COLUMN — skip.
         } else {
             // MySQL Syntax
             DB::statement('ALTER TABLE `gyms` MODIFY COLUMN `subscription_status` VARCHAR(255) NOT NULL DEFAULT "active"');
