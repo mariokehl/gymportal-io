@@ -43,13 +43,22 @@ class MemberDevice extends Model
 
     /**
      * Register a device token for a member, or update last_used_at if already registered.
+     *
+     * Returns null when the device token is already bound to a different member —
+     * a device must not be transferred between accounts.
      */
     public static function registerForMember(
         int $memberId,
         string $deviceToken,
         ?string $ipAddress = null,
         ?string $userAgent = null
-    ): self {
+    ): ?self {
+        $existing = static::where('device_token', $deviceToken)->first();
+
+        if ($existing && $existing->member_id !== $memberId) {
+            return null;
+        }
+
         return static::updateOrCreate(
             ['device_token' => $deviceToken],
             [

@@ -205,6 +205,33 @@ class AuthControllerTest extends TestCase
             ->assertJson(['success' => true]);
     }
 
+    // TODO: Verify the two device-bound-to-other-member tests below pass locally
+    //       (sail test --filter=AuthControllerTest) — could not run in this session.
+    #[Test]
+    public function send_login_code_blocks_when_device_bound_to_another_member(): void
+    {
+        [$gym, $member] = $this->createGymWithMember();
+        [, $otherMember] = $this->createGymWithMember();
+
+        MemberDevice::factory()->create([
+            'member_id' => $otherMember->id,
+            'device_token' => 'shared-device-token',
+        ]);
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $gym->slug,
+        ], [
+            'X-Client-Type' => 'branded-app',
+            'X-Device-Token' => 'shared-device-token',
+        ])
+            ->assertStatus(403)
+            ->assertJson(['error_code' => 'DEVICE_BOUND_TO_OTHER_MEMBER']);
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('login_codes', ['member_id' => $member->id]);
+    }
+
     #[Test]
     public function send_login_code_rate_limits_after_three_attempts(): void
     {
@@ -347,6 +374,44 @@ class AuthControllerTest extends TestCase
         ])->assertOk();
 
         $this->assertDatabaseMissing('member_devices', ['member_id' => $member->id]);
+    }
+
+    #[Test]
+    public function verify_code_blocks_login_when_device_bound_to_another_member(): void
+    {
+        [$gym, $member] = $this->createGymWithMember();
+        [, $otherMember] = $this->createGymWithMember();
+
+        MemberDevice::factory()->create([
+            'member_id' => $otherMember->id,
+            'device_token' => 'shared-device-token',
+        ]);
+
+        $loginCode = LoginCode::createForMember($member);
+
+        $this->postJson('/api/pwa/auth/verify-code', [
+            'email' => $member->email,
+            'code' => $loginCode->code,
+            'gym_slug' => $gym->slug,
+        ], [
+            'X-Client-Type' => 'branded-app',
+            'X-Device-Token' => 'shared-device-token',
+        ])
+            ->assertStatus(403)
+            ->assertJson(['error_code' => 'DEVICE_BOUND_TO_OTHER_MEMBER']);
+
+        // Login code must not be consumed when the login is rejected
+        $this->assertFalse($loginCode->fresh()->used);
+
+        // Original device binding stays intact
+        $this->assertDatabaseHas('member_devices', [
+            'member_id' => $otherMember->id,
+            'device_token' => 'shared-device-token',
+        ]);
+        $this->assertDatabaseMissing('member_devices', [
+            'member_id' => $member->id,
+            'device_token' => 'shared-device-token',
+        ]);
     }
 
     #[Test]

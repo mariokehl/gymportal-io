@@ -81,6 +81,11 @@ class AuthController extends Controller
             ]);
         }
 
+        // Block login attempts when the device is already bound to a different member account
+        if ($blocked = $this->rejectIfDeviceBoundToOtherMember($request, $member)) {
+            return $blocked;
+        }
+
         // Check device limit for branded app requests (skip for static login code / App Store review)
         if ($this->isBrandedAppRequest($request)) {
             $deviceToken = $request->header('X-Device-Token');
@@ -169,8 +174,18 @@ class AuthController extends Controller
             ], 404);
         }
 
+        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
+
+        // Block login attempts when the device is already bound to a different member account
+        // (skipped for static-code accounts used by App Store reviewers)
+        if (!$hasStaticCode) {
+            if ($blocked = $this->rejectIfDeviceBoundToOtherMember($request, $member)) {
+                return $blocked;
+            }
+        }
+
         // Check if member has a static login code configured
-        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+        if ($hasStaticCode) {
             // Verify against static code
             if ($request->code !== $member->accessConfig->static_login_code) {
                 RateLimiter::hit($key, 60);
@@ -207,7 +222,6 @@ class AuthController extends Controller
 
         // Register device token for branded app requests (skip for static login code / App Store review)
         $deviceToken = $request->header('X-Device-Token');
-        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
         if ($this->isBrandedAppRequest($request) && !$hasStaticCode) {
             if ($deviceToken) {
                 MemberDevice::registerForMember(
@@ -298,6 +312,15 @@ class AuthController extends Controller
             ], 404);
         }
 
+        // Block when the device is already bound to a different member account
+        // (skipped for static-code accounts used by App Store reviewers)
+        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
+        if (!$hasStaticCode) {
+            if ($blocked = $this->rejectIfDeviceBoundToOtherMember($request, $member)) {
+                return $blocked;
+            }
+        }
+
         // Create anonymous token with limited abilities
         $token = $member->createToken(
             'member-pwa-anonymous', ['member-pwa', 'anonymous'], now()->addDays(365)
@@ -383,8 +406,18 @@ class AuthController extends Controller
             ], 403);
         }
 
+        $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
+
+        // Block upgrade attempts when the device is already bound to a different member account
+        // (skipped for static-code accounts used by App Store reviewers)
+        if (!$hasStaticCode) {
+            if ($blocked = $this->rejectIfDeviceBoundToOtherMember($request, $member)) {
+                return $blocked;
+            }
+        }
+
         // Check if member has a static login code configured
-        if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
+        if ($hasStaticCode) {
             // Verify against static code
             if ($request->code !== $member->accessConfig->static_login_code) {
                 RateLimiter::hit($key, 60);
@@ -483,6 +516,41 @@ class AuthController extends Controller
     private function isBrandedAppRequest(Request $request): bool
     {
         return $request->header('X-Client-Type') === 'branded-app';
+    }
+
+    /**
+     * Reject the login when the supplied device token is already bound to a different member.
+     * A device must never be transferred between accounts.
+     */
+    private function rejectIfDeviceBoundToOtherMember(Request $request, Member $member): ?JsonResponse
+    {
+        if (!$this->isBrandedAppRequest($request)) {
+            return null;
+        }
+
+        $deviceToken = $request->header('X-Device-Token');
+        if (!$deviceToken) {
+            return null;
+        }
+
+        $boundToOther = MemberDevice::where('device_token', $deviceToken)
+            ->where('member_id', '!=', $member->id)
+            ->exists();
+
+        if (!$boundToOther) {
+            return null;
+        }
+
+        Log::warning('Login blocked: device token already bound to another member', [
+            'attempted_member_id' => $member->id,
+            'ip' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Dieses Gerät ist bereits einem anderen Konto zugeordnet. Bitte wende dich an dein Studio.',
+            'error_code' => 'DEVICE_BOUND_TO_OTHER_MEMBER',
+        ], 403);
     }
 
     /**
