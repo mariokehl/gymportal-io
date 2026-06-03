@@ -21,7 +21,7 @@ class CourseSchedule extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
         'is_cancelled' => 'boolean',
     ];
 

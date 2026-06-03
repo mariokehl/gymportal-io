@@ -387,7 +387,7 @@
             </div>
             <div v-if="selectedPayment.paid_date">
               <label class="block text-sm font-medium text-gray-500">Bezahlt am</label>
-              <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.paid_date) }}</p>
+              <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedPayment.paid_date) }}</p>
             </div>
             <div v-if="selectedPayment.canceled_at">
               <label class="block text-sm font-medium text-gray-500">Abgebrochen am</label>

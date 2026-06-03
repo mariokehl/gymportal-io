@@ -127,6 +127,7 @@ import {
   getStatusIcon,
   statusConfig
 } from '@/utils/memberStatus'
+import { todayInDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({
   member: {
@@ -257,8 +258,11 @@ const validateStatusChange = (newStatus) => {
   // Aktivierung von Overdue
   if (newStatus === 'active' && currentStatus === 'overdue') {
     // Prüfe überfällige Zahlungen
+    // Vergleich als reine Kalenderdaten (YYYY-MM-DD) in Europe/Berlin,
+    // damit "überfällig" nicht je nach Browser-Zeitzone um einen Tag kippt.
+    const today = todayInDisplayTimezone()
     const hasOverduePayments = props.member.payments?.some(p =>
-      p.status === 'pending' && new Date(p.due_date) < new Date()
+      p.status === 'pending' && p.due_date && p.due_date < today
     )
     if (hasOverduePayments) {
       return {

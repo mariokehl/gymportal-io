@@ -34,11 +34,11 @@ class Membership extends Model
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'pause_start_date' => 'date',
-        'pause_end_date' => 'date',
-        'cancellation_date' => 'date',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
+        'pause_start_date' => 'date:Y-m-d',
+        'pause_end_date' => 'date:Y-m-d',
+        'cancellation_date' => 'date:Y-m-d',
         'metadata' => 'array',
         // Widerrufs-Felder (§ 356a BGB)
         'withdrawn_at' => 'datetime',

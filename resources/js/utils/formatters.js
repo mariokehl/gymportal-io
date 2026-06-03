@@ -2,6 +2,44 @@
 // Centralized formatting utilities used across the application
 
 /**
+ * Display timezone for all date/time output.
+ *
+ * The app is a German gym portal, so dates and times are always shown in
+ * Europe/Berlin regardless of where the browser sits. Without this, a US
+ * visitor would see a contract end date of 31.07. rendered as 30.07.,
+ * because new Date('2025-07-31T00:00:00Z') falls on the previous day in
+ * a negative-offset timezone.
+ *
+ * This is the single switch point: to move to a per-user timezone later
+ * (à la solidtime), change getDisplayTimezone() to read it from the
+ * authenticated user instead of returning the constant.
+ */
+const DISPLAY_TIMEZONE = 'Europe/Berlin'
+
+/**
+ * Returns the timezone all formatters render in.
+ * @returns {string} An IANA timezone identifier
+ */
+export function getDisplayTimezone() {
+  return DISPLAY_TIMEZONE
+}
+
+/**
+ * Today's date as a YYYY-MM-DD string in the display timezone.
+ *
+ * Use this for calendar-date comparisons (e.g. "is this due date in the
+ * past?") instead of `new Date(value) < new Date()`, which compares a
+ * UTC-midnight calendar date against the browser's local "now" and can be
+ * off by a day for visitors in a different timezone.
+ *
+ * @returns {string} Today in YYYY-MM-DD, Europe/Berlin
+ */
+export function todayInDisplayTimezone() {
+  // en-CA renders as YYYY-MM-DD, which sorts and compares lexicographically.
+  return new Date().toLocaleDateString('en-CA', { timeZone: getDisplayTimezone() })
+}
+
+/**
  * Standard date formatting (DD.MM.YYYY)
  * @param {string|Date} date - The date to format
  * @returns {string} Formatted date or '-' if no date provided
@@ -9,6 +47,7 @@
 export function formatDate(date) {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('de-DE', {
+    timeZone: getDisplayTimezone(),
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -23,6 +62,7 @@ export function formatDate(date) {
 export function formatDateTime(datetime) {
   if (!datetime) return '-'
   return new Date(datetime).toLocaleString('de-DE', {
+    timeZone: getDisplayTimezone(),
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -39,6 +79,7 @@ export function formatDateTime(datetime) {
 export function formatTime(datetime) {
   if (!datetime) return '-'
   return new Date(datetime).toLocaleTimeString('de-DE', {
+    timeZone: getDisplayTimezone(),
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -84,6 +125,7 @@ export function formatDateRelative(dateString) {
     return `Vor ${diffDays - 1} Tagen`
   } else {
     return date.toLocaleDateString('de-DE', {
+      timeZone: getDisplayTimezone(),
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -99,6 +141,7 @@ export function formatDateRelative(dateString) {
 export function formatDateLong(dateString) {
   if (!dateString) return '-'
   return new Date(dateString).toLocaleDateString('de-DE', {
+    timeZone: getDisplayTimezone(),
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -113,6 +156,7 @@ export function formatDateLong(dateString) {
 export function formatDateShort(dateString) {
   if (!dateString) return '-'
   return new Date(dateString).toLocaleDateString('de-DE', {
+    timeZone: getDisplayTimezone(),
     year: 'numeric',
     month: 'short',
     day: 'numeric'
@@ -127,6 +171,7 @@ export function formatDateShort(dateString) {
 export function formatMonthYear(date) {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('de-DE', {
+    timeZone: getDisplayTimezone(),
     month: '2-digit',
     year: '2-digit'
   })

@@ -754,7 +754,7 @@ import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EmailInput from '@/Components/EmailInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
-import { formatCurrency, formatDate } from '@/utils/formatters'
+import { formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({
     membershipPlans: {
@@ -859,7 +859,7 @@ const paidMembershipStartDate = computed(() => {
 
 const formatFreePeriodDate = (date) => {
   if (!date) return ''
-  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return date.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone(), day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 const errors = computed(() => form.errors)
@@ -1229,7 +1229,7 @@ const getEndDate = () => {
         multiplier++
     }
 
-    return endDate.toLocaleDateString('de-DE')
+    return endDate.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone() })
 }
 
 const getPaymentMethodLabel = () => {

@@ -16,3 +16,15 @@ unit-tests:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - vendor/
+
+js-tests:
+  stage: test
+  image: node:20-alpine
+  before_script:
+    - npm ci
+  script:
+    - npm test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node
+    paths:
+      - node_modules/

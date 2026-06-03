@@ -43,7 +43,7 @@ class MemberAccessConfig extends Model
         'massage_enabled' => 'boolean',
         'massage_sessions' => 'integer',
         'coffee_flat_enabled' => 'boolean',
-        'coffee_flat_expiry' => 'date',
+        'coffee_flat_expiry' => 'date:Y-m-d',
         'additional_services' => 'array',
     ];
 
