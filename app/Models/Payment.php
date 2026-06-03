@@ -37,9 +37,9 @@ class Payment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'execution_date' => 'date',
-        'due_date' => 'date',
-        'paid_date' => 'date',
+        'execution_date' => 'date:Y-m-d',
+        'due_date' => 'date:Y-m-d',
+        'paid_date' => 'date:Y-m-d',
         'canceled_at' => 'datetime',
         'failed_at' => 'datetime',
         'expired_at' => 'datetime',

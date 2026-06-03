@@ -342,7 +342,7 @@ import { useForm } from '@inertiajs/vue3'
 import {
   Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift
 } from 'lucide-vue-next'
-import { formatCurrency, formatDate } from '@/utils/formatters'
+import { formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
 import MembershipStatusEditor from '@/Components/Members/MembershipStatusEditor.vue'
@@ -566,7 +566,7 @@ const addFreePeriod = () => {
 const formatDateShort = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
-  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return date.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone(), day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // Helper functions

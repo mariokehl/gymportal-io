@@ -35,7 +35,7 @@ class PaymentMethod extends Model
     ];
 
     protected $casts = [
-        'expiry_date' => 'date',
+        'expiry_date' => 'date:Y-m-d',
         'sepa_mandate_signed_at' => 'datetime',
         'is_default' => 'boolean',
         'sepa_mandate_acknowledged' => 'boolean',

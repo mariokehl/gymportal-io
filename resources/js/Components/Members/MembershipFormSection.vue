@@ -145,7 +145,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { AlertTriangle } from 'lucide-vue-next'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, getDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({
   modelValue: {
@@ -209,7 +209,7 @@ const calculatedEndDate = computed(() => {
     multiplier++
   }
 
-  return endDate.toLocaleDateString('de-DE')
+  return endDate.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone() })
 })
 
 const updateField = (field, value) => {
