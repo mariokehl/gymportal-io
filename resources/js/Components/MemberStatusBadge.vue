@@ -27,7 +27,7 @@ const props = defineProps({
   status: String,
   showIcon: {
     type: Boolean,
-    default: false
+    default: true
   },
   outstandingBalance: {
     type: Number,

@@ -13,6 +13,7 @@ use App\Services\MemberStatusService;
 use App\Services\MollieService;
 use App\Services\WidgetService;
 use Carbon\Carbon;
+use Mollie\Api\Resources\Payment as MolliePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -203,18 +204,22 @@ class MollieWebhookController extends Controller
     /**
      * Handle regular payment paid
      */
-    private function handlePaymentPaid(Gym $gym, Payment $localPayment, $molliePayment, MollieService $mollieService, string $paymentId): void
+    private function handlePaymentPaid(Gym $gym, Payment $localPayment, MolliePayment $molliePayment, MollieService $mollieService, string $paymentId): void
     {
         $member = $localPayment->member;
         $membership = $localPayment->membership;
 
         // Member und Membership aktivieren
         if ($member) {
-            $member->update(['status' => 'active']);
-        }
-        if ($membership) {
-            if (!$membership->activateMembership()) {
-                $membership->update(['status' => 'active']);
+            if ($member->status === 'overdue') {
+                $member->update(['status' => 'active']);
+                app(MemberStatusService::class)->handleStatusChangeActions(
+                    $member,
+                    'overdue',
+                    'active',
+                    null,
+                    'payment_resolved'
+                );
             }
         }
 

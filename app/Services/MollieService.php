@@ -746,8 +746,15 @@ class MollieService
             'mollie_payment_id' => $molliePayment->id,
             'status' => $this->mapMollieStatus($molliePayment->status),
             'mollie_status' => $molliePayment->status,
+            'paid_date' => $molliePayment->isPaid() ? now() : null,
+            'failed_at' => $molliePayment->isFailed() ? now() : null,
+            'canceled_at' => $molliePayment->isCanceled() ? now() : null,
+            'expired_at' => $molliePayment->isExpired() ? now() : null,
             'payment_method' => $paymentMethod->type,
-            'paid_date' => Carbon::now()->format('Y-m-d'),
+            'metadata' => array_filter([
+                ...($payment->metadata ?? []),
+                'change_payment_state_url' => $molliePayment->_links->changePaymentState->href ?? null,
+            ]),
         ]);
     }
 

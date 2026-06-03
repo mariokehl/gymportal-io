@@ -78,15 +78,15 @@
 
                     <!-- Betroffene Mitgliedschaften -->
                     <div v-if="history.metadata.activated_memberships" class="text-xs text-green-600">
-                      <CheckCircle class="w-3 h-3 inline mr-1" />
+                      <CheckCircle class="w-3 h-3 inline" />
                       {{ history.metadata.activated_memberships }} Mitgliedschaft(en) aktiviert
                     </div>
                     <div v-if="history.metadata.paused_memberships" class="text-xs text-yellow-600">
-                      <Pause class="w-3 h-3 inline mr-1" />
+                      <Pause class="w-3 h-3 inline" />
                       {{ history.metadata.paused_memberships }} Mitgliedschaft(en) pausiert
                     </div>
                     <div v-if="history.metadata.reactivated_memberships" class="text-xs text-blue-600">
-                      <PlayCircle class="w-3 h-3 inline mr-1" />
+                      <PlayCircle class="w-3 h-3 inline" />
                       {{ history.metadata.reactivated_memberships }} Mitgliedschaft(en) reaktiviert
                     </div>
                   </div>
