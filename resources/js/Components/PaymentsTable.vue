@@ -157,12 +157,7 @@
                 <!-- Status Column -->
                 <template v-else-if="column.key === 'status'">
                   <div class="flex items-center">
-                    <span
-                      :class="getStatusClasses(payment.status_color)"
-                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                    >
-                      {{ payment.status_text }}
-                    </span>
+                    <PaymentStatusBadge :status="payment.status" />
                     <!-- Chargeback/Refund Badge -->
                     <button
                       v-if="getChargebackRefundCount(payment) > 0"
@@ -261,12 +256,7 @@
                             <td class="px-4 py-2 text-sm text-gray-900">{{ formatDate(chargeback.chargeback_date) }}</td>
                             <td class="px-4 py-2 text-sm font-semibold text-red-600">-{{ formatCurrency(chargeback.amount) }}</td>
                             <td class="px-4 py-2">
-                              <span
-                                :class="getChargebackStatusClasses(chargeback.status)"
-                                class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
-                              >
-                                {{ chargeback.status_text }}
-                              </span>
+                              <PaymentStatusBadge :status="chargeback.status" type="chargeback" />
                             </td>
                             <td class="px-4 py-2 text-sm text-gray-600">{{ chargeback.reason || '-' }}</td>
                           </tr>
@@ -299,12 +289,7 @@
                             <td class="px-4 py-2 text-sm text-gray-900">{{ formatDate(refund.created_at) }}</td>
                             <td class="px-4 py-2 text-sm font-semibold text-blue-600">-{{ formatCurrency(refund.amount) }}</td>
                             <td class="px-4 py-2">
-                              <span
-                                :class="getRefundStatusClasses(refund.status)"
-                                class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
-                              >
-                                {{ refund.status_text }}
-                              </span>
+                              <PaymentStatusBadge :status="refund.status" type="refund" />
                             </td>
                             <td class="px-4 py-2 text-sm text-gray-600">{{ refund.description || '-' }}</td>
                             <td class="px-4 py-2 text-sm text-gray-600">{{ refund.reason || '-' }}</td>
@@ -381,12 +366,7 @@
               <label class="block text-sm font-medium text-gray-500">Betrag</label>
               <div class="mt-1 flex items-center gap-2">
                 <span class="text-sm text-gray-900 font-semibold">{{ formatCurrency(selectedPayment.amount) }}</span>
-                <span
-                  :class="getStatusClasses(selectedPayment.status_color)"
-                  class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
-                >
-                  {{ selectedPayment.status_text }}
-                </span>
+                <PaymentStatusBadge :status="selectedPayment.status" />
               </div>
             </div>
             <div>
@@ -551,6 +531,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
+import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
 import {
   Download,
   ArrowUpDown,
@@ -975,17 +956,6 @@ const getMemberInitials = (member) => {
   return (first + last).toUpperCase()
 }
 
-const getStatusClasses = (color) => {
-  const classes = {
-    green: 'bg-green-100 text-green-800',
-    yellow: 'bg-yellow-100 text-yellow-800',
-    red: 'bg-red-100 text-red-800',
-    blue: 'bg-indigo-100 text-indigo-800',
-    gray: 'bg-gray-100 text-gray-800'
-  }
-  return classes[color] || classes.gray
-}
-
 const getChargebackRefundCount = (payment) => {
   const chargebackCount = payment.chargebacks?.length || 0
   const refundCount = payment.refunds?.length || 0
@@ -1006,25 +976,6 @@ const isRowExpanded = (paymentId) => {
   return expandedRows.value.has(paymentId)
 }
 
-const getChargebackStatusClasses = (status) => {
-  const classes = {
-    received: 'bg-red-100 text-red-800',
-    accepted: 'bg-gray-100 text-gray-800',
-    disputed: 'bg-yellow-100 text-yellow-800',
-    reversed: 'bg-green-100 text-green-800'
-  }
-  return classes[status] || classes.received
-}
-
-const getRefundStatusClasses = (status) => {
-  const classes = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    processing: 'bg-blue-100 text-blue-800',
-    refunded: 'bg-green-100 text-green-800',
-    failed: 'bg-red-100 text-red-800'
-  }
-  return classes[status] || classes.pending
-}
 
 // Expose methods for parent component if needed
 defineExpose({
