@@ -5,8 +5,11 @@
     <!-- Sidebar -->
     <div class="w-64 bg-white shadow-md flex flex-col">
       <div class="p-4 border-b border-gray-200">
-        <h2 class="text-xl font-bold text-indigo-600">gymportal.io</h2>
-        <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
+        <Logo class="h-5 w-auto" />
+        <div class="flex items-center gap-2">
+          <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
+          <AppVersion />
+        </div>
       </div>
 
       <nav class="mt-6 h-full">
@@ -196,6 +199,8 @@ import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
+import Logo from '@/Components/Logo.vue'
+import AppVersion from '@/Components/AppVersion.vue'
 
 // Shared data
 const page = usePage()
