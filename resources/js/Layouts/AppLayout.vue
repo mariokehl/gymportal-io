@@ -6,10 +6,7 @@
     <div class="w-64 bg-white shadow-md flex flex-col">
       <div class="p-4 border-b border-gray-200">
         <Logo class="h-5 w-auto" />
-        <div class="flex items-center gap-2">
-          <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
-          <AppVersion />
-        </div>
+        <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
       </div>
 
       <nav class="mt-6 h-full">
@@ -98,8 +95,9 @@
 
       <OrganizationSwitcher />
 
-      <!-- Trial/Subscription Status -->
-      <div v-if="subscriptionStatus" class="p-4 border-t border-gray-200">
+      <!-- Trial/Subscription Status + Version -->
+      <div class="p-4 border-t border-gray-200 flex flex-col gap-3">
+        <template v-if="subscriptionStatus">
         <div v-if="subscriptionStatus.trial.is_active" class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
           <div class="flex items-center">
             <svg class="h-4 w-4 text-indigo-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,6 +134,12 @@
               </Link>
             </div>
           </div>
+        </div>
+        </template>
+
+        <!-- App-Version -->
+        <div class="flex items-center justify-center">
+          <AppVersion />
         </div>
       </div>
     </div>
