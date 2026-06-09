@@ -6,7 +6,7 @@
     <div class="w-64 bg-white shadow-md flex flex-col">
       <div class="p-4 border-b border-gray-200">
         <Logo class="h-5 w-auto" />
-        <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
+        <p class="mt-1 text-xs text-gray-500 tracking-wide">Mitgliederverwaltung</p>
       </div>
 
       <nav class="mt-6 h-full">
