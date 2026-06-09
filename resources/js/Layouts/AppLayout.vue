@@ -2,151 +2,46 @@
   <div class="flex h-screen bg-gray-100">
     <Head :title="pageTitle || 'gymportal.io'" />
 
-    <!-- Sidebar -->
-    <div class="w-64 bg-white shadow-md flex flex-col">
-      <div class="p-4 border-b border-gray-200">
-        <Logo class="h-5 w-auto" />
-        <div class="flex items-center gap-2">
-          <p class="text-sm text-gray-500">Mitgliederverwaltung</p>
-          <AppVersion />
-        </div>
-      </div>
+    <!-- Sidebar (static on large screens) -->
+    <div class="hidden lg:flex w-64 bg-white shadow-md flex-col">
+      <SidebarNav />
+    </div>
 
-      <nav class="mt-6 h-full">
-        <SidebarItem
-          :icon="BarChart"
-          label="Dashboard"
-          :active="route().current('dashboard')"
-          :href="route('dashboard')"
-        />
-        <SidebarItem
-          :icon="Users"
-          label="Mitglieder"
-          :active="route().current('members.*') || route().current('blocklist.*')"
-          :href="route('members.index')"
-          :disabled="!canAccessPremiumFeatures"
-        >
-          <template #children>
-            <Link
-              v-if="isOwnerOrAdmin"
-              :href="route('blocklist.index')"
-              :class="[
-                'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-                route().current('blocklist.*')
-                  ? 'text-indigo-700'
-                  : 'text-gray-500 hover:text-gray-700'
-              ]"
-            >
-              <span class="w-5 mr-3 flex justify-center">
-                <span class="w-px h-full min-h-4 bg-gray-300" />
-              </span>
-              Sperrliste
-            </Link>
-          </template>
-        </SidebarItem>
-        <SidebarItem
-          :icon="FilePlus"
-          label="Verträge"
-          :active="route().current('contracts.index')"
-          :href="route('contracts.index')"
-          :disabled="!canAccessPremiumFeatures"
-        />
-        <SidebarItem
-          v-if="isOwnerOrAdmin"
-          :icon="DollarSign"
-          label="Finanzen"
-          :active="route().current('finances.index')"
-          :href="route('finances.index')"
-          :disabled="!canAccessPremiumFeatures"
-        />
-        <SidebarItem
-          v-if="isOwnerOrAdmin"
-          :icon="Bell"
-          label="Benachrichtigungen"
-          :active="route().current('notifications.index')"
-          :href="route('notifications.index')"
-          :disabled="!canAccessPremiumFeatures"
-        />
-        <SidebarItem
-          :icon="DoorOpen"
-          label="Zugangskontrolle"
-          :active="route().current('access-control.*')"
-          :href="route('access-control.index')"
-          :disabled="!canAccessPremiumFeatures"
-        />
-        <SidebarItem
-          v-if="isOwnerOrAdmin"
-          :icon="ArrowDownUp"
-          label="Import/Export"
-          :active="route().current('data-transfer.*')"
-          :href="route('data-transfer.index')"
-        />
-        <SidebarItem
-          v-if="isOwnerOrAdmin"
-          :icon="Settings"
-          label="Einstellungen"
-          :active="route().current('settings.index')"
-          :href="route('settings.index')"
-        />
-        <SidebarItem
-          :icon="LogOut"
-          label="Abmelden"
-          :active="false"
-          @click="handleLogout"
-        />
-      </nav>
-
-      <OrganizationSwitcher />
-
-      <!-- Trial/Subscription Status -->
-      <div v-if="subscriptionStatus" class="p-4 border-t border-gray-200">
-        <div v-if="subscriptionStatus.trial.is_active" class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-indigo-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-indigo-800">Testphase</p>
-              <p class="text-xs text-indigo-600">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</p>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="subscriptionStatus.subscription.is_active" class="bg-green-50 border border-green-200 rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-green-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-green-800">SaaS Hosted</p>
-              <p class="text-xs text-green-600">Aktiv</p>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="bg-red-50 border border-red-200 rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-red-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.084 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-red-800">Testphase abgelaufen</p>
-              <Link :href="route('billing.index')" class="text-xs text-red-600 underline">
-                Jetzt upgraden
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Mobile drawer (sidebar as slide-in overlay) -->
+    <div class="lg:hidden" :class="drawerOpen ? '' : 'pointer-events-none'">
+      <!-- Backdrop -->
+      <div
+        class="fixed inset-0 z-40 bg-gray-900/45 transition-opacity duration-300"
+        :class="drawerOpen ? 'opacity-100' : 'opacity-0'"
+        @click="drawerOpen = false"
+      />
+      <!-- Panel -->
+      <aside
+        class="fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85%] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out"
+        :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
+      >
+        <SidebarNav dismissible @close="drawerOpen = false" />
+      </aside>
     </div>
 
     <!-- Main Content -->
     <div class="flex-1 overflow-y-auto">
       <!-- Header -->
       <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
-        <h1 class="text-xl font-semibold">
-          <slot name="header">Dashboard</slot>
-        </h1>
+        <div class="flex items-center min-w-0">
+          <!-- Hamburger (mobile only) -->
+          <button
+            type="button"
+            class="lg:hidden -ml-1 mr-2 p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
+            aria-label="Menü öffnen"
+            @click="drawerOpen = true"
+          >
+            <Menu class="w-6 h-6" />
+          </button>
+          <h1 class="text-xl font-semibold truncate">
+            <slot name="header">Dashboard</slot>
+          </h1>
+        </div>
 
         <div class="flex items-center space-x-4">
           <!-- Admin Badge -->
@@ -163,13 +58,13 @@
             <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
               {{ userInitials }}
             </div>
-            <span class="ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
+            <span class="hidden sm:inline ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
           </Link>
         </div>
       </header>
 
       <!-- Page Content -->
-      <main class="p-6 mb-20">
+      <main class="p-4 sm:p-6 mb-20">
         <ImpersonationBanner />
         <slot />
       </main>
@@ -186,25 +81,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { router, usePage, Head, Link } from '@inertiajs/vue3'
-import {
-  Users, Bell, DollarSign,
-  BarChart, Settings, LogOut,
-  FilePlus, Shield, DoorOpen,
-  ArrowDownUp, ShieldX
-} from 'lucide-vue-next'
-import SidebarItem from '@/Components/SidebarItem.vue'
-import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
+import { Shield, Menu } from 'lucide-vue-next'
+import SidebarNav from '@/Components/SidebarNav.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
-import Logo from '@/Components/Logo.vue'
-import AppVersion from '@/Components/AppVersion.vue'
 
 // Shared data
 const page = usePage()
 const notificationPopup = ref(null)
+
+// Mobile drawer state — auto-closes after Inertia navigates to a new page.
+const drawerOpen = ref(false)
+const stopNavListener = router.on('navigate', () => { drawerOpen.value = false })
+onBeforeUnmount(() => stopNavListener())
 
 // Page
 const chatwootEnabled = page.props.chatwoot?.enabled ?? false
@@ -233,33 +125,10 @@ const userInitials = computed(() => {
   return (first + last).toUpperCase()
 })
 
-const subscriptionStatus = computed(() => {
-  return page.props.subscription_status || null
-})
-
-const canAccessPremiumFeatures = computed(() => {
-  if (!subscriptionStatus.value) return true
-
-  return subscriptionStatus.value.trial.is_active ||
-         subscriptionStatus.value.subscription.is_active
-})
-
 // Admin Check
 const isAdmin = computed(() => {
   return user.value?.role_id === 1
 })
-
-// Owner or Admin Check
-const isOwnerOrAdmin = computed(() => {
-  return user.value?.role_id === 1 || user.value?.role_id === 2
-})
-
-// Methods
-const handleLogout = () => {
-  if (confirm('Möchten Sie sich wirklich abmelden?')) {
-    router.post('/logout')
-  }
-}
 
 // Make user data available globally for WebSocket
 onMounted(() => {
