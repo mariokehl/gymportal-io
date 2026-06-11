@@ -201,6 +201,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/gym/logo/upload', [SettingController::class, 'uploadLogo'])->name('gym.logo.upload');
         Route::delete('/gym/logo/delete', [SettingController::class, 'deleteLogo'])->name('gym.logo.delete');
         Route::put('/gym-users/{gymUser}', [SettingController::class, 'updateGymUser'])->name('gym-users.update');
+        Route::put('/gym-users/{gymUser}/name', [SettingController::class, 'updateGymUserName'])->name('gym-users.update-name');
         Route::delete('/gym-users/{gymUser}', [SettingController::class, 'destroyGymUser'])->name('gym-users.destroy');
         // Team invitations (pending invites for the current gym)
         Route::post('/gym-invitations', [GymInvitationController::class, 'store'])->name('gym-invitations.store');

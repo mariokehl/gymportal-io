@@ -45,6 +45,9 @@ class SettingController extends Controller
             'gymUsers' => $gymUsers,
             'pendingInvitations' => $pendingInvitations,
             'user' => $user,
+            // Inline-Bearbeitung des Team-Mitglied-Namens ist dem Gym-Besitzer
+            // vorbehalten.
+            'isGymOwner' => $user->id === $currentGym->owner_id,
         ]);
     }
 
@@ -196,6 +199,32 @@ class SettingController extends Controller
             'success' => true,
             'gym_user' => $gymUser,
             'message' => 'Benutzerrolle wurde erfolgreich aktualisiert.',
+        ]);
+    }
+
+    public function updateGymUserName(Request $request, GymUser $gymUser)
+    {
+        // Nur der Besitzer des Gyms darf den Namen eines Team-Mitglieds ändern.
+        // GymPolicy::delete ist owner-only (im Gegensatz zu update/manage, die
+        // auch Admins erlauben) und bildet diese Beschränkung exakt ab.
+        $this->authorize('delete', $gymUser->gym);
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+        ]);
+
+        $gymUser->user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $gymUser->user->id,
+                'first_name' => $gymUser->user->first_name,
+                'last_name' => $gymUser->user->last_name,
+                'email' => $gymUser->user->email,
+            ],
+            'message' => 'Name wurde erfolgreich aktualisiert.',
         ]);
     }
 

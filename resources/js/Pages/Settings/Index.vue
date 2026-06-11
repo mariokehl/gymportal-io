@@ -219,6 +219,7 @@
                     :current-gym="currentGym"
                     :gym-users="gymUsers"
                     :pending-invitations="pendingInvitations"
+                    :is-gym-owner="isGymOwner"
                     @success="handleSuccess"
                     @error="handleError" />
             </div>
@@ -499,6 +500,10 @@ const props = defineProps({
     pendingInvitations: {
         type: Array,
         default: () => []
+    },
+    isGymOwner: {
+        type: Boolean,
+        default: false
     }
 })
 

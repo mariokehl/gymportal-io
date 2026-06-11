@@ -47,8 +47,32 @@
                                             </span>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">
-                                                {{ gymUser.user?.first_name }} {{ gymUser.user?.last_name }}
+                                            <!-- Display mode -->
+                                            <div v-if="editingNameId !== gymUser.id"
+                                                class="group flex items-center text-sm font-medium text-gray-900">
+                                                <span>{{ gymUser.user?.first_name }} {{ gymUser.user?.last_name }}</span>
+                                                <button v-if="isGymOwner" @click="startEditName(gymUser)"
+                                                    class="ml-2 text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                                    title="Namen bearbeiten">
+                                                    <component :is="Pencil" class="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                            <!-- Edit mode (owner only) -->
+                                            <div v-else class="flex items-center gap-1">
+                                                <input v-model="nameForm.first_name" type="text" placeholder="Vorname"
+                                                    @keyup.enter="saveName(gymUser)" @keyup.esc="cancelEditName"
+                                                    class="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                                <input v-model="nameForm.last_name" type="text" placeholder="Nachname"
+                                                    @keyup.enter="saveName(gymUser)" @keyup.esc="cancelEditName"
+                                                    class="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                                <button @click="saveName(gymUser)" :disabled="gymUser.isSavingName"
+                                                    class="text-green-600 hover:text-green-800 disabled:opacity-50" title="Speichern">
+                                                    <component :is="Check" class="w-4 h-4" />
+                                                </button>
+                                                <button @click="cancelEditName" :disabled="gymUser.isSavingName"
+                                                    class="text-gray-400 hover:text-gray-600 disabled:opacity-50" title="Abbrechen">
+                                                    <component :is="X" class="w-4 h-4" />
+                                                </button>
                                             </div>
                                             <div class="text-sm text-gray-500">
                                                 {{ gymUser.user?.email }}
@@ -196,7 +220,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Plus, Trash2, Send } from 'lucide-vue-next'
+import { Plus, Trash2, Send, Pencil, Check, X } from 'lucide-vue-next'
 import { formatDate } from '@/utils/formatters'
 
 // Props
@@ -216,6 +240,10 @@ const props = defineProps({
     pendingInvitations: {
         type: Array,
         default: () => []
+    },
+    isGymOwner: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -228,6 +256,10 @@ const localInvitations = ref([...props.pendingInvitations])
 const showAddUserModal = ref(false)
 const isSubmittingUser = ref(false)
 const formErrors = ref({})
+
+// Inline name editing (owner only)
+const editingNameId = ref(null)
+const nameForm = ref({ first_name: '', last_name: '' })
 
 const userForm = ref({
     email: '',
@@ -302,6 +334,47 @@ const withdrawInvitation = (invitation) => {
         onError: () => emit('error', 'Einladung konnte nicht zurückgezogen werden.'),
         onFinish: () => { invitation.isBusy = false }
     })
+}
+
+const startEditName = (gymUser) => {
+    editingNameId.value = gymUser.id
+    nameForm.value = {
+        first_name: gymUser.user?.first_name || '',
+        last_name: gymUser.user?.last_name || ''
+    }
+}
+
+const cancelEditName = () => {
+    editingNameId.value = null
+    nameForm.value = { first_name: '', last_name: '' }
+}
+
+const saveName = async (gymUser) => {
+    if (!nameForm.value.first_name.trim() || !nameForm.value.last_name.trim()) {
+        emit('error', 'Vor- und Nachname dürfen nicht leer sein.')
+        return
+    }
+
+    gymUser.isSavingName = true
+
+    try {
+        const response = await axios.put(route('settings.gym-users.update-name', gymUser.id), {
+            first_name: nameForm.value.first_name,
+            last_name: nameForm.value.last_name
+        })
+
+        if (response.data.user) {
+            gymUser.user.first_name = response.data.user.first_name
+            gymUser.user.last_name = response.data.user.last_name
+        }
+
+        cancelEditName()
+        emit('success', 'Name wurde erfolgreich aktualisiert!')
+    } catch (error) {
+        emit('error', 'Fehler beim Aktualisieren des Namens')
+    } finally {
+        gymUser.isSavingName = false
+    }
 }
 
 const updateUserRole = async (gymUser) => {
