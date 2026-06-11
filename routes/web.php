@@ -2,13 +2,17 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\BillingController;
+use App\Http\Controllers\Web\BlocklistController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\DataTransferController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
 use App\Http\Controllers\Web\GymInvitationController;
 use App\Http\Controllers\Web\MemberAccessController;
 use App\Http\Controllers\Web\MemberController;
+use App\Http\Controllers\Web\MemberDocumentController;
 use App\Http\Controllers\Web\MemberPaymentController;
 use App\Http\Controllers\Web\MembershipController;
 use App\Http\Controllers\Web\MembershipPlanController;
@@ -16,12 +20,8 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\PaymentController;
 use App\Http\Controllers\Web\PaymentMethodController;
 use App\Http\Controllers\Web\PaymentReturnController;
-use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
-use App\Http\Controllers\Web\DataTransferController;
-use App\Http\Controllers\Web\BlocklistController;
-use App\Http\Controllers\Web\MemberDocumentController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
@@ -200,7 +200,6 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/gym/{gym}', [SettingController::class, 'updateGym'])->name('gym.update');
         Route::post('/gym/logo/upload', [SettingController::class, 'uploadLogo'])->name('gym.logo.upload');
         Route::delete('/gym/logo/delete', [SettingController::class, 'deleteLogo'])->name('gym.logo.delete');
-        Route::post('/gym-users', [SettingController::class, 'storeGymUser'])->name('gym-users.store');
         Route::put('/gym-users/{gymUser}', [SettingController::class, 'updateGymUser'])->name('gym-users.update');
         Route::delete('/gym-users/{gymUser}', [SettingController::class, 'destroyGymUser'])->name('gym-users.destroy');
         // Team invitations (pending invites for the current gym)
@@ -274,7 +273,7 @@ Route::middleware(['auth:web', 'basic.auth'])->prefix('admin')->group(function (
 });
 
 // Zusätzliche Widget-Admin-Routes für AJAX-Calls
-Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(function() {
+Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(function () {
     Route::get('/contracts', function () {
         /** @var User $user */
         $user = Auth::user();
@@ -286,15 +285,15 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
         return response()->json(['contracts' => $contracts]);
     })->name('contracts');
 
-    Route::put('/update', function(Request $request) {
+    Route::put('/update', function (Request $request) {
         /** @var User $user */
         $user = Auth::user();
         $currentGym = $user?->currentGym;
 
-        if (!$currentGym) {
+        if (! $currentGym) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kein Fitnessstudio ausgewählt.'
+                'message' => 'Kein Fitnessstudio ausgewählt.',
             ], 400);
         }
 
@@ -322,18 +321,18 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
                     'api_key' => $currentGym->api_key,
                     'widget_enabled' => $currentGym->widget_enabled,
                     'widget_settings' => $currentGym->widget_settings,
-                ]
+                ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fehler beim Speichern der Einstellungen: ' . $e->getMessage()
+                'message' => 'Fehler beim Speichern der Einstellungen: '.$e->getMessage(),
             ], 500);
         }
     })->name('update');
 
-    Route::post('/regenerate-api-key', function() {
+    Route::post('/regenerate-api-key', function () {
         /** @var User $user */
         $user = Auth::user();
 
@@ -343,15 +342,15 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
                 'api_key' => $user->currentGym->regenerateApiKey(),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fehler beim Generieren des API-Keys: ' . $e->getMessage()
+                'message' => 'Fehler beim Generieren des API-Keys: '.$e->getMessage(),
             ], 500);
         }
     })->name('regenerate-api-key');
 
-    Route::get('/api-keys', function() {
+    Route::get('/api-keys', function () {
         /** @var User $user */
         $user = Auth::user();
 
@@ -362,10 +361,10 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
                 'private_key' => 'sk_live_notimplementedyet',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fehler beim Laden der API-Keys: ' . $e->getMessage()
+                'message' => 'Fehler beim Laden der API-Keys: '.$e->getMessage(),
             ], 500);
         }
     })->name('api-keys');
@@ -376,6 +375,7 @@ Route::prefix('embed')->name('embed.')->group(function () {
         $response = response()->file(public_path('css/widget.css'));
         $response->headers->set('Content-Type', 'text/css');
         $response->headers->set('Cache-Control', 'public, max-age=3600');
+
         return $response;
     })->name('widget.css')->withoutMiddleware(['web']);
 
@@ -383,6 +383,7 @@ Route::prefix('embed')->name('embed.')->group(function () {
         $response = response()->file(public_path('js/widget.js'));
         $response->headers->set('Content-Type', 'application/javascript');
         $response->headers->set('Cache-Control', 'public, max-age=3600');
+
         return $response;
     })->name('widget.js')->withoutMiddleware(['web']);
 });
@@ -403,7 +404,7 @@ if (App::environment('local', 'development', 'staging')) {
             'available_routes' => [
                 'embed_widget_js' => route('embed.widget.js'),
                 'embed_widget_css' => route('embed.widget.css'),
-            ]
+            ],
         ];
     });
 }
