@@ -180,7 +180,7 @@ class SettingController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
-        $currentGym = $user->ownedGyms()->first();
+        $currentGym = $user->currentGym;
 
         if (!$currentGym) {
             return redirect()->back()->with('error', 'Kein Gym gefunden.');

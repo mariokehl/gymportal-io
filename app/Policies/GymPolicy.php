@@ -36,7 +36,7 @@ class GymPolicy
      */
     public function update(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id;
+        return $user->id === $gym->owner_id;
     }
 
     /**
@@ -44,7 +44,7 @@ class GymPolicy
      */
     public function delete(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id;
+        return $user->id === $gym->owner_id;
     }
 
     /**
@@ -69,7 +69,7 @@ class GymPolicy
      */
     public function manage(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id
+        return $user->id === $gym->owner_id
             && in_array($user->role_id, [1, 2]); // Admin oder Owner
     }
 }
