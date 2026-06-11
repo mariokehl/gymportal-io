@@ -7,7 +7,11 @@
         "build": "vite build",
         "dev": "vite",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "version": "git add package.json package-lock.json && git commit -m \"chore(release): v${npm_new_version}\"",
+        "release:patch": "npm version patch",
+        "release:minor": "npm version minor",
+        "release:major": "npm version major"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.1.4",
