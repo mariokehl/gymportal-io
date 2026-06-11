@@ -75,6 +75,32 @@ class SwitchOrganizationTest extends TestCase
     }
 
     #[Test]
+    public function member_can_switch_to_a_gym_they_belong_to_via_gym_users(): void
+    {
+        // A trainer/staff member who does not own the gym but is linked through
+        // gym_users must be able to switch into it.
+        [$member, $ownGym] = $this->makeOwnerWithGym();
+
+        $foreignOwner = User::factory()->create();
+        $foreignGym = Gym::factory()->create(['owner_id' => $foreignOwner->id]);
+        \App\Models\GymUser::create([
+            'gym_id' => $foreignGym->id,
+            'user_id' => $member->id,
+            'role' => 'trainer',
+        ]);
+
+        $this->actingAs($member->fresh())
+            ->post(route('user.switch-organization'), ['gym_id' => $foreignGym->id])
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertSame(
+            $foreignGym->id,
+            $member->fresh()->current_gym_id,
+            'A gym_users member must be able to switch into the gym they belong to.'
+        );
+    }
+
+    #[Test]
     public function guest_cannot_switch_organization(): void
     {
         [, $gym] = $this->makeOwnerWithGym();

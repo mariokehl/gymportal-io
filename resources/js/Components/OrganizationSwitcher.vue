@@ -1,8 +1,8 @@
 <template>
     <!-- Organization Selector -->
     <div class="relative">
-        <button @click="showOrgPopover = !showOrgPopover"
-            class="w-full flex items-center justify-between p-3 hover:bg-gray-100 transition-colors">
+        <button @click="canExpand && (showOrgPopover = !showOrgPopover)"
+            :class="['w-full flex items-center justify-between p-3 transition-colors', canExpand ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default']">
             <div class="flex items-center flex-1 min-w-0">
                 <div
                     class="w-8 h-8 flex-shrink-0 bg-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-semibold leading-none">
@@ -13,36 +13,42 @@
                     <p class="text-xs text-gray-500">Organisation</p>
                 </div>
             </div>
-            <component :is="ChevronDown"
+            <!-- Only show the expand caret when there is something to expand:
+                 management links (owner/admin) or more than one organization. -->
+            <component v-if="canExpand" :is="ChevronDown"
                 :class="['w-4 h-4 text-gray-400 transition-transform', showOrgPopover ? 'rotate-180' : '']" />
         </button>
 
         <!-- Popover -->
-        <div v-if="showOrgPopover"
+        <div v-if="showOrgPopover && canExpand"
             class="absolute bottom-full left-0 right-0 mb-2 ml-2 mr-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-            <div class="p-3 border-b border-gray-100">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Organisation verwalten</p>
-            </div>
-            <div class="py-1">
-                <Link :href="route('settings.index')"
-                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
-                    @click="showOrgPopover = false">
-                <component :is="Settings" class="w-4 h-4 mr-2 text-gray-400" />
-                Einstellungen
-                </Link>
-                <Link :href="route('billing.index')"
-                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
-                    @click="showOrgPopover = false">
-                    <component :is="DollarSign" class="w-4 h-4 mr-2 text-gray-400" />
-                    Abrechnung
-                </Link>
-                <Link :href="route('gyms.create')"
-                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
-                    @click="showOrgPopover = false">
-                <component :is="Plus" class="w-4 h-4 mr-2 text-gray-400" />
-                Neue Organisation erstellen
-                </Link>
-            </div>
+            <!-- Management links are reserved for owners/admins of the current
+                 organization. Staff and trainers never see them. -->
+            <template v-if="canManage">
+                <div class="p-3 border-b border-gray-100">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Organisation verwalten</p>
+                </div>
+                <div class="py-1">
+                    <Link :href="route('settings.index')"
+                        class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
+                        @click="showOrgPopover = false">
+                    <component :is="Settings" class="w-4 h-4 mr-2 text-gray-400" />
+                    Einstellungen
+                    </Link>
+                    <Link :href="route('billing.index')"
+                        class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
+                        @click="showOrgPopover = false">
+                        <component :is="DollarSign" class="w-4 h-4 mr-2 text-gray-400" />
+                        Abrechnung
+                    </Link>
+                    <Link :href="route('gyms.create')"
+                        class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center"
+                        @click="showOrgPopover = false">
+                    <component :is="Plus" class="w-4 h-4 mr-2 text-gray-400" />
+                    Neue Organisation erstellen
+                    </Link>
+                </div>
+            </template>
             <template v-if="allOrganizations.length > 1">
                 <div class="p-3 border-b border-gray-100">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Organisation wechseln</p>
@@ -86,7 +92,21 @@ const currentOrgName = computed(() => {
 })
 
 const allOrganizations = computed(() => {
-    return page.props.auth.user.all_gyms;
+    return page.props.auth.user.all_gyms ?? [];
+})
+
+// Whether the user may manage the currently active organization (owner/admin).
+// Staff and trainers get no management links.
+const canManage = computed(() => {
+    return page.props.auth.user.current_gym?.can_manage === true;
+})
+
+// The switcher only expands when there is something to show: management links
+// for owners/admins, or more than one organization to switch between. A trainer
+// or staff member with a single organization gets a plain, non-expandable label
+// (no caret).
+const canExpand = computed(() => {
+    return canManage.value || allOrganizations.value.length > 1;
 })
 
 // Organization switching logic

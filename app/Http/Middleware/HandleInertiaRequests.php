@@ -47,7 +47,7 @@ class HandleInertiaRequests extends Middleware
                         return [];
                     }
 
-                    return array_merge([
+                    return [
                         'id' => $user->id,
                         'role_id' => $user->role_id,
                         'first_name' => $user->first_name,
@@ -56,15 +56,21 @@ class HandleInertiaRequests extends Middleware
                         'current_gym' => $user->currentGym !== null ? [
                             'id' => $user->currentGym->id,
                             'name' => $user->currentGym->getDisplayName(),
+                            'role' => $user->roleInGym($user->currentGym),
+                            'can_manage' => $user->canManageGym($user->currentGym),
                         ] : null,
-                    ], array_filter([
-                        'all_gyms' => $user->ownedGyms->map(function (Gym $organization): array {
+                        // Every gym the user can access: owned gyms plus gyms
+                        // they belong to via gym_users. Drives the organization
+                        // switcher and its management affordances.
+                        'all_gyms' => $user->accessibleGyms()->map(function (Gym $organization) use ($user): array {
                             return [
                                 'id' => $organization->id,
                                 'name' => $organization->getDisplayName(),
+                                'role' => $user->roleInGym($organization),
+                                'can_manage' => $user->canManageGym($organization),
                             ];
                         })->all(),
-                    ]));
+                    ];
                 },
                 'verified' => $request->user()?->hasVerifiedEmail(),
             ],
