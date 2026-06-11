@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\User;
-use App\Http\Controllers\Controller;
 use App\Rules\SafeCss;
 use App\Services\CssSanitizer;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -100,7 +100,7 @@ class GymController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'gym_id' => 'required|exists:gyms,id'
+            'gym_id' => 'required|exists:gyms,id',
         ]);
 
         $gym = Gym::findOrFail($request->gym_id);

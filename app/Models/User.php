@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, SoftDeletes, CanResetPassword;
+    use CanResetPassword, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'first_name',
@@ -76,8 +77,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the current gym that the user is working with.
-     *
-     * @return BelongsTo
      */
     public function currentGym(): BelongsTo
     {
@@ -107,7 +106,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * Every gym the user may access: gyms they own plus gyms they are a member
      * of via gym_users, deduplicated by id and keyed for convenient lookup.
      *
-     * @return \Illuminate\Support\Collection<int, Gym>
+     * @return Collection<int, Gym>
      */
     public function accessibleGyms()
     {
@@ -154,7 +153,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function fullName()
     {
-        return trim($this->first_name . ' ' . $this->last_name);
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     public function getFullNameAttribute(): string

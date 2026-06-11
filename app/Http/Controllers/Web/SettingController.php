@@ -4,14 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
-use App\Rules\SafeCss;
-use App\Services\ContractService;
-use App\Services\CssSanitizer;
-use App\Services\EmailTemplateService;
 use App\Models\GymLegalUrl;
 use App\Models\GymUser;
 use App\Models\Role;
 use App\Models\User;
+use App\Rules\SafeCss;
+use App\Services\CssSanitizer;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +30,7 @@ class SettingController extends Controller
         $user = Auth::user();
         $currentGym = $user->currentGym;
 
-        if (!$currentGym) {
+        if (! $currentGym) {
             return redirect()->route('dashboard')->with('error', 'Kein Gym gefunden.');
         }
 
@@ -41,10 +39,15 @@ class SettingController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $pendingInvitations = $currentGym->invitations()
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'email', 'role', 'created_at']);
+
         return Inertia::render('Settings/Index', [
             'currentGym' => $currentGym,
             'gymUsers' => $gymUsers,
-            'user' => $user
+            'pendingInvitations' => $pendingInvitations,
+            'user' => $user,
         ]);
     }
 
@@ -61,7 +64,7 @@ class SettingController extends Controller
                 'string',
                 'max:255',
                 'regex:/^[a-z0-9-]+$/',
-                Rule::unique('gyms', 'slug')->ignore($gym->id)
+                Rule::unique('gyms', 'slug')->ignore($gym->id),
             ],
             'description' => 'nullable|string|max:1000',
             'address' => 'nullable|string|max:255',
@@ -78,7 +81,7 @@ class SettingController extends Controller
             'creditor_identifier' => 'nullable|string|max:35',
             'website' => 'nullable|url|max:255',
             'contracts_start_first_of_month' => 'boolean',
-            'free_trial_membership_name' => 'nullable|string|max:255'
+            'free_trial_membership_name' => 'nullable|string|max:255',
         ]);
 
         $gym->update($validated);
@@ -86,7 +89,7 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'gym' => $gym,
-            'message' => 'Organisation wurde erfolgreich aktualisiert.'
+            'message' => 'Organisation wurde erfolgreich aktualisiert.',
         ]);
     }
 
@@ -98,9 +101,9 @@ class SettingController extends Controller
                 'file',
                 'image',
                 'mimes:png,jpg,jpeg,gif',
-                'max:10240' // 10MB in Kilobytes
+                'max:10240', // 10MB in Kilobytes
             ],
-            'gym_id' => 'required|exists:gyms,id'
+            'gym_id' => 'required|exists:gyms,id',
         ], [
             'logo.required' => 'Bitte wählen Sie eine Datei aus.',
             'logo.file' => 'Die hochgeladene Datei ist ungültig.',
@@ -108,7 +111,7 @@ class SettingController extends Controller
             'logo.mimes' => 'Nur PNG, JPG und GIF Dateien sind erlaubt.',
             'logo.max' => 'Die Datei darf maximal 10 MB groß sein.',
             'gym_id.required' => 'Fitnessstudio ID ist erforderlich.',
-            'gym_id.exists' => 'Fitnessstudio nicht gefunden.'
+            'gym_id.exists' => 'Fitnessstudio nicht gefunden.',
         ]);
 
         if ($validator->fails()) {
@@ -127,7 +130,7 @@ class SettingController extends Controller
             }
 
             // Eindeutigen Dateinamen generieren
-            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $fileName = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
 
             // Datei in den logos Ordner speichern
             $logoPath = $file->storeAs('logos', $fileName, 'public');
@@ -137,12 +140,12 @@ class SettingController extends Controller
 
             return back()->with([
                 'success' => 'Logo wurde erfolgreich hochgeladen.',
-                'logoPath' => Storage::url($logoPath)
+                'logoPath' => Storage::url($logoPath),
             ]);
 
         } catch (\Exception $e) {
             return back()->withErrors([
-                'logo' => 'Fehler beim Hochladen der Datei. Bitte versuchen Sie es erneut.'
+                'logo' => 'Fehler beim Hochladen der Datei. Bitte versuchen Sie es erneut.',
             ]);
         }
     }
@@ -150,7 +153,7 @@ class SettingController extends Controller
     public function deleteLogo(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'gym_id' => 'required|exists:gyms,id'
+            'gym_id' => 'required|exists:gyms,id',
         ]);
 
         if ($validator->fails()) {
@@ -171,7 +174,7 @@ class SettingController extends Controller
 
         } catch (\Exception $e) {
             return back()->withErrors([
-                'logo' => 'Fehler beim Löschen des Logos.'
+                'logo' => 'Fehler beim Löschen des Logos.',
             ]);
         }
     }
@@ -182,7 +185,7 @@ class SettingController extends Controller
         $user = Auth::user();
         $currentGym = $user->currentGym;
 
-        if (!$currentGym) {
+        if (! $currentGym) {
             return redirect()->back()->with('error', 'Kein Gym gefunden.');
         }
 
@@ -191,20 +194,20 @@ class SettingController extends Controller
 
         // E-Mail zu Kleinbuchstaben konvertieren
         $request->merge([
-            'email' => strtolower($request->email)
+            'email' => strtolower($request->email),
         ]);
 
         $validated = $request->validate([
             'email' => 'required|email|indisposable|max:255',
             'first_name' => 'required_without:user_exists|string|max:255',
             'last_name' => 'required_without:user_exists|string|max:255',
-            'role' => 'required|in:admin,staff,trainer'
+            'role' => 'required|in:admin,staff,trainer',
         ]);
 
         // Versuche, den Benutzer zu finden oder zu erstellen
         $targetUser = User::where('email', $validated['email'])->first();
 
-        if (!$targetUser) {
+        if (! $targetUser) {
             // Validierung für neue Benutzer
             $request->validate([
                 'first_name' => 'required|string|max:255',
@@ -214,10 +217,10 @@ class SettingController extends Controller
             // Hole die entsprechende Role basierend auf der Gym-Rolle
             $role = Role::where('slug', $validated['role'])->first();
 
-            if (!$role) {
+            if (! $role) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Ungültige Rolle.'
+                    'message' => 'Ungültige Rolle.',
                 ], 422);
             }
 
@@ -241,14 +244,14 @@ class SettingController extends Controller
         if ($existingGymUser) {
             return response()->json([
                 'success' => false,
-                'message' => 'Dieser Benutzer ist bereits Teil des Teams.'
+                'message' => 'Dieser Benutzer ist bereits Teil des Teams.',
             ]);
         }
 
         $gymUser = GymUser::create([
             'gym_id' => $currentGym->id,
             'user_id' => $targetUser->id,
-            'role' => $validated['role']
+            'role' => $validated['role'],
         ]);
 
         return response()->json([
@@ -264,9 +267,9 @@ class SettingController extends Controller
                     'first_name' => $targetUser->first_name,
                     'last_name' => $targetUser->last_name,
                     'email' => $targetUser->email,
-                ]
+                ],
             ],
-            'message' => 'Benutzer wurde erfolgreich zum Team hinzugefügt.'
+            'message' => 'Benutzer wurde erfolgreich zum Team hinzugefügt.',
         ]);
     }
 
@@ -276,7 +279,7 @@ class SettingController extends Controller
         $this->authorize('update', $gymUser->gym);
 
         $validated = $request->validate([
-            'role' => 'required|in:admin,staff,trainer'
+            'role' => 'required|in:admin,staff,trainer',
         ]);
 
         // Verhindern, dass der Besitzer seine eigene Rolle ändert
@@ -289,7 +292,7 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'gym_user' => $gymUser,
-            'message' => 'Benutzerrolle wurde erfolgreich aktualisiert.'
+            'message' => 'Benutzerrolle wurde erfolgreich aktualisiert.',
         ]);
     }
 
@@ -307,7 +310,7 @@ class SettingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Benutzer wurde erfolgreich aus dem Team entfernt.'
+            'message' => 'Benutzer wurde erfolgreich aus dem Team entfernt.',
         ]);
     }
 
@@ -320,7 +323,7 @@ class SettingController extends Controller
         $user = Auth::user();
         $currentGym = $user->currentGym;
 
-        if (!$currentGym) {
+        if (! $currentGym) {
             return response()->json(['error' => 'Kein Gym gefunden.'], 404);
         }
 
@@ -349,14 +352,14 @@ class SettingController extends Controller
         $user = Auth::user();
         $currentGym = $user->currentGym;
 
-        if (!$currentGym) {
+        if (! $currentGym) {
             return response()->json(['error' => 'Kein Gym gefunden.'], 404);
         }
 
         $this->authorize('update', $currentGym);
 
         $validated = $request->validate([
-            'type' => 'required|string|in:' . implode(',', array_keys(GymLegalUrl::getTypes())),
+            'type' => 'required|string|in:'.implode(',', array_keys(GymLegalUrl::getTypes())),
             'url' => 'required|url|max:2048',
         ]);
 
@@ -391,7 +394,7 @@ class SettingController extends Controller
         $user = Auth::user();
         $currentGym = $user->currentGym;
 
-        if (!$currentGym || $legalUrl->gym_id !== $currentGym->id) {
+        if (! $currentGym || $legalUrl->gym_id !== $currentGym->id) {
             return response()->json(['error' => 'Nicht autorisiert.'], 403);
         }
 
@@ -414,7 +417,7 @@ class SettingController extends Controller
         $user = Auth::user();
         $gym = $user->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym gefunden.'], 404);
         }
 
@@ -464,7 +467,7 @@ class SettingController extends Controller
         $user = Auth::user();
         $gym = $user->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym gefunden.'], 404);
         }
 
@@ -475,13 +478,13 @@ class SettingController extends Controller
             '[Nachname]' => 'Mustermann',
             '[Anrede]' => 'Herr',
             '[E-Mail]' => 'max.mustermann@example.com',
-            '[Mitgliedsnummer]' => 'W001' . date('y') . '0001',
+            '[Mitgliedsnummer]' => 'W001'.date('y').'0001',
             '[Geburtsdatum]' => '15.03.1990',
             '[Strasse]' => 'Musterstraße 42',
             '[PLZ]' => '10115',
             '[Ort]' => 'Berlin',
             '[Fitnessstudio-Name]' => $gym->name,
-            '[Adresse]' => ($gym->address ?? '') . ', ' . ($gym->postal_code ?? '') . ' ' . ($gym->city ?? ''),
+            '[Adresse]' => ($gym->address ?? '').', '.($gym->postal_code ?? '').' '.($gym->city ?? ''),
             '[Telefon]' => $gym->phone ?? '',
             '[Website]' => $gym->website ?? '',
             '[Vertragslaufzeit]' => '12 Monate',
@@ -559,7 +562,7 @@ class SettingController extends Controller
         return response()->json([
             'success' => true,
             'gym' => $gym->fresh(),
-            'message' => 'PWA-Einstellungen wurden erfolgreich aktualisiert.'
+            'message' => 'PWA-Einstellungen wurden erfolgreich aktualisiert.',
         ]);
     }
 }

@@ -37,7 +37,7 @@ class GymPolicyTest extends TestCase
     {
         parent::setUp();
 
-        $this->policy = new GymPolicy();
+        $this->policy = new GymPolicy;
 
         // Management is now gated on the per-organization role, not the global
         // users.role_id; the global role only proves it is irrelevant here.
@@ -120,7 +120,7 @@ class GymPolicyTest extends TestCase
         $this->assertFalse(
             $this->policy->{$ability}($stranger->fresh(), $foreignGym),
             "A non-owner must NEVER be allowed to {$ability} a foreign gym, "
-            . 'even when it is their current_gym_id.'
+            .'even when it is their current_gym_id.'
         );
     }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
+use App\Http\Controllers\Web\GymInvitationController;
 use App\Http\Controllers\Web\MemberAccessController;
 use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MemberPaymentController;
@@ -40,6 +41,11 @@ Route::get('/', function () {
 
 // Payment return route (public, no auth required)
 Route::get('/payment/return/{organization}', PaymentReturnController::class)->name('payment.return');
+
+// Team invitation acceptance (public, signed link from the invitation email).
+Route::get('/team-invitations/{invitation}/accept', [GymInvitationController::class, 'accept'])
+    ->middleware('signed')
+    ->name('gym-invitations.accept');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -197,6 +203,10 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/gym-users', [SettingController::class, 'storeGymUser'])->name('gym-users.store');
         Route::put('/gym-users/{gymUser}', [SettingController::class, 'updateGymUser'])->name('gym-users.update');
         Route::delete('/gym-users/{gymUser}', [SettingController::class, 'destroyGymUser'])->name('gym-users.destroy');
+        // Team invitations (pending invites for the current gym)
+        Route::post('/gym-invitations', [GymInvitationController::class, 'store'])->name('gym-invitations.store');
+        Route::post('/gym-invitations/{invitation}/resend', [GymInvitationController::class, 'resend'])->name('gym-invitations.resend');
+        Route::delete('/gym-invitations/{invitation}', [GymInvitationController::class, 'destroy'])->name('gym-invitations.destroy');
         // Legal URLs
         Route::get('/legal-urls', [SettingController::class, 'getLegalUrls'])->name('legal-urls.index');
         Route::post('/legal-urls', [SettingController::class, 'storeLegalUrl'])->name('legal-urls.store');

@@ -41,7 +41,7 @@ class SharedOrganizationsTest extends TestCase
         $request = Request::create('/dashboard', 'GET');
         $request->setUserResolver(fn () => $user);
 
-        $shared = (new HandleInertiaRequests())->share($request);
+        $shared = (new HandleInertiaRequests)->share($request);
         $resolved = value($shared['auth']['user']);
 
         return $resolved;

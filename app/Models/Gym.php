@@ -152,6 +152,11 @@ class Gym extends Model
         return $this->hasMany(Member::class);
     }
 
+    public function invitations()
+    {
+        return $this->hasMany(GymInvitation::class);
+    }
+
     public function membershipPlans()
     {
         return $this->hasMany(MembershipPlan::class);

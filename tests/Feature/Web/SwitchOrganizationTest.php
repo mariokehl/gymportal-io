@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Models\Gym;
+use App\Models\GymUser;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,7 +84,7 @@ class SwitchOrganizationTest extends TestCase
 
         $foreignOwner = User::factory()->create();
         $foreignGym = Gym::factory()->create(['owner_id' => $foreignOwner->id]);
-        \App\Models\GymUser::create([
+        GymUser::create([
             'gym_id' => $foreignGym->id,
             'user_id' => $member->id,
             'role' => 'trainer',
