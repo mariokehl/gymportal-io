@@ -8,13 +8,15 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, SoftDeletes, CanResetPassword;
+    use CanResetPassword, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'first_name',
@@ -75,8 +77,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the current gym that the user is working with.
-     *
-     * @return BelongsTo
      */
     public function currentGym(): BelongsTo
     {
@@ -93,9 +93,67 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Gym::class)->withPivot('role')->withTimestamps();
     }
 
+    /**
+     * Gyms the user is a member of via the gym_users pivot (excludes owned gyms
+     * unless an explicit pivot row exists).
+     */
+    public function memberGyms(): BelongsToMany
+    {
+        return $this->belongsToMany(Gym::class, 'gym_users')->withPivot('role')->withTimestamps();
+    }
+
+    /**
+     * Every gym the user may access: gyms they own plus gyms they are a member
+     * of via gym_users, deduplicated by id and keyed for convenient lookup.
+     *
+     * @return Collection<int, Gym>
+     */
+    public function accessibleGyms()
+    {
+        return $this->ownedGyms
+            ->concat($this->memberGyms)
+            ->unique('id')
+            ->values();
+    }
+
+    /**
+     * The user's effective role within a gym. Ownership always wins and maps to
+     * 'owner'; otherwise the gym_users pivot role applies. Returns null when the
+     * user has no relationship to the gym.
+     */
+    public function roleInGym(Gym $gym): ?string
+    {
+        if ($this->id === $gym->owner_id) {
+            return 'owner';
+        }
+
+        $membership = $this->memberGyms->firstWhere('id', $gym->id)
+            ?? $this->memberGyms()->whereKey($gym->id)->first();
+
+        return $membership?->pivot->role;
+    }
+
+    /**
+     * Whether the user may access the gym at all (member or owner). Required to
+     * switch into the gym and render its pages.
+     */
+    public function belongsToGym(Gym $gym): bool
+    {
+        return $this->roleInGym($gym) !== null;
+    }
+
+    /**
+     * Whether the user may use management functions (settings, team, scanners …)
+     * within the gym. Only owners and admins manage; staff and trainers cannot.
+     */
+    public function canManageGym(Gym $gym): bool
+    {
+        return in_array($this->roleInGym($gym), ['owner', 'admin'], true);
+    }
+
     public function fullName()
     {
-        return trim($this->first_name . ' ' . $this->last_name);
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     public function getFullNameAttribute(): string

@@ -218,6 +218,8 @@
                     :current-user="user"
                     :current-gym="currentGym"
                     :gym-users="gymUsers"
+                    :pending-invitations="pendingInvitations"
+                    :is-gym-owner="isGymOwner"
                     @success="handleSuccess"
                     @error="handleError" />
             </div>
@@ -494,7 +496,15 @@ import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
 const props = defineProps({
     user: Object,
     currentGym: Object,
-    gymUsers: Array
+    gymUsers: Array,
+    pendingInvitations: {
+        type: Array,
+        default: () => []
+    },
+    isGymOwner: {
+        type: Boolean,
+        default: false
+    }
 })
 
 // Reactive data

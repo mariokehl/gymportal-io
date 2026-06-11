@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Controller;
 use App\Models\Gym;
 use App\Models\User;
-use App\Http\Controllers\Controller;
 use App\Rules\SafeCss;
 use App\Services\CssSanitizer;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -99,14 +99,17 @@ class GymController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        $this->authorize('view', $user->ownedGyms()->find($request->gym_id));
-
         $request->validate([
-            'gym_id' => 'required|exists:gyms,id'
+            'gym_id' => 'required|exists:gyms,id',
         ]);
 
-        // Set current gym in user
-        $user->update(['current_gym_id' => $request->gym_id]);
+        $gym = Gym::findOrFail($request->gym_id);
+
+        // The user may only switch into a gym they are a member of (owned or via
+        // gym_users) — strangers are rejected by the view ability.
+        $this->authorize('view', $gym);
+
+        $user->update(['current_gym_id' => $gym->id]);
 
         return redirect()->route('dashboard');
     }

@@ -17,10 +17,14 @@ class GymPolicy
 
     /**
      * Determine whether the user can view the model.
+     *
+     * Any member (owner or via gym_users) may view a gym — this is what allows
+     * a trainer or staff member to switch into and open an organization they do
+     * not own. Strangers (no relationship at all) are still denied.
      */
     public function view(User $user, Gym $gym): bool
     {
-        return $user->id === $gym->owner_id;
+        return $user->belongsToGym($gym);
     }
 
     /**
@@ -33,18 +37,23 @@ class GymPolicy
 
     /**
      * Determine whether the user can update the model.
+     *
+     * Management ability: owners and admins of the gym. Staff and trainers are
+     * denied.
      */
     public function update(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id;
+        return $user->canManageGym($gym);
     }
 
     /**
      * Determine whether the user can delete the model.
+     *
+     * Deleting an organization is reserved for its owner.
      */
     public function delete(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id;
+        return $user->id === $gym->owner_id;
     }
 
     /**
@@ -64,12 +73,14 @@ class GymPolicy
     }
 
     /**
-     * Determine whether the user can manage the gym (scanners, settings, etc.)
-     * Only Admin (role_id=1) and Owner (role_id=2) can manage
+     * Determine whether the user can manage the gym (scanners, settings, etc.).
+     *
+     * Management is gated on the user's per-organization role: only owners and
+     * admins of this specific gym may manage it. Staff and trainers are denied,
+     * as are users with no relationship to the gym.
      */
     public function manage(User $user, Gym $gym): bool
     {
-        return $user->current_gym_id === $gym->id
-            && in_array($user->role_id, [1, 2]); // Admin oder Owner
+        return $user->canManageGym($gym);
     }
 }

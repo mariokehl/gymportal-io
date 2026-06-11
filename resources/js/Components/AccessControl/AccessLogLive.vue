@@ -280,7 +280,7 @@ import {
 } from 'lucide-vue-next'
 import Tooltip from '@/Components/Tooltip.vue'
 import { useScannerAccessLogs } from '@/composables/useScannerAccessLogs'
-import { format } from 'date-fns'
+import { getDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({
     initialLogs: {
@@ -340,8 +340,14 @@ const isNewEntry = (log) => {
 }
 
 const formatTime = (dateString) => {
+    if (!dateString) return '-'
     try {
-        return format(new Date(dateString), 'HH:mm:ss')
+        return new Date(dateString).toLocaleTimeString('de-DE', {
+            timeZone: getDisplayTimezone(),
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
     } catch {
         return '-'
     }

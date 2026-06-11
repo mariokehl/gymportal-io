@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Chargeback;
 use App\Models\Gym;
+use App\Models\Member;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Refund;
@@ -211,7 +212,15 @@ class MollieWebhookController extends Controller
 
         // Member und Membership aktivieren
         if ($member) {
-            if ($member->status === 'overdue') {
+            // Only activate when no further outstanding balance remains.
+            // With e.g. two failed payments, settling only the first one is
+            // not enough to set the status back to "active".
+            $hasOutstandingBalance = Member::query()
+                ->whereKey($member->id)
+                ->hasOutstandingBalance()
+                ->exists();
+
+            if ($member->status === 'overdue' && !$hasOutstandingBalance) {
                 $member->update(['status' => 'active']);
                 app(MemberStatusService::class)->handleStatusChangeActions(
                     $member,
