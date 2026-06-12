@@ -230,6 +230,7 @@ const getBillingCycleText = (cycle) => {
   const cycles = {
     'monthly': 'Monat',
     'quarterly': 'Quartal',
+    'biannual': 'Halbjahr',
     'yearly': 'Jahr'
   }
   return cycles[cycle] || cycle

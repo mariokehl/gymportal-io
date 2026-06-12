@@ -701,6 +701,7 @@ class ProcessMembershipPayments extends Command
         return match($billingCycle) {
             'monthly' => $currentDate->copy()->addMonth(),
             'quarterly' => $currentDate->copy()->addMonths(3),
+            'biannual' => $currentDate->copy()->addMonths(6),
             'yearly' => $currentDate->copy()->addYear(),
             default => $currentDate->copy()->addMonth(),
         };

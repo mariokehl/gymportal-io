@@ -38,14 +38,20 @@ class PaymentSeeder extends Seeder
             $startDate = Carbon::parse($membership->start_date);
 
             // Create payment history based on billing cycle
-            $paymentCount = $membershipPlan->billing_cycle === 'monthly' ? 12 :
-                          ($membershipPlan->billing_cycle === 'quarterly' ? 4 : 1);
+            $paymentCount = match ($membershipPlan->billing_cycle) {
+                'monthly' => 12,
+                'quarterly' => 4,
+                'biannual' => 2,
+                default => 1,
+            };
 
             for ($i = 0; $i < $paymentCount; $i++) {
                 if ($membershipPlan->billing_cycle === 'monthly') {
                     $dueDate = $startDate->copy()->addMonths($i);
                 } elseif ($membershipPlan->billing_cycle === 'quarterly') {
                     $dueDate = $startDate->copy()->addMonths($i * 3);
+                } elseif ($membershipPlan->billing_cycle === 'biannual') {
+                    $dueDate = $startDate->copy()->addMonths($i * 6);
                 } else {
                     $dueDate = $startDate;
                 }

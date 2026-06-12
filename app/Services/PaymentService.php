@@ -354,6 +354,7 @@ class PaymentService
         return match($billingCycle) {
             'monthly' => $currentDate->copy()->addMonth(),
             'quarterly' => $currentDate->copy()->addMonths(3),
+            'biannual' => $currentDate->copy()->addMonths(6),
             'yearly' => $currentDate->copy()->addYear(),
             default => $currentDate->copy()->addMonth(),
         };
@@ -367,6 +368,7 @@ class PaymentService
         return match($billingCycle) {
             'monthly' => $startDate->copy()->addMonth()->subDay(),
             'quarterly' => $startDate->copy()->addMonths(3)->subDay(),
+            'biannual' => $startDate->copy()->addMonths(6)->subDay(),
             'yearly' => $startDate->copy()->addYear()->subDay(),
             default => $startDate->copy()->addMonth()->subDay(),
         };
@@ -380,6 +382,7 @@ class PaymentService
         $periodText = match($plan->billing_cycle) {
             'monthly' => $billingDate->format('m/Y'),
             'quarterly' => 'Q' . $billingDate->quarter . '/' . $billingDate->year,
+            'biannual' => ($billingDate->month <= 6 ? 'H1' : 'H2') . '/' . $billingDate->year,
             'yearly' => $billingDate->year,
             default => $billingDate->format('m/Y'),
         };

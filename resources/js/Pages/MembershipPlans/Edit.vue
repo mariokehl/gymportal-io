@@ -151,6 +151,7 @@
                 <option value="">Bitte wählen</option>
                 <option value="monthly">Monatlich</option>
                 <option value="quarterly">Vierteljährlich</option>
+                <option value="biannual">Halbjährlich</option>
                 <option value="yearly">Jährlich</option>
               </select>
               <p v-if="errors.billing_cycle" class="mt-1 text-sm text-red-600">{{ errors.billing_cycle }}</p>

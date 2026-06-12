@@ -7,7 +7,8 @@
         $billingCycles = [
             'monthly' => 'monatlich',
             'yearly' => 'jährlich',
-            'quarterly' => 'quartalsweise'
+            'quarterly' => 'quartalsweise',
+            'biannual' => 'halbjährlich'
         ];
         $texts = $gymData['widget_settings']['texts'] ?? [];
         $widgetTitle = $texts['title'] ?? 'Wähle deinen Vertrag';

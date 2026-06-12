@@ -7,7 +7,8 @@
         $billingCycles = [
             'monthly' => 'monatlich',
             'yearly' => 'jährlich',
-            'quarterly' => 'quartalsweise'
+            'quarterly' => 'quartalsweise',
+            'biannual' => 'halbjährlich'
         ];
         $countryCodes = [
             'DE' => 'Deutschland',

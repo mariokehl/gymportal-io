@@ -80,6 +80,7 @@ class MembershipPlan extends Model
         return [
             'monthly' => 'Monatlich',
             'quarterly' => 'Vierteljährlich',
+            'biannual' => 'Halbjährlich',
             'yearly' => 'Jährlich',
         ][$this->billing_cycle] ?? $this->billing_cycle;
     }
