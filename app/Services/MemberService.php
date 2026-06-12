@@ -452,6 +452,7 @@ class MemberService
         return match($billingCycle) {
             'monthly' => $price,
             'quarterly' => $price / 3,
+            'biannual' => $price / 6,
             'yearly' => $price / 12,
             default => $price
         };

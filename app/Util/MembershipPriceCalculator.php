@@ -39,8 +39,8 @@ class MembershipPriceCalculator
             throw new InvalidArgumentException('Mindestlaufzeit darf nicht negativ sein');
         }
 
-        if (!in_array($billingCycle, ['monthly', 'quarterly', 'yearly'])) {
-            throw new InvalidArgumentException('Abrechnungszyklus muss "monthly", "quarterly" oder "yearly" sein');
+        if (!in_array($billingCycle, ['monthly', 'quarterly', 'biannual', 'yearly'])) {
+            throw new InvalidArgumentException('Abrechnungszyklus muss "monthly", "quarterly", "biannual" oder "yearly" sein');
         }
 
         // Tatsächliche Vertragsdauer bestimmen
@@ -58,6 +58,11 @@ class MembershipPriceCalculator
             );
         } elseif ($billingCycle === 'quarterly') {
             $recurringCosts = self::calculateQuarterlyRecurringCosts(
+                $regularPrice,
+                $actualDurationMonths
+            );
+        } elseif ($billingCycle === 'biannual') {
+            $recurringCosts = self::calculateBiannualRecurringCosts(
                 $regularPrice,
                 $actualDurationMonths
             );
@@ -129,6 +134,33 @@ class MembershipPriceCalculator
             'total' => round($total, 2)
         ];
     }
+    /**
+     * Berechnet wiederkehrende Kosten für halbjährliche Abrechnung
+     */
+    private static function calculateBiannualRecurringCosts(float $biannualPrice, int $durationMonths): array
+    {
+        $fullHalfYears = floor($durationMonths / 6);
+        $remainingMonths = $durationMonths % 6;
+
+        // Annahme: Bei Restmonaten wird der Halbjahrespreis anteilig berechnet
+        $monthlyEquivalent = $biannualPrice / 6;
+
+        $fullHalfYearsCost = $fullHalfYears * $biannualPrice;
+        $remainingMonthsCost = $remainingMonths * $monthlyEquivalent;
+        $total = $fullHalfYearsCost + $remainingMonthsCost;
+
+        return [
+            'type' => 'biannual',
+            'unit_price' => $biannualPrice,
+            'full_half_years' => $fullHalfYears,
+            'remaining_months' => $remainingMonths,
+            'full_half_years_cost' => round($fullHalfYearsCost, 2),
+            'remaining_months_cost' => round($remainingMonthsCost, 2),
+            'monthly_equivalent' => round($monthlyEquivalent, 2),
+            'total' => round($total, 2)
+        ];
+    }
+
     private static function calculateYearlyRecurringCosts(float $yearlyPrice, int $durationMonths): array
     {
         $fullYears = floor($durationMonths / 12);
@@ -165,6 +197,7 @@ class MembershipPriceCalculator
         // Berechne monatliches Äquivalent des aktuellen Plans
         $monthlyEquivalent = match($billingCycle) {
             'quarterly' => $price / 3,
+            'biannual' => $price / 6,
             'yearly' => $price / 12,
             default => $price
         };
@@ -172,6 +205,7 @@ class MembershipPriceCalculator
         // Typische Preisaufschläge für kürzere Abrechnungszyklen
         $monthlyPriceMultiplier = match($billingCycle) {
             'quarterly' => 1.05, // 5% Aufschlag für monatliche vs. quartalsweise Zahlung
+            'biannual' => 1.10,  // 10% Aufschlag für monatliche vs. halbjährliche Zahlung
             'yearly' => 1.15,    // 15% Aufschlag für monatliche vs. jährliche Zahlung
             default => 1.0
         };
@@ -202,6 +236,10 @@ class MembershipPriceCalculator
         } elseif ($calculation['billing_cycle'] === 'quarterly') {
             $summary .= "Quartalsbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;
             $summary .= "Volle Quartale: {$calculation['recurring_costs']['full_quarters']}" . PHP_EOL;
+            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}" . PHP_EOL;
+        } elseif ($calculation['billing_cycle'] === 'biannual') {
+            $summary .= "Halbjahresbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;
+            $summary .= "Volle Halbjahre: {$calculation['recurring_costs']['full_half_years']}" . PHP_EOL;
             $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}" . PHP_EOL;
         } else {
             $summary .= "Jahresbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;

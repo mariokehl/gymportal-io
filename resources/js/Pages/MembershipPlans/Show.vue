@@ -291,6 +291,8 @@ const formatMonthlyRevenue = () => {
     monthlyRevenue = props.membershipPlan.price * props.activeMembersCount
   } else if (props.membershipPlan.billing_cycle === 'quarterly') {
     monthlyRevenue = (props.membershipPlan.price * props.activeMembersCount) / 3
+  } else if (props.membershipPlan.billing_cycle === 'biannual') {
+    monthlyRevenue = (props.membershipPlan.price * props.activeMembersCount) / 6
   } else if (props.membershipPlan.billing_cycle === 'yearly') {
     monthlyRevenue = (props.membershipPlan.price * props.activeMembersCount) / 12
   }

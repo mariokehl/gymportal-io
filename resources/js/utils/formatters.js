@@ -225,13 +225,14 @@ export function formatPrice(price) {
 
 /**
  * Format billing cycle to German label
- * @param {string} cycle - Billing cycle ('monthly', 'quarterly', 'yearly')
+ * @param {string} cycle - Billing cycle ('monthly', 'quarterly', 'biannual', 'yearly')
  * @returns {string} German label for the billing cycle
  */
 export function formatBillingCycle(cycle) {
   const cycles = {
     monthly: 'Monat',
     quarterly: 'Quartal',
+    biannual: 'Halbjahr',
     yearly: 'Jahr'
   }
   return cycles[cycle] || cycle
