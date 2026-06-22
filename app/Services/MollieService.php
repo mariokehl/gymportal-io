@@ -444,10 +444,10 @@ class MollieService
      * Create a mandate for a specific customer
      *
      * @param Gym $gym
-     * @param Customer $customerId Provide the ID of the related customer.
-     * @param PaymentMethod $method Payment method of the mandate. SEPA Direct Debit and PayPal mandates can be created directly. Possible values: creditcard directdebit paypal
+     * @param Customer $customer Provide the related customer.
+     * @param PaymentMethod $paymentMethod Payment method of the mandate. SEPA Direct Debit and PayPal mandates can be created directly. Possible values: creditcard directdebit paypal
      * @param string $consumerName The customer's name.
-     * @return void
+     * @return Mandate
      */
     public function createMandate(Gym $gym, Customer $customer, PaymentMethod $paymentMethod, string $consumerName): Mandate
     {
@@ -811,7 +811,7 @@ class MollieService
          * It is only possible to create mandates for IBANs and PayPal billing agreements with this endpoint.
          * To create mandates for cards, your customers need to perform a 'first payment' with their card.
          *
-         * @var Mandate $mandate
+         * @var null|Mandate $mandate
          */
         $mandate = null;
         if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL])) {
@@ -893,12 +893,16 @@ class MollieService
                     ->where('action', 'flagged')
                     ->exists();
 
-                if (!$hasFraudFlag) {
+                // Only pending members may be activated
+                if (!$hasFraudFlag && $member->status === 'pending') {
                     $member->update(['status' => 'active']);
-                    $membership = $member->pendingPaidMembership();
-                    if ($membership && !$membership->activateMembership()) {
-                        $membership->update(['status' => 'active']);
-                    }
+                    app(MemberStatusService::class)->handleStatusChangeActions(
+                        $member,
+                        'pending',
+                        'active',
+                        null,
+                        'system'
+                    );
                 }
 
                 $paymentMethod->update([

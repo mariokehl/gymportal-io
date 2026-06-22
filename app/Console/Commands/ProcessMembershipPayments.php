@@ -542,24 +542,21 @@ class ProcessMembershipPayments extends Command
             return false;
         }
 
-        // Check if we're within the renewal window
-        $renewalDate = $membership->end_date->copy()->addDay();
-        $cancellationPeriod = $plan->cancellation_period ?? 30;
-        $cancellationUnit = $plan->cancellation_period_unit ?? 'days';
-
-        if ($cancellationUnit === 'months') {
-            $cancellationDeadline = $membership->end_date->copy()->subMonths($cancellationPeriod);
-        } else {
-            $cancellationDeadline = $membership->end_date->copy()->subDays($cancellationPeriod);
+        // Indefinite (already converted) memberships have no end_date
+        if ($membership->end_date === null) {
+            return false;
         }
 
-        // Renew if:
-        // 1. We're past the cancellation deadline
-        // 2. The membership hasn't been cancelled
-        // 3. The end date is approaching
-        return Carbon::today() >= $cancellationDeadline &&
-               !$membership->cancellation_date &&
-               $membership->end_date->diffInDays(Carbon::today()) <= 30;
+        // Renew once the current period ends — i.e. on the end date or later.
+        //
+        // The cancellation period (cancellation_period) is NOT the renewal trigger:
+        // it only defines until when the customer may still cancel. Renewing at the
+        // cancellation deadline (end_date - cancellation_period) makes the contract
+        // renew a full cycle too early when the cancellation period equals the
+        // renewal interval, and (with a daily cron) repeatedly — this caused the
+        // live system to jump the end date e.g. from 30.06 to 31.07 instead of
+        // keeping 30.06.
+        return Carbon::today()->gte($membership->end_date->copy()->startOfDay());
     }
 
     /**
