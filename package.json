@@ -1,7 +1,7 @@
 {
     "private": true,
     "name": "gymportal-io",
-    "version": "0.0.84",
+    "version": "0.0.85",
     "type": "module",
     "scripts": {
         "build": "vite build",
@@ -14,11 +14,11 @@
         "release:major": "npm version major"
     },
     "devDependencies": {
-        "@tailwindcss/vite": "^4.1.4",
+        "@tailwindcss/vite": "~4.1.18",
         "axios": "^1.8.2",
-        "concurrently": "^9.0.1",
+        "concurrently": "^9.2.0",
         "laravel-vite-plugin": "^1.2.0",
-        "tailwindcss": "^4.1.4",
+        "tailwindcss": "~4.1.18",
         "vite": "^6.2.4",
         "vitest": "^3.2.6"
     },
@@ -28,6 +28,7 @@
         "ably": "^2.13.0",
         "date-fns": "^4.1.0",
         "laravel-echo": "^2.2.4",
+        "lodash": "^4.18.1",
         "lucide-vue-next": "^0.513.0",
         "pusher-js": "^8.4.0",
         "vue": "^3.5.13",
