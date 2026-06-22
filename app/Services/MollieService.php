@@ -893,12 +893,16 @@ class MollieService
                     ->where('action', 'flagged')
                     ->exists();
 
-                if (!$hasFraudFlag) {
+                // Only pending members may be activated
+                if (!$hasFraudFlag && $member->status === 'pending') {
                     $member->update(['status' => 'active']);
-                    $membership = $member->pendingPaidMembership();
-                    if ($membership && !$membership->activateMembership()) {
-                        $membership->update(['status' => 'active']);
-                    }
+                    app(MemberStatusService::class)->handleStatusChangeActions(
+                        $member,
+                        'pending',
+                        'active',
+                        null,
+                        'system'
+                    );
                 }
 
                 $paymentMethod->update([

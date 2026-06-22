@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\MollieMandateCreated;
 use App\Models\FraudCheck;
 use App\Services\MemberService;
+use App\Services\MemberStatusService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -41,15 +42,29 @@ class ActivateMolliePaymentMethod implements ShouldQueue
             return;
         }
 
-        // Activate member and membership
-        $member->update(['status' => 'active']);
+        // Only pending members may be activated
+        if ($member->status !== 'pending') {
+            Log::info('Member activation skipped, member is not pending', [
+                'member_id' => $member->id,
+                'current_status' => $member->status,
+            ]);
+            return;
+        }
 
+        // Resolve membership before the status update (no longer pending afterwards)
         $membership = $member->pendingPaidMembership();
-        if ($membership) {
-            if (!$membership->activateMembership()) {
-                $membership->update(['status' => 'active']);
-            }
 
+        // Activate member and memberships via the MemberStatusService
+        $member->update(['status' => 'active']);
+        app(MemberStatusService::class)->handleStatusChangeActions(
+            $member,
+            'pending',
+            'active',
+            null,
+            'system'
+        );
+
+        if ($membership) {
             // Vertrag wurde durch MembershipActivated-Event generiert – Welcome-Mail jetzt mit Vertrag senden
             $membership->refresh();
             $gym = $member->gym;
