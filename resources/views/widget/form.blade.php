@@ -155,7 +155,7 @@
                 <div class="sepa-mandate-agreement">
                     <div class="sepa-mandate-info">
                         <h4>SEPA-Lastschriftmandat</h4>
-                        <p>Mit der Erteilung des SEPA-Lastschriftmandats ermächtigen Sie uns, fällige Beiträge von Ihrem angegebenen Konto mittels Lastschrift einzuziehen. Gleichzeitig weisen Sie Ihr Kreditinstitut an, die von uns auf Ihr Konto gezogenen Lastschriften einzulösen.</p>
+                        <p>Mit der Erteilung des SEPA-Lastschriftmandats ermächtigen Sie {{ $gymData['mandate_name'] }}@if(!empty($gymData['creditor_identifier'])), Gläubiger-ID {{ $gymData['creditor_identifier'] }},@endif fällige Beiträge von Ihrem angegebenen Konto mittels Lastschrift einzuziehen. Gleichzeitig weisen Sie Ihr Kreditinstitut an, die von {{ $gymData['mandate_name'] }} auf Ihr Konto gezogenen Lastschriften einzulösen.</p>
                         <p class="highlight">Sie haben das Recht, innerhalb von acht Wochen, beginnend mit dem Belastungsdatum, die Erstattung des belasteten Betrages zu verlangen.</p>
                     </div>
 

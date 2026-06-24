@@ -102,9 +102,16 @@ class WidgetController extends Controller
         // Zahlungsmethoden aus dem Gym Model laden
         $paymentMethods = $this->getAvailablePaymentMethods($gym);
 
+        // Append "via Mollie" to the creditor name in the SEPA mandate text
+        // when the Mollie direct debit method is offered.
+        $usesMollieDirectDebit = in_array('mollie_directdebit', array_column($paymentMethods, 'key'), true);
+        $mandateName = $usesMollieDirectDebit ? $gym->name.' via Mollie' : $gym->name;
+
         $gymData = [
             'id' => $gym->id,
             'name' => $gym->name,
+            'mandate_name' => $mandateName,
+            'creditor_identifier' => $gym->creditor_identifier,
             'widget_settings' => $gym->widget_settings,
             'payment_methods' => $paymentMethods,
         ];
