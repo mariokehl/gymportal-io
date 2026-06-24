@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\MembershipPlan;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class MembershipPlanController extends Controller
 {
@@ -33,7 +33,7 @@ class MembershipPlanController extends Controller
 
         return Inertia::render('MembershipPlans/Index', [
             'membershipPlans' => $membershipPlans,
-            'flash' => session('flash')
+            'flash' => session('flash'),
         ]);
     }
 
@@ -63,6 +63,8 @@ class MembershipPlanController extends Controller
             'cancellation_period' => 'required|integer|min:0',
             'cancellation_period_unit' => 'required|in:days,months',
             'auto_renew_type' => 'nullable|in:indefinite,monthly',
+            'start_date_mode' => 'nullable|in:next_possible,fixed',
+            'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
         ]);
 
         // Additional validation based on unit
@@ -80,12 +82,16 @@ class MembershipPlanController extends Controller
         $validated['setup_fee'] = $request->setup_fee ?? 0;
         $validated['commitment_months'] = $request->commitment_months ?? 0;
         $validated['auto_renew_type'] = $request->auto_renew_type ?? 'indefinite';
+        $validated['start_date_mode'] = $request->start_date_mode ?? 'next_possible';
+        $validated['fixed_start_date'] = $validated['start_date_mode'] === 'fixed'
+            ? ($validated['fixed_start_date'] ?? null)
+            : null;
 
         MembershipPlan::create($validated);
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',
-            'message' => 'Mitgliedschaftsplan wurde erfolgreich erstellt.'
+            'message' => 'Mitgliedschaftsplan wurde erfolgreich erstellt.',
         ]);
     }
 
@@ -104,7 +110,7 @@ class MembershipPlanController extends Controller
         return Inertia::render('MembershipPlans/Show', [
             'membershipPlan' => $membershipPlan,
             'activeMemberships' => $activeMemberships,
-            'activeMembersCount' => $activeMemberships->count()
+            'activeMembersCount' => $activeMemberships->count(),
         ]);
     }
 
@@ -131,7 +137,7 @@ class MembershipPlanController extends Controller
         return Inertia::render('MembershipPlans/Edit', [
             'membershipPlan' => $membershipPlan,
             'activeMembersCount' => $activeMembersCount,
-            'activeMemberships' => $activeMemberships
+            'activeMemberships' => $activeMemberships,
         ]);
     }
 
@@ -153,6 +159,8 @@ class MembershipPlanController extends Controller
             'cancellation_period' => 'required|integer|min:0',
             'cancellation_period_unit' => 'required|in:days,months',
             'auto_renew_type' => 'nullable|in:indefinite,monthly',
+            'start_date_mode' => 'nullable|in:next_possible,fixed',
+            'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
         ]);
 
         // Additional validation based on unit
@@ -165,12 +173,16 @@ class MembershipPlanController extends Controller
         $validated['is_active'] = $request->boolean('is_active');
         $validated['commitment_months'] = $request->commitment_months ?? 0;
         $validated['auto_renew_type'] = $request->auto_renew_type ?? 'indefinite';
+        $validated['start_date_mode'] = $request->start_date_mode ?? 'next_possible';
+        $validated['fixed_start_date'] = $validated['start_date_mode'] === 'fixed'
+            ? ($validated['fixed_start_date'] ?? null)
+            : null;
 
         $membershipPlan->update($validated);
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',
-            'message' => 'Mitgliedschaftsplan wurde erfolgreich aktualisiert.'
+            'message' => 'Mitgliedschaftsplan wurde erfolgreich aktualisiert.',
         ]);
     }
 
@@ -199,7 +211,7 @@ class MembershipPlanController extends Controller
 
             return Redirect::route('contracts.index')->with('flash', [
                 'type' => 'error',
-                'message' => "Dieser Mitgliedschaftsplan kann nicht gelöscht werden, da noch {$activeMembersCount} aktive Mitglieder diesen nutzen: {$memberNames}{$additionalText}."
+                'message' => "Dieser Mitgliedschaftsplan kann nicht gelöscht werden, da noch {$activeMembersCount} aktive Mitglieder diesen nutzen: {$memberNames}{$additionalText}.",
             ]);
         }
 
@@ -207,7 +219,7 @@ class MembershipPlanController extends Controller
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',
-            'message' => 'Mitgliedschaftsplan wurde erfolgreich gelöscht.'
+            'message' => 'Mitgliedschaftsplan wurde erfolgreich gelöscht.',
         ]);
     }
 
@@ -235,17 +247,17 @@ class MembershipPlanController extends Controller
                 'activeMembers' => $activeMembers->map(function ($membership) {
                     return [
                         'id' => $membership->id,
-                        'name' => $membership->member->first_name . ' ' . $membership->member->last_name,
-                        'email' => $membership->member->email
+                        'name' => $membership->member->first_name.' '.$membership->member->last_name,
+                        'email' => $membership->member->email,
                     ];
-                })
+                }),
             ]);
         }
 
         return response()->json([
             'canDelete' => true,
             'activeMembersCount' => 0,
-            'activeMembers' => []
+            'activeMembers' => [],
         ]);
     }
 }

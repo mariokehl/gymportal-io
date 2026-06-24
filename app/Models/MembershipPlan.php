@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,6 +26,8 @@ class MembershipPlan extends Model
         'cancellation_period',
         'cancellation_period_unit',
         'auto_renew_type',
+        'start_date_mode',
+        'fixed_start_date',
         'features',
         'widget_display_options',
         'sort_order',
@@ -39,6 +42,7 @@ class MembershipPlan extends Model
         'is_active' => 'boolean',
         'is_free_trial_plan' => 'boolean',
         'highlight' => 'boolean',
+        'fixed_start_date' => 'date',
         'features' => 'array',
         'widget_display_options' => 'array',
     ];
@@ -62,17 +66,17 @@ class MembershipPlan extends Model
 
     public function getFormattedPriceAttribute()
     {
-        return number_format($this->price, 2, ',', '.') . ' €';
+        return number_format($this->price, 2, ',', '.').' €';
     }
 
     public function getFormattedTrialPriceAttribute()
     {
-        return number_format($this->trial_price, 2, ',', '.') . ' €';
+        return number_format($this->trial_price, 2, ',', '.').' €';
     }
 
     public function getFormattedSetupFeeAttribute()
     {
-        return number_format($this->setup_fee, 2, ',', '.') . ' €';
+        return number_format($this->setup_fee, 2, ',', '.').' €';
     }
 
     public function getBillingCycleTextAttribute()
@@ -117,6 +121,30 @@ class MembershipPlan extends Model
     }
 
     /**
+     * Get the enforced fixed start date for a new membership, or null if it
+     * does not apply.
+     *
+     * The fixed start date is only enforced while the reference date is before
+     * the configured date. From the fixed start date onwards the normal
+     * "next possible" logic takes over again.
+     */
+    public function resolveForcedStartDate(?Carbon $reference = null): ?Carbon
+    {
+        if ($this->start_date_mode !== 'fixed' || ! $this->fixed_start_date) {
+            return null;
+        }
+
+        $reference = ($reference ?? Carbon::now())->copy()->startOfDay();
+        $fixedStart = $this->fixed_start_date->copy()->startOfDay();
+
+        if ($reference->lt($fixedStart)) {
+            return $fixedStart;
+        }
+
+        return null;
+    }
+
+    /**
      * Get cancellation period in days for calculation purposes.
      * Converts months to days (using 30 days per month as approximation).
      */
@@ -141,9 +169,9 @@ class MembershipPlan extends Model
         $unit = $this->cancellation_period_unit ?? 'days';
 
         if ($unit === 'months') {
-            return $period . ' ' . ($period === 1 ? 'Monat' : 'Monate');
+            return $period.' '.($period === 1 ? 'Monat' : 'Monate');
         }
 
-        return $period . ' ' . ($period === 1 ? 'Tag' : 'Tage');
+        return $period.' '.($period === 1 ? 'Tag' : 'Tage');
     }
 }

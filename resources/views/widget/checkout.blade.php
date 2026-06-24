@@ -31,9 +31,29 @@
             </div>
             @php
                 $today = now();
-                $startsFirstOfMonth = ($gymData['contracts_start_first_of_month'] ?? false) && $today->day !== 1;
+
+                // Fixed contract start takes precedence over the free period logic
+                // as long as the configured date is still in the future.
+                $forcedStart = null;
+                if (($planData['start_date_mode'] ?? 'next_possible') === 'fixed' && !empty($planData['fixed_start_date'])) {
+                    $fixedStart = \Carbon\Carbon::parse($planData['fixed_start_date'])->startOfDay();
+                    if ($today->copy()->startOfDay()->lt($fixedStart)) {
+                        $forcedStart = $fixedStart;
+                    }
+                }
+
+                $startsFirstOfMonth = !$forcedStart
+                    && ($gymData['contracts_start_first_of_month'] ?? false)
+                    && $today->day !== 1;
                 $freePeriodEnd = $startsFirstOfMonth ? $today->copy()->endOfMonth() : null;
-                $paidStart = $startsFirstOfMonth ? $today->copy()->addMonth()->startOfMonth() : $today;
+
+                if ($forcedStart) {
+                    $paidStart = $forcedStart;
+                } elseif ($startsFirstOfMonth) {
+                    $paidStart = $today->copy()->addMonth()->startOfMonth();
+                } else {
+                    $paidStart = $today;
+                }
             @endphp
 
             @if($startsFirstOfMonth)

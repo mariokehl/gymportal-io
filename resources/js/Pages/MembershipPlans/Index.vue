@@ -62,6 +62,12 @@
               >
                 {{ plan.is_active ? 'Aktiv' : 'Inaktiv' }}
               </span>
+              <span
+                v-if="plan.start_date_mode === 'fixed' && plan.fixed_start_date"
+                class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+              >
+                Start: {{ formatDate(plan.fixed_start_date) }}
+              </span>
             </div>
             <p v-if="plan.description" class="text-gray-600 text-sm mt-1">{{ plan.description }}</p>
           </div>
@@ -199,7 +205,7 @@ import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Plus, FilePlus, AlertTriangle } from 'lucide-vue-next'
-import { formatPrice, formatBillingCycle } from '@/utils/formatters'
+import { formatPrice, formatBillingCycle, formatDate } from '@/utils/formatters'
 
 const page = usePage()
 
