@@ -45,7 +45,7 @@
       </div>
     </div>
 
-    <div class="max-w-2xl">
+    <div class="max-w-3xl">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <form @submit.prevent="submit">
           <!-- Name -->
@@ -91,8 +91,8 @@
             </p>
           </div>
 
-          <!-- Price, Setup Fee and Billing Cycle - Hidden for free trial plans -->
-          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Price, Original Price (UVP), Setup Fee and Billing Cycle - Hidden for free trial plans -->
+          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
                 Preis (€) <span class="text-red-500">*</span>
@@ -113,6 +113,25 @@
               <p v-if="activeMembersCount > 0" class="mt-1 text-xs text-amber-600">
                 Preisänderungen betreffen bestehende Mitgliedschaften bei der nächsten Abrechnung
               </p>
+            </div>
+
+            <div>
+              <label for="original_price" class="block text-sm font-medium text-gray-700 mb-2">
+                UVP (€)
+              </label>
+              <input
+                id="original_price"
+                v-model="form.original_price"
+                type="number"
+                step="0.01"
+                min="0"
+                max="9999.99"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                :class="{ 'border-red-500': errors.original_price }"
+                placeholder="0.00"
+              />
+              <p v-if="errors.original_price" class="mt-1 text-sm text-red-600">{{ errors.original_price }}</p>
+              <p class="mt-1 text-xs text-gray-500">Optionaler Originalpreis; wird im Widget durchgestrichen angezeigt</p>
             </div>
 
             <div>
@@ -363,6 +382,7 @@ const form = useForm({
   name: props.membershipPlan.name,
   description: props.membershipPlan.description || '',
   price: props.membershipPlan.price,
+  original_price: props.membershipPlan.original_price || '',
   setup_fee: props.membershipPlan.setup_fee || '',
   billing_cycle: props.membershipPlan.billing_cycle,
   is_active: props.membershipPlan.is_active,

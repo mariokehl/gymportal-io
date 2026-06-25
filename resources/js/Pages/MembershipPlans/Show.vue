@@ -59,8 +59,16 @@
               <div>
                 <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Preisgestaltung</h3>
                 <div class="mt-2">
-                  <div class="text-3xl font-bold text-gray-900">
-                    {{ formatPrice(membershipPlan.price) }}
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-bold text-gray-900">
+                      {{ formatPrice(membershipPlan.price) }}
+                    </span>
+                    <span
+                      v-if="membershipPlan.original_price && Number(membershipPlan.original_price) > Number(membershipPlan.price)"
+                      class="text-lg font-medium text-gray-400 line-through"
+                    >
+                      {{ formatPrice(membershipPlan.original_price) }}
+                    </span>
                   </div>
                   <div class="text-sm text-gray-600">
                     pro {{ formatBillingCycle(membershipPlan.billing_cycle) }}

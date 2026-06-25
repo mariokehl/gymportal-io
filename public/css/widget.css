@@ -226,10 +226,6 @@
 /* Add-ons (one-time extras tied to a plan) */
 .plan-addons {
     border-top: 1px solid #eef0f3;
-    /* Push the add-on block to the bottom so it starts on the same level across
-       cards (e.g. Basic without an activation fee aligns with Premium). The
-       pricing block sits directly below it. */
-    margin-top: auto;
     /* Extra space so the add-on card never touches the price divider below. */
     margin-bottom: 8px;
     padding-top: 16px;
@@ -242,7 +238,8 @@
 /* When a card has add-ons, the pricing follows them; only cards without add-ons
    need the pricing itself to absorb the remaining space. */
 .plan-addons + .plan-pricing {
-    margin-top: 0;
+    border-top: 0;
+    margin-top: auto;
 }
 
 .plan-addons-title {
@@ -392,18 +389,18 @@
 
 /* Optional add-on, selected: rose surcharge treatment. */
 .addon-item.addon-optional.selected .addon-row {
-    border-color: #e11d48;
-    background: #fef1f4;
+    border-color: var(--primary-color);
+    background: var(--secondary-color);
 }
 
 .addon-item.addon-optional.selected .addon-checkbox-box {
-    border-color: #e11d48;
-    background: #e11d48;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
     color: #fff;
 }
 
 .addon-item.addon-optional.selected .addon-price {
-    color: #e11d48;
+    color: var(--primary-color);
 }
 
 .price-label {
@@ -411,6 +408,34 @@
     color: #6b7280;
     display: block;
     margin-bottom: 8px;
+}
+
+/* UVP / discount: struck-through original price plus a discount badge,
+   shown above the price only when an original_price higher than the price is set. */
+.price-discount {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.price-original {
+    font-size: 16px;
+    font-weight: 500;
+    color: #9aa5ad;
+    text-decoration: line-through;
+}
+
+.price-discount-badge {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #0e7a43;
+    background: #eaf7ee;
+    border: 1px solid #bfe6cc;
+    padding: 3px 9px;
+    border-radius: 999px;
 }
 
 .price-main {
@@ -904,6 +929,8 @@ span.mandatory {
     font-weight: bold;
     color: var(--primary-color);
     display: block;
+    /* Match the price/frequency spacing of the plan card (.price-main). */
+    margin-bottom: 8px;
 }
 
 .final-price .price-frequency {

@@ -16,6 +16,7 @@ class MembershipPlan extends Model
         'name',
         'description',
         'price',
+        'original_price',
         'setup_fee',
         'trial_period_days',
         'trial_price',
@@ -37,12 +38,13 @@ class MembershipPlan extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'original_price' => 'decimal:2',
         'setup_fee' => 'decimal:2',
         'trial_price' => 'decimal:2',
         'is_active' => 'boolean',
         'is_free_trial_plan' => 'boolean',
         'highlight' => 'boolean',
-        'fixed_start_date' => 'date',
+        'fixed_start_date' => 'date:Y-m-d',
         'features' => 'array',
         'widget_display_options' => 'array',
     ];

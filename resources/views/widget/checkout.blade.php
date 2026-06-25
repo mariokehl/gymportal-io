@@ -78,9 +78,20 @@
                 <span class="value">{{ $paidStart->format('d.m.Y') }}</span>
             </div>
             <div class="detail-row">
-                <span class="label">Mindestvertragslaufzeit:</span>
+                <span class="label">Erstvertragslaufzeit:</span>
                 <span class="value">{{ $planData['commitment_months'] ?? 12 }} Monate</span>
             </div>
+            @php
+                $commitmentMonths = $planData['commitment_months'] ?? 12;
+                $autoRenewType = $planData['auto_renew_type'] ?? 'indefinite';
+            @endphp
+            <p style="margin: -4px 0 0 0; font-size: 12px; color: #6b7280;">
+                @if($autoRenewType === 'monthly')
+                    Nach der Erstlaufzeit von {{ $commitmentMonths }} {{ $commitmentMonths == 1 ? 'Monat' : 'Monaten' }} verlängert sich die Mitgliedschaft automatisch um 1 Monat.
+                @else
+                    Nach der Erstlaufzeit geht der Vertrag in eine unbefristete Mitgliedschaft über.
+                @endif
+            </p>
             <div class="detail-row">
                 <span class="label">Mitgliedsbeitrag:</span>
                 <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['price'], 'EUR') }} {{ $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle'] }}</span>
@@ -189,7 +200,17 @@
                 --}}
 
                 <div class="final-price">
-                    {{-- <span class="label">Trainiere ab</span> --}}
+                    {{-- UVP / discount: only when an original price above the actual price is set. --}}
+                    @if(!empty($planData['original_price']) && $planData['original_price'] > $planData['price'])
+                        @php
+                            $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
+                            $discountPercent = (int) round((1 - $planData['price'] / $planData['original_price']) * 100);
+                        @endphp
+                        <div class="price-discount">
+                            <span class="price-original">{{ $priceFormatter->formatCurrency($planData['original_price'], 'EUR') }}</span>
+                            <span class="price-discount-badge">&minus;{{ $discountPercent }}%</span>
+                        </div>
+                    @endif
                     <div class="price-amount">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['price'], 'EUR') }}</div>
                     <span class="price-frequency">{{ $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle'] }}</span>
                 </div>
