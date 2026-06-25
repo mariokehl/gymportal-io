@@ -25,15 +25,16 @@ class ContractService
         $member = $membership->member;
         $gym = $member->gym;
 
-        if (!$gym->isOnlineContractEnabled()) {
+        if (! $gym->isOnlineContractEnabled()) {
             return null;
         }
 
         $contractSettings = $gym->contract_settings;
         $templateBody = $contractSettings['contract_template_body'] ?? null;
 
-        if (!$templateBody) {
+        if (! $templateBody) {
             Log::warning('Vertragsvorlage fehlt', ['gym_id' => $gym->id]);
+
             return null;
         }
 
@@ -75,6 +76,7 @@ class ContractService
                 'membership_id' => $membership->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -132,14 +134,39 @@ class ContractService
             '[Vertragsdatum]' => now()->format('d.m.Y'),
             '[Kuendigungsfrist]' => $plan->formatted_cancellation_period ?? 'Keine',
             '[Aktivierungsgebuehr]' => $plan->setup_fee
-                ? number_format($plan->setup_fee, 2, ',', '.') . ' €'
+                ? number_format($plan->setup_fee, 2, ',', '.').' €'
                 : 'Keine',
             '[Aufnahmegebuehr]' => $plan->setup_fee
-                ? number_format($plan->setup_fee, 2, ',', '.') . ' €'
+                ? number_format($plan->setup_fee, 2, ',', '.').' €'
                 : 'Keine',
             '[Abrechnungszyklus]' => $plan->billing_cycle_text ?? $plan->billing_cycle ?? '',
             '[Tarif-Name]' => $plan->name ?? '',
+            '[Zusatzleistungen]' => $this->formatBookedAddons($membership),
         ];
+    }
+
+    /**
+     * Formats the add-ons booked for a membership as an HTML paragraph for the
+     * contract PDF. Included add-ons are shown as "inklusive", optional ones
+     * with their one-time price. Falls back to a note when none are booked.
+     */
+    private function formatBookedAddons(Membership $membership): string
+    {
+        $addons = $membership->addons;
+
+        if ($addons->isEmpty()) {
+            return '<p>Keine Zusatzleistungen gebucht.</p>';
+        }
+
+        $lines = $addons->map(function ($addon) {
+            $value = $addon->pivot->mode === 'included'
+                ? 'inklusive'
+                : number_format((float) $addon->pivot->price, 2, ',', '.').' € einmalig';
+
+            return e($addon->name).': '.$value.'<br>';
+        })->implode('');
+
+        return '<p>'.$lines.'</p>';
     }
 
     /**
@@ -147,7 +174,7 @@ class ContractService
      */
     private function getLogoDataUri(Gym $gym): ?string
     {
-        if (!$gym->logo_path) {
+        if (! $gym->logo_path) {
             return null;
         }
 
@@ -155,13 +182,14 @@ class ContractService
             $contents = Storage::disk('public')->get($gym->logo_path);
             $mimeType = Storage::disk('public')->mimeType($gym->logo_path);
 
-            return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+            return 'data:'.$mimeType.';base64,'.base64_encode($contents);
         } catch (\Exception $e) {
             Log::warning('Logo für Vertrag konnte nicht geladen werden', [
                 'gym_id' => $gym->id,
                 'logo_path' => $gym->logo_path,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -171,9 +199,10 @@ class ContractService
      */
     public function getContractContents(Membership $membership): ?string
     {
-        if (!$membership->contract_file_path) {
+        if (! $membership->contract_file_path) {
             return null;
         }
+
         return Storage::disk('local')->get($membership->contract_file_path);
     }
 
@@ -212,6 +241,7 @@ class ContractService
                 '[Kuendigungsfrist]' => 'Kündigungsfrist',
                 '[Aktivierungsgebuehr]' => 'Einmalige Aktivierungsgebühr',
                 '[Aufnahmegebuehr]' => 'Aufnahmegebühr (Alias für Aktivierungsgebühr)',
+                '[Zusatzleistungen]' => 'Gebuchte Zusatzleistungen (Add-ons) als Liste',
             ],
             'system' => [
                 '[Datum]' => 'Aktuelles Datum',

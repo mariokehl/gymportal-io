@@ -10,13 +10,14 @@ use App\Models\WidgetAnalytics;
 use App\Models\WidgetRegistration;
 use App\Services\WidgetService;
 use App\Util\MembershipPriceCalculator;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class WidgetController extends Controller
 {
@@ -45,12 +46,13 @@ class WidgetController extends Controller
         $selectedContractIds = $gym->widget_settings['contracts']['selected_ids'] ?? [];
         $autoSort = $gym->widget_settings['contracts']['auto_sort'] ?? false;
 
-        // Query Builder für die Verträge
+        // Query builder for the plans including their active add-ons (with pivot mode)
         $plansQuery = MembershipPlan::where('gym_id', $gymId)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->with(['addons' => fn ($query) => $query->where('is_active', true)]);
 
         // Wenn Verträge in den Einstellungen ausgewählt wurden
-        if (!empty($selectedContractIds)) {
+        if (! empty($selectedContractIds)) {
             // Nur die ausgewählten Verträge laden
             $plansQuery->whereIn('id', $selectedContractIds);
 
@@ -83,7 +85,7 @@ class WidgetController extends Controller
             'success' => true,
             'session_cleaned' => true,
             'plans_count' => $plans->count(),
-            'using_configured_plans' => !empty($selectedContractIds)
+            'using_configured_plans' => ! empty($selectedContractIds),
         ]);
     }
 
@@ -101,11 +103,18 @@ class WidgetController extends Controller
         // Zahlungsmethoden aus dem Gym Model laden
         $paymentMethods = $this->getAvailablePaymentMethods($gym);
 
+        // Append "via Mollie" to the creditor name in the SEPA mandate text
+        // when the Mollie direct debit method is offered.
+        $usesMollieDirectDebit = in_array('mollie_directdebit', array_column($paymentMethods, 'key'), true);
+        $mandateName = $usesMollieDirectDebit ? $gym->name.' via Mollie' : $gym->name;
+
         $gymData = [
             'id' => $gym->id,
             'name' => $gym->name,
+            'mandate_name' => $mandateName,
+            'creditor_identifier' => $gym->creditor_identifier,
             'widget_settings' => $gym->widget_settings,
-            'payment_methods' => $paymentMethods
+            'payment_methods' => $paymentMethods,
         ];
 
         // Gespeicherte Formulardaten abrufen
@@ -126,8 +135,8 @@ class WidgetController extends Controller
         return response()->json([
             'html' => $html,
             'success' => true,
-            'has_saved_data' => !empty($savedFormData),
-            'payment_methods_count' => count($paymentMethods)
+            'has_saved_data' => ! empty($savedFormData),
+            'payment_methods_count' => count($paymentMethods),
         ]);
     }
 
@@ -185,15 +194,19 @@ class WidgetController extends Controller
         // Aktuelle Session-Daten abrufen
         $formData = $this->getWidgetSessionData($sessionId, 'form_data') ?: [];
         $selectedPlan = $this->getWidgetSessionData($sessionId, 'selected_plan');
+        $selectedAddonIds = $this->getWidgetSessionData($sessionId, 'selected_addons') ?: [];
 
         $planData = [];
+        $addons = [];
         if ($selectedPlan) {
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $selectedPlan)
+                ->with(['addons' => fn ($query) => $query->where('is_active', true)])
                 ->first();
 
             if ($plan) {
                 $planData = $this->preparePlanDataForSession($plan);
+                $addons = $this->resolveCheckoutAddons($plan, $selectedAddonIds);
             }
         }
 
@@ -208,16 +221,17 @@ class WidgetController extends Controller
             'legal_urls' => $gym->getLegalUrlsArray(),
         ];
 
-        $html = view('widget.checkout', compact('formData', 'planData', 'gymData'))->render();
+        $html = view('widget.checkout', compact('formData', 'planData', 'gymData', 'addons'))->render();
 
         return response()->json([
             'html' => $html,
             'success' => true,
             'checkout_data' => [
                 'plan' => $planData,
+                'addons' => $addons,
                 'member' => $this->sanitizeFormDataForDisplay($formData),
-                'gym' => $gymData
-            ]
+                'gym' => $gymData,
+            ],
         ]);
     }
 
@@ -228,7 +242,7 @@ class WidgetController extends Controller
     {
         $sessionId = $request->header('X-Widget-Session');
 
-        if (!$sessionId) {
+        if (! $sessionId) {
             return response()->json(['success' => false, 'error' => 'No session ID']);
         }
 
@@ -245,10 +259,13 @@ class WidgetController extends Controller
             $this->setWidgetSessionData($sessionId, 'selected_plan', $selectedPlan);
         }
 
+        $selectedAddons = array_map('intval', $request->input('selected_addons', []));
+        $this->setWidgetSessionData($sessionId, 'selected_addons', $selectedAddons);
+
         return response()->json([
             'success' => true,
             'saved_fields' => count($sanitizedData),
-            'session_id' => $sessionId
+            'session_id' => $sessionId,
         ]);
     }
 
@@ -262,10 +279,10 @@ class WidgetController extends Controller
 
         // Atomically acquire submission lock to prevent duplicate submissions
         // Cache::add is atomic - only one request can acquire the lock
-        if (!$this->acquireSubmissionLock($sessionId)) {
+        if (! $this->acquireSubmissionLock($sessionId)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Duplicate submission detected'
+                'error' => 'Duplicate submission detected',
             ], 429);
         }
 
@@ -284,6 +301,8 @@ class WidgetController extends Controller
             'iban' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string|min:15|max:34',
             'account_holder' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string',
             'sepa_mandate_acknowledged' => 'sometimes|boolean',
+            'selected_addons' => 'sometimes|array',
+            'selected_addons.*' => 'integer|exists:addons,id',
         ]);
 
         // Spezielle SEPA-Validierung
@@ -295,9 +314,10 @@ class WidgetController extends Controller
 
         if ($validator->fails()) {
             $this->clearSubmissionLock($sessionId);
+
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -314,12 +334,13 @@ class WidgetController extends Controller
             // Doppelte E-Mail-Registrierung prüfen
             $existingMember = $this->widgetService->validateEmail($gym, $request->email);
 
-            if (!$existingMember['valid']) {
+            if (! $existingMember['valid']) {
                 $this->clearSubmissionLock($sessionId);
+
                 return response()->json([
                     'success' => false,
                     'error' => 'Diese E-Mail-Adresse ist bereits registriert.',
-                    'field' => 'email'
+                    'field' => 'email',
                 ], 422);
             }
 
@@ -347,6 +368,7 @@ class WidgetController extends Controller
                 'voucher_code' => $request->voucher_code,
                 'fitness_goals' => $request->fitness_goals,
                 'payment_method' => $request->payment_method,
+                'selected_addons' => $request->input('selected_addons', []),
                 'widget_session' => $sessionId,
             ];
 
@@ -360,7 +382,7 @@ class WidgetController extends Controller
             $result = $this->widgetService->processRegistration($gym, $registrationData);
 
             // Session-Daten cleanup nach erfolgreicher Registrierung (außer bei Mollie)
-            if (!isset($result['requires_payment']) || !$result['requires_payment']) {
+            if (! isset($result['requires_payment']) || ! $result['requires_payment']) {
                 $this->cleanupWidgetSession($sessionId);
             }
 
@@ -378,13 +400,13 @@ class WidgetController extends Controller
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
                 'request_data' => $request->except(['iban', 'password']),
-                'payment_method' => $request->payment_method
+                'payment_method' => $request->payment_method,
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
-                'error_code' => 'CREATION_FAILED'
+                'error_code' => 'CREATION_FAILED',
             ], 500);
         }
     }
@@ -396,10 +418,10 @@ class WidgetController extends Controller
     {
         try {
             $gym = Gym::findOrFail($gymId);
-            $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"' . $widgetSession . '"%')->latest()->first();
+            $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"'.$widgetSession.'"%')->latest()->first();
             $paymentId = $widgetRegistration->payment_data['mollie_payment_id'] ?? false;
 
-            if (!$paymentId) {
+            if (! $paymentId) {
                 return $this->renderMollieResult([
                     'success' => false,
                     'status' => 'error',
@@ -415,7 +437,7 @@ class WidgetController extends Controller
                 'session_id' => $widgetSession,
                 'payment_id' => $paymentId,
                 'status' => $result['status'],
-                'success' => $result['success']
+                'success' => $result['success'],
             ]);
 
             // Session cleanup bei erfolgreichem Payment
@@ -430,7 +452,7 @@ class WidgetController extends Controller
                 'gym_id' => $gymId,
                 'session_id' => $widgetSession,
                 'error' => $e->getMessage(),
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             return $this->renderMollieResult([
@@ -444,12 +466,12 @@ class WidgetController extends Controller
     /**
      * Mollie-Result-Page rendern
      */
-    private function renderMollieResult(array $result, ?Gym $gym): \Illuminate\Http\Response
+    private function renderMollieResult(array $result, ?Gym $gym): Response
     {
         $gymData = $gym ? [
             'id' => $gym->id,
             'name' => $gym->name,
-            'widget_settings' => $gym->widget_settings ?? []
+            'widget_settings' => $gym->widget_settings ?? [],
         ] : null;
 
         $html = view('widget.mollie-result', compact('result', 'gymData'))->render();
@@ -467,11 +489,11 @@ class WidgetController extends Controller
             $widgetSession = $request->header('X-Widget-Session');
             $paymentId = $request->input('payment_id');
 
-            if (!$paymentId) {
+            if (! $paymentId) {
                 return response()->json(['error' => 'Payment ID required'], 400);
             }
 
-            $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"' . $widgetSession . '"%')->select('session_id')->latest()->first();
+            $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"'.$widgetSession.'"%')->select('session_id')->latest()->first();
             $sessionId = $widgetRegistration->session_id ?? 'unknown';
 
             $gym = Gym::findOrFail($gymId);
@@ -482,13 +504,13 @@ class WidgetController extends Controller
         } catch (\Exception $e) {
             Log::error('Mollie payment status check failed', [
                 'error' => $e->getMessage(),
-                'payment_id' => $request->input('payment_id')
+                'payment_id' => $request->input('payment_id'),
             ]);
 
             return response()->json([
                 'success' => false,
                 'status' => 'error',
-                'message' => 'Status konnte nicht abgerufen werden.'
+                'message' => 'Status konnte nicht abgerufen werden.',
             ], 500);
         }
     }
@@ -502,18 +524,18 @@ class WidgetController extends Controller
         $apiKey = $request->header('X-API-Key');
 
         // Beide Header sind Pflicht
-        if (!$apiKey) {
+        if (! $apiKey) {
             throw new AuthenticationException('API Key ist erforderlich');
         }
 
-        if (!$studioId) {
+        if (! $studioId) {
             throw new AuthenticationException('Studio ID ist erforderlich');
         }
 
         // Gym über API Key finden
-        $gym = \App\Models\Gym::where('api_key', $apiKey)->first();
+        $gym = Gym::where('api_key', $apiKey)->first();
 
-        if (!$gym) {
+        if (! $gym) {
             throw new AuthorizationException('Ungültiger API Key');
         }
 
@@ -547,9 +569,42 @@ class WidgetController extends Controller
             'commitment_months' => $plan->commitment_months,
             'cancellation_period' => $plan->cancellation_period,
             'cancellation_period_unit' => $plan->cancellation_period_unit,
+            'start_date_mode' => $plan->start_date_mode,
+            'fixed_start_date' => $plan->fixed_start_date?->format('Y-m-d'),
             'gym_id' => $plan->gym_id,
-            'selected_at' => now()->toISOString()
+            'selected_at' => now()->toISOString(),
         ];
+    }
+
+    /**
+     * Resolves the add-ons to display in the checkout summary for the chosen
+     * plan. Included add-ons are always shown (free); optional add-ons only when
+     * they were selected and are actually assigned to the plan as optional
+     * (server-side whitelist).
+     *
+     * @param  array<int, int|string>  $selectedAddonIds
+     * @return array<int, array{name: string, price: float, mode: string}>
+     */
+    private function resolveCheckoutAddons(MembershipPlan $plan, array $selectedAddonIds): array
+    {
+        $selectedAddonIds = array_map('intval', $selectedAddonIds);
+        $addons = [];
+
+        foreach ($plan->addons as $addon) {
+            $mode = $addon->pivot->mode;
+
+            if ($mode === 'optional' && ! in_array($addon->id, $selectedAddonIds, true)) {
+                continue;
+            }
+
+            $addons[] = [
+                'name' => $addon->name,
+                'price' => (float) $addon->price,
+                'mode' => $mode,
+            ];
+        }
+
+        return $addons;
     }
 
     /**
@@ -558,7 +613,9 @@ class WidgetController extends Controller
      */
     private function cleanupWidgetSession(string $sessionId): bool
     {
-        if (!$sessionId) return false;
+        if (! $sessionId) {
+            return false;
+        }
 
         $lockKey = "lock:widget_session:{$sessionId}:cleanup";
         $lock = Cache::lock($lockKey, 10);
@@ -578,12 +635,14 @@ class WidgetController extends Controller
                 }
 
                 logger()->debug('Widget session cleaned up', ['session_id' => $sessionId]);
+
                 return true;
             }
 
             Log::warning('Failed to acquire cleanup lock for widget session', [
                 'session_id' => $sessionId,
             ]);
+
             return false;
         } finally {
             $lock->release();
@@ -603,6 +662,7 @@ class WidgetController extends Controller
             // Block for up to 5 seconds waiting for lock
             if ($lock->block(5)) {
                 Cache::put($cacheKey, $value, now()->addMinutes(30));
+
                 return true;
             }
 
@@ -610,6 +670,7 @@ class WidgetController extends Controller
                 'session_id' => $sessionId,
                 'key' => $key,
             ]);
+
             return false;
         } finally {
             $lock->release();
@@ -638,6 +699,7 @@ class WidgetController extends Controller
                 $currentValue = Cache::get($cacheKey);
                 $newValue = $callback($currentValue);
                 Cache::put($cacheKey, $newValue, now()->addMinutes(30));
+
                 return true;
             }
 
@@ -645,6 +707,7 @@ class WidgetController extends Controller
                 'session_id' => $sessionId,
                 'key' => $key,
             ]);
+
             return false;
         } finally {
             $lock->release();
@@ -695,12 +758,12 @@ class WidgetController extends Controller
             'postal_code',
             'country',
             'birth_date',
-            'payment_method'
+            'payment_method',
         ];
 
         $sanitized = [];
         foreach ($allowedFields as $field) {
-            if (isset($data[$field]) && !empty($data[$field])) {
+            if (isset($data[$field]) && ! empty($data[$field])) {
                 $sanitized[$field] = $data[$field];
             }
         }
@@ -719,7 +782,7 @@ class WidgetController extends Controller
         $fields = [
             'first_name', 'last_name', 'email', 'phone',
             'address', 'address_addition', 'city', 'postal_code',
-            'salutation', 'fitness_goals'
+            'salutation', 'fitness_goals',
         ];
 
         foreach ($fields as $field) {
@@ -732,7 +795,7 @@ class WidgetController extends Controller
         if (isset($data['iban'])) {
             $iban = $data['iban'];
             $displayData['iban'] = strlen($iban) > 8 ?
-                substr($iban, 0, 4) . '****' . substr($iban, -4) :
+                substr($iban, 0, 4).'****'.substr($iban, -4) :
                 '****';
         }
 
@@ -746,10 +809,10 @@ class WidgetController extends Controller
     {
         $gymId = $this->getGymIdFromRequest($request);
 
-        if (!$gymId) {
+        if (! $gymId) {
             return response()->json([
                 'success' => false,
-                'error' => 'Gym not found'
+                'error' => 'Gym not found',
             ], 400);
         }
 
@@ -764,7 +827,7 @@ class WidgetController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -784,15 +847,15 @@ class WidgetController extends Controller
 
             return response()->json([
                 'success' => true,
-                'event_id' => $analytics->id
+                'event_id' => $analytics->id,
             ]);
 
         } catch (\Exception $e) {
             // Fehler loggen, aber nicht an Client weiterleiten
-            logger()->error('Widget Analytics Error: ' . $e->getMessage(), [
+            logger()->error('Widget Analytics Error: '.$e->getMessage(), [
                 'gym_id' => $gymId,
                 'event_type' => $request->input('event_type'),
-                'ip' => $request->ip()
+                'ip' => $request->ip(),
             ]);
 
             // Immer success=true zurückgeben, damit Widget weiter funktioniert
@@ -807,7 +870,7 @@ class WidgetController extends Controller
     {
         $gymId = $gymId ?: $this->getGymIdFromRequest($request);
 
-        if (!$gymId) {
+        if (! $gymId) {
             return response()->json(['error' => 'Gym not found'], 400);
         }
 
@@ -840,13 +903,13 @@ class WidgetController extends Controller
 
             return response()->json([
                 'success' => true,
-                'stats' => $stats
+                'stats' => $stats,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Could not retrieve analytics'
+                'error' => 'Could not retrieve analytics',
             ], 500);
         }
     }

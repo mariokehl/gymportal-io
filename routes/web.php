@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Web\AccessControlController;
+use App\Http\Controllers\Web\AddonController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\BlocklistController;
 use App\Http\Controllers\Web\DashboardController;
@@ -104,6 +105,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/abort', [MembershipController::class, 'abort'])->name('members.memberships.abort');
         Route::put('/withdraw', [MembershipController::class, 'withdraw'])->name('members.memberships.withdraw');
         Route::put('/force-status', [MembershipController::class, 'forceStatus'])->name('members.memberships.force-status');
+        Route::put('/addons/{addon}/toggle-completion', [MembershipController::class, 'toggleAddonCompletion'])->name('members.memberships.addons.toggle-completion');
     });
     Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
@@ -132,6 +134,16 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');
         Route::post('/consume-credit', [MemberAccessController::class, 'consumeCredit'])->name('consume-credit');
         Route::delete('/devices/{device}', [MemberAccessController::class, 'removeDevice'])->name('remove-device');
+    });
+    // Registered before the contracts group so "addons" is not captured by the
+    // contracts "/{membershipPlan}" wildcard route.
+    Route::prefix('contracts/addons')->name('contracts.addons.')->group(function () {
+        Route::get('/', [AddonController::class, 'index'])->name('index');
+        Route::get('/create', [AddonController::class, 'create'])->name('create');
+        Route::post('/', [AddonController::class, 'store'])->name('store');
+        Route::get('/{addon}/edit', [AddonController::class, 'edit'])->name('edit');
+        Route::put('/{addon}', [AddonController::class, 'update'])->name('update');
+        Route::delete('/{addon}', [AddonController::class, 'destroy'])->name('destroy');
     });
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [MembershipPlanController::class, 'index'])->name('index');

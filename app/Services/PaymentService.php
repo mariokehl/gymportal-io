@@ -2,16 +2,17 @@
 
 namespace App\Services;
 
+use App\Models\Addon;
 use App\Models\Gym;
+use App\Models\Invoice;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
-use App\Models\Invoice;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class PaymentService
 {
@@ -33,14 +34,14 @@ class PaymentService
         // Keine Zahlung erstellen, wenn Startdatum in der Vergangenheit liegt
         // und kein billing_anchor_date angegeben wurde
         $today = Carbon::today();
-        if ($membership->start_date->lt($today) && !$billingAnchorDate) {
+        if ($membership->start_date->lt($today) && ! $billingAnchorDate) {
             return null;
         }
 
         // Specify payment details based on plan and payment method
         $paymentDetails = $this->calculatePaymentDetails($plan, $membership, $paymentMethod, $billingAnchorDate);
 
-        if (!$paymentDetails) {
+        if (! $paymentDetails) {
             return null;
         }
 
@@ -92,7 +93,7 @@ class PaymentService
                 'member_id' => $member->id,
                 'membership_id' => $membership->id,
                 'error' => $e->getMessage(),
-                'payment_method' => $paymentMethod
+                'payment_method' => $paymentMethod,
             ]);
 
             throw $e;
@@ -109,7 +110,7 @@ class PaymentService
     ): ?Payment {
         $plan = $membership->membershipPlan;
 
-        if (!$plan->setup_fee || $plan->setup_fee <= 0) {
+        if (! $plan->setup_fee || $plan->setup_fee <= 0) {
             return null;
         }
 
@@ -126,7 +127,7 @@ class PaymentService
                 'member_id' => $member->id,
                 'amount' => $plan->setup_fee,
                 'currency' => 'EUR',
-                'description' => "Aktivierungsgebühr",
+                'description' => 'Aktivierungsgebühr',
                 'status' => $this->determineInitialPaymentStatus($paymentMethod?->type),
                 'payment_method' => $paymentMethod?->type,
                 'execution_date' => $this->calculateInitialExecutionDate($membership, $paymentMethod?->type),
@@ -151,7 +152,73 @@ class PaymentService
                 'member_id' => $member->id,
                 'membership_id' => $membership->id,
                 'setup_fee' => $plan->setup_fee,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Creates a one-time add-on payment at the start of the contract term.
+     *
+     * The payment method is determined by the payment method configured on the
+     * add-on; if none is set, the member's default payment method is used.
+     */
+    public function createAddonPayment(
+        Member $member,
+        Membership $membership,
+        Addon $addon,
+        ?PaymentMethod $memberDefaultPaymentMethod = null
+    ): ?Payment {
+        // Do not create an add-on payment when the start date is in the past
+        $today = Carbon::today();
+        if ($membership->start_date->lt($today)) {
+            return null;
+        }
+
+        // Payment method: the add-on's fixed method, otherwise the member's default
+        $paymentMethodType = $addon->payment_method ?? $memberDefaultPaymentMethod?->type;
+
+        // Only set payment_method_id when the method matches the member's default
+        $paymentMethodId = ($addon->payment_method === null || $addon->payment_method === $memberDefaultPaymentMethod?->type)
+            ? $memberDefaultPaymentMethod?->id
+            : null;
+
+        try {
+            $payment = Payment::create([
+                'gym_id' => $member->gym_id,
+                'membership_id' => $membership->id,
+                'member_id' => $member->id,
+                'amount' => $addon->price,
+                'currency' => 'EUR',
+                'description' => "Add-on: {$addon->name}",
+                'status' => $this->determineInitialPaymentStatus($paymentMethodType),
+                'payment_method' => $paymentMethodType,
+                'execution_date' => $this->calculateInitialExecutionDate($membership, $paymentMethodType),
+                'due_date' => $membership->start_date,
+                'notes' => 'Einmalige Add-on-Abrechnung bei Vertragsstart',
+                'metadata' => [
+                    'membership_plan_id' => $membership->membership_plan_id,
+                    'payment_type' => 'addon',
+                    'addon_id' => $addon->id,
+                    'created_via' => $member->registration_source ?? 'manual',
+                    'payment_method_id' => $paymentMethodId,
+                ],
+            ]);
+
+            if ($this->shouldCreateInvoice($paymentMethodType)) {
+                $this->createInvoiceForPayment($payment);
+            }
+
+            return $payment;
+
+        } catch (\Exception $e) {
+            Log::error('Add-on payment creation failed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'addon_id' => $addon->id,
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -160,11 +227,6 @@ class PaymentService
 
     /**
      * Erstellt die nächste wiederkehrende Zahlung
-     *
-     * @param Member $member
-     * @param Membership $membership
-     * @param Carbon|null $nextPaymentDate
-     * @return Payment
      */
     public function createNextRecurringPayment(
         Member $member,
@@ -172,17 +234,19 @@ class PaymentService
         ?Carbon $nextPaymentDate = null
     ): Payment {
         $payments = $this->createRecurringPayments($member, $membership, 1, $nextPaymentDate);
+
         return $payments[0];
     }
 
     /**
      * Erstellt wiederkehrende Zahlungen für die nächsten Monate
      *
-     * @param Member $member Das Mitglied für das die Zahlungen erstellt werden
-     * @param Membership $membership Die Mitgliedschaft
-     * @param int $monthsAhead Anzahl der Monate im Voraus (Standard: 3)
-     * @param Carbon|null $nextPaymentDate Optionales Datum für die nächste Zahlung
+     * @param  Member  $member  Das Mitglied für das die Zahlungen erstellt werden
+     * @param  Membership  $membership  Die Mitgliedschaft
+     * @param  int  $monthsAhead  Anzahl der Monate im Voraus (Standard: 3)
+     * @param  Carbon|null  $nextPaymentDate  Optionales Datum für die nächste Zahlung
      * @return Payment[] Array aus Payment Models
+     *
      * @throws \Exception Wenn die Erstellung der Zahlungen fehlschlägt
      */
     public function createRecurringPayments(
@@ -248,7 +312,7 @@ class PaymentService
                 'member_id' => $member->id,
                 'membership_id' => $membership->id,
                 'months_ahead' => $monthsAhead,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -279,8 +343,8 @@ class PaymentService
             : "1. Mitgliedsbeitrag: {$plan->name}";
 
         // If billing anchor date is different from start date, adjust description
-        if ($billingAnchorDate && !$billingAnchorDate->isSameDay($membership->start_date)) {
-            $description = "1. Mitgliedsbeitrag (ab " . $billingAnchorDate->format('d.m.Y') . "): {$plan->name}";
+        if ($billingAnchorDate && ! $billingAnchorDate->isSameDay($membership->start_date)) {
+            $description = '1. Mitgliedsbeitrag (ab '.$billingAnchorDate->format('d.m.Y')."): {$plan->name}";
         }
 
         $executionDate = $this->calculateInitialExecutionDate($membership, $paymentMethodType, $billingAnchorDate);
@@ -301,7 +365,7 @@ class PaymentService
      */
     private function determineInitialPaymentStatus(?string $paymentMethod): string
     {
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'cash' => 'pending',
             'sepa_direct_debit' => 'pending',
             'banktransfer' => 'pending',
@@ -319,7 +383,7 @@ class PaymentService
         // Use billing anchor date if provided, otherwise use start_date
         $baseDate = $billingAnchorDate ?? $membership->start_date;
 
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'cash' => $baseDate,
             'sepa_direct_debit' => $baseDate->copy()->addDays(3),
             'banktransfer' => $baseDate->copy()->addDays(7),
@@ -335,7 +399,7 @@ class PaymentService
      */
     private function calculateRecurringExecutionDate(Carbon $billingDate, string $paymentMethod): Carbon
     {
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'cash' => $billingDate,
             'sepa_direct_debit' => $billingDate->copy()->subDays(2),
             'banktransfer' => $billingDate->copy()->subDays(5),
@@ -351,7 +415,7 @@ class PaymentService
      */
     private function calculateNextBillingDate(Carbon $currentDate, string $billingCycle): Carbon
     {
-        return match($billingCycle) {
+        return match ($billingCycle) {
             'monthly' => $currentDate->copy()->addMonth(),
             'quarterly' => $currentDate->copy()->addMonths(3),
             'biannual' => $currentDate->copy()->addMonths(6),
@@ -365,7 +429,7 @@ class PaymentService
      */
     private function calculateBillingPeriodEnd(Carbon $startDate, string $billingCycle): Carbon
     {
-        return match($billingCycle) {
+        return match ($billingCycle) {
             'monthly' => $startDate->copy()->addMonth()->subDay(),
             'quarterly' => $startDate->copy()->addMonths(3)->subDay(),
             'biannual' => $startDate->copy()->addMonths(6)->subDay(),
@@ -379,10 +443,10 @@ class PaymentService
      */
     private function generateRecurringPaymentDescription(MembershipPlan $plan, Carbon $billingDate): string
     {
-        $periodText = match($plan->billing_cycle) {
+        $periodText = match ($plan->billing_cycle) {
             'monthly' => $billingDate->format('m/Y'),
-            'quarterly' => 'Q' . $billingDate->quarter . '/' . $billingDate->year,
-            'biannual' => ($billingDate->month <= 6 ? 'H1' : 'H2') . '/' . $billingDate->year,
+            'quarterly' => 'Q'.$billingDate->quarter.'/'.$billingDate->year,
+            'biannual' => ($billingDate->month <= 6 ? 'H1' : 'H2').'/'.$billingDate->year,
             'yearly' => $billingDate->year,
             default => $billingDate->format('m/Y'),
         };
@@ -449,12 +513,12 @@ class PaymentService
      */
     private function generateInvoiceNumber(int $gymId): string
     {
-        $prefix = 'R' . str_pad($gymId, 3, '0', STR_PAD_LEFT);
+        $prefix = 'R'.str_pad($gymId, 3, '0', STR_PAD_LEFT);
         $year = date('Y');
         $month = date('m');
 
         $lastNumber = Invoice::where('gym_id', $gymId)
-            ->where('invoice_number', 'like', $prefix . $year . $month . '%')
+            ->where('invoice_number', 'like', $prefix.$year.$month.'%')
             ->orderBy('invoice_number', 'desc')
             ->value('invoice_number');
 
@@ -465,7 +529,7 @@ class PaymentService
             $nextSequence = 1;
         }
 
-        return $prefix . $year . $month . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        return $prefix.$year.$month.str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -497,15 +561,15 @@ class PaymentService
      */
     private function handleSepaPayment(Payment $payment, ?PaymentMethod $paymentMethod): void
     {
-        if (!$paymentMethod || !$paymentMethod->requiresSepaMandate()) {
+        if (! $paymentMethod || ! $paymentMethod->requiresSepaMandate()) {
             return;
         }
 
         // Prüfe SEPA-Mandat Status
-        if (!$paymentMethod->isSepaMandateValid()) {
+        if (! $paymentMethod->isSepaMandateValid()) {
             $payment->update([
                 'status' => 'pending',
-                'notes' => $payment->notes . ' | Wartet auf SEPA-Mandat'
+                'notes' => $payment->notes.' | Wartet auf SEPA-Mandat',
             ]);
         }
 
@@ -524,7 +588,7 @@ class PaymentService
     {
         // Bei Barzahlung kann das Payment als "vor Ort zu zahlen" markiert werden
         $payment->update([
-            'notes' => $payment->notes . ' | Zahlung vor Ort beim nächsten Besuch'
+            'notes' => $payment->notes.' | Zahlung vor Ort beim nächsten Besuch',
         ]);
     }
 
@@ -535,7 +599,7 @@ class PaymentService
     {
         // Hier könnte eine E-Mail mit Überweisungsdaten gesendet werden
         $payment->update([
-            'notes' => $payment->notes . ' | Überweisungsdaten per E-Mail versendet'
+            'notes' => $payment->notes.' | Überweisungsdaten per E-Mail versendet',
         ]);
     }
 
@@ -546,7 +610,7 @@ class PaymentService
     {
         // Hier könnte die Rechnung automatisch versendet werden
         $payment->update([
-            'notes' => $payment->notes . ' | Rechnung wird erstellt und versendet'
+            'notes' => $payment->notes.' | Rechnung wird erstellt und versendet',
         ]);
     }
 
@@ -569,7 +633,7 @@ class PaymentService
             // Analytics-Fehler nicht weiterleiten
             Log::warning('Payment analytics tracking failed', [
                 'error' => $e->getMessage(),
-                'payment_id' => $payment->id
+                'payment_id' => $payment->id,
             ]);
         }
     }
@@ -585,7 +649,7 @@ class PaymentService
             $payment->update([
                 'status' => 'paid',
                 'paid_date' => now()->toDateString(),
-                'metadata' => array_merge($payment->metadata ?? [], $metadata)
+                'metadata' => array_merge($payment->metadata ?? [], $metadata),
             ]);
 
             // Membership aktivieren falls pending
@@ -603,7 +667,7 @@ class PaymentService
         } catch (\Exception $e) {
             Log::error('Failed to mark payment as paid', [
                 'payment_id' => $payment->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -621,7 +685,7 @@ class PaymentService
             $payment->update([
                 'status' => 'failed',
                 'failed_at' => now(),
-                'notes' => $payment->notes . ' | Storniert: ' . ($reason ?? 'Nicht spezifiziert')
+                'notes' => $payment->notes.' | Storniert: '.($reason ?? 'Nicht spezifiziert'),
             ]);
 
             return true;
@@ -629,7 +693,7 @@ class PaymentService
         } catch (\Exception $e) {
             Log::error('Failed to cancel payment', [
                 'payment_id' => $payment->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -640,7 +704,7 @@ class PaymentService
      * Zentrale Methode für Widerruf: Storniert ausstehende Zahlungen
      * und initiiert Erstattungen falls bereits bezahlt wurde.
      *
-     * @param Membership $membership Die widerrufene Mitgliedschaft
+     * @param  Membership  $membership  Die widerrufene Mitgliedschaft
      * @return float Der Erstattungsbetrag
      */
     public function handleWithdrawalPayments(Membership $membership): float
@@ -680,7 +744,6 @@ class PaymentService
      * Storniert alle ausstehenden Zahlungen ohne mollie_payment_id
      * und/oder transaction_id für eine Mitgliedschaft.
      *
-     * @param Membership $membership
      * @return int Anzahl der stornierten Zahlungen
      */
     private function cancelPendingPayments(Membership $membership): int
@@ -691,7 +754,7 @@ class PaymentService
             ->whereNull('transaction_id')
             ->update([
                 'status' => 'canceled',
-                'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Storniert aufgrund Widerruf am " . now()->format('d.m.Y H:i') . "')"),
+                'notes' => DB::raw("CONCAT(COALESCE(notes, ''), ' | Storniert aufgrund Widerruf am ".now()->format('d.m.Y H:i')."')"),
             ]);
     }
 
@@ -701,8 +764,8 @@ class PaymentService
      * Bei einem Widerruf müssen alle geleisteten Zahlungen innerhalb von
      * 14 Tagen erstattet werden.
      *
-     * @param Membership $membership Die widerrufene Mitgliedschaft
-     * @param float $refundAmount Der zu erstattende Betrag
+     * @param  Membership  $membership  Die widerrufene Mitgliedschaft
+     * @param  float  $refundAmount  Der zu erstattende Betrag
      * @return bool True wenn Erstattung erfolgreich initiiert wurde
      */
     public function initiateRefund(Membership $membership, float $refundAmount): bool
@@ -771,7 +834,7 @@ class PaymentService
                     // Original-Zahlung als erstattet markieren (nur bei Nicht-Mollie)
                     $payment->update([
                         'status' => 'refunded',
-                        'notes' => $payment->notes . ' | Erstattet aufgrund Widerruf am ' . now()->format('d.m.Y H:i'),
+                        'notes' => $payment->notes.' | Erstattet aufgrund Widerruf am '.now()->format('d.m.Y H:i'),
                     ]);
                 }
 

@@ -188,7 +188,6 @@
 }
 
 .plan-features {
-    flex-grow: 1;
     margin-bottom: 20px;
 }
 
@@ -220,6 +219,191 @@
     border-top: 1px solid #e5e7eb;
     padding-top: 20px;
     text-align: center;
+    /* Push the monthly price to the bottom so all plan prices align. */
+    margin-top: auto;
+}
+
+/* Add-ons (one-time extras tied to a plan) */
+.plan-addons {
+    border-top: 1px solid #eef0f3;
+    /* Push the add-on block to the bottom so it starts on the same level across
+       cards (e.g. Basic without an activation fee aligns with Premium). The
+       pricing block sits directly below it. */
+    margin-top: auto;
+    /* Extra space so the add-on card never touches the price divider below. */
+    margin-bottom: 8px;
+    padding-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    text-align: left;
+}
+
+/* When a card has add-ons, the pricing follows them; only cards without add-ons
+   need the pricing itself to absorb the remaining space. */
+.plan-addons + .plan-pricing {
+    margin-top: 0;
+}
+
+.plan-addons-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9aa3ae;
+    margin: 0 0 3px;
+}
+
+/* Each add-on is a bordered card. */
+.addon-item {
+    display: block;
+    font-size: 14px;
+    color: #17202a;
+    margin: 0;
+}
+
+.addon-item .addon-row {
+    border: 1.5px solid #e6e8ec;
+    background: #fff;
+    border-radius: 14px;
+    padding: 13px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: border-color .15s, background-color .15s;
+}
+
+/* Optional add-ons are clickable. */
+.addon-item.addon-optional {
+    cursor: pointer;
+}
+
+/* Square checkbox indicator (the real input is visually hidden). */
+.addon-item .addon-checkbox-box {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 2px solid #c9ced6;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    flex-shrink: 0;
+    /* Nudge to align with the first text line in the multi-line row. */
+    margin-top: -1px;
+    transition: background-color .15s, border-color .15s, color .15s;
+}
+
+.addon-item .addon-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.addon-item .addon-name-line {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+/* Price sits on its own line below the add-on name. */
+.addon-item .addon-price-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 3px;
+}
+
+.addon-item .addon-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #17202a;
+}
+
+.addon-item .addon-description {
+    color: #8a94a3;
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 1px 0 0;
+}
+
+.addon-item .addon-badge {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: #0e7a43;
+    background: #d6f1e1;
+    padding: 2px 7px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+/* Neutral badge for optional add-ons (keeps both add-on cards the same height). */
+.addon-item .addon-badge-optional {
+    color: #6b7280;
+    background: #eef0f3;
+}
+
+.addon-item .addon-price {
+    font-weight: 800;
+    font-size: 15px;
+    color: #17202a;
+    white-space: nowrap;
+}
+
+.addon-item .addon-price-note {
+    font-size: 11px;
+    color: #8a94a3;
+}
+
+.addon-item .addon-price-struck {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9aa7a0;
+    text-decoration: line-through;
+}
+
+.addon-item .addon-price-gift {
+    font-weight: 900;
+    font-size: 15px;
+    color: #0e7a43;
+}
+
+/* Included add-on: green "free benefit" treatment. */
+.addon-item.addon-included .addon-row {
+    border-color: #bfe8d0;
+    background: #eaf8f0;
+}
+
+.addon-item.addon-included .addon-checkbox-box {
+    border-color: #128a4d;
+    background: #128a4d;
+    color: #fff;
+}
+
+.addon-item.addon-included .addon-description {
+    color: #5b8c73;
+}
+
+/* Optional add-on, selected: rose surcharge treatment. */
+.addon-item.addon-optional.selected .addon-row {
+    border-color: #e11d48;
+    background: #fef1f4;
+}
+
+.addon-item.addon-optional.selected .addon-checkbox-box {
+    border-color: #e11d48;
+    background: #e11d48;
+    color: #fff;
+}
+
+.addon-item.addon-optional.selected .addon-price {
+    color: #e11d48;
 }
 
 .price-label {

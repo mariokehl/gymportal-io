@@ -64,6 +64,61 @@
                 </div>
             </div>
 
+            {{-- Plan add-ons (billed once at the start of the contract term) --}}
+            @php
+                $includedAddons = $plan->addons->where('pivot.mode', 'included');
+                $optionalAddons = $plan->addons->where('pivot.mode', 'optional');
+            @endphp
+            @if($includedAddons->isNotEmpty() || $optionalAddons->isNotEmpty())
+            @php $currencyFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY); @endphp
+            <div class="plan-addons" data-addons-for="{{ $plan->id }}">
+                <p class="plan-addons-title">Zusatzleistungen (einmalig)</p>
+
+                {{-- Included add-ons: part of the plan, shown as a free benefit (green). --}}
+                @foreach($includedAddons as $addon)
+                <label class="addon-item addon-included">
+                    <div class="addon-row">
+                        <span class="addon-checkbox-box" aria-hidden="true">✓</span>
+                        <input type="checkbox" class="addon-checkbox" name="addon" value="{{ $addon->id }}"
+                               data-plan="{{ $plan->id }}" checked disabled hidden>
+                        <div class="addon-text">
+                            <div class="addon-name-line">
+                                <span class="addon-name">{{ $addon->name }}</span>
+                                <span class="addon-badge">inklusive</span>
+                            </div>
+                            <div class="addon-price-line">
+                                {{-- Included add-ons are free: show the price struck through as a discount. --}}
+                                <span class="addon-price addon-price-struck">{{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
+                                <span class="addon-price-gift">geschenkt</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+                @endforeach
+
+                {{-- Optional add-ons: selectable surcharge (rose when selected). --}}
+                @foreach($optionalAddons as $addon)
+                <label class="addon-item addon-optional">
+                    <div class="addon-row">
+                        <span class="addon-checkbox-box" aria-hidden="true">✓</span>
+                        <input type="checkbox" class="addon-checkbox" name="addon" value="{{ $addon->id }}"
+                               data-plan="{{ $plan->id }}" hidden>
+                        <div class="addon-text">
+                            <div class="addon-name-line">
+                                <span class="addon-name">{{ $addon->name }}</span>
+                                <span class="addon-badge addon-badge-optional">optional</span>
+                            </div>
+                            <div class="addon-price-line">
+                                <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
+                                <span class="addon-price-note">einmalig</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+                @endforeach
+            </div>
+            @endif
+
             <div class="plan-pricing">
                 <div class="price-section">
                     {{-- <span class="price-label">Trainiere ab</span> --}}

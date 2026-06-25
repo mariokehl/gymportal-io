@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Dto\PaymentCreationResult;
 use App\Events\MemberRegistered;
+use App\Events\MembershipActivated;
 use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\SepaMandateRequiredMail;
 use App\Models\FraudCheck;
@@ -13,21 +14,19 @@ use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
-use App\Models\WidgetRegistration;
 use App\Models\WidgetAnalytics;
-use Illuminate\Support\Facades\DB;
+use App\Models\WidgetRegistration;
 use App\Services\Fraud\FraudDetectionService;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
-use App\Events\MembershipActivated;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WidgetService
 {
     public function __construct(
         private readonly MemberMailDispatcher $mailDispatcher,
-    ) {
-    }
+    ) {}
 
     /**
      * Widget-Registrierung initialisieren
@@ -81,13 +80,13 @@ class WidgetService
 
                 Log::warning('Widget-Registrierung durch Fraud Detection blockiert', [
                     'gym_id' => $gym->id,
-                    'email'  => $data['email'] ?? null,
-                    'score'  => $fraudResult->score,
+                    'email' => $data['email'] ?? null,
+                    'score' => $fraudResult->score,
                 ]);
 
                 return [
                     'error' => 'Die Registrierung konnte leider nicht abgeschlossen werden. '
-                             . 'Bitte wende dich direkt an das Studio.',
+                             .'Bitte wende dich direkt an das Studio.',
                 ];
             }
 
@@ -146,11 +145,22 @@ class WidgetService
                 ->first();
 
             if ($registration) {
-                $registration->update([
+                $registrationUpdate = [
                     'member_id' => $member->id,
                     'status' => $requiresMollieCheckout ? 'pending' : 'completed',
                     'completed_at' => $requiresMollieCheckout ? null : Carbon::now(),
-                ]);
+                ];
+
+                // Persist the selected add-ons for the Mollie checkout so they can
+                // be billed in processMollieReturn() once the payment succeeds.
+                if ($requiresMollieCheckout) {
+                    $registrationUpdate['form_data'] = array_merge(
+                        $registration->form_data ?? [],
+                        ['selected_addons' => array_map('intval', $data['selected_addons'] ?? [])]
+                    );
+                }
+
+                $registration->update($registrationUpdate);
             }
 
             if ($requiresMollieCheckout) {
@@ -189,11 +199,14 @@ class WidgetService
                         'description' => 'Sie werden zur sicheren Zahlung weitergeleitet.',
                         'action_required' => true,
                         'payment_method' => $data['payment_method'],
-                    ]
+                    ],
                 ];
             }
 
             $paymentResult = $this->createPayment($member, $plan, $membership, $paymentMethod);
+
+            // Bill add-ons once at the start of the contract term
+            $this->attachAndBillAddons($member, $plan, $membership, $data, $paymentMethod);
 
             $this->trackEvent($gym, 'registration_completed', 'checkout', [
                 'member_id' => $member->id,
@@ -268,7 +281,7 @@ class WidgetService
                         'signature_required' => true,
                         'method' => 'paper',
                         'deadline' => now()->addDays(14)->format('d.m.Y'),
-                    ]
+                    ],
                 ];
             }
 
@@ -326,7 +339,7 @@ class WidgetService
 
         if ($plan->setup_fee > 0) {
             $amount += $plan->setup_fee;
-            $description = "Aktivierungsgebühr + " . $description;
+            $description = 'Aktivierungsgebühr + '.$description;
         }
 
         $paymentData = [
@@ -334,7 +347,7 @@ class WidgetService
             'description' => $description,
             'redirectUrl' => route('widget.mollie.return', [
                 'gym' => $gym->id,
-                'session' => $data['widget_session']
+                'session' => $data['widget_session'],
             ]),
             'method' => $data['payment_method'],
             'metadata' => [
@@ -343,20 +356,20 @@ class WidgetService
                 'membership_id' => $membership->id,
                 'plan_id' => $plan->id,
                 'widget_session' => $data['widget_session'],
-                'source' => 'widget'
-            ]
+                'source' => 'widget',
+            ],
         ];
         $molliePayment = $mollieService->createFirstPayment($gym, $mollieCustomer->id, $paymentData);
 
-        $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"' . $data['widget_session'] . '"%')->latest()->first();
+        $widgetRegistration = WidgetRegistration::where('form_data', 'like', '%"widget_session":"'.$data['widget_session'].'"%')->latest()->first();
 
         WidgetRegistration::where('id', $widgetRegistration->id)
             ->update([
                 'payment_data' => [
                     'mollie_customer_id' => $mollieCustomer->id,
-                    'mollie_payment_id' => $molliePayment->id
+                    'mollie_payment_id' => $molliePayment->id,
                 ],
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
         $this->trackEvent($gym, 'mollie_payment_created', 'payment', [
@@ -365,20 +378,20 @@ class WidgetService
             'plan_id' => $plan->id,
             'payment_method' => $data['payment_method'],
             'amount' => $amount,
-            'mollie_payment_id' => $molliePayment->id
+            'mollie_payment_id' => $molliePayment->id,
         ]);
 
         return [
             'checkout_url' => $molliePayment->getCheckoutUrl(),
             'payment_id' => $molliePayment->id,
-            'amount' => $amount
+            'amount' => $amount,
         ];
     }
 
     /**
      * Mollie-Payment-Return verarbeiten
      *
-     * @param bool $sendNotifications Ob Willkommens-E-Mail und MemberRegistered Event gesendet werden sollen
+     * @param  bool  $sendNotifications  Ob Willkommens-E-Mail und MemberRegistered Event gesendet werden sollen
      */
     public function processMollieReturn(Gym $gym, string $sessionId, string $paymentId, bool $sendNotifications = true): array
     {
@@ -391,7 +404,7 @@ class WidgetService
                 ->where('gym_id', $gym->id)
                 ->first();
 
-            if (!$localPayment) {
+            if (! $localPayment) {
                 throw new \Exception('Payment reference not found');
             }
 
@@ -400,7 +413,7 @@ class WidgetService
 
             $localPayment->update([
                 'mollie_status' => $molliePayment->status,
-                'paid_date' => $molliePayment->isPaid() ? now() : null
+                'paid_date' => $molliePayment->isPaid() ? now() : null,
             ]);
 
             if ($molliePayment->isPaid()) {
@@ -409,7 +422,7 @@ class WidgetService
                     ->where('action', 'flagged')
                     ->exists();
 
-                if (!$hasFraudFlag) {
+                if (! $hasFraudFlag) {
                     $member->update(['status' => 'active']);
                     $membership->update(['status' => 'active']);
                 }
@@ -418,13 +431,31 @@ class WidgetService
                     ->where('session_id', $sessionId)
                     ->update([
                         'status' => 'completed',
-                        'completed_at' => now()
+                        'completed_at' => now(),
                     ]);
 
                 $paymentMethod = $mollieService->activateMolliePaymentMethod($gym, $member->id, $localPayment->payment_method);
 
                 // Mitgliedschaft wurde aktiviert → Event dispatchen (Vertragserstellung etc.)
                 MembershipActivated::dispatch($membership);
+
+                // Bill add-ons once, unless this has already happened
+                if ($membership->addons()->count() === 0) {
+                    $registration = WidgetRegistration::where('gym_id', $gym->id)
+                        ->where('session_id', $sessionId)
+                        ->latest()
+                        ->first();
+
+                    $selectedAddons = $registration->form_data['selected_addons'] ?? [];
+
+                    $this->attachAndBillAddons(
+                        $member,
+                        $membership->membershipPlan,
+                        $membership,
+                        ['selected_addons' => $selectedAddons],
+                        $member->defaultPaymentMethod
+                    );
+                }
 
                 if ($sendNotifications) {
                     $contractPath = null;
@@ -454,7 +485,7 @@ class WidgetService
                     'membership_id' => $membership->id,
                     'payment_method' => $localPayment->method,
                     'amount' => $localPayment->amount,
-                    'mollie_payment_id' => $paymentId
+                    'mollie_payment_id' => $paymentId,
                 ]);
 
                 return [
@@ -464,31 +495,31 @@ class WidgetService
                     'member' => [
                         'id' => $member->id,
                         'member_number' => $member->member_number,
-                        'status' => $member->status
+                        'status' => $member->status,
                     ],
                     'membership' => [
                         'id' => $membership->id,
-                        'status' => $membership->status
+                        'status' => $membership->status,
                     ],
                     'next_steps' => [
                         'title' => 'Willkommen im Studio!',
                         'description' => 'Sie erhalten eine Bestätigungs-E-Mail.',
-                        'action_required' => false
-                    ]
+                        'action_required' => false,
+                    ],
                 ];
 
             } elseif ($molliePayment->isCanceled() || $molliePayment->isExpired()) {
                 $this->trackEvent($gym, 'mollie_payment_failed', 'payment_failed', [
                     'member_id' => $member->id,
                     'reason' => $molliePayment->status,
-                    'mollie_payment_id' => $paymentId
+                    'mollie_payment_id' => $paymentId,
                 ]);
 
                 return [
                     'success' => false,
                     'status' => $molliePayment->status,
                     'message' => 'Die Zahlung wurde abgebrochen oder ist abgelaufen.',
-                    'retry_possible' => true
+                    'retry_possible' => true,
                 ];
 
             } else {
@@ -496,7 +527,7 @@ class WidgetService
                     'success' => true,
                     'status' => 'pending',
                     'message' => 'Ihre Zahlung wird noch verarbeitet.',
-                    'check_again' => true
+                    'check_again' => true,
                 ];
             }
 
@@ -505,14 +536,14 @@ class WidgetService
                 'gym_id' => $gym->id,
                 'session_id' => $sessionId,
                 'payment_id' => $paymentId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
                 'status' => 'error',
                 'message' => 'Fehler bei der Zahlungsverarbeitung.',
-                'retry_possible' => true
+                'retry_possible' => true,
             ];
         }
     }
@@ -629,11 +660,66 @@ class WidgetService
     }
 
     /**
+     * Resolves the add-ons that apply to the membership and links them to the
+     * membership (price snapshot).
+     *
+     * Optional add-ons are billed with a one-time payment at the start of the
+     * contract term, but only when they were selected by the customer and are
+     * actually assigned to the plan as optional (server-side whitelist).
+     *
+     * Included add-ons are part of the plan and therefore NOT billed: they are
+     * attached with a price snapshot of 0 and without a payment.
+     *
+     * @param  array<int, mixed>  $data
+     */
+    private function attachAndBillAddons(
+        Member $member,
+        MembershipPlan $plan,
+        Membership $membership,
+        array $data,
+        ?PaymentMethod $memberDefaultPaymentMethod = null
+    ): void {
+        $selectedAddonIds = array_map('intval', $data['selected_addons'] ?? []);
+
+        // Load the plan's assigned, active add-ons including the pivot mode
+        $addons = $plan->addons()->where('is_active', true)->get();
+
+        $paymentService = app(PaymentService::class);
+
+        foreach ($addons as $addon) {
+            $mode = $addon->pivot->mode;
+
+            // Only bill optional add-ons when selected; included ones are free
+            if ($mode === 'optional' && ! in_array($addon->id, $selectedAddonIds, true)) {
+                continue;
+            }
+
+            $isIncluded = $mode === 'included';
+
+            $payment = $isIncluded
+                ? null
+                : $paymentService->createAddonPayment(
+                    $member,
+                    $membership,
+                    $addon,
+                    $memberDefaultPaymentMethod
+                );
+
+            $membership->addons()->attach($addon->id, [
+                'mode' => $mode,
+                // Included add-ons are part of the plan, so the billed price is 0.
+                'price' => $isIncluded ? 0 : $addon->price,
+                'payment_id' => $payment?->id,
+            ]);
+        }
+    }
+
+    /**
      * Member-Status basierend auf Zahlungsmethode bestimmen
      */
     private function determineMemberStatus(string $paymentMethod): string
     {
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'sepa_direct_debit', 'mollie_directdebit' => 'pending',
             'banktransfer', 'invoice', 'standingorder' => 'pending',
             'cash' => 'active',
@@ -646,7 +732,7 @@ class WidgetService
      */
     private function determineMembershipStatus(string $paymentMethod, ?PaymentMethod $paymentMethodModel): string
     {
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'sepa_direct_debit', 'mollie_directdebit' => 'pending',
             'cash' => 'active',
             'banktransfer', 'invoice', 'standingorder' => 'pending',
@@ -665,11 +751,11 @@ class WidgetService
                 'description' => 'Schließen Sie die Zahlung über Mollie ab.',
                 'action_required' => true,
                 'payment_provider' => 'mollie',
-                'payment_method' => $paymentMethod
+                'payment_method' => $paymentMethod,
             ];
         }
 
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'sepa_direct_debit' => [
                 'title' => 'SEPA-Lastschriftmandat unterschreiben',
                 'description' => 'Sie erhalten in Kürze eine E-Mail mit dem SEPA-Lastschriftmandat.',
@@ -680,7 +766,7 @@ class WidgetService
                     'E-Mail mit SEPA-Formular prüfen',
                     'Formular ausdrucken und unterschreiben',
                     'Unterschriebenes Mandat an das Studio senden',
-                ]
+                ],
             ],
             'mollie_directdebit' => [
                 'title' => 'SEPA-Lastschrift über Mollie',
@@ -692,7 +778,7 @@ class WidgetService
                     'Die Lastschrift erfolgt automatisch zum Fälligkeitsdatum',
                     'Sie können die Lastschrift jederzeit in Ihrem Banking widerrufen',
                     'Eine Bestätigung erhalten Sie per E-Mail',
-                ]
+                ],
             ],
             'cash' => [
                 'title' => 'Zahlung vor Ort',
@@ -768,7 +854,7 @@ class WidgetService
                 $analyticsData['sepa_mandate_status'] = $paymentMethod->sepa_mandate_status;
                 $analyticsData['sepa_mandate_acknowledged'] = $paymentMethod->sepa_mandate_acknowledged;
                 $analyticsData['account_holder'] = $paymentMethod->account_holder;
-                $analyticsData['iban'] = substr($paymentMethod->iban ?? '', 0, 8) . '***';
+                $analyticsData['iban'] = substr($paymentMethod->iban ?? '', 0, 8).'***';
             }
 
             WidgetAnalytics::create([
@@ -784,7 +870,7 @@ class WidgetService
         } catch (\Exception $e) {
             logger()->warning('Payment method analytics tracking failed', [
                 'error' => $e->getMessage(),
-                'payment_method_id' => $paymentMethod->id
+                'payment_method_id' => $paymentMethod->id,
             ]);
         }
     }
@@ -847,7 +933,7 @@ class WidgetService
             return [
                 'valid' => false,
                 'message' => 'Diese E-Mail-Adresse ist bereits registriert.',
-                'existing_member' => $existingMember
+                'existing_member' => $existingMember,
             ];
         }
 
@@ -912,7 +998,7 @@ class WidgetService
             $errors[] = 'Mindestens ein aktiver Mitgliedschaftsplan ist erforderlich.';
         }
 
-        if (!$gym->api_key) {
+        if (! $gym->api_key) {
             $errors[] = 'API-Key ist erforderlich.';
         }
 
@@ -980,13 +1066,13 @@ class WidgetService
                 'valid' => true,
                 'discount' => $validCodes[$code]['discount'],
                 'type' => $validCodes[$code]['type'],
-                'message' => 'Gutschein erfolgreich eingelöst!'
+                'message' => 'Gutschein erfolgreich eingelöst!',
             ];
         }
 
         return [
             'valid' => false,
-            'message' => 'Ungültiger Gutschein-Code.'
+            'message' => 'Ungültiger Gutschein-Code.',
         ];
     }
 
@@ -1002,14 +1088,14 @@ class WidgetService
         if (strlen($iban) < 15 || strlen($iban) > 34) {
             return [
                 'valid' => false,
-                'message' => 'IBAN hat eine ungültige Länge.'
+                'message' => 'IBAN hat eine ungültige Länge.',
             ];
         }
 
-        if (!preg_match('/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/', $iban)) {
+        if (! preg_match('/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/', $iban)) {
             return [
                 'valid' => false,
-                'message' => 'IBAN hat ein ungültiges Format.'
+                'message' => 'IBAN hat ein ungültiges Format.',
             ];
         }
 
@@ -1113,6 +1199,7 @@ class WidgetService
             }
 
             DB::commit();
+
             return true;
 
         } catch (\Exception $e) {
@@ -1121,6 +1208,7 @@ class WidgetService
                 'gym_id' => $gym->id,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -1158,7 +1246,7 @@ class WidgetService
     {
         $checks = [
             'widget_enabled' => $gym->widget_enabled,
-            'api_key_present' => !empty($gym->api_key),
+            'api_key_present' => ! empty($gym->api_key),
             'active_plans' => $gym->membershipPlans()->where('is_active', true)->count() > 0,
             'recent_activity' => WidgetAnalytics::where('gym_id', $gym->id)
                 ->where('created_at', '>=', Carbon::now()->subDays(7))

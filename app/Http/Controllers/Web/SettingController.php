@@ -430,6 +430,7 @@ class SettingController extends Controller
             '[Kuendigungsfrist]' => '1 Monat',
             '[Aktivierungsgebuehr]' => 'Keine',
             '[Aufnahmegebuehr]' => 'Keine',
+            '[Zusatzleistungen]' => '<ul><li>Trainereinweisung (60,00 € einmalig)</li></ul>',
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
         ];

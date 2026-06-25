@@ -195,6 +195,55 @@
             <p class="mt-2 text-xs text-gray-400">Gemäß Gesetz für faire Verbraucherverträge (ab 01.03.2022)</p>
           </div>
 
+          <!-- Vertragsstart -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Vertragsstart
+            </label>
+            <div class="space-y-2">
+              <label class="flex items-start space-x-3 cursor-pointer">
+                <input
+                  v-model="form.start_date_mode"
+                  type="radio"
+                  value="next_possible"
+                  class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                />
+                <div>
+                  <span class="text-sm font-medium text-gray-700">Nächstmöglich</span>
+                  <p class="text-xs text-gray-500">Die Mitgliedschaft startet zum Registrierungszeitpunkt</p>
+                </div>
+              </label>
+              <label class="flex items-start space-x-3 cursor-pointer">
+                <input
+                  v-model="form.start_date_mode"
+                  type="radio"
+                  value="fixed"
+                  class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                />
+                <div>
+                  <span class="text-sm font-medium text-gray-700">Fester Starttermin</span>
+                  <p class="text-xs text-gray-500">
+                    Bis zu diesem Datum startet jede neue Mitgliedschaft am angegebenen Tag (ohne vorgeschalteten Gratis-Zeitraum).
+                    Ab diesem Datum gilt wieder „Nächstmöglich“.
+                  </p>
+                </div>
+              </label>
+            </div>
+            <div v-if="form.start_date_mode === 'fixed'" class="mt-3">
+              <label for="fixed_start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                Startdatum <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="fixed_start_date"
+                v-model="form.fixed_start_date"
+                type="date"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                :class="{ 'border-red-500': errors.fixed_start_date }"
+              />
+              <p v-if="errors.fixed_start_date" class="mt-1 text-sm text-red-600">{{ errors.fixed_start_date }}</p>
+            </div>
+          </div>
+
           <!-- Active Status -->
           <div class="mb-8">
             <label for="is_active" class="flex items-start space-x-3 cursor-pointer">
@@ -255,7 +304,9 @@ const form = useForm({
   commitment_months: '',
   cancellation_period: 30,
   cancellation_period_unit: 'days',
-  auto_renew_type: 'indefinite'
+  auto_renew_type: 'indefinite',
+  start_date_mode: 'next_possible',
+  fixed_start_date: ''
 })
 
 // Computed

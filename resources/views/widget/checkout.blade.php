@@ -31,9 +31,29 @@
             </div>
             @php
                 $today = now();
-                $startsFirstOfMonth = ($gymData['contracts_start_first_of_month'] ?? false) && $today->day !== 1;
+
+                // Fixed contract start takes precedence over the free period logic
+                // as long as the configured date is still in the future.
+                $forcedStart = null;
+                if (($planData['start_date_mode'] ?? 'next_possible') === 'fixed' && !empty($planData['fixed_start_date'])) {
+                    $fixedStart = \Carbon\Carbon::parse($planData['fixed_start_date'])->startOfDay();
+                    if ($today->copy()->startOfDay()->lt($fixedStart)) {
+                        $forcedStart = $fixedStart;
+                    }
+                }
+
+                $startsFirstOfMonth = !$forcedStart
+                    && ($gymData['contracts_start_first_of_month'] ?? false)
+                    && $today->day !== 1;
                 $freePeriodEnd = $startsFirstOfMonth ? $today->copy()->endOfMonth() : null;
-                $paidStart = $startsFirstOfMonth ? $today->copy()->addMonth()->startOfMonth() : $today;
+
+                if ($forcedStart) {
+                    $paidStart = $forcedStart;
+                } elseif ($startsFirstOfMonth) {
+                    $paidStart = $today->copy()->addMonth()->startOfMonth();
+                } else {
+                    $paidStart = $today;
+                }
             @endphp
 
             @if($startsFirstOfMonth)
@@ -69,6 +89,19 @@
                 <span class="label">Aktivierungsgebühr:</span>
                 <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['setup_fee'], 'EUR') }} einmalig</span>
             </div>
+            @foreach($addons ?? [] as $addon)
+            <div class="detail-row">
+                <span class="label">{{ $addon['name'] }}:</span>
+                @if($addon['mode'] === 'included')
+                    <span class="value">
+                        <span style="text-decoration: line-through; color: #9aa7a0; margin-right: 6px;">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }}</span>
+                        <span style="color: #0e7a43; font-weight: 800;">geschenkt</span>
+                    </span>
+                @else
+                    <span class="value">+ {{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }} einmalig</span>
+                @endif
+            </div>
+            @endforeach
             <div class="detail-row">
                 <span class="label">Kündigungsfrist:</span>
                 <span class="value">

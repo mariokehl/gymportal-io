@@ -31,6 +31,12 @@
                 >
                   {{ membershipPlan.is_active ? 'Aktiv' : 'Inaktiv' }}
                 </span>
+                <span
+                  v-if="membershipPlan.start_date_mode === 'fixed' && membershipPlan.fixed_start_date"
+                  class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                >
+                  Start: {{ formatDate(membershipPlan.fixed_start_date) }}
+                </span>
               </div>
               <p v-if="membershipPlan.description" class="text-gray-600">
                 {{ membershipPlan.description }}

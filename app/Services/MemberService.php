@@ -9,24 +9,24 @@ use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class MemberService
 {
     public function __construct(
         private readonly MemberMailDispatcher $mailDispatcher,
-    ) {
-    }
+    ) {}
 
     /**
      * Mitgliedsnummer generieren
      */
     public static function generateMemberNumber(Gym $gym, string $prefix = 'M'): string
     {
-        $prefix = $prefix . str_pad($gym->id, 3, '0', STR_PAD_LEFT);
+        $prefix = $prefix.str_pad($gym->id, 3, '0', STR_PAD_LEFT);
         $year = date('y');
         $lastNumber = Member::withTrashed()
             ->where('gym_id', $gym->id)
-            ->where('member_number', 'like', $prefix . $year . '%')
+            ->where('member_number', 'like', $prefix.$year.'%')
             ->orderBy('member_number', 'desc')
             ->value('member_number');
 
@@ -37,7 +37,7 @@ class MemberService
             $nextSequence = 1;
         }
 
-        return $prefix . $year . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        return $prefix.$year.str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -45,7 +45,7 @@ class MemberService
      */
     public static function generatePlaceholderEmail(): string
     {
-        $uid = (string) \Illuminate\Support\Str::uuid();
+        $uid = (string) Str::uuid();
 
         return "{$uid}@import.local";
     }
@@ -53,18 +53,20 @@ class MemberService
     /**
      * Mitgliedschaft erstellen
      */
-    public function createMembership(Member $member, MembershipPlan $plan, string $status = 'active'): Membership
+    public function createMembership(Member $member, MembershipPlan $plan, string $status = 'active', ?Carbon $startDate = null): Membership
     {
+        $startDate = $startDate ? $startDate->copy() : Carbon::parse($member->joined_date);
+
         return Membership::create([
             'member_id' => $member->id,
             'membership_plan_id' => $plan->id,
-            'start_date' => $member->joined_date,
+            'start_date' => $startDate,
             'end_date' => $plan->commitment_months > 0
-                ? Carbon::parse($member->joined_date)
+                ? $startDate->copy()
                     ->addMonths($plan->commitment_months)
                     ->subDay()
                 : null, // Keine Mindestlaufzeit = unbefristet
-            'status' => $status
+            'status' => $status,
         ]);
     }
 
@@ -85,7 +87,7 @@ class MemberService
             ->where('is_free_trial_plan', true)
             ->first();
 
-        if (!$plan) {
+        if (! $plan) {
             $plan = MembershipPlan::create([
                 'gym_id' => $gym->id,
                 'name' => $gym->free_trial_membership_name ?? 'Gratis-Testzeitraum',
@@ -131,7 +133,7 @@ class MemberService
         // Verknüpfung mit der zahlungspflichtigen Mitgliedschaft
         if ($linkedPaidMembership) {
             $linkedPaidMembership->update([
-                'linked_free_membership_id' => $freeMembership->id
+                'linked_free_membership_id' => $freeMembership->id,
             ]);
         }
 
@@ -169,8 +171,21 @@ class MemberService
         $gym = $member->gym;
         $freeMembership = null;
 
+        // Fester Vertragsstart hat Vorrang: Solange das feste Datum noch nicht
+        // erreicht ist, wird start_date darauf gesetzt und kein Gratis-Zeitraum
+        // vorangestellt.
+        $forcedStartDate = $plan->resolveForcedStartDate($startDate);
+        if ($forcedStartDate) {
+            $membership = $this->createMembership($member, $plan, $status, $forcedStartDate);
+
+            return [
+                'membership' => $membership,
+                'free_membership' => null,
+            ];
+        }
+
         // Prüfen ob Gratis-Zeitraum erstellt werden soll
-        if (!$startImmediately && $this->shouldStartFirstOfMonth($gym, $startDate)) {
+        if (! $startImmediately && $this->shouldStartFirstOfMonth($gym, $startDate)) {
             $freePeriodEnd = $this->calculateFreePeriodEndDate($startDate);
             $paidStart = $this->calculatePaidMembershipStartDate($startDate);
 
@@ -227,7 +242,7 @@ class MemberService
             'detailed_stats' => $this->getDetailedStatistics($gymId),
             'status_distribution' => $this->getStatusDistribution($gymId),
             'plan_stats' => $this->getPlanStatistics($gymId),
-            'financial_stats' => $this->getFinancialStatistics($gymId, $currentMonth, $lastMonth)
+            'financial_stats' => $this->getFinancialStatistics($gymId, $currentMonth, $lastMonth),
         ];
     }
 
@@ -253,29 +268,29 @@ class MemberService
                 'value' => $activeMembers,
                 'change' => $this->calculatePercentageChange($activeMembers, $activeMembers - $newMembersThisMonth),
                 'icon' => 'users',
-                'color' => 'green'
+                'color' => 'green',
             ],
             [
                 'title' => 'Neue Verträge',
                 'value' => $newMembersThisMonth,
                 'change' => $this->calculatePercentageChange($newMembersThisMonth, $newMembersLastMonth),
                 'icon' => 'file-plus',
-                'color' => 'blue'
+                'color' => 'blue',
             ],
             [
                 'title' => 'Monatsumsatz',
-                'value' => number_format($monthlyRevenue, 2, ',', '.') . ' €',
+                'value' => number_format($monthlyRevenue, 2, ',', '.').' €',
                 'change' => $this->calculatePercentageChange($monthlyRevenue, $lastMonthRevenue),
                 'icon' => 'dollar-sign',
-                'color' => 'green'
+                'color' => 'green',
             ],
             [
                 'title' => 'Vertragserneuerungen',
                 'value' => $expiring,
                 'change' => $this->calculatePercentageChange($expiring, $expiredLastMonth),
                 'icon' => 'bar-chart',
-                'color' => $expiring > 5 ? 'red' : 'gray'
-            ]
+                'color' => $expiring > 5 ? 'red' : 'gray',
+            ],
         ];
     }
 
@@ -297,7 +312,7 @@ class MemberService
             'new_members_this_month' => $this->getNewMembersCount($gymId, Carbon::now()),
             'expiring_this_month' => $this->getExpiringMembershipsCount($gymId, Carbon::now()),
             'average_revenue_per_member' => $activeMembers > 0 ?
-                ($this->calculateMonthlyRevenue($gymId) / $activeMembers) : 0
+                ($this->calculateMonthlyRevenue($gymId) / $activeMembers) : 0,
         ];
     }
 
@@ -311,7 +326,7 @@ class MemberService
             'inactive' => Member::inactive()->where('gym_id', $gymId)->count(),
             'pending' => Member::pending()->where('gym_id', $gymId)->count(),
             'overdue' => Member::overdue()->where('gym_id', $gymId)->count(),
-            'paused' => Member::paused()->where('gym_id', $gymId)->count()
+            'paused' => Member::paused()->where('gym_id', $gymId)->count(),
         ];
     }
 
@@ -322,19 +337,20 @@ class MemberService
     {
         return MembershipPlan::where('gym_id', $gymId)
             ->where('is_active', true)
-            ->withCount(['memberships as active_memberships_count' => function($query) {
+            ->withCount(['memberships as active_memberships_count' => function ($query) {
                 $query->where('status', 'active');
             }])
             ->get()
-            ->map(function($plan) {
+            ->map(function ($plan) {
                 $monthlyRevenue = $this->calculatePlanMonthlyRevenue($plan);
+
                 return [
                     'name' => $plan->name,
                     'price' => $plan->formatted_price,
                     'billing_cycle' => $plan->billing_cycle_text,
                     'active_memberships' => $plan->active_memberships_count,
-                    'monthly_revenue' => number_format($monthlyRevenue, 2, ',', '.') . ' €',
-                    'total_revenue' => number_format($plan->active_memberships_count * $plan->price, 2, ',', '.') . ' €'
+                    'monthly_revenue' => number_format($monthlyRevenue, 2, ',', '.').' €',
+                    'total_revenue' => number_format($plan->active_memberships_count * $plan->price, 2, ',', '.').' €',
                 ];
             })
             ->sortByDesc('active_memberships')
@@ -357,7 +373,7 @@ class MemberService
             'revenue_change' => $this->calculatePercentageChange($currentRevenue, $lastMonthRevenue),
             'year_to_date_revenue' => $yearToDateRevenue,
             'average_monthly_revenue' => $yearToDateRevenue / $currentMonth->month,
-            'projected_yearly_revenue' => ($yearToDateRevenue / $currentMonth->month) * 12
+            'projected_yearly_revenue' => ($yearToDateRevenue / $currentMonth->month) * 12,
         ];
     }
 
@@ -377,9 +393,9 @@ class MemberService
      */
     private function getExpiringMembershipsCount(int $gymId, Carbon $month): int
     {
-        return Membership::whereHas('member', function($query) use ($gymId) {
-                $query->where('gym_id', $gymId);
-            })
+        return Membership::whereHas('member', function ($query) use ($gymId) {
+            $query->where('gym_id', $gymId);
+        })
             ->where('status', 'active')
             ->whereNotNull('end_date')
             ->whereMonth('end_date', $month->month)
@@ -392,9 +408,9 @@ class MemberService
      */
     private function calculateMonthlyRevenue(int $gymId, ?Carbon $month = null): float
     {
-        $query = Membership::whereHas('member', function($query) use ($gymId) {
-                $query->where('gym_id', $gymId);
-            })
+        $query = Membership::whereHas('member', function ($query) use ($gymId) {
+            $query->where('gym_id', $gymId);
+        })
             ->where('status', 'active')
             ->with('membershipPlan');
 
@@ -402,9 +418,11 @@ class MemberService
             $query->whereDate('created_at', '<=', $month->endOfMonth());
         }
 
-        return $query->get()->sum(function($membership) {
+        return $query->get()->sum(function ($membership) {
             $plan = $membership->membershipPlan;
-            if (!$plan) return 0;
+            if (! $plan) {
+                return 0;
+            }
 
             return $this->convertToMonthlyPrice($plan->price, $plan->billing_cycle);
         });
@@ -417,16 +435,18 @@ class MemberService
     {
         $startOfYear = Carbon::now()->startOfYear();
 
-        return Membership::whereHas('member', function($query) use ($gymId) {
-                $query->where('gym_id', $gymId);
-            })
+        return Membership::whereHas('member', function ($query) use ($gymId) {
+            $query->where('gym_id', $gymId);
+        })
             ->where('status', 'active')
             ->whereDate('created_at', '>=', $startOfYear)
             ->with('membershipPlan')
             ->get()
-            ->sum(function($membership) {
+            ->sum(function ($membership) {
                 $plan = $membership->membershipPlan;
-                if (!$plan) return 0;
+                if (! $plan) {
+                    return 0;
+                }
 
                 $monthsActive = Carbon::parse($membership->created_at)->diffInMonths(Carbon::now()) + 1;
                 $monthlyPrice = $this->convertToMonthlyPrice($plan->price, $plan->billing_cycle);
@@ -441,6 +461,7 @@ class MemberService
     private function calculatePlanMonthlyRevenue(MembershipPlan $plan): float
     {
         $monthlyPrice = $this->convertToMonthlyPrice($plan->price, $plan->billing_cycle);
+
         return $monthlyPrice * $plan->active_memberships_count;
     }
 
@@ -449,7 +470,7 @@ class MemberService
      */
     private function convertToMonthlyPrice(float $price, string $billingCycle): float
     {
-        return match($billingCycle) {
+        return match ($billingCycle) {
             'monthly' => $price,
             'quarterly' => $price / 3,
             'biannual' => $price / 6,
@@ -470,7 +491,7 @@ class MemberService
         $change = (($current - $previous) / $previous) * 100;
         $sign = $change >= 0 ? '+' : '';
 
-        return $sign . number_format($change, 0) . '%';
+        return $sign.number_format($change, 0).'%';
     }
 
     /**
@@ -487,7 +508,7 @@ class MemberService
         return array_merge($stats, [
             'alerts' => $criticalAlerts,
             'trends' => $trends,
-            'last_updated' => Carbon::now()->toISOString()
+            'last_updated' => Carbon::now()->toISOString(),
         ]);
     }
 
@@ -504,7 +525,7 @@ class MemberService
             $alerts[] = [
                 'type' => 'warning',
                 'message' => "{$pendingSepa} SEPA-Mandate warten auf Unterschrift",
-                'action_url' => '/members?filter=pending_sepa'
+                'action_url' => '/members?filter=pending_sepa',
             ];
         }
 
@@ -514,7 +535,7 @@ class MemberService
             $alerts[] = [
                 'type' => 'error',
                 'message' => "{$overdue} Mitglieder sind überfällig",
-                'action_url' => '/members?filter=overdue'
+                'action_url' => '/members?filter=overdue',
             ];
         }
 
@@ -524,7 +545,7 @@ class MemberService
             $alerts[] = [
                 'type' => 'info',
                 'message' => "{$expiring} Verträge laufen diesen Monat aus",
-                'action_url' => '/memberships?filter=expiring'
+                'action_url' => '/memberships?filter=expiring',
             ];
         }
 
@@ -549,7 +570,7 @@ class MemberService
                 'active_members' => Member::active()
                     ->where('gym_id', $gymId)
                     ->whereDate('created_at', '<=', $month->endOfMonth())
-                    ->count()
+                    ->count(),
             ];
         }
 
@@ -568,7 +589,7 @@ class MemberService
             'period' => [
                 'start' => $startDate->format('Y-m-d'),
                 'end' => $endDate->format('Y-m-d'),
-                'description' => $startDate->format('M Y')
+                'description' => $startDate->format('M Y'),
             ],
             'summary' => [
                 'total_members' => Member::where('gym_id', $gymId)->count(),
@@ -580,10 +601,10 @@ class MemberService
                     ->whereBetween('updated_at', [$startDate, $endDate])
                     ->count(),
                 'total_revenue' => $this->calculatePeriodRevenue($gymId, $startDate, $endDate),
-                'average_member_value' => $this->calculateAverageMemberValue($gymId)
+                'average_member_value' => $this->calculateAverageMemberValue($gymId),
             ],
             'detailed_breakdown' => $this->getDetailedStatistics($gymId),
-            'plan_performance' => $this->getPlanStatistics($gymId)
+            'plan_performance' => $this->getPlanStatistics($gymId),
         ];
     }
 
@@ -592,15 +613,16 @@ class MemberService
      */
     private function calculatePeriodRevenue(int $gymId, Carbon $startDate, Carbon $endDate): float
     {
-        return Membership::whereHas('member', function($query) use ($gymId) {
-                $query->where('gym_id', $gymId);
-            })
+        return Membership::whereHas('member', function ($query) use ($gymId) {
+            $query->where('gym_id', $gymId);
+        })
             ->where('status', 'active')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with('membershipPlan')
             ->get()
-            ->sum(function($membership) {
+            ->sum(function ($membership) {
                 $plan = $membership->membershipPlan;
+
                 return $plan ? $plan->price : 0;
             });
     }
@@ -611,9 +633,12 @@ class MemberService
     private function calculateAverageMemberValue(int $gymId): float
     {
         $activeMembers = Member::active()->where('gym_id', $gymId)->count();
-        if ($activeMembers === 0) return 0;
+        if ($activeMembers === 0) {
+            return 0;
+        }
 
         $totalMonthlyRevenue = $this->calculateMonthlyRevenue($gymId);
+
         return $totalMonthlyRevenue / $activeMembers;
     }
 
@@ -628,23 +653,23 @@ class MemberService
             'period_days' => $days,
             'check_ins' => [
                 'total' => Member::where('gym_id', $gymId)
-                    ->whereHas('checkIns', function($q) use ($startDate) {
+                    ->whereHas('checkIns', function ($q) use ($startDate) {
                         $q->where('check_in_time', '>=', $startDate);
                     })
                     ->count(),
                 'unique_members' => Member::where('gym_id', $gymId)
-                    ->whereHas('checkIns', function($q) use ($startDate) {
+                    ->whereHas('checkIns', function ($q) use ($startDate) {
                         $q->where('check_in_time', '>=', $startDate);
                     })
                     ->distinct()
                     ->count('id'),
-                'average_per_member' => $this->calculateAverageCheckInsPerMember($gymId, $days)
+                'average_per_member' => $this->calculateAverageCheckInsPerMember($gymId, $days),
             ],
             'engagement' => [
                 'highly_active' => $this->getHighlyActiveMembers($gymId, $days),
                 'inactive' => $this->getInactiveMembers($gymId, $days),
-                'at_risk' => $this->getAtRiskMembers($gymId)
-            ]
+                'at_risk' => $this->getAtRiskMembers($gymId),
+            ],
         ];
     }
 
@@ -656,7 +681,9 @@ class MemberService
         $startDate = Carbon::now()->subDays($days);
         $activeMembers = Member::active()->where('gym_id', $gymId)->count();
 
-        if ($activeMembers === 0) return 0;
+        if ($activeMembers === 0) {
+            return 0;
+        }
 
         $totalCheckIns = Member::where('gym_id', $gymId)
             ->join('check_ins', 'members.id', '=', 'check_ins.member_id')
@@ -675,7 +702,7 @@ class MemberService
         $threshold = max(1, floor($days / 3)); // Mindestens jeden 3. Tag
 
         return Member::where('gym_id', $gymId)
-            ->whereHas('checkIns', function($q) use ($startDate) {
+            ->whereHas('checkIns', function ($q) use ($startDate) {
                 $q->where('check_in_time', '>=', $startDate);
             }, '>=', $threshold)
             ->count();
@@ -690,7 +717,7 @@ class MemberService
 
         return Member::active()
             ->where('gym_id', $gymId)
-            ->whereDoesntHave('checkIns', function($q) use ($startDate) {
+            ->whereDoesntHave('checkIns', function ($q) use ($startDate) {
                 $q->where('check_in_time', '>=', $startDate);
             })
             ->count();
@@ -702,14 +729,14 @@ class MemberService
     private function getAtRiskMembers(int $gymId): int
     {
         return Member::where('gym_id', $gymId)
-            ->where(function($query) {
+            ->where(function ($query) {
                 // Überfällige Mitglieder
                 $query->where('status', 'overdue')
                     // Oder lange inaktiv (30+ Tage ohne Check-in)
-                    ->orWhere(function($subQuery) {
+                    ->orWhere(function ($subQuery) {
                         $thirtyDaysAgo = Carbon::now()->subDays(30);
                         $subQuery->where('status', 'active')
-                            ->whereDoesntHave('checkIns', function($checkInQuery) use ($thirtyDaysAgo) {
+                            ->whereDoesntHave('checkIns', function ($checkInQuery) use ($thirtyDaysAgo) {
                                 $checkInQuery->where('check_in_time', '>=', $thirtyDaysAgo);
                             });
                     });
