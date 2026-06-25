@@ -78,9 +78,20 @@
                 <span class="value">{{ $paidStart->format('d.m.Y') }}</span>
             </div>
             <div class="detail-row">
-                <span class="label">Mindestvertragslaufzeit:</span>
+                <span class="label">Erstvertragslaufzeit:</span>
                 <span class="value">{{ $planData['commitment_months'] ?? 12 }} Monate</span>
             </div>
+            @php
+                $commitmentMonths = $planData['commitment_months'] ?? 12;
+                $autoRenewType = $planData['auto_renew_type'] ?? 'indefinite';
+            @endphp
+            <p style="margin: -4px 0 0 0; font-size: 12px; color: #6b7280;">
+                @if($autoRenewType === 'monthly')
+                    Nach der Erstlaufzeit von {{ $commitmentMonths }} {{ $commitmentMonths == 1 ? 'Monat' : 'Monaten' }} verlängert sich die Mitgliedschaft automatisch um 1 Monat.
+                @else
+                    Nach der Erstlaufzeit geht der Vertrag in eine unbefristete Mitgliedschaft über.
+                @endif
+            </p>
             <div class="detail-row">
                 <span class="label">Mitgliedsbeitrag:</span>
                 <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['price'], 'EUR') }} {{ $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle'] }}</span>

@@ -568,6 +568,7 @@ class WidgetController extends Controller
             ),
             'currency' => 'EUR',
             'commitment_months' => $plan->commitment_months,
+            'auto_renew_type' => $plan->auto_renew_type,
             'cancellation_period' => $plan->cancellation_period,
             'cancellation_period_unit' => $plan->cancellation_period_unit,
             'start_date_mode' => $plan->start_date_mode,
