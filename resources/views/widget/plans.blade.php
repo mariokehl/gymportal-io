@@ -121,7 +121,6 @@
 
             <div class="plan-pricing">
                 <div class="price-section">
-                    {{-- <span class="price-label">Trainiere ab</span> --}}
                     {{-- UVP / discount: only when an original price above the actual price is set. --}}
                     @if($plan->original_price && $plan->original_price > $plan->price)
                         @php
