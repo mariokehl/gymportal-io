@@ -392,18 +392,18 @@
 
 /* Optional add-on, selected: rose surcharge treatment. */
 .addon-item.addon-optional.selected .addon-row {
-    border-color: #e11d48;
-    background: #fef1f4;
+    border-color: var(--primary-color);
+    background: var(--secondary-color);
 }
 
 .addon-item.addon-optional.selected .addon-checkbox-box {
-    border-color: #e11d48;
-    background: #e11d48;
+    border-color: var(--primary-color);
+    background: var(--primary-color);
     color: #fff;
 }
 
 .addon-item.addon-optional.selected .addon-price {
-    color: #e11d48;
+    color: var(--primary-color);
 }
 
 .price-label {
