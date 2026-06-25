@@ -42,7 +42,7 @@ class MembershipPlan extends Model
         'is_active' => 'boolean',
         'is_free_trial_plan' => 'boolean',
         'highlight' => 'boolean',
-        'fixed_start_date' => 'date',
+        'fixed_start_date' => 'date:Y-m-d',
         'features' => 'array',
         'widget_display_options' => 'array',
     ];
