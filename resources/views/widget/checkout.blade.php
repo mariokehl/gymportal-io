@@ -189,7 +189,17 @@
                 --}}
 
                 <div class="final-price">
-                    {{-- <span class="label">Trainiere ab</span> --}}
+                    {{-- UVP / discount: only when an original price above the actual price is set. --}}
+                    @if(!empty($planData['original_price']) && $planData['original_price'] > $planData['price'])
+                        @php
+                            $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
+                            $discountPercent = (int) round((1 - $planData['price'] / $planData['original_price']) * 100);
+                        @endphp
+                        <div class="price-discount">
+                            <span class="price-original">{{ $priceFormatter->formatCurrency($planData['original_price'], 'EUR') }}</span>
+                            <span class="price-discount-badge">&minus;{{ $discountPercent }}%</span>
+                        </div>
+                    @endif
                     <div class="price-amount">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['price'], 'EUR') }}</div>
                     <span class="price-frequency">{{ $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle'] }}</span>
                 </div>

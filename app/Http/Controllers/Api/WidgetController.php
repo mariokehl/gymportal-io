@@ -557,6 +557,7 @@ class WidgetController extends Controller
             'name' => $plan->name,
             'description' => $plan->description,
             'price' => $plan->price,
+            'original_price' => $plan->original_price,
             'billing_cycle' => $plan->billing_cycle,
             'setup_fee' => $plan->setup_fee,
             'membership_price' => (new MembershipPriceCalculator)->calculateTotalPrice(

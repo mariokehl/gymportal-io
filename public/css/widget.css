@@ -929,6 +929,8 @@ span.mandatory {
     font-weight: bold;
     color: var(--primary-color);
     display: block;
+    /* Match the price/frequency spacing of the plan card (.price-main). */
+    margin-bottom: 8px;
 }
 
 .final-price .price-frequency {
