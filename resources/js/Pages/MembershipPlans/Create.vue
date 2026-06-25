@@ -13,7 +13,7 @@
       <span class="text-gray-900">Neuer Vertrag</span>
     </nav>
 
-    <div class="max-w-2xl">
+    <div class="max-w-3xl">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <form @submit.prevent="submit">
           <!-- Name -->
@@ -49,8 +49,8 @@
             <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
           </div>
 
-          <!-- Price, Setup Fee and Billing Cycle -->
-          <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Price, Original Price (UVP), Setup Fee and Billing Cycle -->
+          <div class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
                 Preis (€) <span class="text-red-500">*</span>
@@ -68,6 +68,25 @@
                 required
               />
               <p v-if="errors.price" class="mt-1 text-sm text-red-600">{{ errors.price }}</p>
+            </div>
+
+            <div>
+              <label for="original_price" class="block text-sm font-medium text-gray-700 mb-2">
+                UVP (€)
+              </label>
+              <input
+                id="original_price"
+                v-model="form.original_price"
+                type="number"
+                step="0.01"
+                min="0"
+                max="9999.99"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                :class="{ 'border-red-500': errors.original_price }"
+                placeholder="0.00"
+              />
+              <p v-if="errors.original_price" class="mt-1 text-sm text-red-600">{{ errors.original_price }}</p>
+              <p class="mt-1 text-xs text-gray-500">Optionaler Originalpreis; wird im Widget durchgestrichen angezeigt</p>
             </div>
 
             <div>
@@ -298,6 +317,7 @@ const form = useForm({
   name: '',
   description: '',
   price: '',
+  original_price: '',
   setup_fee: '',
   billing_cycle: '',
   is_active: true,

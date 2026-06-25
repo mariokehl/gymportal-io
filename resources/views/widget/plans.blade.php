@@ -122,6 +122,17 @@
             <div class="plan-pricing">
                 <div class="price-section">
                     {{-- <span class="price-label">Trainiere ab</span> --}}
+                    {{-- UVP / discount: only when an original price above the actual price is set. --}}
+                    @if($plan->original_price && $plan->original_price > $plan->price)
+                        @php
+                            $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
+                            $discountPercent = (int) round((1 - $plan->price / $plan->original_price) * 100);
+                        @endphp
+                        <div class="price-discount">
+                            <span class="price-original">{{ $priceFormatter->formatCurrency($plan->original_price, 'EUR') }}</span>
+                            <span class="price-discount-badge">&minus;{{ $discountPercent }}%</span>
+                        </div>
+                    @endif
                     <div class="price-main">
                         <span class="price-amount">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($plan->price, 'EUR') }}</span>
                     </div>
