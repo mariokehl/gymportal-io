@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Addon;
 use App\Models\Gym;
 use App\Models\GymUser;
 use App\Models\Member;
@@ -9,6 +10,7 @@ use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Policies\AddonPolicy;
 use App\Policies\GymPolicy;
 use App\Policies\GymUserPolicy;
 use App\Policies\MemberPolicy;
@@ -26,6 +28,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
+        Addon::class => AddonPolicy::class,
         Gym::class => GymPolicy::class,
         GymUser::class => GymUserPolicy::class,
         Member::class => MemberPolicy::class,

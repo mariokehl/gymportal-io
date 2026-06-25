@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\MembershipActivated;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -72,6 +73,13 @@ class Membership extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function addons()
+    {
+        return $this->belongsToMany(Addon::class)
+            ->withPivot('mode', 'price', 'payment_id', 'completed_at', 'completed_by')
+            ->withTimestamps();
+    }
+
     /**
      * Verknüpfte Gratis-Mitgliedschaft (bei Vertragsstart zum 1. des Monats)
      */
@@ -122,7 +130,7 @@ class Membership extends Model
 
     public function getDurationInMonthsAttribute()
     {
-        if (!$this->end_date) {
+        if (! $this->end_date) {
             return null;
         }
 
@@ -158,7 +166,7 @@ class Membership extends Model
         $result = $this->update(['status' => 'active']);
 
         if ($result) {
-            \App\Events\MembershipActivated::dispatch($this);
+            MembershipActivated::dispatch($this);
         }
 
         return $result;
@@ -215,11 +223,11 @@ class Membership extends Model
             'metadata' => array_merge($this->metadata ?? [], [
                 'expired_at' => now()->toDateTimeString(),
                 'expired_by' => $source,
-            ])
+            ]),
         ]);
 
         $member = $this->member;
-        if ($member && !$member->memberships()->where('status', 'active')->exists()) {
+        if ($member && ! $member->memberships()->where('status', 'active')->exists()) {
             $member->update(['status' => 'inactive']);
         }
 
@@ -236,7 +244,7 @@ class Membership extends Model
 
     public function getMinCancellationDateAttribute()
     {
-        if (!$this->start_date || !$this->membershipPlan) {
+        if (! $this->start_date || ! $this->membershipPlan) {
             return null;
         }
 
@@ -274,6 +282,7 @@ class Membership extends Model
             if ($unit === 'months') {
                 return now()->addMonths($period)->format('Y-m-d');
             }
+
             return now()->addDays($period)->format('Y-m-d');
         }
 
@@ -293,7 +302,7 @@ class Membership extends Model
 
     public function canBeCancelled(): bool
     {
-        if (!$this->start_date || !$this->membershipPlan) {
+        if (! $this->start_date || ! $this->membershipPlan) {
             return false;
         }
 
@@ -392,17 +401,17 @@ class Membership extends Model
         }
 
         // Nur aktive oder pending Mitgliedschaften
-        if (!in_array($this->status, ['active', 'pending'])) {
+        if (! in_array($this->status, ['active', 'pending'])) {
             return false;
         }
 
         // 14-Tage-Frist prüfen
         $contractStartDate = $this->contract_start_date;
-        if (!$contractStartDate) {
+        if (! $contractStartDate) {
             return false;
         }
 
-        $startDate = \Carbon\Carbon::parse($contractStartDate);
+        $startDate = Carbon::parse($contractStartDate);
         $deadline = $startDate->copy()->addDays(14)->endOfDay();
 
         return now()->isBefore($deadline);
@@ -413,16 +422,17 @@ class Membership extends Model
      */
     public function getWithdrawalDeadlineAttribute(): ?string
     {
-        if (!$this->withdrawal_eligible) {
+        if (! $this->withdrawal_eligible) {
             return null;
         }
 
         $contractStartDate = $this->contract_start_date;
-        if (!$contractStartDate) {
+        if (! $contractStartDate) {
             return null;
         }
 
-        $startDate = \Carbon\Carbon::parse($contractStartDate);
+        $startDate = Carbon::parse($contractStartDate);
+
         return $startDate->copy()->addDays(14)->endOfDay()->toIso8601String();
     }
 
@@ -449,7 +459,7 @@ class Membership extends Model
      */
     public function isInitialTermCompleted(): bool
     {
-        if (!$this->start_date || !$this->membershipPlan) {
+        if (! $this->start_date || ! $this->membershipPlan) {
             return false;
         }
 
@@ -459,6 +469,7 @@ class Membership extends Model
         }
 
         $commitmentEnd = $this->start_date->copy()->addMonths($commitmentMonths);
+
         return $commitmentEnd->lte($this->end_date ?? now());
     }
 }

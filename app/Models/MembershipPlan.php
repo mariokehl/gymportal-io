@@ -64,6 +64,23 @@ class MembershipPlan extends Model
         return $this->hasMany(WidgetRegistration::class);
     }
 
+    public function addons()
+    {
+        return $this->belongsToMany(Addon::class)
+            ->withPivot('mode')
+            ->withTimestamps();
+    }
+
+    public function includedAddons()
+    {
+        return $this->addons()->wherePivot('mode', 'included');
+    }
+
+    public function optionalAddons()
+    {
+        return $this->addons()->wherePivot('mode', 'optional');
+    }
+
     public function getFormattedPriceAttribute()
     {
         return number_format($this->price, 2, ',', '.').' €';

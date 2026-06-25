@@ -406,6 +406,7 @@ const placeholderGroups = {
         { key: '[Kuendigungsfrist]', description: 'Kündigungsfrist' },
         { key: '[Aufnahmegebuehr]', description: 'Aufnahmegebühr' },
         { key: '[Aktivierungsgebuehr]', description: 'Einmalige Aktivierungsgebühr' },
+        { key: '[Zusatzleistungen]', description: 'Gebuchte Zusatzleistungen (Add-ons) als Liste' },
     ],
     system: [
         { key: '[Datum]', description: 'Aktuelles Datum' },

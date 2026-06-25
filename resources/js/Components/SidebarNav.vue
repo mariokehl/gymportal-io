@@ -53,10 +53,28 @@
       <SidebarItem
         :icon="FilePlus"
         label="Verträge"
-        :active="route().current('contracts.index')"
+        :active="route().current('contracts.*')"
         :href="route('contracts.index')"
         :disabled="!canAccessPremiumFeatures"
-      />
+      >
+        <template #children>
+          <Link
+            v-if="isOwnerOrAdmin"
+            :href="route('contracts.addons.index')"
+            :class="[
+              'flex items-center px-4 py-2 text-xs font-medium transition-colors',
+              route().current('contracts.addons.*')
+                ? 'text-indigo-700'
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+          >
+            <span class="w-5 mr-3 flex justify-center">
+              <span class="w-px h-full min-h-4 bg-gray-300" />
+            </span>
+            Add-ons
+          </Link>
+        </template>
+      </SidebarItem>
       <SidebarItem
         v-if="isOwnerOrAdmin"
         :icon="DollarSign"

@@ -557,6 +557,11 @@
               @withdraw="openWithdrawMembership"
               @force-status="handleForceStatus"
             />
+
+            <!-- Booked add-ons (addon_membership) -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+              <MemberAddons :member="member" />
+            </div>
           </div>
 
           <!-- Payments & Payment Methods Tab -->
@@ -2139,6 +2144,7 @@ import PaymentsTable from '@/Components/PaymentsTable.vue'
 import IbanInput from '@/Components/IbanInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
+import MemberAddons from '@/Components/Members/MemberAddons.vue'
 import MemberDocumentsTab from '@/Components/MemberDocumentsTab.vue'
 import {
   User, FileText, Clock, CreditCard, Plus, Edit,

@@ -46,9 +46,10 @@ class WidgetController extends Controller
         $selectedContractIds = $gym->widget_settings['contracts']['selected_ids'] ?? [];
         $autoSort = $gym->widget_settings['contracts']['auto_sort'] ?? false;
 
-        // Query Builder für die Verträge
+        // Query builder for the plans including their active add-ons (with pivot mode)
         $plansQuery = MembershipPlan::where('gym_id', $gymId)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->with(['addons' => fn ($query) => $query->where('is_active', true)]);
 
         // Wenn Verträge in den Einstellungen ausgewählt wurden
         if (! empty($selectedContractIds)) {
@@ -193,15 +194,19 @@ class WidgetController extends Controller
         // Aktuelle Session-Daten abrufen
         $formData = $this->getWidgetSessionData($sessionId, 'form_data') ?: [];
         $selectedPlan = $this->getWidgetSessionData($sessionId, 'selected_plan');
+        $selectedAddonIds = $this->getWidgetSessionData($sessionId, 'selected_addons') ?: [];
 
         $planData = [];
+        $addons = [];
         if ($selectedPlan) {
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $selectedPlan)
+                ->with(['addons' => fn ($query) => $query->where('is_active', true)])
                 ->first();
 
             if ($plan) {
                 $planData = $this->preparePlanDataForSession($plan);
+                $addons = $this->resolveCheckoutAddons($plan, $selectedAddonIds);
             }
         }
 
@@ -216,13 +221,14 @@ class WidgetController extends Controller
             'legal_urls' => $gym->getLegalUrlsArray(),
         ];
 
-        $html = view('widget.checkout', compact('formData', 'planData', 'gymData'))->render();
+        $html = view('widget.checkout', compact('formData', 'planData', 'gymData', 'addons'))->render();
 
         return response()->json([
             'html' => $html,
             'success' => true,
             'checkout_data' => [
                 'plan' => $planData,
+                'addons' => $addons,
                 'member' => $this->sanitizeFormDataForDisplay($formData),
                 'gym' => $gymData,
             ],
@@ -252,6 +258,9 @@ class WidgetController extends Controller
         if ($selectedPlan) {
             $this->setWidgetSessionData($sessionId, 'selected_plan', $selectedPlan);
         }
+
+        $selectedAddons = array_map('intval', $request->input('selected_addons', []));
+        $this->setWidgetSessionData($sessionId, 'selected_addons', $selectedAddons);
 
         return response()->json([
             'success' => true,
@@ -292,6 +301,8 @@ class WidgetController extends Controller
             'iban' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string|min:15|max:34',
             'account_holder' => 'required_if:payment_method,sepa_direct_debit|required_if:payment_method,mollie_directdebit|nullable|string',
             'sepa_mandate_acknowledged' => 'sometimes|boolean',
+            'selected_addons' => 'sometimes|array',
+            'selected_addons.*' => 'integer|exists:addons,id',
         ]);
 
         // Spezielle SEPA-Validierung
@@ -357,6 +368,7 @@ class WidgetController extends Controller
                 'voucher_code' => $request->voucher_code,
                 'fitness_goals' => $request->fitness_goals,
                 'payment_method' => $request->payment_method,
+                'selected_addons' => $request->input('selected_addons', []),
                 'widget_session' => $sessionId,
             ];
 
@@ -562,6 +574,37 @@ class WidgetController extends Controller
             'gym_id' => $plan->gym_id,
             'selected_at' => now()->toISOString(),
         ];
+    }
+
+    /**
+     * Resolves the add-ons to display in the checkout summary for the chosen
+     * plan. Included add-ons are always shown (free); optional add-ons only when
+     * they were selected and are actually assigned to the plan as optional
+     * (server-side whitelist).
+     *
+     * @param  array<int, int|string>  $selectedAddonIds
+     * @return array<int, array{name: string, price: float, mode: string}>
+     */
+    private function resolveCheckoutAddons(MembershipPlan $plan, array $selectedAddonIds): array
+    {
+        $selectedAddonIds = array_map('intval', $selectedAddonIds);
+        $addons = [];
+
+        foreach ($plan->addons as $addon) {
+            $mode = $addon->pivot->mode;
+
+            if ($mode === 'optional' && ! in_array($addon->id, $selectedAddonIds, true)) {
+                continue;
+            }
+
+            $addons[] = [
+                'name' => $addon->name,
+                'price' => (float) $addon->price,
+                'mode' => $mode,
+            ];
+        }
+
+        return $addons;
     }
 
     /**

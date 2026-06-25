@@ -89,6 +89,19 @@
                 <span class="label">Aktivierungsgebühr:</span>
                 <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['setup_fee'], 'EUR') }} einmalig</span>
             </div>
+            @foreach($addons ?? [] as $addon)
+            <div class="detail-row">
+                <span class="label">{{ $addon['name'] }}:</span>
+                @if($addon['mode'] === 'included')
+                    <span class="value">
+                        <span style="text-decoration: line-through; color: #9aa7a0; margin-right: 6px;">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }}</span>
+                        <span style="color: #0e7a43; font-weight: 800;">geschenkt</span>
+                    </span>
+                @else
+                    <span class="value">+ {{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }} einmalig</span>
+                @endif
+            </div>
+            @endforeach
             <div class="detail-row">
                 <span class="label">Kündigungsfrist:</span>
                 <span class="value">

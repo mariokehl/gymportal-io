@@ -15,6 +15,7 @@
             this.shadowRoot = null;
             this.currentStep = 'plans';
             this.selectedPlan = null;
+            this.selectedAddons = [];
             this.formData = {};
             this.sessionId = this.generateSessionId();
             this.mollieWindow = null;
@@ -238,6 +239,7 @@
             switch (this.currentStep) {
                 case 'plans':
                     this.setupPlanSelection();
+                    this.setupAddonToggles();
                     break;
                 case 'form':
                     this.setupFormEvents();
@@ -326,9 +328,51 @@
                 }
 
                 this.selectedPlan = selected.value;
+                this.selectedAddons = this.collectSelectedAddons(this.selectedPlan);
                 this.trackEvent('form_started', 'plans', { plan_id: this.selectedPlan });
 
                 await this.goToStep('form');
+            });
+        }
+
+        // Collect the add-on ids that are checked for the given plan. Included
+        // add-ons are rendered as checked+disabled and are always returned; the
+        // server enforces the included/optional rules regardless.
+        collectSelectedAddons(planId) {
+            if (!planId) return [];
+
+            const checkboxes = this.shadowRoot.querySelectorAll(
+                `.addon-checkbox[data-plan="${planId}"]`
+            );
+
+            const ids = [];
+            checkboxes.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    ids.push(parseInt(checkbox.value, 10));
+                }
+            });
+
+            return ids;
+        }
+
+        // Keep the optional add-on cards' visual "selected" state in sync with
+        // their (visually hidden) checkbox. Included add-ons are fixed and have
+        // no checkbox interaction.
+        setupAddonToggles() {
+            const optionalItems = this.shadowRoot.querySelectorAll('.addon-item.addon-optional');
+
+            optionalItems.forEach((item) => {
+                const checkbox = item.querySelector('.addon-checkbox');
+                if (!checkbox) return;
+
+                const sync = () => item.classList.toggle('selected', checkbox.checked);
+                sync();
+
+                checkbox.addEventListener('change', (event) => {
+                    // Don't let toggling an add-on bubble up to plan selection.
+                    event.stopPropagation();
+                    sync();
+                });
             });
         }
 
@@ -771,6 +815,7 @@
                     body: JSON.stringify({
                         ...this.formData,
                         plan_id: this.selectedPlan,
+                        selected_addons: this.selectedAddons,
                         session_id: this.sessionId
                     }),
                 });
@@ -1448,7 +1493,8 @@
                     method: "POST",
                     body: JSON.stringify({
                         form_data: this.formData,
-                        selected_plan: this.selectedPlan
+                        selected_plan: this.selectedPlan,
+                        selected_addons: this.selectedAddons
                     }),
                 });
 
