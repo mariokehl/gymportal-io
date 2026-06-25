@@ -226,10 +226,6 @@
 /* Add-ons (one-time extras tied to a plan) */
 .plan-addons {
     border-top: 1px solid #eef0f3;
-    /* Push the add-on block to the bottom so it starts on the same level across
-       cards (e.g. Basic without an activation fee aligns with Premium). The
-       pricing block sits directly below it. */
-    margin-top: auto;
     /* Extra space so the add-on card never touches the price divider below. */
     margin-bottom: 8px;
     padding-top: 16px;
@@ -242,7 +238,8 @@
 /* When a card has add-ons, the pricing follows them; only cards without add-ons
    need the pricing itself to absorb the remaining space. */
 .plan-addons + .plan-pricing {
-    margin-top: 0;
+    border-top: 0;
+    margin-top: auto;
 }
 
 .plan-addons-title {
