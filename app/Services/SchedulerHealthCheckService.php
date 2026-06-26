@@ -31,7 +31,10 @@ class SchedulerHealthCheckService
                 ->where('due_date', '<', now()->subDays(7))
                 ->count();
 
-            if ($overduePayments > 10) {
+            // Threshold is 1% of all paid payments, but at least 10
+            $overdueThreshold = max(10, Payment::where('status', 'paid')->count() * 0.01);
+
+            if ($overduePayments > $overdueThreshold) {
                 Log::warning("High number of overdue payments: {$overduePayments}");
                 $this->notifyAdministrators("High number of overdue payments: {$overduePayments}");
             }
