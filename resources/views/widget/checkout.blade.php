@@ -127,12 +127,24 @@
                     @endphp
                 </span>
             </div>
-            {{--
+            @php
+                // Total cost over the initial contract term: the plan total
+                // (recurring contributions + activation fee) plus the one-time
+                // cost of every paid add-on the customer actually has to pay for.
+                // Included add-ons are free ("geschenkt") and must not be added.
+                $contractTotal = $planData['membership_price']['total_price'] ?? 0;
+                $addonsTotal = 0;
+                foreach ($addons ?? [] as $addon) {
+                    if (($addon['mode'] ?? null) !== 'included') {
+                        $addonsTotal += $addon['price'];
+                    }
+                }
+                $totalOverTerm = $contractTotal + $addonsTotal;
+            @endphp
             <div class="detail-row">
-                <span class="label">Gesamtpreis Mindestvertragslaufzeit:</span>
-                <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['membership_price']['total_price'], 'EUR') }}</span>
+                <span class="label">Gesamtpreis Erstvertragslaufzeit:</span>
+                <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($totalOverTerm, 'EUR') }}</span>
             </div>
-            --}}
         </div>
 
         <div class="member-summary">
