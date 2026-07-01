@@ -914,6 +914,7 @@ class Gym extends Model
                 'show_goals_selection' => false,
                 'require_birth_date' => true,
                 'require_phone' => true,
+                'min_age' => 18,
             ],
             'integrations' => [
                 'google_recaptcha' => false,

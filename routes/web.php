@@ -317,6 +317,7 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
             'widget_settings.colors.primary' => 'required|string',
             'widget_settings.texts' => 'required|array',
             'widget_settings.texts.title' => 'required|string|max:255',
+            'widget_settings.features.min_age' => 'sometimes|integer|min:0|max:120',
         ]);
 
         try {

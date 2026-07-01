@@ -299,8 +299,9 @@ class WidgetController extends Controller
         }
 
         $requireBirthDate = $gym->widget_settings['features']['require_birth_date'] ?? false;
+        $minAge = (int) ($gym->widget_settings['features']['min_age'] ?? 18);
         $birthDateRules = $requireBirthDate
-            ? ['required', 'date', 'before_or_equal:' . now()->subYears(18)->format('Y-m-d')]
+            ? ['required', 'date', 'before_or_equal:' . now()->subYears($minAge)->format('Y-m-d')]
             : ['nullable', 'date'];
 
         // Erweiterte Validierung
