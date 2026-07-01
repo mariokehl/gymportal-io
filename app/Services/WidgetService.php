@@ -63,13 +63,17 @@ class WidgetService
         try {
             $requiresMollieCheckout = $this->requiresMollieCheckout($data['payment_method']);
 
-            try {
-                $birthDate = Carbon::parse($data['birth_date']);
-            } catch (InvalidFormatException $e) {
-                return [
-                    'error' => 'Ungültiges Datumsformat',
-                    'data' => $data,
-                ];
+            $birthDate = null;
+
+            if (! empty($data['birth_date'])) {
+                try {
+                    $birthDate = Carbon::parse($data['birth_date']);
+                } catch (InvalidFormatException $e) {
+                    return [
+                        'error' => 'Ungültiges Datumsformat',
+                        'data' => $data,
+                    ];
+                }
             }
 
             // Betrugsprävention: Registrierungsdaten gegen Sperrliste prüfen

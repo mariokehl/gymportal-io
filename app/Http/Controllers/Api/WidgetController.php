@@ -286,13 +286,31 @@ class WidgetController extends Controller
             ], 429);
         }
 
+        // Determine whether the birth date is mandatory for this gym
+        $gym = Gym::find($gymId);
+
+        if (! $gym) {
+            $this->clearSubmissionLock($sessionId);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Gym not found',
+            ], 404);
+        }
+
+        $requireBirthDate = $gym->widget_settings['features']['require_birth_date'] ?? false;
+        $minAge = (int) ($gym->widget_settings['features']['min_age'] ?? 18);
+        $birthDateRules = $requireBirthDate
+            ? ['required', 'date', 'before_or_equal:' . now()->subYears($minAge)->format('Y-m-d')]
+            : ['nullable', 'date'];
+
         // Erweiterte Validierung
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|indisposable|max:255',
             'phone' => 'required|string|max:20',
-            'birth_date' => 'nullable|date',
+            'birth_date' => $birthDateRules,
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
@@ -322,9 +340,6 @@ class WidgetController extends Controller
         }
 
         try {
-            // Gym laden
-            $gym = Gym::findOrFail($gymId);
-
             // Plan laden
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $request->plan_id)

@@ -40,13 +40,18 @@
                 </div>
             </div>
 
+            @php($requireBirthDate = $gymData['widget_settings']['features']['require_birth_date'] ?? false)
+            @php($minAge = (int) ($gymData['widget_settings']['features']['min_age'] ?? 18))
+            @php($hintAge = $minAge < 18 ? 15 : $minAge)
             <div class="form-row">
                 <div class="form-group flex-grow-0">
-                    <label for="birth_date">Geburtsdatum<span class="mandatory">*</span></label>
-                    <input type="date" name="birth_date" id="birth_date" max="{{ date('Y-m-d', strtotime('-18 years')) }}" required>
+                    <label for="birth_date">Geburtsdatum{!! $requireBirthDate ? '<span class="mandatory">*</span>' : '' !!}</label>
+                    <input type="date" name="birth_date" id="birth_date" max="{{ date('Y-m-d', strtotime('-' . $minAge . ' years')) }}" {{ $requireBirthDate ? 'required' : '' }}>
                 </div>
             </div>
-            <small>Du musst mindestens 18 Jahre alt sein, um online einen Vertrag abschließen zu können.</small>
+            @if($requireBirthDate)
+                <small>Du musst mindestens {{ $hintAge }} Jahre alt sein, um online einen Vertrag abschließen zu können.</small>
+            @endif
         </div>
 
         {{-- Adresse --}}

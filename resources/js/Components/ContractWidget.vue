@@ -295,6 +295,19 @@
                                 class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             >
                         </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Mindestalter</span>
+                                <p class="text-xs text-gray-500">Erforderliches Mindestalter für den Online-Abschluss</p>
+                            </div>
+                            <input
+                                type="number"
+                                min="0"
+                                max="120"
+                                v-model.number="minAge"
+                                class="w-20 rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                        </label>
                     </div>
                 </div>
 
@@ -590,7 +603,8 @@ const settings = ref({
         show_duration_selector: true,
         show_goals_selection: true,
         require_birth_date: true,
-        require_phone: true
+        require_phone: true,
+        min_age: 18
     },
     contracts: {
         selected_ids: [],
@@ -600,6 +614,21 @@ const settings = ref({
         google_recaptcha: false
     },
     ...(props.currentGym.widget_settings || {})
+})
+
+// Minimum age with a default of 18 when not explicitly set by the gym.
+const minAge = computed({
+    get() {
+        const value = settings.value.features?.min_age
+        return value === undefined || value === null ? 18 : value
+    },
+    set(value) {
+        if (!settings.value.features) {
+            settings.value.features = {}
+        }
+        const parsed = Number(value)
+        settings.value.features.min_age = Number.isNaN(parsed) ? 18 : parsed
+    }
 })
 
 const apiKeys = ref({
