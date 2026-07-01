@@ -1,7 +1,7 @@
 {
     "private": true,
     "name": "gymportal-io",
-    "version": "0.0.89",
+    "version": "0.0.90",
     "type": "module",
     "scripts": {
         "build": "vite build",
