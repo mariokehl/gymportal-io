@@ -65,6 +65,11 @@
                     @success="handleSuccess"
                     @error="handleError"
                 />
+                <GoogleSheetSettings
+                    :google-sheet="googleSheet"
+                    @success="handleSuccess"
+                    @error="handleError"
+                />
             </div>
 
             <!-- Statistics Tab (nur für Owner/Admin) -->
@@ -87,6 +92,7 @@ import ScannerManagement from '@/Components/AccessControl/ScannerManagement.vue'
 import AccessLogLive from '@/Components/AccessControl/AccessLogLive.vue'
 import AccessStatistics from '@/Components/AccessControl/AccessStatistics.vue'
 import RollingQrSettings from '@/Components/AccessControl/RollingQrSettings.vue'
+import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.vue'
 
 const page = usePage()
 
@@ -122,6 +128,16 @@ const props = defineProps({
     rollingQrToleranceWindows: {
         type: Number,
         default: 1
+    },
+    googleSheet: {
+        type: Object,
+        default: () => ({
+            enabled: false,
+            configured: false,
+            sheet_url: null,
+            service_account_email: null,
+            last_synced_at: null
+        })
     }
 })
 

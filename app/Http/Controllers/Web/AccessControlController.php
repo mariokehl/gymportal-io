@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateGoogleSheetSettingsRequest;
+use App\Jobs\SyncCheckInsToGoogleSheet;
 use App\Models\GymScanner;
 use App\Models\ScannerAccessLog;
+use App\Services\GoogleSheetsService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -40,6 +44,7 @@ class AccessControlController extends Controller
                 if ($cachedHeartbeat) {
                     $scanner->last_seen_at = $cachedHeartbeat;
                 }
+
                 return $scanner;
             });
 
@@ -48,7 +53,7 @@ class AccessControlController extends Controller
             ->latest()
             ->limit(50)
             ->get()
-            ->map(fn($log) => $this->formatLogForFrontend($log));
+            ->map(fn ($log) => $this->formatLogForFrontend($log));
 
         $statistics = ScannerAccessLog::getStatistics($gym->id, now()->startOfDay(), now());
 
@@ -61,7 +66,24 @@ class AccessControlController extends Controller
             'rollingQrEnabled' => (bool) $gym->rolling_qr_enabled,
             'rollingQrInterval' => (int) ($gym->rolling_qr_interval ?? 3),
             'rollingQrToleranceWindows' => (int) ($gym->rolling_qr_tolerance_windows ?? 1),
+            'googleSheet' => $this->googleSheetPayload($gym),
         ]);
+    }
+
+    /**
+     * Build the safe (secret-free) Google Sheet integration payload for the UI.
+     */
+    private function googleSheetPayload($gym): array
+    {
+        $integration = $gym->googleSheetIntegration;
+
+        return [
+            'enabled' => (bool) $integration?->google_sheet_enabled,
+            'configured' => (bool) $integration?->isConfigured(),
+            'sheet_url' => $integration?->sheet_url,
+            'service_account_email' => $integration?->service_account_email,
+            'last_synced_at' => $integration?->last_synced_at?->toIso8601String(),
+        ];
     }
 
     /**
@@ -101,12 +123,12 @@ class AccessControlController extends Controller
         }
 
         if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
+            $query->where('created_at', '<=', $request->date_to.' 23:59:59');
         }
 
         $logs = $query->paginate($request->input('per_page', 50));
 
-        $logs->getCollection()->transform(fn($log) => $this->formatLogForFrontend($log));
+        $logs->getCollection()->transform(fn ($log) => $this->formatLogForFrontend($log));
 
         return response()->json($logs);
     }
@@ -131,9 +153,9 @@ class AccessControlController extends Controller
         // Add hourly distribution for chart
         $hourlyStats = ScannerAccessLog::forGym($gym->id)
             ->where('created_at', '>=', $startDate)
-            ->selectRaw(ScannerAccessLog::extractHourSql('created_at') . ' as hour')
+            ->selectRaw(ScannerAccessLog::extractHourSql('created_at').' as hour')
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw(ScannerAccessLog::sumBooleanSql('access_granted') . ' as granted')
+            ->selectRaw(ScannerAccessLog::sumBooleanSql('access_granted').' as granted')
             ->groupByRaw(ScannerAccessLog::extractHourSql('created_at'))
             ->orderByRaw(ScannerAccessLog::extractHourSql('created_at'))
             ->get()
@@ -190,7 +212,7 @@ class AccessControlController extends Controller
 
         $scanner = $gym->scanners()->create([
             'device_name' => $validated['device_name'],
-            'allowed_ips' => !empty($allowedIps) ? array_values($allowedIps) : null,
+            'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
             'token_expires_at' => $validated['token_expires_at'] ?? null,
             'is_active' => true,
         ]);
@@ -227,7 +249,7 @@ class AccessControlController extends Controller
 
         $scanner->update([
             'device_name' => $validated['device_name'],
-            'allowed_ips' => !empty($allowedIps) ? array_values($allowedIps) : null,
+            'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
             'is_active' => $validated['is_active'] ?? $scanner->is_active,
         ]);
 
@@ -270,7 +292,7 @@ class AccessControlController extends Controller
             abort(403);
         }
 
-        $scanner->update(['is_active' => !$scanner->is_active]);
+        $scanner->update(['is_active' => ! $scanner->is_active]);
         $status = $scanner->is_active ? 'aktiviert' : 'deaktiviert';
 
         return response()->json([
@@ -362,6 +384,128 @@ class AccessControlController extends Controller
     }
 
     /**
+     * Create or update the per-gym Google Sheet integration.
+     */
+    public function updateGoogleSheetSettings(
+        UpdateGoogleSheetSettingsRequest $request,
+        GoogleSheetsService $googleSheets
+    ): JsonResponse {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $validated = $request->validated();
+        $integration = $gym->googleSheetIntegration;
+
+        // Resolve the credentials: use the freshly uploaded key, or fall back to
+        // the already-stored one when the operator only edits the sheet URL.
+        $credentials = null;
+        if ($request->hasFile('credentials_file')) {
+            $credentials = json_decode(
+                $request->file('credentials_file')->get(),
+                true
+            );
+
+            if (! $googleSheets->isValidServiceAccountKey($credentials)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Die hochgeladene Datei ist kein gültiger Service-Account-Schlüssel.',
+                ], 422);
+            }
+        } elseif ($integration) {
+            $credentials = $integration->credentialsArray();
+        }
+
+        if ($validated['enabled'] && empty($credentials)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bitte lade zuerst einen Service-Account-Schlüssel (JSON) hoch.',
+            ], 422);
+        }
+
+        $spreadsheetId = $googleSheets->extractSpreadsheetId($validated['sheet_url'] ?? '');
+
+        if ($validated['enabled'] && ! $spreadsheetId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aus der angegebenen URL konnte keine Google-Sheet-ID ermittelt werden.',
+            ], 422);
+        }
+
+        $serviceAccountEmail = $googleSheets->serviceAccountEmailFrom($credentials ?? []);
+
+        // When enabling, confirm access up front so nightly syncs don't fail silently.
+        if ($validated['enabled']) {
+            if (! $googleSheets->verifyAccess($credentials, $spreadsheetId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Kein Zugriff auf das Sheet. Bitte teile das Google Sheet mit {$serviceAccountEmail} als Bearbeiter.",
+                ], 422);
+            }
+
+            $googleSheets->ensureHeaderRow($credentials, $spreadsheetId);
+        }
+
+        $gym->googleSheetIntegration()->updateOrCreate(
+            ['gym_id' => $gym->id],
+            [
+                'google_sheet_enabled' => $validated['enabled'],
+                'credentials' => $credentials ? json_encode($credentials) : null,
+                'service_account_email' => $serviceAccountEmail,
+                'spreadsheet_id' => $spreadsheetId,
+                'sheet_url' => $validated['sheet_url'] ?? null,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Google-Sheet-Verknüpfung wurde gespeichert.',
+            'googleSheet' => $this->googleSheetPayload($gym->refresh()),
+        ]);
+    }
+
+    /**
+     * Remove the per-gym Google Sheet integration (deletes the stored key).
+     */
+    public function removeGoogleSheetSettings(): JsonResponse
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $gym->googleSheetIntegration()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Google-Sheet-Verknüpfung wurde entfernt.',
+            'googleSheet' => $this->googleSheetPayload($gym->refresh()),
+        ]);
+    }
+
+    /**
+     * Trigger an immediate sync of the previous day's check-ins for this gym.
+     */
+    public function testGoogleSheetSync(): JsonResponse
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $integration = $gym->googleSheetIntegration;
+
+        if (! $integration || ! $integration->isConfigured()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Es ist keine aktive Google-Sheet-Verknüpfung konfiguriert.',
+            ], 422);
+        }
+
+        SyncCheckInsToGoogleSheet::dispatch($gym->id, now()->subDay()->toDateString());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Testlauf wurde gestartet. Die Check-Ins des Vortages werden in Kürze angehängt.',
+        ]);
+    }
+
+    /**
      * Format a log entry for frontend display
      */
     private function formatLogForFrontend(ScannerAccessLog $log): array
@@ -369,14 +513,14 @@ class AccessControlController extends Controller
         return [
             'id' => $log->id,
             'device_number' => $log->device_number,
-            'scanner_name' => $log->scanner?->device_name ?? 'Scanner #' . $log->device_number,
+            'scanner_name' => $log->scanner?->device_name ?? 'Scanner #'.$log->device_number,
             'scan_type' => $log->scan_type,
             'scan_type_label' => $log->scan_type_label,
             'access_granted' => $log->access_granted,
             'status_label' => $log->status_label,
             'denial_reason' => $log->denial_reason,
             'member_id' => $log->member_id,
-            'member_name' => $log->member ? trim($log->member->first_name . ' ' . $log->member->last_name) : null,
+            'member_name' => $log->member ? trim($log->member->first_name.' '.$log->member->last_name) : null,
             'member_number' => $log->member?->member_number,
             'member_url' => $log->member ? route('members.show', $log->member->id) : null,
             'nfc_card_id' => $log->metadata['nfc_card_id'] ?? null,
@@ -394,29 +538,29 @@ class AccessControlController extends Controller
     {
         $config = [
             '# Scanner Configuration',
-            '# Generated: ' . now()->toIso8601String(),
-            '# Gym: ' . $gym->name,
-            '# Device: ' . $scanner->device_name . ' (#' . $scanner->device_number . ')',
+            '# Generated: '.now()->toIso8601String(),
+            '# Gym: '.$gym->name,
+            '# Device: '.$scanner->device_name.' (#'.$scanner->device_number.')',
             '',
             '# API Configuration',
-            'SAAS_API_BASE_URL="' . config('app.url') . '/api"',
-            'SAAS_API_KEY="' . $scanner->api_token . '"',
-            'DEVICE_NUMBER="' . $scanner->device_number . '"',
+            'SAAS_API_BASE_URL="'.config('app.url').'/api"',
+            'SAAS_API_KEY="'.$scanner->api_token.'"',
+            'DEVICE_NUMBER="'.$scanner->device_number.'"',
             '',
             '# Security Configuration',
-            'SECRET_KEY="' . $gym->scanner_secret_key . '"',
+            'SECRET_KEY="'.$gym->scanner_secret_key.'"',
             'QR_CODE_VALIDITY_MINUTES=30',
             'ENABLE_TIMESTAMP_CHECK=True',
             'ENABLE_HASH_CHECK=True',
             'ENABLE_NFC_CARDS=True',
             '',
             '# Rolling QR-Code Konfiguration',
-            'ENABLE_ROLLING_QR=' . ($gym->rolling_qr_enabled ? 'True' : 'False'),
-            'ROLLING_QR_INTERVAL_SECONDS=' . ($gym->rolling_qr_interval ?? 3),
-            'ROLLING_QR_TOLERANCE_WINDOWS=' . ($gym->rolling_qr_tolerance_windows ?? 1),
+            'ENABLE_ROLLING_QR='.($gym->rolling_qr_enabled ? 'True' : 'False'),
+            'ROLLING_QR_INTERVAL_SECONDS='.($gym->rolling_qr_interval ?? 3),
+            'ROLLING_QR_TOLERANCE_WINDOWS='.($gym->rolling_qr_tolerance_windows ?? 1),
             '',
             '# Optional IP Whitelist',
-            '# ALLOWED_IPS=' . ($scanner->allowed_ips ? implode(',', $scanner->allowed_ips) : ''),
+            '# ALLOWED_IPS='.($scanner->allowed_ips ? implode(',', $scanner->allowed_ips) : ''),
         ];
 
         return implode("\n", $config);

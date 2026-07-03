@@ -187,6 +187,11 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Rolling QR-Code Settings
         Route::put('/rolling-qr-settings', [AccessControlController::class, 'updateRollingQrSettings'])->name('rolling-qr-settings.update');
+
+        // Google Sheet Integration
+        Route::post('/google-sheet-settings', [AccessControlController::class, 'updateGoogleSheetSettings'])->name('google-sheet-settings.update');
+        Route::delete('/google-sheet-settings', [AccessControlController::class, 'removeGoogleSheetSettings'])->name('google-sheet-settings.destroy');
+        Route::post('/google-sheet-settings/test', [AccessControlController::class, 'testGoogleSheetSync'])->name('google-sheet-settings.test');
     });
 
     // Sperrliste / Betrugsprävention

@@ -76,8 +76,8 @@ Schedule::command('memberships:daily-process', ['--verbose-log'])
 Schedule::call(function () {
     app(SchedulerHealthCheckService::class)->performHealthCheck();
 })->hourly()
-  ->name('health-check')
-  ->withoutOverlapping();
+    ->name('health-check')
+    ->withoutOverlapping();
 
 // Update Laravel Disposable Email
 Schedule::command('disposable:update')->daily();
@@ -112,7 +112,19 @@ Schedule::call(function () {
         Log::info("Fraud cleanup: {$deleted} abgelaufene + {$purged} alte Sperren entfernt");
     }
 })->daily()
-  ->at('04:00')
-  ->timezone('Europe/Berlin')
-  ->name('fraud.cleanup')
-  ->withoutOverlapping();
+    ->at('04:00')
+    ->timezone('Europe/Berlin')
+    ->name('fraud.cleanup')
+    ->withoutOverlapping();
+
+// ===================================
+// GOOGLE SHEET CHECK-IN MIRROR
+// ===================================
+
+// Mirror the previous day's check-ins into each gym's linked Google Sheet
+Schedule::command('google-sheets:sync-checkins')
+    ->dailyAt('00:05')
+    ->timezone('Europe/Berlin')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/scheduler-google-sheets.log'));

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -197,6 +197,11 @@ class Gym extends Model
         return $this->hasMany(ScannerAccessLog::class);
     }
 
+    public function googleSheetIntegration()
+    {
+        return $this->hasOne(GymGoogleSheetIntegration::class);
+    }
+
     /**
      * Bestimmte Legal URL nach Typ abrufen
      */
@@ -247,15 +252,15 @@ class Gym extends Model
                 $domain = request()->header('Origin') ?: 'https://members.gymportal.io';
 
                 return [
-                    'name' => $this->name . ' - Mitglieder App',
+                    'name' => $this->name.' - Mitglieder App',
                     'short_name' => $this->name,
                     'description' => $this->member_app_description ?: $this->description ?: "Mitglieder-App für {$this->name}",
-                    'start_url' => $domain . '/' . $this->slug,
+                    'start_url' => $domain.'/'.$this->slug,
                     'display' => 'standalone',
                     'background_color' => $this->background_color ?: '#ffffff',
                     'theme_color' => $this->primary_color,
                     'orientation' => 'portrait-primary',
-                    'scope' => $domain . '/',
+                    'scope' => $domain.'/',
                     'categories' => ['fitness', 'lifestyle', 'sports'],
                     'lang' => 'de',
                     'icons' => $this->getPwaIcons(),
@@ -272,7 +277,7 @@ class Gym extends Model
     {
         return Attribute::make(
             get: function () {
-                if (!$this->logo_path) {
+                if (! $this->logo_path) {
                     return null;
                 }
 
@@ -302,6 +307,7 @@ class Gym extends Model
             if (str_starts_with($this->logo_path, 'http')) {
                 return $this->logo_path;
             }
+
             return Storage::disk('public')->url($this->logo_path);
         }
 
@@ -315,21 +321,21 @@ class Gym extends Model
     {
         $logoUrl = $this->getPwaLogoUrl();
 
-        if (!$logoUrl) {
+        if (! $logoUrl) {
             // Fallback to default PWA icons
             return [
                 [
                     'src' => '/pwa-192x192.png',
                     'sizes' => '192x192',
                     'type' => 'image/png',
-                    'purpose' => 'any'
+                    'purpose' => 'any',
                 ],
                 [
                     'src' => '/pwa-512x512.png',
                     'sizes' => '512x512',
                     'type' => 'image/png',
-                    'purpose' => 'any maskable'
-                ]
+                    'purpose' => 'any maskable',
+                ],
             ];
         }
 
@@ -338,14 +344,14 @@ class Gym extends Model
                 'src' => $logoUrl,
                 'sizes' => '192x192',
                 'type' => 'image/png',
-                'purpose' => 'any'
+                'purpose' => 'any',
             ],
             [
                 'src' => $logoUrl,
                 'sizes' => '512x512',
                 'type' => 'image/png',
-                'purpose' => 'any maskable'
-            ]
+                'purpose' => 'any maskable',
+            ],
         ];
     }
 
@@ -363,9 +369,9 @@ class Gym extends Model
                 'icons' => [
                     [
                         'src' => '/icons/qr-icon.png',
-                        'sizes' => '96x96'
-                    ]
-                ]
+                        'sizes' => '96x96',
+                    ],
+                ],
             ],
             [
                 'name' => 'Profil bearbeiten',
@@ -375,10 +381,10 @@ class Gym extends Model
                 'icons' => [
                     [
                         'src' => '/icons/profile-icon.png',
-                        'sizes' => '96x96'
-                    ]
-                ]
-            ]
+                        'sizes' => '96x96',
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -432,7 +438,7 @@ class Gym extends Model
      */
     public function getFormattedOpeningHours(): array
     {
-        if (!$this->opening_hours) {
+        if (! $this->opening_hours) {
             return [];
         }
 
@@ -443,7 +449,7 @@ class Gym extends Model
             'thursday' => 'Donnerstag',
             'friday' => 'Freitag',
             'saturday' => 'Samstag',
-            'sunday' => 'Sonntag'
+            'sunday' => 'Sonntag',
         ];
 
         $formatted = [];
@@ -545,13 +551,13 @@ class Gym extends Model
     public function getEnabledStandardPaymentMethods(): array
     {
         return array_filter($this->getStandardPaymentMethods(), function ($method) {
-            return $method['enabled'] && !$method['is_overridden'];
+            return $method['enabled'] && ! $method['is_overridden'];
         });
     }
 
     public function getMolliePaymentMethods(): array
     {
-        if (!$this->hasMollieConfigured()) {
+        if (! $this->hasMollieConfigured()) {
             return [];
         }
 
@@ -560,9 +566,9 @@ class Gym extends Model
 
         foreach ($enabledMethods as $methodId) {
             $methods[] = [
-                'key' => 'mollie_' . $methodId,
+                'key' => 'mollie_'.$methodId,
                 'name' => $this->getMollieMethodDisplayName($methodId, ''),
-                'description' => 'Via Mollie' . ($this->isInTestMode() ? ' (Test-Modus)' : ''),
+                'description' => 'Via Mollie'.($this->isInTestMode() ? ' (Test-Modus)' : ''),
                 'icon' => 'CreditCard',
                 'type' => 'mollie',
                 'enabled' => true,
@@ -576,7 +582,9 @@ class Gym extends Model
 
     public function getMollieMandateType(string $methodId): string
     {
-        if ($methodId === 'directdebit') return 'directdebit';
+        if ($methodId === 'directdebit') {
+            return 'directdebit';
+        }
 
         $mandateTypes = [
             'creditcard' => 'creditcard',
@@ -587,7 +595,7 @@ class Gym extends Model
             'ideal' => 'directdebit',
             'kbc' => 'directdebit',
             'paybybank' => 'directdebit',
-            'trustly' => 'directdebit'
+            'trustly' => 'directdebit',
         ];
 
         return $mandateTypes[$methodId] ?? '';
@@ -655,7 +663,7 @@ class Gym extends Model
 
             switch ($methodKey) {
                 case 'banktransfer':
-                    return !empty(array_intersect($mollieMethodIds, ['banktransfer', 'ideal', 'mybank', 'trustly']));
+                    return ! empty(array_intersect($mollieMethodIds, ['banktransfer', 'ideal', 'mybank', 'trustly']));
 
                 case 'sepa_direct_debit':
                     return in_array('directdebit', $mollieMethodIds);
@@ -664,7 +672,7 @@ class Gym extends Model
                     return in_array('pointofsale', $mollieMethodIds);
 
                 case 'invoice':
-                    return !empty(array_intersect($mollieMethodIds, ['billie', 'klarna', 'riverty', 'in3']));
+                    return ! empty(array_intersect($mollieMethodIds, ['billie', 'klarna', 'riverty', 'in3']));
 
                 case 'standingorder':
                     return in_array('directdebit', $mollieMethodIds);
@@ -678,7 +686,7 @@ class Gym extends Model
     {
         $config = $this->payment_methods_config ?? $this->getDefaultPaymentMethodsConfig();
 
-        if (!isset($config[$methodKey])) {
+        if (! isset($config[$methodKey])) {
             return false;
         }
 
@@ -735,7 +743,7 @@ class Gym extends Model
 
     public function trialDaysLeft(): int
     {
-        if (!$this->isInTrial()) {
+        if (! $this->isInTrial()) {
             return 0;
         }
 
@@ -770,7 +778,7 @@ class Gym extends Model
     public function extendTrial(int $days = 30): void
     {
         $this->update([
-            'trial_ends_at' => now()->addDays($days)
+            'trial_ends_at' => now()->addDays($days),
         ]);
     }
 
@@ -793,6 +801,7 @@ class Gym extends Model
     {
         if ($value === null) {
             $this->attributes['mollie_config'] = null;
+
             return;
         }
 
@@ -814,7 +823,7 @@ class Gym extends Model
 
     public function hasMollieConfigured(): bool
     {
-        return !empty($this->mollie_config) &&
+        return ! empty($this->mollie_config) &&
                isset($this->mollie_config['api_key']) &&
                isset($this->mollie_config['enabled_methods']) &&
                count($this->mollie_config['enabled_methods']) > 0;
@@ -869,10 +878,10 @@ class Gym extends Model
         while (
             static::withTrashed()
                 ->where('slug', $slug)
-                ->when($this->exists, fn($query) => $query->where('id', '!=', $this->id))
+                ->when($this->exists, fn ($query) => $query->where('id', '!=', $this->id))
                 ->exists()
         ) {
-            $slug = $originalSlug . '-' . $count++;
+            $slug = $originalSlug.'-'.$count++;
         }
 
         $this->slug = $slug;
@@ -881,7 +890,7 @@ class Gym extends Model
     public function generateApiKey(): string
     {
         do {
-            $apiKey = 'pk_live_' . Str::random(32);
+            $apiKey = 'pk_live_'.Str::random(32);
         } while (self::where('api_key', $apiKey)->exists());
 
         return $apiKey;
@@ -922,12 +931,13 @@ class Gym extends Model
         ];
 
         $settings = $value ? json_decode($value, true) : [];
+
         return array_merge($defaults, $settings);
     }
 
     public function getWidgetUrlAttribute()
     {
-        return config('app.url') . '/embed/widget/' . $this->id;
+        return config('app.url').'/embed/widget/'.$this->id;
     }
 
     public function getWidgetEmbedCodeAttribute()
@@ -936,13 +946,13 @@ class Gym extends Model
 <script>
 (function() {
     const script = document.createElement("script");
-    script.src = "' . config('app.url') . '/embed/widget.js";
+    script.src = "'.config('app.url').'/embed/widget.js";
     script.onload = function() {
         GymportalWidget.init({
             containerId: "gymportal-widget",
-            apiEndpoint: "' . config('app.url') . '",
-            apiKey: "' . $this->api_key . '",
-            studioId: "' . $this->id . '"
+            apiEndpoint: "'.config('app.url').'",
+            apiKey: "'.$this->api_key.'",
+            studioId: "'.$this->id.'"
         });
     };
     document.head.appendChild(script);
@@ -974,6 +984,7 @@ class Gym extends Model
     {
         $message = "{$memberId}:{$timestamp}";
         $expectedHash = hash_hmac('sha256', $message, $secretKey);
+
         return hash_equals($expectedHash, $providedHash);
     }
 
@@ -1007,6 +1018,7 @@ class Gym extends Model
         ];
 
         $settings = $value ? json_decode($value, true) : [];
+
         return array_merge($defaults, $settings);
     }
 
