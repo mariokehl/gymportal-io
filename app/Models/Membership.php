@@ -50,6 +50,7 @@ class Membership extends Model
     protected $appends = [
         'min_cancellation_date',
         'default_cancellation_date',
+        'cancellation_deadline',
         'can_cancel',
         'is_free_trial',
         // Widerrufs-Attribute (§ 356a BGB)
@@ -293,6 +294,32 @@ class Membership extends Model
 
         // Fallback to min_cancellation_date if no end_date exists
         return $this->min_cancellation_date;
+    }
+
+    /**
+     * Latest possible cancellation date before the contract auto-renews.
+     *
+     * Derived from end_date (the end of the current term) minus the plan's
+     * cancellation period. The extra day (addDay) anchors the deadline to the
+     * start of the following period.
+     */
+    public function getCancellationDeadlineAttribute(): ?string
+    {
+        if (! $this->end_date) {
+            return null;
+        }
+
+        $plan = $this->membershipPlan;
+        $cancellationPeriod = $plan->cancellation_period ?? 1;
+        $cancellationUnit = $plan->cancellation_period_unit ?? 'months';
+
+        if ($cancellationUnit === 'months') {
+            $cancellationDeadline = $this->end_date->copy()->addDay()->subMonths($cancellationPeriod);
+        } else {
+            $cancellationDeadline = $this->end_date->copy()->addDay()->subDays($cancellationPeriod);
+        }
+
+        return $cancellationDeadline->format('Y-m-d');
     }
 
     public function getCanCancelAttribute(): bool

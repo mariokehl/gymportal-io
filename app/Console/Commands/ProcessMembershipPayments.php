@@ -2,18 +2,15 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Member;
 use App\Models\Membership;
-use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
-use App\Services\PaymentService;
 use App\Services\MollieService;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Collection;
 
 class ProcessMembershipPayments extends Command
 {
@@ -38,14 +35,18 @@ class ProcessMembershipPayments extends Command
     protected $description = 'Process membership payments and contract renewals';
 
     protected PaymentService $paymentService;
+
     protected MollieService $mollieService;
 
     /**
      * Track changes for rollback functionality
      */
     protected array $rollbackData = [];
+
     protected bool $testMode = false;
+
     protected bool $verboseLog = false;
+
     protected int $daysAhead = 14;
 
     public function __construct(PaymentService $paymentService, MollieService $mollieService)
@@ -70,11 +71,11 @@ class ProcessMembershipPayments extends Command
 
         $startTime = now();
 
-        $this->info("===========================================");
-        $this->info("Starting Membership Payment Processing");
-        $this->info("Mode: " . ($this->testMode ? 'TEST' : 'PRODUCTION'));
-        $this->info("Time: " . $startTime->format('Y-m-d H:i:s'));
-        $this->info("Days ahead: " . $this->daysAhead);
+        $this->info('===========================================');
+        $this->info('Starting Membership Payment Processing');
+        $this->info('Mode: '.($this->testMode ? 'TEST' : 'PRODUCTION'));
+        $this->info('Time: '.$startTime->format('Y-m-d H:i:s'));
+        $this->info('Days ahead: '.$this->daysAhead);
         $this->info("===========================================\n");
 
         // Statistics tracking
@@ -89,7 +90,7 @@ class ProcessMembershipPayments extends Command
 
         try {
             // 1. Process due payments
-            $this->info("Step 1: Processing due payments...");
+            $this->info('Step 1: Processing due payments...');
             $paymentStats = $this->processDuePayments();
             $stats = array_merge($stats, $paymentStats);
 
@@ -109,10 +110,10 @@ class ProcessMembershipPayments extends Command
             $this->checkExpiringContracts();
 
         } catch (\Exception $e) {
-            $this->error("Critical error during processing: " . $e->getMessage());
+            $this->error('Critical error during processing: '.$e->getMessage());
             Log::error('Membership payment processing failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             $stats['errors'][] = $e->getMessage();
         }
@@ -140,11 +141,11 @@ class ProcessMembershipPayments extends Command
         ];
 
         $query = Payment::where('status', 'pending')
-            ->where(function($q) {
+            ->where(function ($q) {
                 // Zahlung wird verarbeitet wenn:
                 // - execution_date ist NULL und due_date ist heute oder in der Vergangenheit ODER
                 // - execution_date ist gesetzt und heute oder in der Vergangenheit (überschreibt due_date)
-                $q->where(function($subQ) {
+                $q->where(function ($subQ) {
                     $subQ->whereNull('execution_date')
                         ->where('due_date', '<=', Carbon::today());
                 })->orWhere('execution_date', '<=', Carbon::today());
@@ -171,20 +172,20 @@ class ProcessMembershipPayments extends Command
                 if ($this->verboseLog) {
                     $executionInfo = $payment->execution_date
                         ? " (execution_date: {$payment->execution_date->format('Y-m-d')})"
-                        : " (no execution_date)";
+                        : ' (no execution_date)';
                     $this->info("✓ Processed payment #{$payment->id} for member {$payment->member->full_name}{$executionInfo}");
                 }
             } catch (\Exception $e) {
                 $stats['payments_failed']++;
-                $stats['errors'][] = "Payment #{$payment->id}: " . $e->getMessage();
-                $this->error("✗ Failed to process payment #{$payment->id}: " . $e->getMessage());
+                $stats['errors'][] = "Payment #{$payment->id}: ".$e->getMessage();
+                $this->error("✗ Failed to process payment #{$payment->id}: ".$e->getMessage());
 
                 Log::error('Payment processing failed', [
                     'payment_id' => $payment->id,
                     'member_id' => $payment->member_id,
                     'due_date' => $payment->due_date,
                     'execution_date' => $payment->execution_date,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
 
                 // Continue with next payment (fehlertoleranz)
@@ -203,12 +204,13 @@ class ProcessMembershipPayments extends Command
         $member = $payment->member;
         $paymentMethod = $member->defaultPaymentMethod;
 
-        if (!$paymentMethod) {
+        if (! $paymentMethod) {
             throw new \Exception("No default payment method for member #{$member->id}");
         }
 
         if ($paymentMethod->status !== 'active') {
             $this->warn("Skipping payment #{$payment->id}: payment method #{$paymentMethod->id} is not active (status: {$paymentMethod->status})");
+
             return;
         }
 
@@ -220,6 +222,7 @@ class ProcessMembershipPayments extends Command
                 'member_id' => $member->id,
                 'method' => $paymentMethod->type,
             ]);
+
             return;
         }
 
@@ -264,19 +267,19 @@ class ProcessMembershipPayments extends Command
     protected function processSepaPayment(Payment $payment, PaymentMethod $paymentMethod): void
     {
         // Verify SEPA mandate is active
-        if (!$paymentMethod->isSepaMandateValid()) {
-            throw new \Exception("Invalid or inactive SEPA mandate");
+        if (! $paymentMethod->isSepaMandateValid()) {
+            throw new \Exception('Invalid or inactive SEPA mandate');
         }
 
         // In production, this would trigger the actual SEPA collection
         // For now, we mark it as processing
         $payment->update([
             'status' => 'unknown',
-            'notes' => $payment->notes . ' | SEPA collection initiated at ' . now()->toDateTimeString(),
+            'notes' => $payment->notes.' | SEPA collection initiated at '.now()->toDateTimeString(),
             'metadata' => array_merge($payment->metadata ?? [], [
                 'sepa_collection_date' => now()->toDateString(),
                 'sepa_mandate_reference' => $paymentMethod->sepa_mandate_reference,
-            ])
+            ]),
         ]);
 
         Log::info('SEPA payment initiated', [
@@ -296,6 +299,7 @@ class ProcessMembershipPayments extends Command
             if ($this->verboseLog) {
                 $this->info("→ Skipping payment creation at Mollie for {$payment->id} payment method #{$paymentMethod->id}");
             }
+
             return;
         }
 
@@ -326,13 +330,13 @@ class ProcessMembershipPayments extends Command
         // Exclude free trial memberships (no payments needed for those)
         $query = Membership::where('status', 'active')
             ->whereDate('start_date', '<=', Carbon::today())
-            ->whereHas('membershipPlan', function($q) {
+            ->whereHas('membershipPlan', function ($q) {
                 $q->where('is_free_trial_plan', false)
                     ->orWhereNull('is_free_trial_plan');
             });
 
         if ($gymId = $this->option('gym-id')) {
-            $query->whereHas('member', function($q) use ($gymId) {
+            $query->whereHas('member', function ($q) use ($gymId) {
                 $q->where('gym_id', $gymId);
             });
         }
@@ -353,11 +357,12 @@ class ProcessMembershipPayments extends Command
                     $this->info("✓ Created {$created} payments for membership #{$membership->id}");
                 }
             } catch (\Exception $e) {
-                $this->error("✗ Failed to create payments for membership #{$membership->id}: " . $e->getMessage());
+                $this->error("✗ Failed to create payments for membership #{$membership->id}: ".$e->getMessage());
                 Log::error('Failed to create upcoming payments', [
                     'membership_id' => $membership->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
+
                 continue;
             }
         }
@@ -371,10 +376,11 @@ class ProcessMembershipPayments extends Command
     protected function createPaymentsForMembership(Membership $membership): int
     {
         // Keine Zahlungen für nicht-aktive Mitgliedschaften erstellen
-        if (!in_array($membership->status, ['active'])) {
+        if (! in_array($membership->status, ['active'])) {
             if ($this->verboseLog) {
                 $this->info("→ Skipping payment creation for {$membership->status} membership #{$membership->id}");
             }
+
             return 0;
         }
 
@@ -384,14 +390,16 @@ class ProcessMembershipPayments extends Command
             if ($this->verboseLog) {
                 $this->info("→ Skipping payment creation for cancelled membership #{$membership->id}");
             }
+
             return 0;
         }
 
         // Keine Zahlungen für gelöschte Mitglieder
-        if (!$membership->member) {
+        if (! $membership->member) {
             if ($this->verboseLog) {
                 $this->info("→ Skipping payment creation for deleted member in membership #{$membership->id}");
             }
+
             return 0;
         }
 
@@ -402,6 +410,7 @@ class ProcessMembershipPayments extends Command
             if ($this->verboseLog) {
                 $this->info("→ Skipping payment creation for free trial membership #{$membership->id}");
             }
+
             return 0;
         }
         $member = $membership->member;
@@ -413,7 +422,7 @@ class ProcessMembershipPayments extends Command
             ->orderBy('due_date', 'desc')
             ->first();
 
-        if (!$lastPayment) {
+        if (! $lastPayment) {
             // No payments exist for this plan, start from membership start date
             $nextPaymentDate = $membership->start_date->copy();
         } else {
@@ -440,7 +449,7 @@ class ProcessMembershipPayments extends Command
                 ->whereNotNull('metadata->billing_cycle')  // Prüft ob billing_cycle existiert und nicht null ist
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 if ($this->testMode) {
                     $this->logTestAction('payment_create', [
                         'membership_id' => $membership->id,
@@ -475,13 +484,13 @@ class ProcessMembershipPayments extends Command
     {
         $stats = ['renewed' => 0, 'expired' => 0];
 
-        // Get memberships expiring within the next 30 days
+        // Get memberships expiring within the next month
         // Schließt bereits expired/cancelled und Gratis-Mitgliedschaften aus
         $expiringMemberships = Membership::whereIn('status', ['active', 'paused'])
             ->whereNotNull('end_date')
-            ->whereDate('end_date', '<=', Carbon::today()->addDays(30))
+            ->whereDate('end_date', '<=', Carbon::today()->addMonth())
             ->whereNull('cancellation_date') // Keine gekündigten
-            ->whereHas('membershipPlan', function($q) {
+            ->whereHas('membershipPlan', function ($q) {
                 // Keine Gratis-Mitgliedschaften (diese laufen einfach aus)
                 $q->where('is_free_trial_plan', false)
                     ->orWhereNull('is_free_trial_plan');
@@ -501,7 +510,7 @@ class ProcessMembershipPayments extends Command
                     if ($this->verboseLog) {
                         $this->info("✓ Renewed membership #{$membership->id}");
                     }
-                } else if ($membership->end_date->lt(Carbon::today())) {
+                } elseif ($membership->end_date->lt(Carbon::today())) {
                     // Erst expired wenn der komplette End-Tag vergangen ist (end_date < today)
                     if ($membership->status !== 'expired') {
                         $this->expireMembership($membership);
@@ -513,11 +522,12 @@ class ProcessMembershipPayments extends Command
                     }
                 }
             } catch (\Exception $e) {
-                $this->error("✗ Failed to process membership #{$membership->id}: " . $e->getMessage());
+                $this->error("✗ Failed to process membership #{$membership->id}: ".$e->getMessage());
                 Log::error('Contract renewal processing failed', [
                     'membership_id' => $membership->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
+
                 continue;
             }
         }
@@ -547,16 +557,16 @@ class ProcessMembershipPayments extends Command
             return false;
         }
 
-        // Renew once the current period ends — i.e. on the end date or later.
-        //
-        // The cancellation period (cancellation_period) is NOT the renewal trigger:
-        // it only defines until when the customer may still cancel. Renewing at the
-        // cancellation deadline (end_date - cancellation_period) makes the contract
-        // renew a full cycle too early when the cancellation period equals the
-        // renewal interval, and (with a daily cron) repeatedly — this caused the
-        // live system to jump the end date e.g. from 30.06 to 31.07 instead of
-        // keeping 30.06.
-        return Carbon::today()->gte($membership->end_date->copy()->startOfDay());
+        // Renew once the cancellation deadline has passed — i.e. from the last
+        // possible cancellation date onwards. Once the customer can no longer
+        // cancel the current period, the contract is bound to auto-renew, so we
+        // trigger the renewal on that date or later.
+        $cancellationDeadline = $membership->cancellation_deadline;
+        if ($cancellationDeadline === null) {
+            return false;
+        }
+
+        return Carbon::today()->gte(Carbon::parse($cancellationDeadline)->startOfDay());
     }
 
     /**
@@ -594,6 +604,7 @@ class ProcessMembershipPayments extends Command
                 'new_end_date' => $newEndDate?->toDateString() ?? 'unbefristet',
                 'auto_renew_type' => $autoRenewType,
             ]);
+
             return;
         }
 
@@ -608,7 +619,7 @@ class ProcessMembershipPayments extends Command
                     'renewal_count' => ($membership->metadata['renewal_count'] ?? 0) + 1,
                     'auto_renew_type' => $autoRenewType,
                     'converted_to_indefinite' => $newEndDate === null,
-                ])
+                ]),
             ]);
 
             // Create first payment for new period
@@ -643,6 +654,7 @@ class ProcessMembershipPayments extends Command
             if ($this->verboseLog) {
                 $this->info("→ Membership #{$membership->id} already expired, skipping");
             }
+
             return;
         }
 
@@ -651,6 +663,7 @@ class ProcessMembershipPayments extends Command
                 'membership_id' => $membership->id,
                 'end_date' => $membership->end_date->toDateString(),
             ]);
+
             return;
         }
 
@@ -681,7 +694,7 @@ class ProcessMembershipPayments extends Command
 
                 // Here you would send notifications
                 // This is just a placeholder for the notification logic
-                Log::info("Contract expiring soon", [
+                Log::info('Contract expiring soon', [
                     'membership_id' => $membership->id,
                     'member_id' => $membership->member_id,
                     'days_until_expiry' => $days,
@@ -695,7 +708,7 @@ class ProcessMembershipPayments extends Command
      */
     protected function calculateNextPaymentDate(Carbon $currentDate, string $billingCycle): Carbon
     {
-        return match($billingCycle) {
+        return match ($billingCycle) {
             'monthly' => $currentDate->copy()->addMonth(),
             'quarterly' => $currentDate->copy()->addMonths(3),
             'biannual' => $currentDate->copy()->addMonths(6),
@@ -741,7 +754,7 @@ class ProcessMembershipPayments extends Command
         ];
 
         if ($this->verboseLog) {
-            $this->info("[TEST] {$action}: " . json_encode($data));
+            $this->info("[TEST] {$action}: ".json_encode($data));
         }
     }
 
@@ -750,7 +763,7 @@ class ProcessMembershipPayments extends Command
      */
     protected function saveRollbackData(): void
     {
-        $filename = storage_path('app/scheduler_rollback_' . now()->format('Y-m-d_His') . '.json');
+        $filename = storage_path('app/scheduler_rollback_'.now()->format('Y-m-d_His').'.json');
         file_put_contents($filename, json_encode($this->rollbackData, JSON_PRETTY_PRINT));
 
         $this->info("\nRollback data saved to: {$filename}");
@@ -761,12 +774,13 @@ class ProcessMembershipPayments extends Command
      */
     protected function performRollback(): int
     {
-        $this->warn("Performing rollback...");
+        $this->warn('Performing rollback...');
 
         // Find latest rollback file
         $files = glob(storage_path('app/scheduler_rollback_*.json'));
         if (empty($files)) {
-            $this->error("No rollback data found");
+            $this->error('No rollback data found');
+
             return 1;
         }
 
@@ -782,7 +796,7 @@ class ProcessMembershipPayments extends Command
             // Rollback payments
             if (isset($data['payments'])) {
                 Payment::whereIn('id', $data['payments'])->delete();
-                $this->info("Rolled back " . count($data['payments']) . " payments");
+                $this->info('Rolled back '.count($data['payments']).' payments');
             }
 
             // Rollback renewals
@@ -791,20 +805,22 @@ class ProcessMembershipPayments extends Command
                     Membership::where('id', $renewal['membership_id'])
                         ->update(['end_date' => $renewal['old_end_date']]);
                 }
-                $this->info("Rolled back " . count($data['renewals']) . " membership renewals");
+                $this->info('Rolled back '.count($data['renewals']).' membership renewals');
             }
 
             DB::commit();
 
             // Archive rollback file
-            rename($latestFile, $latestFile . '.processed');
+            rename($latestFile, $latestFile.'.processed');
 
-            $this->info("Rollback completed successfully");
+            $this->info('Rollback completed successfully');
+
             return 0;
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Rollback failed: " . $e->getMessage());
+            $this->error('Rollback failed: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -817,21 +833,21 @@ class ProcessMembershipPayments extends Command
         $duration = $startTime->diffInSeconds(now());
 
         $this->info("\n===========================================");
-        $this->info("Processing Summary");
-        $this->info("===========================================");
+        $this->info('Processing Summary');
+        $this->info('===========================================');
         $this->info("Duration: {$duration} seconds");
-        $this->info("Mode: " . ($this->testMode ? 'TEST' : 'PRODUCTION'));
-        $this->info("");
-        $this->info("Payments:");
+        $this->info('Mode: '.($this->testMode ? 'TEST' : 'PRODUCTION'));
+        $this->info('');
+        $this->info('Payments:');
         $this->info("  - Created: {$stats['payments_created']}");
         $this->info("  - Processed: {$stats['payments_processed']}");
         $this->info("  - Failed: {$stats['payments_failed']}");
-        $this->info("");
-        $this->info("Contracts:");
+        $this->info('');
+        $this->info('Contracts:');
         $this->info("  - Renewed: {$stats['contracts_renewed']}");
         $this->info("  - Expired: {$stats['contracts_expired']}");
 
-        if (!empty($stats['errors'])) {
+        if (! empty($stats['errors'])) {
             $this->error("\nErrors encountered:");
             foreach ($stats['errors'] as $error) {
                 $this->error("  - {$error}");
