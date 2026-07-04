@@ -495,8 +495,13 @@ class Membership extends Model
             return true; // Kein Commitment = sofort monatlich kündbar
         }
 
+        // end_date is the last included day of a term, so the term that ends on
+        // start + commitmentMonths - 1 day completes the initial commitment. Add a
+        // day to end_date to compare against the exclusive commitment boundary,
+        // otherwise the last day of the initial term is off by one and still
+        // counts as "not completed".
         $commitmentEnd = $this->start_date->copy()->addMonths($commitmentMonths);
 
-        return $commitmentEnd->lte($this->end_date ?? now());
+        return $commitmentEnd->lte(($this->end_date ?? now())->copy()->addDay());
     }
 }

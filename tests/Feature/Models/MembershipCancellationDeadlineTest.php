@@ -162,10 +162,32 @@ class MembershipCancellationDeadlineTest extends TestCase
             'end_date' => '2026-12-31',
         ]);
 
-        $this->assertFalse($membership->isInitialTermCompleted());
+        // end_date 2026-12-31 is the last day of the 12-month initial term, so the
+        // commitment is considered completed on that date.
+        $this->assertTrue($membership->isInitialTermCompleted());
 
         // 2026-12-31 + 1 day - 1 month = 2026-12-01, still in the future on 04.07.
         $this->assertSame('2026-12-01', $membership->cancellation_deadline);
         $this->assertTrue(Carbon::now()->lt(Carbon::parse($membership->cancellation_deadline)));
+    }
+
+    #[Test]
+    public function initial_term_is_not_completed_before_its_last_day(): void
+    {
+        // A contract still mid-way through its 12-month initial term (end_date
+        // before start + 12 months - 1 day) must not count as completed.
+        $plan = MembershipPlan::factory()->create([
+            'commitment_months' => 12,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+        ]);
+
+        $membership = Membership::factory()->create([
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-11-30',
+        ]);
+
+        $this->assertFalse($membership->isInitialTermCompleted());
     }
 }
