@@ -190,4 +190,119 @@ class MembershipCancellationDeadlineTest extends TestCase
 
         $this->assertFalse($membership->isInitialTermCompleted());
     }
+
+    #[Test]
+    public function projected_end_date_stays_at_the_stored_end_before_the_deadline(): void
+    {
+        // Deadline is 01.12; on 04.07 the renewal is not due, so the projected
+        // end date must still be the stored end date.
+        $plan = MembershipPlan::factory()->create([
+            'commitment_months' => 12,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'monthly',
+        ]);
+
+        $membership = Membership::factory()->create([
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+        ]);
+
+        $this->assertSame('2026-12-31', $membership->projected_end_date);
+    }
+
+    #[Test]
+    public function projected_end_date_shows_the_renewed_end_on_the_deadline_day(): void
+    {
+        // The UX window this attribute is built for: on the deadline day (01.07)
+        // before the 02:00 cron runs, the stored end_date is still 31.07, but the
+        // contract is bound to renew to 31.08. The projection must already reflect
+        // that so the UI shows the correct term end.
+        Carbon::setTestNow(Carbon::parse('2026-07-01 01:00:00'));
+
+        $plan = MembershipPlan::factory()->create([
+            'commitment_months' => 1,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'monthly',
+        ]);
+
+        $membership = Membership::factory()->create([
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-07-31',
+        ]);
+
+        // Stored end_date is untouched, the projection already rolls forward.
+        $this->assertSame('2026-07-31', $membership->end_date->toDateString());
+        $this->assertSame('2026-08-31', $membership->projected_end_date);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function projected_end_date_is_null_for_indefinite_rollover_on_the_deadline_day(): void
+    {
+        // Same due-renewal situation, but the plan rolls over to an indefinite
+        // contract: the cron would clear end_date, so the projection is null.
+        Carbon::setTestNow(Carbon::parse('2026-07-01 01:00:00'));
+
+        $plan = MembershipPlan::factory()->create([
+            'commitment_months' => 1,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'indefinite',
+        ]);
+
+        $membership = Membership::factory()->create([
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-07-31',
+        ]);
+
+        $this->assertNull($membership->projected_end_date);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function projected_end_date_is_null_without_an_end_date(): void
+    {
+        $plan = MembershipPlan::factory()->create();
+
+        $membership = Membership::factory()->create([
+            'membership_plan_id' => $plan->id,
+            'end_date' => null,
+        ]);
+
+        $this->assertNull($membership->projected_end_date);
+    }
+
+    #[Test]
+    public function projected_end_date_rolls_forward_monthly_even_within_the_initial_term(): void
+    {
+        // Renewal is always monthly, never by another full commitment length —
+        // even when end_date still sits inside the initial term. Term end 30.11,
+        // deadline 01.11; on 01.11 the projection must be 31.12, not a year ahead.
+        Carbon::setTestNow(Carbon::parse('2026-11-01'));
+
+        $plan = MembershipPlan::factory()->create([
+            'commitment_months' => 12,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'monthly',
+        ]);
+
+        $membership = Membership::factory()->create([
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-11-30',
+        ]);
+
+        $this->assertFalse($membership->isInitialTermCompleted());
+        $this->assertSame('2026-12-31', $membership->projected_end_date);
+
+        Carbon::setTestNow();
+    }
 }
