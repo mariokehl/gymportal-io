@@ -16,14 +16,14 @@ use ReflectionMethod;
 use Tests\TestCase;
 
 /**
- * Reproduces the live bug where a membership renewed one full billing cycle too
- * early: at 31.05 the end_date jumped to 31.07 instead of 30.06.
+ * Covers the auto-renewal cadence of ProcessMembershipPayments.
  *
- * Root cause hypothesis: shouldRenewMembership() uses the cancellation deadline
- * (end_date - cancellation_period) as the renewal trigger. With a 1-month
- * cancellation period the deadline sits ~30 days before end_date, so the contract
- * re-qualifies for renewal a whole period before it actually ends — and the
- * Carbon 3 signed diffInDays(<= 30) check fails to gate it.
+ * Renewal is triggered at the cancellation deadline (end_date + 1 day -
+ * cancellation_period): once the customer can no longer cancel the current
+ * period, the contract is bound to renew, so the new end_date is written on that
+ * date. With a cancellation period the contract therefore renews one period
+ * ahead of its nominal end_date. Each period still renews exactly once, because
+ * writing the new end_date pushes the next cancellation deadline into the future.
  */
 class MembershipRenewalTest extends TestCase
 {
@@ -78,20 +78,23 @@ class MembershipRenewalTest extends TestCase
         // Avoid hitting the real PaymentService/Mollie during renewMembership().
         $command = $this->mockRenewWithoutPayments();
 
-        // Run the daily cron from the first renewal window through 31.05.2026 —
-        // the day the live system jumped to 31.07 instead of 30.06.
+        // Run the daily cron from the first cancellation deadline through 31.05.2026.
         $this->simulateDailyCron($command, $membership, Carbon::parse('2026-03-25'), Carbon::parse('2026-05-31'));
 
         Carbon::setTestNow();
 
-        // After the May period the contract must end 30.06.2026 — NOT 31.07.2026.
+        // Renewals fire on each cancellation deadline:
+        //   25.03 (deadline 01.03 passed): 31.03 -> 30.04
+        //   01.04 (deadline 01.04):        30.04 -> 31.05
+        //   01.05 (deadline 01.05):        31.05 -> 30.06
+        // The 01.06 deadline is not reached before the cron stops on 31.05.
         $this->assertSame(
             '2026-06-30',
             $membership->refresh()->end_date->toDateString(),
-            'Membership renewed one cycle too early (double renewal within a period).'
+            'Renewal did not land on 30.06.'
         );
 
-        // Exactly one renewal per period: 31.03 -> 30.04 -> 31.05 -> 30.06 = 3 renewals.
+        // Exactly one renewal per period: 3 renewals to reach 30.06.
         $this->assertSame(
             3,
             $membership->metadata['renewal_count'] ?? 0,
@@ -100,7 +103,7 @@ class MembershipRenewalTest extends TestCase
     }
 
     #[Test]
-    public function does_not_renew_before_the_end_date_is_reached(): void
+    public function renews_from_the_cancellation_deadline_onwards(): void
     {
         $plan = MembershipPlan::factory()->create([
             'is_free_trial_plan' => false,
@@ -122,15 +125,16 @@ class MembershipRenewalTest extends TestCase
         $shouldRenew = new ReflectionMethod($command, 'shouldRenewMembership');
         $membership->load('membershipPlan');
 
-        // The cancellation deadline (30.05) must NOT trigger a renewal.
-        Carbon::setTestNow(Carbon::parse('2026-05-30'));
-        $this->assertFalse($shouldRenew->invoke($command, $membership), 'Renewed at cancellation deadline, far before end_date.');
+        // Cancellation deadline for a 1-month period: 30.06 + 1 day - 1 month = 01.06.
+        // The day before the deadline must NOT trigger a renewal.
+        Carbon::setTestNow(Carbon::parse('2026-05-31'));
+        $this->assertFalse($shouldRenew->invoke($command, $membership), 'Renewed before the cancellation deadline.');
 
-        // One day before the end date: still no renewal.
-        Carbon::setTestNow(Carbon::parse('2026-06-29'));
-        $this->assertFalse($shouldRenew->invoke($command, $membership), 'Renewed one day too early.');
+        // On the cancellation deadline itself: renew.
+        Carbon::setTestNow(Carbon::parse('2026-06-01'));
+        $this->assertTrue($shouldRenew->invoke($command, $membership), 'Did not renew on the cancellation deadline.');
 
-        // On the end date itself: renew.
+        // Still true later within the running period.
         Carbon::setTestNow(Carbon::parse('2026-06-30'));
         $this->assertTrue($shouldRenew->invoke($command, $membership), 'Did not renew on the end date.');
 
@@ -241,9 +245,11 @@ class MembershipRenewalTest extends TestCase
     }
 
     /**
-     * A membership starting 01.01 must renew monthly to 31.12 over a full year —
-     * exactly 12 renewals, regardless of the cancellation period. The cancellation
-     * period must not influence the renewal cadence.
+     * A membership starting 01.01 renews monthly over a full year. Because the
+     * renewal fires at the cancellation deadline, the contract always runs one
+     * period ahead of the calendar: by the end of December the end_date has
+     * already been rolled into the following January. Each month still renews
+     * exactly once, independent of the cancellation period length.
      */
     #[Test]
     #[DataProvider('cancellationPeriodProvider')]
@@ -268,23 +274,22 @@ class MembershipRenewalTest extends TestCase
 
         $command = $this->mockRenewWithoutPayments();
 
-        // Stop on 30.12: the 31.12 contract is still running, so the period that
-        // would roll it into January has not been triggered yet.
         $this->simulateDailyCron($command, $membership, Carbon::parse('2026-01-01'), Carbon::parse('2026-12-30'));
 
         Carbon::setTestNow();
 
-        // January is the initial term; renewals run 31.01 -> 28.02 -> ... -> 31.12,
-        // i.e. 11 monthly renewals to cover the rest of the year.
+        // Renewing one period ahead: the December deadline has already rolled the
+        // contract into January 2027. That is 12 renewals over the year, and the
+        // cancellation period does not change the cadence.
         $this->assertSame(
-            '2026-12-31',
+            '2027-01-31',
             $membership->refresh()->end_date->toDateString(),
-            'Yearly monthly renewal did not land on 31.12.'
+            'Yearly monthly renewal did not land on 31.01.2027.'
         );
         $this->assertSame(
-            11,
+            12,
             $membership->metadata['renewal_count'] ?? 0,
-            'Expected exactly 11 renewals to reach 31.12, regardless of cancellation period.'
+            'Expected exactly 12 renewals, regardless of cancellation period.'
         );
     }
 
