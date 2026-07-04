@@ -9,6 +9,7 @@ use App\Models\MemberAccessConfig;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
@@ -51,7 +52,7 @@ class MemberControllerTest extends TestCase
     {
         [$gym, $member, $token] = $this->fullMember(['phone' => '+49 123 456']);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/profile')
             ->assertOk()
             ->assertJsonPath('data.is_verified', true)
@@ -64,7 +65,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $token] = $this->anonymousMember();
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/profile')
             ->assertOk()
             ->assertJsonPath('data.is_verified', false);
@@ -96,7 +97,7 @@ class MemberControllerTest extends TestCase
             'start_date' => now()->subMonth()->toDateString(),
         ]);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/contract')
             ->assertOk()
             ->assertJsonPath('data.id', $membership->id);
@@ -107,7 +108,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $token] = $this->fullMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/contract')
             ->assertOk()
             ->assertJsonPath('data', null);
@@ -118,7 +119,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $token] = $this->fullMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/memberships')
             ->assertOk()
             ->assertJsonStructure(['success', 'data' => ['current', 'free', 'paid']]);
@@ -133,7 +134,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $anonToken] = $this->anonymousMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $anonToken)
+        $this->withHeader('Authorization', 'Bearer '.$anonToken)
             ->putJson('/api/pwa/member/profile', ['phone' => '0123'])
             ->assertStatus(403)
             ->assertJson(['error_code' => 'VERIFICATION_REQUIRED']);
@@ -144,7 +145,7 @@ class MemberControllerTest extends TestCase
     {
         [, $member, $token] = $this->fullMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->putJson('/api/pwa/member/profile', [
                 'phone' => '+49 999 12345',
                 'city' => 'Berlin',
@@ -166,7 +167,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $anonToken] = $this->anonymousMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $anonToken)
+        $this->withHeader('Authorization', 'Bearer '.$anonToken)
             ->deleteJson('/api/pwa/member/contract')
             ->assertStatus(403);
     }
@@ -176,7 +177,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $token] = $this->fullMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->deleteJson('/api/pwa/member/contract')
             ->assertStatus(404)
             ->assertJsonPath('success', false);
@@ -196,13 +197,114 @@ class MemberControllerTest extends TestCase
             'start_date' => now()->subMonth()->toDateString(),
         ]);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->deleteJson('/api/pwa/member/contract')
             ->assertOk()
             ->assertJsonPath('success', true);
 
         $this->assertNotNull($membership->fresh()->cancellation_date);
         Mail::assertSent(CancellationConfirmationMail::class);
+    }
+
+    #[Test]
+    public function cancel_contract_is_allowed_on_the_day_before_the_deadline(): void
+    {
+        Mail::fake();
+
+        // Term ends 31.07, 1-month cancellation period -> deadline 01.07.
+        // The last valid day to cancel is 30.06.
+        Carbon::setTestNow(Carbon::parse('2026-06-30'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-07-31',
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame('2026-07-31', $membership->fresh()->cancellation_date->toDateString());
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function cancel_contract_is_rejected_once_the_deadline_is_reached(): void
+    {
+        Mail::fake();
+
+        // Same term, but now it is the deadline day itself (01.07): too late.
+        Carbon::setTestNow(Carbon::parse('2026-07-01'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-07-31',
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+
+        $this->assertNull($membership->fresh()->cancellation_date);
+        Mail::assertNothingSent();
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function cancel_contract_after_renewal_targets_the_new_term_end(): void
+    {
+        Mail::fake();
+
+        // On 01.07 the daily cron has already renewed the contract from 31.07 to
+        // 31.08. A cancellation later that day is still valid, but for the new
+        // term: its deadline is now 01.08, so today (01.07) is before it.
+        Carbon::setTestNow(Carbon::parse('2026-07-01'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-08-31',
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        // Cancellation takes effect at the renewed term end, not the missed one.
+        $this->assertSame('2026-08-31', $membership->fresh()->cancellation_date->toDateString());
+
+        Carbon::setTestNow();
     }
 
     // ------------------------------------------------------------------
@@ -214,7 +316,7 @@ class MemberControllerTest extends TestCase
     {
         [, , $anonToken] = $this->anonymousMember();
 
-        $this->withHeader('Authorization', 'Bearer ' . $anonToken)
+        $this->withHeader('Authorization', 'Bearer '.$anonToken)
             ->getJson('/api/pwa/member/qr-code')
             ->assertStatus(403);
     }
@@ -228,7 +330,7 @@ class MemberControllerTest extends TestCase
             'qr_code_enabled' => true,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/qr-code')
             ->assertOk()
             ->assertJsonStructure([
@@ -254,7 +356,7 @@ class MemberControllerTest extends TestCase
             'qr_code_enabled' => true,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/qr-code')
             ->assertOk();
 
@@ -272,7 +374,7 @@ class MemberControllerTest extends TestCase
             'qr_code_enabled' => false,
         ]);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/qr-code')
             ->assertStatus(403);
     }
@@ -299,7 +401,7 @@ class MemberControllerTest extends TestCase
         $member = Member::factory()->create(['gym_id' => $primary->id]);
         $token = $member->createToken('full', ['member-pwa', 'full'])->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/pwa/member/gyms')
             ->assertOk()
             ->assertJsonStructure([
