@@ -53,12 +53,12 @@ class MemberController extends Controller
                     'gym' => $member->gym ? [
                         'id' => $member->gym->id,
                         'name' => $member->gym->name,
-                        'slug' => $member->gym->slug
+                        'slug' => $member->gym->slug,
                     ] : null,
                     'is_verified' => true,
                     'qr_code_enabled' => $member->accessConfig
                         ? $member->accessConfig->qr_code_enabled
-                        : ($member->gym?->pwa_enabled ?? false)
+                        : ($member->gym?->pwa_enabled ?? false),
                 ],
             ]);
         }
@@ -83,10 +83,10 @@ class MemberController extends Controller
                 'gym' => $member->gym ? [
                     'id' => $member->gym->id,
                     'name' => $member->gym->name,
-                    'slug' => $member->gym->slug
+                    'slug' => $member->gym->slug,
                 ] : null,
                 'is_verified' => false,
-                'qr_code_enabled' => false
+                'qr_code_enabled' => false,
             ],
         ]);
     }
@@ -99,7 +99,7 @@ class MemberController extends Controller
         return response()->json([
             'success' => true,
             'data' => $member,
-            'message' => 'Profil erfolgreich aktualisiert'
+            'message' => 'Profil erfolgreich aktualisiert',
         ]);
     }
 
@@ -110,7 +110,7 @@ class MemberController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $contract
+            'data' => $contract,
         ]);
     }
 
@@ -128,9 +128,9 @@ class MemberController extends Controller
             'success' => true,
             'data' => [
                 'current' => $overview['current'] ? $this->formatMembership($overview['current']) : null,
-                'free' => $overview['free']->map(fn($m) => $this->formatMembership($m)),
-                'paid' => $overview['paid']->map(fn($m) => $this->formatMembership($m)),
-            ]
+                'free' => $overview['free']->map(fn ($m) => $this->formatMembership($m)),
+                'paid' => $overview['paid']->map(fn ($m) => $this->formatMembership($m)),
+            ],
         ]);
     }
 
@@ -169,14 +169,14 @@ class MemberController extends Controller
 
         if ($contract) {
             $contract->update($request->only([
-                'payment_method', 'iban', 'account_holder'
+                'payment_method', 'iban', 'account_holder',
             ]));
         }
 
         return response()->json([
             'success' => true,
             'data' => $contract,
-            'message' => 'Zahlungsdaten erfolgreich aktualisiert'
+            'message' => 'Zahlungsdaten erfolgreich aktualisiert',
         ]);
     }
 
@@ -187,10 +187,10 @@ class MemberController extends Controller
         /** @var Membership|null $activeMembership */
         $activeMembership = $member->activeMembership();
 
-        if (!$activeMembership) {
+        if (! $activeMembership) {
             return response()->json([
                 'success' => false,
-                'message' => 'Keine aktive Mitgliedschaft gefunden'
+                'message' => 'Keine aktive Mitgliedschaft gefunden',
             ], 404);
         }
 
@@ -202,17 +202,31 @@ class MemberController extends Controller
             ? $activeMembership->linkedPaidMembership
             : $activeMembership;
 
-        if (!$membership) {
+        if (! $membership) {
             return response()->json([
                 'success' => false,
-                'message' => 'Keine kündigbare Mitgliedschaft gefunden'
+                'message' => 'Keine kündigbare Mitgliedschaft gefunden',
+            ], 422);
+        }
+
+        // Enforce the cancellation deadline server-side. The last valid day to
+        // cancel is the day before cancellation_deadline: from that date onwards
+        // the daily renewal cron binds the contract to the next period, so a
+        // cancellation would race the cron. Rejecting here removes that race.
+        $cancellationDeadline = $membership->cancellation_deadline;
+        if ($cancellationDeadline !== null
+            && Carbon::today()->gte(Carbon::parse($cancellationDeadline))
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Die Kündigungsfrist für die aktuelle Laufzeit ist bereits abgelaufen.',
             ], 422);
         }
 
         $membership->update([
             'cancellation_date' => $membership->default_cancellation_date,
             'cancellation_reason' => 'Sonstiges (Ordentliche Kündigung über PWA)',
-            'notes' => 'Gekündigt am ' . now()->format('d.m.Y H:i')
+            'notes' => 'Gekündigt am '.now()->format('d.m.Y H:i'),
         ]);
 
         $mailDispatcher->sendToMember(
@@ -229,7 +243,7 @@ class MemberController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vertrag erfolgreich gekündigt',
-            'data' => $membership->fresh()
+            'data' => $membership->fresh(),
         ]);
     }
 
@@ -249,8 +263,7 @@ class MemberController extends Controller
         WithdrawContractRequest $request,
         PaymentService $paymentService,
         MemberMailDispatcher $mailDispatcher,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         /** @var Member $member */
         $member = request()->user();
 
@@ -258,7 +271,7 @@ class MemberController extends Controller
             ->where('member_id', $member->id)
             ->first();
 
-        if (!$membership) {
+        if (! $membership) {
             return response()->json([
                 'success' => false,
                 'message' => 'Mitgliedschaft nicht gefunden.',
@@ -268,7 +281,7 @@ class MemberController extends Controller
         // Prüfen ob Widerruf möglich ist
         $withdrawalCheck = $this->checkWithdrawalEligibility($membership);
 
-        if (!$withdrawalCheck['eligible']) {
+        if (! $withdrawalCheck['eligible']) {
             return response()->json([
                 'success' => false,
                 'message' => $withdrawalCheck['reason'],
@@ -379,7 +392,7 @@ class MemberController extends Controller
         }
 
         // Nur aktive oder pending Mitgliedschaften
-        if (!in_array($membership->status, ['active', 'pending'])) {
+        if (! in_array($membership->status, ['active', 'pending'])) {
             return [
                 'eligible' => false,
                 'reason' => 'Diese Mitgliedschaft kann nicht widerrufen werden.',
@@ -388,7 +401,7 @@ class MemberController extends Controller
 
         // Widerrufsfrist prüfen (14 Tage)
         $contractStartDate = $membership->contract_start_date;
-        if (!$contractStartDate) {
+        if (! $contractStartDate) {
             return [
                 'eligible' => false,
                 'reason' => 'Vertragsstartdatum konnte nicht ermittelt werden.',
@@ -415,8 +428,6 @@ class MemberController extends Controller
      * QR-Code-Generierung für Mitglieder:
      * 1. Statischer QR-Code: Zeitstempel-basiert (Standard)
      * 2. Rolling QR-Code: TOTP-basiert mit konfigurierbarem Intervall
-     *
-     * @return JsonResponse
      */
     public function generateQrCode(): JsonResponse
     {
@@ -428,10 +439,10 @@ class MemberController extends Controller
             ? $member->accessConfig->qr_code_enabled
             : ($member->gym?->pwa_enabled ?? false);
 
-        if (!$qrCodeEnabled) {
+        if (! $qrCodeEnabled) {
             return response()->json([
                 'success' => false,
-                'message' => 'QR-Code-Generierung ist für dieses Mitglied nicht aktiviert.'
+                'message' => 'QR-Code-Generierung ist für dieses Mitglied nicht aktiviert.',
             ], 403);
         }
 
@@ -443,7 +454,7 @@ class MemberController extends Controller
             $interval = $gym->rolling_qr_interval ?: 3;
             $timeStep = (int) floor(time() / $interval);
 
-            $message = $member->id . ':' . $timeStep;
+            $message = $member->id.':'.$timeStep;
             $totpHash = hash_hmac(
                 'sha256',
                 $message,
@@ -464,7 +475,7 @@ class MemberController extends Controller
                 'timestamp' => $timestamp,
             ];
 
-            $message = $member->id . ':' . $timestamp;
+            $message = $member->id.':'.$timestamp;
             $hashValue = hash_hmac(
                 'sha256',
                 $message,
@@ -477,8 +488,8 @@ class MemberController extends Controller
             'success' => true,
             'data' => [
                 'qr_code' => json_encode($qrData),
-                'member' => $member->only(['first_name', 'last_name', 'member_number'])
-            ]
+                'member' => $member->only(['first_name', 'last_name', 'member_number']),
+            ],
         ]);
     }
 
@@ -487,8 +498,6 @@ class MemberController extends Controller
      *
      * Gibt alle Gyms zurück, zu denen der Member Zugang hat.
      * Bei Multi-Gym-Mitgliedschaften können das mehrere sein.
-     *
-     * @return JsonResponse
      */
     public function gyms(): JsonResponse
     {
@@ -514,10 +523,10 @@ class MemberController extends Controller
                     'latitude' => (float) $gym->latitude,
                     'longitude' => (float) $gym->longitude,
                     'opening_hours' => $gym->opening_hours,
-                    //'logo_url' => $gym->getFirstMediaUrl('logo'),
-                    //'cover_image_url' => $gym->getFirstMediaUrl('cover'),
-                    //'is_open' => $this->isGymOpen($gym),
-                    //'current_occupancy' => $this->getCurrentOccupancy($gym),
+                    // 'logo_url' => $gym->getFirstMediaUrl('logo'),
+                    // 'cover_image_url' => $gym->getFirstMediaUrl('cover'),
+                    // 'is_open' => $this->isGymOpen($gym),
+                    // 'current_occupancy' => $this->getCurrentOccupancy($gym),
                 ];
             });
 
@@ -542,7 +551,7 @@ class MemberController extends Controller
             ->where('is_closed', false)
             ->first();
 
-        if (!$todayHours) {
+        if (! $todayHours) {
             return false;
         }
 
@@ -569,11 +578,10 @@ class MemberController extends Controller
             ->count();
 
         // Kapazität prüfen
-        if (!$gym->max_capacity) {
+        if (! $gym->max_capacity) {
             return null;
         }
 
         return (int) round(($activeCheckIns / $gym->max_capacity) * 100);
     }
-
 }
