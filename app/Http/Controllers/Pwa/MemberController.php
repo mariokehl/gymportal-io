@@ -153,6 +153,7 @@ class MemberController extends Controller
             'withdrawal_deadline' => $membership->withdrawal_deadline,
             'contract_start_date' => $membership->contract_start_date,
             'withdrawn_at' => $membership->withdrawn_at?->toIso8601String(),
+            'projected_end_date' => $membership->projected_end_date,
         ];
     }
 
