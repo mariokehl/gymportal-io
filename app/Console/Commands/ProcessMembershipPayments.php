@@ -577,23 +577,17 @@ class ProcessMembershipPayments extends Command
         $plan = $membership->membershipPlan;
         $autoRenewType = $plan->auto_renew_type ?? 'indefinite';
 
-        // Gesetz für faire Verbraucherverträge (ab 01.03.2022):
-        // Nach Ablauf der Erstlaufzeit nur noch unbefristete oder monatliche Verlängerung
-        if ($membership->isInitialTermCompleted()) {
-            if ($autoRenewType === 'indefinite') {
-                // Unbefristet: end_date wird auf null gesetzt
-                $newEndDate = null;
-            } else {
-                // Monatlich rollierend: 1 Monat verlängern
-                $newEndDate = $membership->end_date->copy()
-                    ->addDay()
-                    ->addMonths(1)
-                    ->subDay();
-            }
+        // German Fair Consumer Contracts Act (from 01.03.2022):
+        // Renewal is always indefinite or monthly, regardless of the initial term.
+        // Extending by another full initial term is not permitted.
+        if ($autoRenewType === 'indefinite') {
+            // Indefinite: end_date is set to null
+            $newEndDate = null;
         } else {
+            // Monthly rollover: extend by one month
             $newEndDate = $membership->end_date->copy()
                 ->addDay()
-                ->addMonths($plan->commitment_months ?: 12)
+                ->addMonths(1)
                 ->subDay();
         }
 

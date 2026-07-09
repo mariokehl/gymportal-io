@@ -77,14 +77,15 @@
                         <select v-model="currentTemplate.type"
                             class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="welcome">Willkommen</option>
-                            <option value="confirmation">Bestätigung</option>
-                            <option value="reminder">Erinnerung</option>
+                            <!-- Not wired to any mailer yet, hidden until a send flow uses these types -->
+                            <!-- <option value="confirmation">Bestätigung</option> -->
+                            <!-- <option value="reminder">Erinnerung</option> -->
                             <option value="cancellation">Kündigung</option>
-                            <option value="invoice">Rechnung</option>
+                            <!-- <option value="invoice">Rechnung</option> -->
                             <option value="payment_failed">Zahlung fehlgeschlagen</option>
                             <option value="login_code">Anmeldecode</option>
                             <option value="member_app_access">App-Zugangslink</option>
-                            <option value="general">Allgemein</option>
+                            <!-- <option value="general">Allgemein</option> -->
                         </select>
                     </div>
 
@@ -370,14 +371,15 @@
                         <select v-model="newTemplate.type"
                             class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="welcome">Willkommen</option>
-                            <option value="confirmation">Bestätigung</option>
-                            <option value="reminder">Erinnerung</option>
+                            <!-- Not wired to any mailer yet, hidden until a send flow uses these types -->
+                            <!-- <option value="confirmation">Bestätigung</option> -->
+                            <!-- <option value="reminder">Erinnerung</option> -->
                             <option value="cancellation">Kündigung</option>
-                            <option value="invoice">Rechnung</option>
+                            <!-- <option value="invoice">Rechnung</option> -->
                             <option value="payment_failed">Zahlung fehlgeschlagen</option>
                             <option value="login_code">Anmeldecode</option>
                             <option value="member_app_access">App-Zugangslink</option>
-                            <option value="general">Allgemein</option>
+                            <!-- <option value="general">Allgemein</option> -->
                         </select>
                     </div>
 

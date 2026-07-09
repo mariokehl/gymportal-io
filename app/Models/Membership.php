@@ -51,6 +51,7 @@ class Membership extends Model
         'min_cancellation_date',
         'default_cancellation_date',
         'cancellation_deadline',
+        'projected_end_date',
         'can_cancel',
         'is_free_trial',
         // Widerrufs-Attribute (§ 356a BGB)
@@ -322,6 +323,42 @@ class Membership extends Model
         return $cancellationDeadline->format('Y-m-d');
     }
 
+    /**
+     * End date of the currently relevant term, projected without relying on the
+     * database state.
+     *
+     * As long as the renewal is not yet due this equals the stored end_date. Once
+     * the cancellation deadline is reached the contract is bound to auto-renew, so
+     * this returns the end date the daily renewal cron will write — allowing the
+     * UI to show the correct term end even in the window before the cron runs
+     * (e.g. between 00:00 and 02:00 on the deadline day). Mirrors the calculation
+     * in ProcessMembershipPayments::renewMembership().
+     */
+    public function getProjectedEndDateAttribute(): ?string
+    {
+        if (! $this->end_date) {
+            return null;
+        }
+
+        // Renewal not due yet: the stored end_date is still the current term end.
+        $cancellationDeadline = $this->cancellation_deadline;
+        if ($cancellationDeadline === null || Carbon::today()->lt(Carbon::parse($cancellationDeadline))) {
+            return $this->end_date->format('Y-m-d');
+        }
+
+        // Renewal is due: project the new end date the same way the cron would.
+        // Renewal is always indefinite or monthly, regardless of the initial term.
+        $autoRenewType = $this->membershipPlan->auto_renew_type ?? 'indefinite';
+
+        // Indefinite rollover clears the end date entirely.
+        if ($autoRenewType === 'indefinite') {
+            return null;
+        }
+
+        // Monthly rollover: extend by one month.
+        return $this->end_date->copy()->addDay()->addMonths(1)->subDay()->format('Y-m-d');
+    }
+
     public function getCanCancelAttribute(): bool
     {
         return $this->canBeCancelled();
@@ -495,8 +532,13 @@ class Membership extends Model
             return true; // Kein Commitment = sofort monatlich kündbar
         }
 
+        // end_date is the last included day of a term, so the term that ends on
+        // start + commitmentMonths - 1 day completes the initial commitment. Add a
+        // day to end_date to compare against the exclusive commitment boundary,
+        // otherwise the last day of the initial term is off by one and still
+        // counts as "not completed".
         $commitmentEnd = $this->start_date->copy()->addMonths($commitmentMonths);
 
-        return $commitmentEnd->lte($this->end_date ?? now());
+        return $commitmentEnd->lte(($this->end_date ?? now())->copy()->addDay());
     }
 }
