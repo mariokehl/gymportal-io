@@ -329,26 +329,26 @@
         <!-- Header -->
         <div class="flex items-start justify-between mb-5">
           <h3 class="text-lg font-medium text-gray-900">
-            Zahlungsdetails #{{ selectedPayment?.id }}
+            Zahlung #{{ selectedPayment?.id }}
           </h3>
           <div class="flex items-center gap-2">
             <button
               v-if="selectedPayment?.status === 'pending' && showMarkAsPaid"
               @click="markAsPaidFromModal"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+              class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
               title="Als bezahlt markieren"
             >
               <CheckCircle class="w-4 h-4" />
-              Bezahlt
+              <span class="hidden sm:inline">Bezahlt</span>
             </button>
             <button
               v-if="selectedPayment?.status === 'pending' && showCancelPayment"
               @click="cancelPaymentFromModal"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+              class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
               title="Zahlung abbrechen"
             >
               <Ban class="w-4 h-4" />
-              Abbrechen
+              <span class="hidden sm:inline">Abbrechen</span>
             </button>
             <button
               @click="closePaymentModal"
@@ -364,7 +364,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-500">Betrag</label>
-              <div class="mt-1 flex items-center gap-2">
+              <div class="mt-1 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <span class="text-sm text-gray-900 font-semibold">{{ formatCurrency(selectedPayment.amount) }}</span>
                 <PaymentStatusBadge :status="selectedPayment.status" />
               </div>

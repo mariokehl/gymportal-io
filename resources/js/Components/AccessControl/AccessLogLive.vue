@@ -230,7 +230,7 @@
                                         </button>
                                     </div>
                                     <p class="mt-2 text-xs text-orange-600">
-                                        Kopieren Sie diese ID und hinterlegen Sie sie im Mitgliederprofil unter "Zugangsverwaltung".
+                                        Kopieren Sie diese ID und hinterlegen Sie sie im Mitgliederprofil unter "Zugänge".
                                     </p>
                                 </div>
                             </div>

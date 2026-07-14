@@ -1,94 +1,95 @@
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- Active Memberships Section -->
-    <div class="space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-900">Mitgliedschaften</h3>
-        <div class="flex gap-2">
-          <button
-            @click="openFreePeriodModal"
-            type="button"
-            class="bg-green-600 text-white px-3 py-2 md:px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"
-          >
-            <Gift class="w-4 h-4" />
-            <span class="hidden md:inline">Gratis-Zeitraum</span>
-          </button>
-          <button
-            @click="openAddMembershipModal"
-            type="button"
-            class="bg-indigo-600 text-white px-3 py-2 md:px-4 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-          >
-            <Plus class="w-4 h-4" />
-            <span class="hidden md:inline">Neue Mitgliedschaft</span>
-          </button>
-        </div>
+    <div class="flex flex-col gap-3.5">
+      <h3 class="text-lg font-bold text-gray-900">Mitgliedschaften</h3>
+
+      <!-- Primary actions -->
+      <div class="grid grid-cols-2 gap-2.5">
+        <button
+          @click="openFreePeriodModal"
+          type="button"
+          class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition-colors whitespace-nowrap"
+        >
+          <Gift class="w-[17px] h-[17px] flex-none" />
+          <span>Gratis-Zeitraum</span>
+        </button>
+        <button
+          @click="openAddMembershipModal"
+          type="button"
+          class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap"
+        >
+          <Plus class="w-[17px] h-[17px] flex-none" />
+          <span class="sm:hidden">Neue</span>
+          <span class="hidden sm:inline">Neue Mitgliedschaft</span>
+        </button>
       </div>
 
       <!-- Active Memberships List -->
-      <div v-if="activeMemberships.length > 0" class="space-y-4">
+      <div v-if="activeMemberships.length > 0" class="flex flex-col gap-3.5">
         <template v-for="membership in displayableMemberships" :key="membership.id">
-          <!-- Linked memberships: 50:50 split display -->
-          <div v-if="membership.linkedMembership" class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3">
+          <!-- Linked memberships: stacked (mobile) / side-by-side (desktop) -->
+          <div
+            v-if="membership.linkedMembership"
+            class="rounded-lg border border-gray-200 bg-white overflow-hidden"
+          >
+            <div class="flex flex-col lg:grid lg:grid-cols-[1fr_1px_1fr] lg:items-stretch">
               <!-- Free trial period (left/top side) -->
-              <div
-                :class="[
-                  'p-4 border-b md:border-b-0 md:border-r border-gray-200',
-                  isCurrentlyActive(membership) ? 'bg-white' : 'bg-gray-50'
-                ]"
-              >
-                <MembershipCard
-                  :membership="membership"
-                  :is-secondary="!isCurrentlyActive(membership)"
-                  :pausingMembership="pausingMembership"
-                  :resumingMembership="resumingMembership"
-                  :cancellingMembership="cancellingMembership"
-                  :revokingCancellation="revokingCancellation"
-                  :activatingMembership="activatingMembership"
-                  :abortingMembership="abortingMembership"
-                  :withdrawingMembership="withdrawingMembership"
-                  @activate="$emit('activate', $event)"
-                  @pause="$emit('pause', $event)"
-                  @resume="$emit('resume', $event)"
-                  @cancel="$emit('cancel', $event)"
-                  @revoke-cancellation="$emit('revoke-cancellation', $event)"
-                  @abort="$emit('abort', $event)"
-                  @withdraw="$emit('withdraw', $event)"
-                  @force-status="(m, s) => $emit('force-status', m, s)"
-                />
+              <MembershipCard
+                :membership="membership"
+                :is-secondary="!isCurrentlyActive(membership)"
+                :pausingMembership="pausingMembership"
+                :resumingMembership="resumingMembership"
+                :cancellingMembership="cancellingMembership"
+                :revokingCancellation="revokingCancellation"
+                :activatingMembership="activatingMembership"
+                :abortingMembership="abortingMembership"
+                :withdrawingMembership="withdrawingMembership"
+                @activate="$emit('activate', $event)"
+                @pause="$emit('pause', $event)"
+                @resume="$emit('resume', $event)"
+                @cancel="$emit('cancel', $event)"
+                @revoke-cancellation="$emit('revoke-cancellation', $event)"
+                @abort="$emit('abort', $event)"
+                @withdraw="$emit('withdraw', $event)"
+                @force-status="(m, s) => $emit('force-status', m, s)"
+              />
+
+              <!-- Connector: pill (mobile) / vertical divider (desktop) -->
+              <div class="flex items-center gap-2.5 px-4 py-1 lg:hidden">
+                <span class="flex-1 h-px bg-gray-200"></span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
+                  <Link class="w-3 h-3" /> Verknüpft
+                </span>
+                <span class="flex-1 h-px bg-gray-200"></span>
               </div>
-              <!-- Linked membership (right side, 2/3 width) -->
-              <div
-                :class="[
-                  'p-4 md:col-span-2',
-                  isCurrentlyActive(membership.linkedMembership) ? 'bg-white' : 'bg-gray-50'
-                ]"
-              >
-                <MembershipCard
-                  :membership="membership.linkedMembership"
-                  :is-secondary="!isCurrentlyActive(membership.linkedMembership)"
-                  :pausingMembership="pausingMembership"
-                  :resumingMembership="resumingMembership"
-                  :cancellingMembership="cancellingMembership"
-                  :revokingCancellation="revokingCancellation"
-                  :activatingMembership="activatingMembership"
-                  :abortingMembership="abortingMembership"
-                  :withdrawingMembership="withdrawingMembership"
-                  @activate="$emit('activate', $event)"
-                  @pause="$emit('pause', $event)"
-                  @resume="$emit('resume', $event)"
-                  @cancel="$emit('cancel', $event)"
-                  @revoke-cancellation="$emit('revoke-cancellation', $event)"
-                  @abort="$emit('abort', $event)"
-                  @withdraw="$emit('withdraw', $event)"
-                  @force-status="(m, s) => $emit('force-status', m, s)"
-                />
-              </div>
+              <div class="hidden lg:block bg-gray-100"></div>
+
+              <!-- Linked membership (right/bottom side) -->
+              <MembershipCard
+                :membership="membership.linkedMembership"
+                :is-secondary="!isCurrentlyActive(membership.linkedMembership)"
+                :pausingMembership="pausingMembership"
+                :resumingMembership="resumingMembership"
+                :cancellingMembership="cancellingMembership"
+                :revokingCancellation="revokingCancellation"
+                :activatingMembership="activatingMembership"
+                :abortingMembership="abortingMembership"
+                :withdrawingMembership="withdrawingMembership"
+                @activate="$emit('activate', $event)"
+                @pause="$emit('pause', $event)"
+                @resume="$emit('resume', $event)"
+                @cancel="$emit('cancel', $event)"
+                @revoke-cancellation="$emit('revoke-cancellation', $event)"
+                @abort="$emit('abort', $event)"
+                @withdraw="$emit('withdraw', $event)"
+                @force-status="(m, s) => $emit('force-status', m, s)"
+              />
             </div>
           </div>
 
           <!-- Standalone membership (no link) -->
-          <div v-else class="border border-gray-200 rounded-lg p-4">
+          <div v-else class="rounded-lg border border-gray-200 bg-white overflow-hidden">
             <MembershipCard
               :membership="membership"
               :is-secondary="false"
@@ -120,56 +121,63 @@
     </div>
 
     <!-- Past Memberships Section -->
-    <div v-if="pastMemberships.length > 0" class="space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-900">Vergangene Mitgliedschaften</h3>
+    <div v-if="pastMemberships.length > 0" class="flex flex-col gap-3.5">
+      <div class="flex justify-between items-center gap-2.5">
+        <h3 class="text-lg font-bold text-gray-900">Frühere Mitgliedschaften</h3>
         <button
           @click="showPastMemberships = !showPastMemberships"
-          class="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm"
+          type="button"
+          class="flex-none text-gray-500 hover:text-gray-700 flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
         >
-          <span>{{ showPastMemberships ? 'Ausblenden' : 'Anzeigen' }}</span>
+          <span>{{ showPastMemberships ? 'Ausblenden' : 'Einblenden' }}</span>
           <ChevronDown v-if="!showPastMemberships" class="w-4 h-4" />
           <ChevronUp v-else class="w-4 h-4" />
         </button>
       </div>
 
-      <div v-if="showPastMemberships" class="space-y-4">
-        <div
-          v-for="membership in pastMemberships"
-          :key="membership.id"
-          class="border border-gray-200 rounded-lg p-4 bg-gray-50"
-        >
-          <div class="flex justify-between items-start">
-            <div>
-              <h4 class="text-lg font-semibold text-gray-700">
-                <span v-if="membership.membership_plan?.deleted_at" class="text-red-500">Gelöschter Vertrag: </span>
-                {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
-                <MembershipStatusEditor
-                  :membership="membership"
-                  class="ml-1"
-                  @force-status="(m, s) => $emit('force-status', m, s)"
-                />
-              </h4>
-              <p class="text-gray-500">{{ membership.membership_plan?.description || 'Keine Beschreibung verfügbar' }}</p>
-              <div class="mt-2 space-y-1">
-                <p class="text-sm text-gray-600">
-                  <span class="font-medium">Laufzeit:</span>
-                  {{ formatDate(membership.start_date) }} - {{ formatDate(membership.end_date || membership.cancellation_date) }}
-                </p>
-                <p v-if="membership.cancellation_date" class="text-sm text-red-600">
-                  <span class="font-medium">Gekündigt zum:</span> {{ formatDate(membership.cancellation_date) }}
-                </p>
-                <p v-if="membership.cancellation_reason" class="text-sm text-gray-500">
-                  <span class="font-medium">Grund:</span> {{ membership.cancellation_reason }}
-                </p>
+      <div v-if="showPastMemberships" class="flex flex-col gap-3.5">
+        <template v-for="membership in displayablePastMemberships" :key="membership.id">
+          <!-- Linked memberships: stacked (mobile) / side-by-side (desktop) -->
+          <div
+            v-if="membership.linkedMembership"
+            class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
+          >
+            <div class="flex flex-col lg:grid lg:grid-cols-[1fr_1px_1fr] lg:items-stretch">
+              <!-- Free trial period (left/top side) -->
+              <MembershipCard
+                :membership="membership"
+                :is-secondary="true"
+                @force-status="(m, s) => $emit('force-status', m, s)"
+              />
+
+              <!-- Connector: pill (mobile) / vertical divider (desktop) -->
+              <div class="flex items-center gap-2.5 px-4 py-1 lg:hidden">
+                <span class="flex-1 h-px bg-gray-200"></span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">
+                  <Link class="w-3 h-3" /> Verknüpft
+                </span>
+                <span class="flex-1 h-px bg-gray-200"></span>
               </div>
-            </div>
-            <div class="text-right">
-              <p class="text-xl font-bold text-gray-500">{{ formatCurrency(membership.membership_plan?.price || 0) }}</p>
-              <p class="text-sm text-gray-400">pro {{ getBillingCycleText(membership.membership_plan?.billing_cycle || 'monthly') }}</p>
+              <div class="hidden lg:block bg-gray-200"></div>
+
+              <!-- Linked membership (right/bottom side) -->
+              <MembershipCard
+                :membership="membership.linkedMembership"
+                :is-secondary="true"
+                @force-status="(m, s) => $emit('force-status', m, s)"
+              />
             </div>
           </div>
-        </div>
+
+          <!-- Standalone past membership (no link) -->
+          <div v-else class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+            <MembershipCard
+              :membership="membership"
+              :is-secondary="true"
+              @force-status="(m, s) => $emit('force-status', m, s)"
+            />
+          </div>
+        </template>
       </div>
     </div>
 
@@ -340,12 +348,11 @@
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
-  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift
+  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift, Link
 } from 'lucide-vue-next'
-import { formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
+import { formatDate, getDisplayTimezone } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
-import MembershipStatusEditor from '@/Components/Members/MembershipStatusEditor.vue'
 
 const props = defineProps({
   member: {
@@ -472,6 +479,39 @@ const displayableMemberships = computed(() => {
   return result
 })
 
+// Displayable past memberships - groups linked free periods with their memberships (same as active)
+const displayablePastMemberships = computed(() => {
+  if (!pastMemberships.value.length) return []
+
+  const result = []
+  const processedIds = new Set()
+
+  // First pass: find all linked pairs (paid membership with linked_free_membership_id)
+  for (const membership of pastMemberships.value) {
+    if (membership.linked_free_membership_id) {
+      const freeTrial = pastMemberships.value.find(m => m.id === membership.linked_free_membership_id)
+      if (freeTrial) {
+        result.push({
+          ...freeTrial,
+          linkedMembership: membership
+        })
+        processedIds.add(membership.id)
+        processedIds.add(freeTrial.id)
+      }
+    }
+  }
+
+  // Second pass: add standalone memberships that weren't part of a linked pair
+  for (const membership of pastMemberships.value) {
+    if (!processedIds.has(membership.id)) {
+      result.push(membership)
+      processedIds.add(membership.id)
+    }
+  }
+
+  return result
+})
+
 // Check if a membership is currently active (based on date)
 const isCurrentlyActive = (membership) => {
   if (!membership) return false
@@ -567,16 +607,5 @@ const formatDateShort = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
   return date.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone(), day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-// Helper functions
-const getBillingCycleText = (cycle) => {
-  const cycles = {
-    'monthly': 'Monat',
-    'quarterly': 'Quartal',
-    'biannual': 'Halbjahr',
-    'yearly': 'Jahr'
-  }
-  return cycles[cycle] || cycle
 }
 </script>
