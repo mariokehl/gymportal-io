@@ -1,162 +1,115 @@
 <template>
-  <AppLayout :title="`${member.first_name} ${member.last_name}`">
+  <AppLayout :title="`${member.first_name} ${member.last_name}`" :hide-header-user-on-mobile="true">
     <template #header>
-      <div class="flex items-center">
+      <div class="flex items-center min-w-0 flex-1">
         <Link
           :href="route('members.index')"
-          class="text-gray-500 hover:text-gray-700 mr-4"
+          class="text-gray-500 hover:text-gray-700 mr-4 flex-shrink-0"
         >
           <ArrowLeft class="w-5 h-5" />
         </Link>
-        Mitglied {{ !editMode ? 'anzeigen' : 'bearbeiten' }}: {{ member.first_name }} {{ member.last_name }}
-      </div>
-    </template>
 
-    <div class="space-y-6">
-      <!-- Header Section -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
+        <!-- On mobile the plain title swaps for a compact member identity once
+             the profile card scrolls under the app bar. Desktop always shows the
+             title. Both variants live in normal flow (toggled, not overlaid) so
+             they render reliably inside the layout's <h1>. -->
+        <div class="min-w-0 flex-1">
+          <!-- Title (always on desktop; on mobile only until collapsed) -->
+          <span
+            class="block truncate"
+            :class="showMobileIdentity ? 'hidden lg:block' : 'block'"
+          >
+            <template v-if="editMode">
+              Mitglied bearbeiten
+            </template>
+            <template v-else>
+              Mitglied anzeigen: {{ member.first_name }} {{ member.last_name }}
+            </template>
+          </span>
+
+          <!-- Collapsed member identity (mobile only, view mode only) -->
+          <div
+            v-if="showMobileIdentity"
+            class="lg:hidden flex items-center gap-2.5 min-w-0"
+          >
             <MemberAvatar
-              :initials="getInitials(member.first_name, member.last_name)"
-              :age-verified="member.age_verified"
-              :verified-at="member.age_verified_at"
+              :initials="headerInitials"
               :is-guest="member.guest_access"
-              size="xl"
+              size="sm"
             />
-            <div>
-              <h2 class="text-2xl font-bold text-gray-900">
+            <div class="min-w-0">
+              <div class="text-sm font-bold text-gray-900 leading-tight truncate">
                 {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }}
-              </h2>
-
-              <!-- Member Number - Editable in edit mode -->
-              <div v-if="editMode" class="mt-2 max-w-xs">
-                <MemberNumberInput
-                  v-model="form.member_number"
-                  label="Mitgliedsnummer"
-                  :required="true"
-                  :check-url="route('members.check-member-number')"
-                  :member-id="member.id"
-                  help-text="Eindeutige Mitgliedsnummer"
-                  :validate-on-mount="false"
-                />
               </div>
-              <p v-else class="text-gray-600">Mitgliedsnummer: #{{ member.member_number }}</p>
-
-              <div class="mt-2 flex items-center gap-2">
-                <!-- Im Bearbeitungsmodus: Editierbare Status-Komponente -->
-                <MemberStatusEditor
-                  v-if="editMode"
-                  :member="member"
-                  :status="member.status"
-                  @status-changed="handleStatusChanged"
-                  @status-changing="handleStatusChanging"
-                />
-
-                <!-- Im Anzeigemodus: Readonly Badge -->
-                <MemberStatusBadge
-                  v-else
-                  :status="member.status"
-                  :show-icon="true"
-                />
-
-                <!-- Alter -->
-                <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
-                  {{ memberAge }} Jahre
+              <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                <span class="w-1.5 h-1.5 rounded-full flex-none" :class="headerStatusDotClass" />
+                <span class="text-[11.5px] font-normal text-gray-500 truncate">
+                  {{ headerStatusText }} · #{{ member.member_number }}
                 </span>
               </div>
             </div>
           </div>
-
-          <!-- Altersverifizierung Toggle -->
-          <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-              <button
-                @click="toggleAgeVerification"
-                :disabled="verifyingAge"
-                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                :class="member.age_verified ? 'bg-blue-500' : 'bg-gray-200'"
-                role="switch"
-                :aria-checked="member.age_verified"
-              >
-                <span
-                  aria-hidden="true"
-                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="member.age_verified ? 'translate-x-5' : 'translate-x-0'"
-                />
-              </button>
-              <span class="text-sm text-gray-600">
-                Alter verifiziert
-              </span>
-              <span
-                v-if="member.age_verified && member.age_verified_at"
-                class="text-xs text-gray-400"
-              >
-                ({{ formatDate(member.age_verified_at) }})
-              </span>
-            </div>
-          </div>
-
-          <!-- Gastzugang Toggle -->
-          <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-              <button
-                @click="toggleGuestAccess"
-                :disabled="togglingGuestAccess"
-                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-                :class="member.guest_access ? 'bg-orange-500' : 'bg-gray-200'"
-                role="switch"
-                :aria-checked="member.guest_access"
-              >
-                <span
-                  aria-hidden="true"
-                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
-                />
-              </button>
-              <span class="text-sm text-gray-600">
-                Gastzugang
-              </span>
-              <span
-                v-if="member.guest_access && member.guest_access_granted_at"
-                class="text-xs text-gray-400"
-              >
-                ({{ formatDate(member.guest_access_granted_at) }})
-              </span>
-            </div>
-          </div>
-
-          <div class="flex items-center space-x-3">
-            <Link
-              :href="route('members.create')"
-              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-            >
-              <Plus class="w-4 h-4" />
-              Neues Mitglied
-            </Link>
-            <button
-              @click="editMode = !editMode"
-              :disabled="editMode"
-              :class="[
-                'px-4 py-2 rounded-lg flex items-center gap-2',
-                editMode
-                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-gray-600 text-white hover:bg-gray-700'
-              ]"
-            >
-              <Edit class="w-4 h-4" />
-              {{ editMode ? 'Bearbeitung aktiv' : 'Bearbeiten' }}
-            </button>
-            <button
-              @click="showBlockModal = true"
-              class="px-4 py-2 rounded-lg flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
-            >
-              <ShieldX class="w-4 h-4" />
-              Sperren
-            </button>
-          </div>
         </div>
       </div>
+    </template>
+
+    <!-- Mobile header actions (desktop keeps its actions in the profile card).
+         View mode: the "⋯" overflow sheet. Edit mode: Abbrechen / Speichern. -->
+    <template #header-actions>
+      <div class="lg:hidden flex items-center">
+        <template v-if="editMode">
+          <button
+            type="button"
+            @click="headerCard?.requestCancelEdit()"
+            class="px-2 py-2 text-sm font-medium text-gray-600"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            @click="savePersonalData"
+            :disabled="!isDirty || isSaving"
+            class="px-2 py-2 text-sm font-bold"
+            :class="(!isDirty || isSaving) ? 'text-gray-400' : 'text-indigo-600'"
+          >
+            {{ isSaving ? 'Speichern...' : 'Speichern' }}
+          </button>
+        </template>
+        <button
+          v-else
+          type="button"
+          @click="headerCard?.openActionSheet()"
+          class="-mr-1 w-11 h-11 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+          aria-label="Aktionen"
+        >
+          <MoreVertical class="w-6 h-6" />
+        </button>
+      </div>
+    </template>
+
+    <!-- Extra bottom space on mobile while editing so the sticky action bar
+         does not cover the last form field -->
+    <div ref="pageRoot" class="space-y-6" :class="editMode ? 'pb-24 lg:pb-0' : ''">
+      <!-- Header card / member identity + actions -->
+      <MemberHeaderCard
+        ref="headerCard"
+        :member="member"
+        :edit-mode="editMode"
+        :member-age="memberAge"
+        v-model:member-number="memberNumber"
+        :is-dirty="isDirty"
+        :is-saving="isSaving"
+        :verifying-age="verifyingAge"
+        :toggling-guest-access="togglingGuestAccess"
+        @edit="enterEditMode"
+        @cancel="exitEditMode"
+        @save="savePersonalData"
+        @block="showBlockModal = true"
+        @toggle-age="toggleAgeVerification"
+        @toggle-guest="toggleGuestAccess"
+        @status-changed="handleStatusChanged"
+        @status-changing="handleStatusChanging"
+      />
 
       <!-- Fraud-Warnbanner -->
       <div v-if="fraudCheck" class="bg-amber-50 border border-amber-300 rounded-lg shadow p-4">
@@ -182,1145 +135,123 @@
         </div>
       </div>
 
-      <!-- Tabs Navigation -->
-      <div class="bg-white rounded-lg shadow">
-        <div class="border-b border-gray-200">
-          <nav class="flex space-x-8 px-6 overflow-x-auto">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2'
-              ]"
-            >
-              <component :is="tab.icon" class="w-4 h-4" />
-              {{ tab.name }}
+      <!-- Tabs navigation (pill rail, consistent across all breakpoints; hidden while editing).
+           On mobile the rail sticks below the app header once the page is scrolled. -->
+      <nav
+        v-if="!editMode"
+        class="flex gap-2 overflow-x-auto gp-tab-rail -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-1 sticky z-20 bg-gray-100 border-b border-gray-200 lg:static lg:z-auto lg:bg-transparent lg:border-b-0"
+        :style="{ top: 'var(--gp-header-height, 56px)' }"
+      >
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          :class="[
+            activeTab === tab.id
+              ? 'bg-indigo-600 text-white border-transparent shadow-[0_2px_8px_rgba(79,70,229,0.3)]'
+              : 'bg-white text-gray-600 border-gray-200 shadow-sm hover:border-gray-300',
+            'flex-none whitespace-nowrap flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors'
+          ]"
+        >
+          <component :is="tab.icon" class="w-4 h-4" />
+          {{ tab.name }}
+          <span
+            v-if="tab.id === 'history' && member.status_history?.length > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+          >{{ member.status_history.length }}</span>
+          <span
+            v-if="tab.id === 'payments' && outstandingBalance"
+            class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
+            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-600'"
+          ><AlertTriangle class="w-3 h-3" /></span>
+          <span
+            v-if="tab.id === 'documents' && documentCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+          >{{ documentCount }}</span>
+          <span
+            v-if="tab.id === 'access' && activeAccessCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-green-100 text-green-600'"
+          >{{ activeAccessCount }}</span>
+        </button>
+      </nav>
 
-              <!-- Badge für Status-History Tab -->
-              <span
-                v-if="tab.id === 'history' && member.status_history?.length > 0"
-                class="ml-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full"
-              >
-                {{ member.status_history.length }}
-              </span>
+      <!-- Personal Data Tab (own component; sole panel while editing) -->
+      <div v-show="editMode || activeTab === 'personal'">
+        <MemberPersonalDataTab
+          ref="personalDataTab"
+          :member="member"
+          :edit-mode="editMode"
+          @request-cancel="headerCard?.requestCancelEdit()"
+          @saved="onPersonalDataSaved"
+        />
+      </div>
 
-              <!-- Badge für Zahlungen Tab bei offenen Posten -->
-              <span
-                v-if="tab.id === 'payments' && outstandingBalance"
-                class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-600"
-              >
-                <AlertTriangle class="w-3 h-3" />
-              </span>
+      <!-- Membership Tab (rendered directly on the gray canvas; only the cards are white) -->
+      <div v-if="!editMode" v-show="activeTab === 'membership'">
+        <MembershipTab
+          :member="member"
+          :membership-plans="membershipPlans"
+          :pausing-membership="pausingMembership"
+          :resuming-membership="resumingMembership"
+          :cancelling-membership="cancellingMembership"
+          :revoking-cancellation="revokingCancellation"
+          :activating-membership="activatingMembership"
+          :aborting-membership="abortingMembership"
+          :withdrawing-membership="withdrawingMembership"
+          @activate="activateMembership"
+          @pause="openPauseMembership"
+          @resume="resumeMembership"
+          @cancel="openCancelMembership"
+          @revoke-cancellation="revokeCancellation"
+          @abort="abortMembership"
+          @withdraw="openWithdrawMembership"
+          @force-status="handleForceStatus"
+        />
 
-              <!-- Badge für Documents Tab -->
-              <span
-                v-if="tab.id === 'documents' && documentCount > 0"
-                class="ml-1 bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full"
-              >
-                {{ documentCount }}
-              </span>
-
-              <!-- Badge für Access Tab -->
-              <span
-                v-if="tab.id === 'access' && getActiveAccessCount() > 0"
-                class="ml-1 bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full"
-              >
-                {{ getActiveAccessCount() }}
-              </span>
-            </button>
-          </nav>
+        <!-- Booked add-ons (addon_membership) -->
+        <div class="mt-6">
+          <MemberAddons :member="member" />
         </div>
+      </div>
 
-        <!-- Tab Content -->
-        <div class="p-6">
-          <!-- Personal Data Tab -->
-          <div v-show="activeTab === 'personal'" class="space-y-6">
-            <form @submit.prevent="updateMember">
-              <!-- Anrede, Vorname, Nachname in einer Zeile -->
-              <div class="grid grid-cols-1 md:grid-cols-8 gap-6 mb-6">
-                <!-- Anrede (25% = 2/8 Spalten) -->
-                <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Anrede <span class="text-red-500">*</span>
-                  </label>
-                  <select
-                    v-model="form.salutation"
-                    :disabled="!editMode"
-                    class="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  >
-                    <option value="">Anrede auswählen</option>
-                    <option value="Herr">Herr</option>
-                    <option value="Frau">Frau</option>
-                    <option value="Divers">Divers</option>
-                  </select>
-                  <div v-if="form.errors.salutation" class="text-red-500 text-sm mt-1">{{ form.errors.salutation }}</div>
-                </div>
-                <div class="md:col-span-3">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Vorname <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="form.first_name"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                  <div v-if="form.errors.first_name" class="text-red-500 text-sm mt-1">{{ form.errors.first_name }}</div>
-                </div>
-                <div class="md:col-span-3">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nachname <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="form.last_name"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                  <div v-if="form.errors.last_name" class="text-red-500 text-sm mt-1">{{ form.errors.last_name }}</div>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">E-Mail <span class="text-red-500">*</span></label>
-                  <div class="flex rounded-md shadow-sm">
-                    <input
-                      v-model="form.email"
-                      :disabled="!editMode"
-                      type="email"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                    />
-                    <button
-                      v-if="props.member.memberships.some(m => m.status === 'active')"
-                      @click="sendWelcomeToMember"
-                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md text-sm text-indigo-600 hover:text-indigo-800 hover:bg-gray-100 flex items-center gap-1"
-                      type="button"
-                    >
-                      <Mail class="w-4 h-4" />
-                      Willkommen
-                    </button>
-                  </div>
-                  <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Mobilfunknummer</label>
-                  <div class="flex rounded-md shadow-sm">
-                    <input
-                      v-model="form.phone"
-                      :disabled="!editMode"
-                      type="tel"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                    />
-                    <a
-                      v-if="telLink"
-                      :href="telLink"
-                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 hover:bg-gray-100 text-gray-500 hover:text-indigo-600 flex items-center justify-center"
-                      :class="{ 'rounded-r-md': !whatsappLink }"
-                      title="Anrufen"
-                    >
-                      <Phone class="w-5 h-5" />
-                    </a>
-                    <a
-                      v-if="whatsappLink"
-                      :href="whatsappLink"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="px-3 py-2 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-100 flex items-center justify-center"
-                      title="Chat on WhatsApp"
-                    >
-                      <svg class="w-5 h-5" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg">
-                        <path fill="#25d366" d="M360,0C161.18,0,0,161.18,0,360c0,65.41,17.45,126.75,47.94,179.61L0,720l187.02-44.21c51.34,28.18,110.28,44.21,172.98,44.21,198.82,0,360-161.18,360-360S558.82,0,360,0ZM360,655.52c-60.17,0-116.13-17.98-162.82-48.87l-110.49,28.14,30.99-105.61c-33.53-47.93-53.2-106.26-53.2-169.19,0-163.21,132.31-295.52,295.52-295.52s295.52,132.31,295.52,295.52-132.31,295.52-295.52,295.52Z" />
-                        <path fill="#25d366" d="M444.35,407.52l87.1,41.06c4,1.88,6.56,5.94,6.2,10.34-.94,11.46-5.54,34.43-26.13,55.02-58.12,58.12-162.49-7.64-166.74-10.18-25.67-13.79-50.06-32.24-73.19-55.36-23.12-23.12-41.58-47.52-55.37-73.19-2.55-4.24-68.31-108.61-10.18-166.74,20.59-20.59,43.56-25.19,55.02-26.13,4.41-.36,8.46,2.2,10.34,6.2l41.07,87.1c1.94,4.12,1.09,9.02-2.13,12.24l-30.61,30.61c-6.62,6.62-8.56,16.93-4,25.11,11.17,20.03,26.19,39.32,43.59,57.07,17.75,17.4,37.04,32.43,57.07,43.59,8.18,4.56,18.48,2.62,25.11-4l30.61-30.61c3.22-3.22,8.12-4.08,12.24-2.13Z" />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Geburtsdatum</label>
-                  <input
-                    v-model="form.birth_date"
-                    :disabled="!editMode"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Beitrittsdatum <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="form.joined_date"
-                    :disabled="!editMode"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Straße und Hausnummer</label>
-                  <input
-                    v-model="form.address"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Adresszusatz</label>
-                  <input
-                    v-model="form.address_addition"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">PLZ</label>
-                  <input
-                    v-model="form.postal_code"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Stadt</label>
-                  <input
-                    v-model="form.city"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Land</label>
-                  <select
-                    id="country"
-                    v-model="form.country"
-                    :disabled="!editMode"
-                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50"
-                  >
-                    <option value="DE">Deutschland</option>
-                    <option value="AT">Österreich</option>
-                    <option value="CH">Schweiz</option>
-                  </select>
-                </div>
-                <div class="md:col-start-1">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Notfallkontakt Name</label>
-                  <input
-                    v-model="form.emergency_contact_name"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Notfallkontakt Telefon</label>
-                  <input
-                    v-model="form.emergency_contact_phone"
-                    :disabled="!editMode"
-                    type="tel"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
+      <!-- Payments Tab (rendered directly on the gray canvas; only the cards are white) -->
+      <div v-if="!editMode" v-show="activeTab === 'payments'">
+        <PaymentsTab
+          :member="member"
+          :available-payment-methods="availablePaymentMethods"
+        />
+      </div>
 
-                <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
-                  <textarea
-                    v-model="form.notes"
-                    :disabled="!editMode"
-                    rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  ></textarea>
-                </div>
+      <!-- Documents Tab (rendered directly on the gray canvas; only the cards are white).
+           Mounted eagerly (v-show, not v-if) whenever contracts are enabled so its
+           document count loads on page load and the tab badge is accurate before the
+           first click. -->
+      <div v-if="!editMode && contractsEnabled" v-show="activeTab === 'documents'">
+        <MemberDocumentsTab ref="memberDocumentsTab" :member="member" @documents-loaded="documentCount = $event" />
+      </div>
 
-                <!-- Gesetzlicher Vertreter -->
-                <div class="md:col-span-2 mt-4">
-                  <h4 class="text-sm font-semibold text-gray-900 mb-1">Gesetzlicher Vertreter</h4>
-                  <p class="text-xs text-gray-500">Bei Minderjährigen muss ein gesetzlicher Vertreter dem Vertrag zustimmen.</p>
-                </div>
+      <!-- Access Control Tab (own component; rendered directly on the gray canvas).
+           Mounted eagerly (v-show, not v-if) so its active-access count is available
+           for the tab badge before the tab is first opened. -->
+      <div v-if="!editMode" v-show="activeTab === 'access'">
+        <AccessTab
+          ref="accessTab"
+          :member="member"
+          :max-devices-per-member="maxDevicesPerMember"
+        />
+      </div>
 
-                <!-- Mitglied verknüpfen -->
-                <div class="md:col-span-2" v-if="editMode">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Mit Mitglied verknüpfen (optional)</label>
-                  <div class="flex gap-3">
-                    <div class="flex-1 relative">
-                      <input
-                        v-model="legalGuardianSearch"
-                        type="text"
-                        placeholder="Nach Mitglied suchen (Name oder Mitgliedsnummer)..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        @input="searchLegalGuardian"
-                        @focus="showLegalGuardianResults = true"
-                      />
-                      <!-- Suchergebnisse -->
-                      <div
-                        v-if="showLegalGuardianResults && legalGuardianSearchResults.length > 0"
-                        class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
-                      >
-                        <div
-                          v-for="result in legalGuardianSearchResults"
-                          :key="result.id"
-                          @click="selectLegalGuardian(result)"
-                          class="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm"
-                        >
-                          <span class="font-medium">{{ result.first_name }} {{ result.last_name }}</span>
-                          <span class="text-gray-500 ml-2">#{{ result.member_number }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      v-if="form.legal_guardian_member_id"
-                      type="button"
-                      @click="clearLegalGuardianMember"
-                      class="px-3 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
-                    >
-                      Verknüpfung entfernen
-                    </button>
-                  </div>
-                  <!-- Anzeige des verknüpften Mitglieds -->
-                  <div v-if="form.legal_guardian_member_id && selectedLegalGuardian" class="mt-2 p-2 bg-indigo-50 rounded-md text-sm">
-                    <span class="font-medium">Verknüpft mit:</span>
-                    {{ selectedLegalGuardian.first_name }} {{ selectedLegalGuardian.last_name }}
-                    <span class="text-gray-500">#{{ selectedLegalGuardian.member_number }}</span>
-                  </div>
-                </div>
+      <!-- Check-ins Tab (own component; rendered directly on the gray canvas) -->
+      <div v-if="!editMode" v-show="activeTab === 'checkins'">
+        <CheckinsTab :member="member" />
+      </div>
 
-                <!-- Nur anzeigen wenn nicht im Edit-Mode oder kein Mitglied verknüpft -->
-                <div v-if="!editMode && member.legal_guardian_member_id && member.legal_guardian" class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Verknüpftes Mitglied</label>
-                  <div class="p-3 bg-indigo-50 rounded-md">
-                    <Link
-                      :href="route('members.show', member.legal_guardian.id)"
-                      class="text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      {{ member.legal_guardian.first_name }} {{ member.legal_guardian.last_name }}
-                      <span class="text-gray-500">#{{ member.legal_guardian.member_number }}</span>
-                    </Link>
-                  </div>
-                </div>
-
-                <!-- Manuelle Eingabe (nur wenn kein Mitglied verknüpft) -->
-                <div v-if="!form.legal_guardian_member_id">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Vorname</label>
-                  <input
-                    v-model="form.legal_guardian_first_name"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-                <div v-if="!form.legal_guardian_member_id">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nachname</label>
-                  <input
-                    v-model="form.legal_guardian_last_name"
-                    :disabled="!editMode"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
-                  />
-                </div>
-              </div>
-              <div v-if="editMode" class="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  @click="cancelEdit"
-                  class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  type="submit"
-                  :disabled="form.processing"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {{ form.processing ? 'Speichern...' : 'Speichern' }}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <!-- Membership Tab -->
-          <div v-show="activeTab === 'membership'">
-            <MembershipTab
-              :member="member"
-              :membership-plans="membershipPlans"
-              :pausing-membership="pausingMembership"
-              :resuming-membership="resumingMembership"
-              :cancelling-membership="cancellingMembership"
-              :revoking-cancellation="revokingCancellation"
-              :activating-membership="activatingMembership"
-              :aborting-membership="abortingMembership"
-              :withdrawing-membership="withdrawingMembership"
-              @activate="activateMembership"
-              @pause="openPauseMembership"
-              @resume="resumeMembership"
-              @cancel="openCancelMembership"
-              @revoke-cancellation="revokeCancellation"
-              @abort="abortMembership"
-              @withdraw="openWithdrawMembership"
-              @force-status="handleForceStatus"
-            />
-
-            <!-- Booked add-ons (addon_membership) -->
-            <div class="mt-8 pt-6 border-t border-gray-200">
-              <MemberAddons :member="member" />
-            </div>
-          </div>
-
-          <!-- Payments & Payment Methods Tab -->
-          <div v-show="activeTab === 'payments'" class="space-y-8">
-
-            <!-- Flash Messages -->
-            <div v-if="$page.props.flash?.message" class="bg-green-50 border border-green-200 rounded-md p-4">
-              <div class="flex">
-                <CheckCircle class="w-5 h-5 text-green-400 mr-2" />
-                <div class="text-sm text-green-800">{{ $page.props.flash.message }}</div>
-              </div>
-            </div>
-
-            <div v-if="$page.props.flash?.error" class="bg-red-50 border border-red-200 rounded-md p-4">
-              <div class="flex">
-                <XCircle class="w-5 h-5 text-red-400 mr-2" />
-                <div class="text-sm text-red-800">{{ $page.props.flash.error }}</div>
-              </div>
-            </div>
-
-            <!-- Payment Methods Section -->
-            <div class="space-y-6">
-              <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-900">Zahlungsmethoden</h3>
-                <button
-                  @click="openAddPaymentMethod"
-                  type="button"
-                  class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-                >
-                  <Plus class="w-4 h-4" />
-                  Neue Zahlungsmethode
-                </button>
-              </div>
-
-              <div v-if="member.payment_methods && member.payment_methods.length > 0" class="space-y-4">
-                <div
-                  v-for="paymentMethod in member.payment_methods"
-                  :key="paymentMethod.id"
-                  class="border border-gray-200 rounded-lg p-4"
-                >
-                  <div class="flex justify-between items-start">
-                    <div class="flex items-center space-x-4">
-                      <div class="p-2 rounded-lg" :class="getPaymentMethodIconClass(paymentMethod.type)">
-                        <component :is="getPaymentMethodIcon(paymentMethod.type)" class="w-6 h-6" />
-                      </div>
-                      <div>
-                        <div class="flex items-center gap-2">
-                          <h4 class="font-semibold text-gray-900">{{ paymentMethod.type_text }}</h4>
-                          <span v-if="paymentMethod.is_default" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                            Standard
-                          </span>
-                          <span :class="getStatusBadgeClass(paymentMethod.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                            {{ getStatusText(paymentMethod.status) }}
-                          </span>
-                        </div>
-
-                        <!-- SEPA Details -->
-                        <div v-if="isSepaType(paymentMethod.type)" class="mt-1 space-y-1">
-                          <p class="text-sm text-gray-600">
-                            IBAN: {{ paymentMethod.masked_iban || '****' }}
-                          </p>
-                          <div v-if="paymentMethod.sepa_mandate_reference" class="text-sm text-gray-600">
-                            Mandatsreferenz: {{ paymentMethod.sepa_mandate_reference }}
-                          </div>
-                          <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2">
-                            <span class="text-sm text-gray-500">SEPA-Mandat:</span>
-                            <span
-                              :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
-                              class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                            >
-                              {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
-                            </span>
-                          </div>
-                          <div v-if="paymentMethod.sepa_mandate_signed_at" class="text-sm text-gray-500">
-                            Unterschrieben am: {{ formatDate(paymentMethod.sepa_mandate_signed_at) }}
-                          </div>
-                        </div>
-
-                        <!-- Credit Card Details -->
-                        <div v-else-if="isCreditCardType(paymentMethod.type)" class="mt-1 space-y-1">
-                          <p class="text-sm text-gray-600">
-                            **** **** **** {{ paymentMethod.last_four }}
-                          </p>
-                          <p v-if="paymentMethod.cardholder_name" class="text-sm text-gray-600">
-                            {{ paymentMethod.cardholder_name }}
-                          </p>
-                          <p v-if="paymentMethod.expiry_date" class="text-sm text-gray-600">
-                            Gültig bis: {{ formatMonthYear(paymentMethod.expiry_date) }}
-                          </p>
-                        </div>
-
-                        <!-- Bank Transfer Details -->
-                        <div v-else-if="isBankTransferType(paymentMethod.type)" class="mt-1">
-                          <p v-if="paymentMethod.bank_name" class="text-sm text-gray-600">{{ paymentMethod.bank_name }}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center space-x-2">
-                      <button
-                        v-if="!paymentMethod.is_default && paymentMethod.status === 'active'"
-                        @click="setAsDefault(paymentMethod)"
-                        type="button"
-                        class="text-sm text-indigo-600 hover:text-indigo-800"
-                        :disabled="settingDefault === paymentMethod.id"
-                      >
-                        {{ settingDefault === paymentMethod.id ? 'Wird gesetzt...' : 'Als Standard setzen' }}
-                      </button>
-                      <button
-                        @click="openEditPaymentMethod(paymentMethod)"
-                        type="button"
-                        class="text-sm text-gray-600 hover:text-gray-800"
-                      >
-                        Bearbeiten
-                      </button>
-                      <button
-                        v-if="paymentMethod.status === 'active'"
-                        @click="deactivatePaymentMethod(paymentMethod)"
-                        type="button"
-                        class="text-sm text-red-600 hover:text-red-800"
-                        :disabled="deactivating === paymentMethod.id"
-                      >
-                        {{ deactivating === paymentMethod.id ? 'Deaktivieren...' : 'Deaktivieren' }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- SEPA Mandate Actions -->
-                  <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'pending'" class="mt-4 p-3 bg-yellow-50 rounded-md">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center">
-                        <AlertCircle class="w-5 h-5 text-yellow-600 mr-2" />
-                        <span class="text-sm text-yellow-800">SEPA-Mandat muss noch unterschrieben werden</span>
-                      </div>
-                      <div class="flex space-x-2">
-                        <button
-                          type="button"
-                          @click="sendSepaMandate(paymentMethod)"
-                          :disabled="sendingMandate === paymentMethod.id"
-                          class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {{ sendingMandate === paymentMethod.id ? 'Wird verarbeitet...' : 'Mandat versenden' }}
-                        </button>
-                        <button
-                          type="button"
-                          @click="markSepaMandateAsSigned(paymentMethod)"
-                          :disabled="markingAsSigned === paymentMethod.id"
-                          class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {{ markingAsSigned === paymentMethod.id ? 'Wird markiert...' : 'Als unterschrieben markieren' }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Zusätzliche Aktionen für unterschriebene Mandate -->
-                  <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'signed'" class="mt-4 p-3 bg-blue-50 rounded-md">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center">
-                        <CheckCircle class="w-5 h-5 text-blue-600 mr-2" />
-                        <span class="text-sm text-blue-800">SEPA-Mandat wurde unterschrieben und wartet auf Aktivierung</span>
-                      </div>
-                      <button
-                        type="button"
-                        @click="activateSepaMandate(paymentMethod)"
-                        :disabled="activatingMandate === paymentMethod.id"
-                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {{ activatingMandate === paymentMethod.id ? 'Wird aktiviert...' : 'Mandat aktivieren' }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-                <Wallet class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p class="text-gray-500">Keine Zahlungsmethoden vorhanden</p>
-                <button
-                  @click="openAddPaymentMethod"
-                  type="button"
-                  class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 mx-auto"
-                >
-                  <Plus class="w-4 h-4" />
-                  Erste Zahlungsmethode hinzufügen
-                </button>
-              </div>
-            </div>
-
-            <!-- Divider -->
-            <div class="border-t border-gray-200"></div>
-
-            <!-- Payment History Section with PaymentsTable -->
-            <div class="space-y-6">
-              <div class="flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                  <h3 class="text-lg font-semibold text-gray-900">Zahlungshistorie</h3>
-                  <span v-if="outstandingBalance" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    <AlertTriangle class="w-3 h-3" />
-                    Offene Posten: {{ outstandingBalance.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
-                  </span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <!-- Filter -->
-                  <select
-                    v-model="paymentStatusFilter"
-                    @change="filterPayments"
-                    class="border border-gray-300 rounded-md px-3 py-1 text-sm"
-                  >
-                    <option value="">Alle Status</option>
-                    <option value="paid">Bezahlt</option>
-                    <option value="pending">Ausstehend</option>
-                    <option value="failed">Fehlgeschlagen</option>
-                  </select>
-
-                  <!-- Add Payment Button -->
-                  <button
-                    @click="openAddPayment"
-                    type="button"
-                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-                  >
-                    <Plus class="w-4 h-4" />
-                    Zahlung hinzufügen
-                  </button>
-
-                  <!-- Batch Execute Button -->
-                  <button
-                    v-if="selectedPaymentIds.length > 0 && hasPendingPaymentsSelected"
-                    @click="executeSelectedPayments"
-                    type="button"
-                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    :disabled="executingBatch"
-                  >
-                    <PlayCircle v-if="!executingBatch" class="w-4 h-4" />
-                    <div v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    {{ executingBatch ? 'Wird ausgeführt...' : `Zahlungen ausführen (${selectedPendingPaymentIds.length})` }}
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="filteredPayments?.data?.length > 0">
-                <PaymentsTable
-                  :payments="filteredPayments"
-                  :columns="paymentTableColumns"
-                  v-model:selectedIds="selectedPaymentIds"
-                  :show-checkboxes="true"
-                  :show-csv-export="false"
-                  :show-sepa-export="false"
-                  :show-pagination="false"
-                  :executing-payment-id="executingPaymentId"
-                  :batch-executing-payments="executingBatch"
-                  @payment-marked-paid="handlePaymentMarkedPaid"
-                >
-                  <!-- Custom Actions Slot für zusätzliche Buttons -->
-                  <template #actions="{ payment }">
-                    <button
-                      v-if="payment.invoice_id"
-                      @click="downloadInvoice(payment)"
-                      type="button"
-                      class="text-blue-600 hover:text-blue-800"
-                      title="Rechnung herunterladen"
-                    >
-                      <Download class="w-4 h-4" />
-                    </button>
-                    <button
-                      v-if="payment.status === 'pending'"
-                      @click="handleExecutePayment(payment)"
-                      type="button"
-                      :disabled="isPaymentExecuting(payment.id) || executingBatch || payment.mollie_payment_id"
-                      class="text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                      :title="isPaymentExecuting(payment.id) ? 'Wird ausgeführt...' : 'Zahlung ausführen'"
-                    >
-                      <PlayCircle v-if="!isPaymentExecuting(payment.id)" class="w-4 h-4" />
-                      <div v-else class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                    </button>
-                  </template>
-                </PaymentsTable>
-              </div>
-              <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-                <CreditCard class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p class="text-gray-500">Keine Zahlungen vorhanden</p>
-                <button
-                  @click="openAddPayment"
-                  type="button"
-                  class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 mx-auto"
-                >
-                  <Plus class="w-4 h-4" />
-                  Erste Zahlung hinzufügen
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Documents Tab -->
-          <div v-show="activeTab === 'documents'">
-            <MemberDocumentsTab ref="memberDocumentsTab" :member="member" @documents-loaded="documentCount = $event" />
-          </div>
-
-          <!-- Check-ins Tab -->
-          <div v-show="activeTab === 'checkins'" class="space-y-4">
-            <div v-if="member.check_ins && member.check_ins.length > 0">
-              <div class="overflow-x-auto">
-                <table class="w-full">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-In</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-Out</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dauer</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Methode</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-200">
-                    <tr v-for="checkin in member.check_ins" :key="checkin.id" class="hover:bg-gray-50">
-                      <td class="px-4 py-3 text-sm">{{ formatDate(checkin.check_in_time) }}</td>
-                      <td class="px-4 py-3 text-sm">{{ formatTime(checkin.check_in_time) }}</td>
-                      <td class="px-4 py-3 text-sm">
-                        {{ checkin.check_out_time ? formatTime(checkin.check_out_time) : '-' }}
-                      </td>
-                      <td class="px-4 py-3 text-sm">
-                        {{ checkin.check_out_time ? calculateDuration(checkin.check_in_time, checkin.check_out_time) : '-' }}
-                      </td>
-                      <td class="px-4 py-3 text-sm">
-                        <span
-                            :class="[
-                                'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                                checkin.check_in_method === 'nfc_card'
-                                    ? 'bg-purple-100 text-purple-800'
-                                    : checkin.check_in_method === 'manual'
-                                        ? 'bg-gray-100 text-gray-800'
-                                        : 'bg-blue-100 text-blue-800'
-                            ]"
-                        >
-                            <CreditCard v-if="checkin.check_in_method === 'nfc_card'" class="w-3 h-3 mr-1" />
-                            <Edit v-else-if="checkin.check_in_method === 'manual'" class="w-3 h-3 mr-1" />
-                            <QrCode v-else class="w-3 h-3 mr-1" />
-                            {{ checkin.check_in_method_text || 'Unbekannt' }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div v-else class="text-center py-8">
-              <Clock class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p class="text-gray-500">Keine Check-Ins vorhanden</p>
-            </div>
-          </div>
-
-          <!-- Access Control Tab -->
-          <div v-show="activeTab === 'access'" class="space-y-6">
-            <!-- Primary Access Methods -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Primäre Zugangsmethoden</h3>
-
-              <!-- QR Code Section -->
-              <div class="border border-gray-200 rounded-lg p-6 mb-4">
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                      <div class="p-2 bg-indigo-100 rounded-lg">
-                        <QrCode class="w-6 h-6 text-indigo-600" />
-                      </div>
-                      <div>
-                        <h4 class="font-semibold text-gray-900">QR-Code Zugang</h4>
-                        <p class="text-sm text-gray-500">Digitaler Zugang über Mitglieder-App</p>
-                      </div>
-                    </div>
-
-                    <div v-if="accessForm.qr_code_enabled" class="mt-4 space-y-3">
-                      <div class="bg-blue-50 p-3 rounded-lg">
-                        <div class="flex items-start gap-2">
-                          <Info class="w-5 h-5 text-blue-600 mt-0.5" />
-                          <div class="text-sm text-blue-800">
-                            <p class="font-medium mb-1">QR-Code ist aktiviert</p>
-                            <p>Das Mitglied kann den QR-Code in der Mitglieder-App (PWA) einsehen und für den Check-in verwenden.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="flex items-center gap-3">
-                        <button
-                          @click="invalidateQrCode"
-                          class="text-sm text-red-600 hover:text-red-800 flex items-center gap-1"
-                        >
-                          <XCircle class="w-4 h-4" />
-                          QR-Code invalidieren
-                        </button>
-                        <button
-                          @click="sendQrCodeToMember"
-                          class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                        >
-                          <Mail class="w-4 h-4" />
-                          App-Link per E-Mail senden
-                        </button>
-                      </div>
-                    </div>
-
-                    <div v-else class="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p class="text-sm text-gray-600">QR-Code-Zugang ist deaktiviert</p>
-                    </div>
-                  </div>
-
-                  <div class="ml-4">
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        v-model="accessForm.qr_code_enabled"
-                        type="checkbox"
-                        class="sr-only peer"
-                        @change="updateAccessSettings"
-                      >
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- NFC Tag Section -->
-              <div class="border border-gray-200 rounded-lg p-6">
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                      <div class="p-2 bg-purple-100 rounded-lg">
-                        <Nfc class="w-6 h-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h4 class="font-semibold text-gray-900">NFC-Tag Zugang</h4>
-                        <p class="text-sm text-gray-500">Kontaktloser Zugang via NFC-Chip oder Karte</p>
-                      </div>
-                    </div>
-
-                    <div v-if="accessForm.nfc_enabled" class="mt-4 space-y-3">
-                      <div class="space-y-2">
-                        <div class="flex items-center gap-3">
-                          <input
-                            v-model="nfcInputValue"
-                            type="text"
-                            placeholder="NFC ID eingeben..."
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            :disabled="!editingNfc"
-                            @input="validateNfcInput"
-                          />
-                          <template v-if="!editingNfc && !isNfcScanning">
-                            <button
-                              @click="startNfcEdit"
-                              class="px-4 py-2 text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50"
-                            >
-                              Bearbeiten
-                            </button>
-                            <button
-                              @click="startNfcScanning"
-                              class="px-4 py-2 text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50 flex items-center gap-2"
-                            >
-                              <Radio class="w-4 h-4" />
-                              Einlesen
-                            </button>
-                          </template>
-                          <template v-else-if="isNfcScanning">
-                            <button
-                              @click="stopNfcScanning"
-                              class="px-4 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50 flex items-center gap-2"
-                            >
-                              <Loader2 class="w-4 h-4 animate-spin" />
-                              Abbrechen
-                            </button>
-                          </template>
-                          <template v-else>
-                            <button
-                              @click="saveNfcUid"
-                              :disabled="!isNfcValid"
-                              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                            >
-                              Speichern
-                            </button>
-                            <button
-                              @click="cancelNfcEdit"
-                              class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                            >
-                              Abbrechen
-                            </button>
-                          </template>
-                        </div>
-
-                        <!-- Formathinweise -->
-                        <div v-if="editingNfc" class="text-xs text-gray-500 space-y-1">
-                          <p>Akzeptierte Formate:</p>
-                          <ul class="ml-4 space-y-0.5">
-                            <li>• Hex mit Trennzeichen: <code class="bg-gray-100 px-1 rounded">04:A1:B2:C3</code> oder <code class="bg-gray-100 px-1 rounded">04-A1-B2-C3</code></li>
-                            <li>• Hex mit Prefix: <code class="bg-gray-100 px-1 rounded">0x04A1B2C3</code></li>
-                            <li>• Reines Hex: <code class="bg-gray-100 px-1 rounded">04A1B2C3</code></li>
-                            <li>• Dezimal: <code class="bg-gray-100 px-1 rounded">77856451</code></li>
-                          </ul>
-                        </div>
-
-                        <!-- Validierungsfeedback -->
-                        <div v-if="editingNfc && nfcInputValue && !isNfcValid" class="flex items-center gap-2 text-sm text-red-600">
-                          <XCircle class="w-4 h-4" />
-                          Ungültiges Format
-                        </div>
-
-                        <div v-if="editingNfc && normalizedNfcId && isNfcValid" class="flex items-center gap-2 text-sm text-green-600">
-                          <CheckCircle class="w-4 h-4" />
-                          Normalisiert: {{ formatNfcIdForDisplay(normalizedNfcId) }}
-                        </div>
-                      </div>
-
-                      <div v-if="accessForm.nfc_uid && !editingNfc" class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                        <div class="flex items-center gap-2">
-                          <CheckCircle class="w-4 h-4 text-purple-600" />
-                          <div>
-                            <p class="text-sm font-medium text-purple-900">NFC-Tag registriert</p>
-                            <p class="text-xs text-purple-700 font-mono">{{ formatNfcIdForDisplay(accessForm.nfc_uid) }}</p>
-                          </div>
-                        </div>
-                        <button
-                          @click="removeNfcTag"
-                          class="text-sm text-red-600 hover:text-red-800"
-                        >
-                          Entfernen
-                        </button>
-                      </div>
-                    </div>
-
-                    <div v-else class="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p class="text-sm text-gray-600">NFC-Zugang ist deaktiviert</p>
-                    </div>
-                  </div>
-
-                  <div class="ml-4">
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        v-model="accessForm.nfc_enabled"
-                        type="checkbox"
-                        class="sr-only peer"
-                        @change="updateAccessSettings"
-                      >
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Additional Services -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Zusätzliche Services</h3>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Solarium Access -->
-                <div class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-3">
-                      <div class="p-2 bg-yellow-100 rounded-lg">
-                        <Sun class="w-5 h-5 text-yellow-600" />
-                      </div>
-                      <div>
-                        <h5 class="font-medium text-gray-900">Solarium</h5>
-                        <p class="text-sm text-gray-500">Zugang zur Sonnenbank</p>
-                        <p v-if="accessForm.solarium_enabled" class="text-xs text-gray-400 mt-1">
-                          {{ accessForm.solarium_minutes || 0 }} Minuten verfügbar
-                        </p>
-                      </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        v-model="accessForm.solarium_enabled"
-                        type="checkbox"
-                        class="sr-only peer"
-                        @change="updateAccessSettings"
-                      >
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Vending Machine -->
-                <div class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-3">
-                      <div class="p-2 bg-green-100 rounded-lg">
-                        <Package class="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <h5 class="font-medium text-gray-900">Vending Machine</h5>
-                        <p class="text-sm text-gray-500">Proteinriegel & Snacks</p>
-                        <p v-if="accessForm.vending_enabled" class="text-xs text-gray-400 mt-1">
-                          Guthaben: {{ formatCurrency(accessForm.vending_credit || 0) }}
-                        </p>
-                      </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        v-model="accessForm.vending_enabled"
-                        type="checkbox"
-                        class="sr-only peer"
-                        @change="updateAccessSettings"
-                      >
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Massage Chair -->
-                <div class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-3">
-                      <div class="p-2 bg-blue-100 rounded-lg">
-                        <Armchair class="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h5 class="font-medium text-gray-900">Massagestuhl</h5>
-                        <p class="text-sm text-gray-500">Wellness & Entspannung</p>
-                        <p v-if="accessForm.massage_enabled" class="text-xs text-gray-400 mt-1">
-                          {{ accessForm.massage_sessions || 0 }} Sitzungen verfügbar
-                        </p>
-                      </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        v-model="accessForm.massage_enabled"
-                        type="checkbox"
-                        class="sr-only peer"
-                        @change="updateAccessSettings"
-                      >
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Coffee Flat -->
-                <div class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-3">
-                      <div class="p-2 bg-orange-100 rounded-lg">
-                        <Coffee class="w-5 h-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <h5 class="font-medium text-gray-900">Kaffee-Flatrate</h5>
-                        <p class="text-sm text-gray-500">Unbegrenzt Kaffee</p>
-                        <p v-if="accessForm.coffee_flat_enabled" class="text-xs text-gray-400 mt-1">
-                          Gültig bis: {{ accessForm.coffee_flat_expiry ? formatDate(accessForm.coffee_flat_expiry) : 'Unbegrenzt' }}
-                        </p>
-                      </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        v-model="accessForm.coffee_flat_enabled"
-                        type="checkbox"
-                        class="sr-only peer"
-                        @change="updateAccessSettings"
-                      >
-                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Linked Devices (only visible when PWA login is disabled, i.e. branded app only) -->
-            <div v-if="member.gym?.pwa_settings?.pwa_login_disabled">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Verknüpfte Geräte</h3>
-
-              <div v-if="member.devices && member.devices.length > 0" class="space-y-3">
-                <div class="bg-amber-50 p-3 rounded-lg mb-4">
-                  <div class="flex items-start gap-2">
-                    <Info class="w-5 h-5 text-amber-600 mt-0.5" />
-                    <div class="text-sm text-amber-800">
-                      <p>Maximal {{ props.maxDevicesPerMember }} {{ props.maxDevicesPerMember === 1 ? 'Gerät kann' : 'Geräte können' }} mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  v-for="device in member.devices"
-                  :key="device.id"
-                  class="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                >
-                  <div class="flex items-center gap-3">
-                    <div class="p-2 bg-gray-100 rounded-lg">
-                      <Smartphone class="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">
-                        {{ device.device_name || 'Unbekanntes Gerät' }}
-                      </p>
-                      <p class="text-xs text-gray-500 font-mono">
-                        {{ device.device_token.substring(0, 8) }}...
-                      </p>
-                      <p v-if="device.last_used_at" class="text-xs text-gray-400">
-                        Zuletzt aktiv: {{ formatDateTime(device.last_used_at) }}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    @click="removeDevice(device)"
-                    :disabled="removingDeviceId === device.id"
-                    class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Gerät entfernen"
-                  >
-                    <Loader2 v-if="removingDeviceId === device.id" class="w-5 h-5 animate-spin" />
-                    <X v-else class="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-                <Smartphone class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p class="text-gray-500">Keine Geräte verknüpft</p>
-                <p class="text-xs text-gray-400 mt-1">Geräte werden beim Login über die Branded App automatisch registriert</p>
-              </div>
-            </div>
-
-            <!-- Access Log -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Zugangshistorie</h3>
-
-              <div v-if="accessLogs && accessLogs.length > 0" class="border border-gray-200 rounded-lg overflow-hidden">
-                <table class="w-full">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zeitpunkt</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Methode</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-200">
-                    <tr v-for="log in accessLogs" :key="log.id" class="hover:bg-gray-50">
-                      <td class="px-4 py-3 text-sm">{{ formatDateTime(log.accessed_at) }}</td>
-                      <td class="px-4 py-3 text-sm">{{ log.service_name }}</td>
-                      <td class="px-4 py-3 text-sm">
-                        <span class="inline-flex items-center gap-1">
-                          <component :is="getAccessMethodIcon(log.method)" class="w-4 h-4" />
-                          {{ log.method }}
-                        </span>
-                      </td>
-                      <td class="px-4 py-3 text-sm">
-                        <span :class="log.success ? 'text-green-600' : 'text-red-600'">
-                          {{ log.success ? 'Erfolgreich' : 'Verweigert' }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-                <Key class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p class="text-gray-500">Noch keine Zugänge protokolliert</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Status History Tab -->
-          <div v-show="activeTab === 'history'" class="space-y-4">
-            <StatusHistory :member="member" />
-          </div>
-
-        </div>
+      <!-- Status History Tab (rendered directly on the gray canvas; only the cards are white) -->
+      <div v-if="!editMode" v-show="activeTab === 'history'">
+        <StatusHistory :member="member" />
       </div>
     </div>
 
@@ -1592,489 +523,6 @@
       </div>
     </teleport>
 
-    <!-- Edit Payment Method Modal -->
-    <teleport to="body">
-      <div v-if="showEditPaymentMethodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeEditPaymentMethod">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
-          <form @submit.prevent="updatePaymentMethod">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
-                  Zahlungsmethode bearbeiten
-                </h3>
-              </div>
-
-              <div class="space-y-4">
-                <!-- Type (nicht änderbar) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Typ</label>
-                  <input
-                    :value="paymentMethodForm.type_text"
-                    disabled
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                  />
-                </div>
-
-                <!-- Status -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    v-model="paymentMethodForm.status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="active">Aktiv</option>
-                    <option value="pending">Ausstehend</option>
-                    <option value="expired">Abgelaufen</option>
-                    <option value="failed">Fehlgeschlagen</option>
-                  </select>
-                </div>
-
-                <!-- SEPA-spezifische Felder -->
-                <template v-if="isSepaType(paymentMethodForm.type)">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kontoinhaber</label>
-                    <input
-                      v-model="paymentMethodForm.account_holder"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
-                    <IbanInput
-                      v-model="paymentMethodForm.iban"
-                      placeholder="DE89 3704 0044 0532 0130 00"
-                      @validation-change="(validation) => handleIbanValidation(validation, 'editPaymentMethod')"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
-                    <input
-                      v-model="paymentMethodForm.bank_name"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">SEPA-Mandat Status</label>
-                    <select
-                      v-model="paymentMethodForm.sepa_mandate_status"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="pending">Unterschrift ausstehend</option>
-                      <option value="signed">Unterschrieben</option>
-                      <option value="active">Aktiv</option>
-                      <option value="revoked">Widerrufen</option>
-                      <option value="expired">Abgelaufen</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">SEPA-Mandatsreferenz</label>
-                    <input
-                      v-model="paymentMethodForm.sepa_mandate_reference"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </template>
-
-                <!-- Kreditkarten-spezifische Felder -->
-                <template v-if="isCreditCardType(paymentMethodForm.type)">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Letzte 4 Ziffern</label>
-                    <input
-                      v-model="paymentMethodForm.last_four"
-                      type="text"
-                      maxlength="4"
-                      pattern="[0-9]{4}"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Karteninhaber</label>
-                    <input
-                      v-model="paymentMethodForm.cardholder_name"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ablaufdatum</label>
-                    <input
-                      v-model="paymentMethodForm.expiry_date"
-                      type="date"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </template>
-
-                <!-- Banküberweisung-spezifische Felder -->
-                <template v-if="isBankTransferType(paymentMethodForm.type)">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
-                    <input
-                      v-model="paymentMethodForm.bank_name"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </template>
-
-                <!-- Standard-Zahlungsmethode -->
-                <div>
-                  <label class="flex items-center">
-                    <input
-                      v-model="paymentMethodForm.is_default"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span class="ml-2 text-sm text-gray-700">Als Standard-Zahlungsmethode setzen</span>
-                  </label>
-                </div>
-              </div>
-
-              <div v-if="paymentMethodForm.errors && Object.keys(paymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
-                  <ul class="list-disc list-inside">
-                    <li v-for="(error, field) in paymentMethodForm.errors" :key="field">{{ error }}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                :disabled="paymentMethodForm.processing ||
-                          (isSepaType(paymentMethodForm.type) && !ibanValidation.editPaymentMethod.isValid)"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-              >
-                {{ paymentMethodForm.processing ? 'Speichern...' : 'Speichern' }}
-              </button>
-              <button
-                type="button"
-                @click="closeEditPaymentMethod"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </teleport>
-
-    <!-- Add Payment Method Modal -->
-    <teleport to="body">
-      <div v-if="showAddPaymentMethodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPaymentMethod">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
-          <form @submit.prevent="createPaymentMethod">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
-                  Neue Zahlungsmethode hinzufügen
-                </h3>
-              </div>
-
-              <div class="space-y-4">
-                <!-- Type (auswählbar bei neuer Zahlungsmethode) -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode <span class="text-red-500">*</span></label>
-                  <select
-                    v-model="newPaymentMethodForm.type"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">Bitte wählen...</option>
-                    <option
-                      v-for="method in availablePaymentMethodTypes"
-                      :key="method.key"
-                      :value="method.key"
-                    >
-                      {{ method.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- SEPA-spezifische Felder -->
-                <template v-if="isSepaType(newPaymentMethodForm.type)">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">IBAN <span class="text-red-500">*</span></label>
-                    <IbanInput
-                      v-model="newPaymentMethodForm.iban"
-                      placeholder="DE89 3704 0044 0532 0130 00"
-                      :required="true"
-                      @validation-change="(validation) => handleIbanValidation(validation, 'newPaymentMethod')"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kontoinhaber</label>
-                    <input
-                      v-model="newPaymentMethodForm.account_holder"
-                      type="text"
-                      placeholder="Max Mustermann"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
-                    <input
-                      v-model="newPaymentMethodForm.bank_name"
-                      type="text"
-                      placeholder="Commerzbank"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="flex items-center">
-                      <input
-                        v-model="newPaymentMethodForm.sepa_mandate_acknowledged"
-                        type="checkbox"
-                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                        :disabled="!ibanValidation.newPaymentMethod.isValid"
-                      />
-                      <span class="ml-2 text-sm text-gray-700">
-                        SEPA-Mandat wurde zur Kenntnis genommen
-                        <span v-if="!ibanValidation.newPaymentMethod.isValid" class="text-gray-400">
-                          (erst nach gültiger IBAN verfügbar)
-                        </span>
-                      </span>
-                    </label>
-                  </div>
-                </template>
-
-                <!-- Kreditkarten-spezifische Felder -->
-                <template v-if="isCreditCardType(newPaymentMethodForm.type)">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kartennummer <span class="text-red-500">*</span></label>
-                    <input
-                      v-model="newPaymentMethodForm.card_number"
-                      type="text"
-                      placeholder="**** **** **** 1234"
-                      maxlength="19"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Karteninhaber <span class="text-red-500">*</span></label>
-                    <input
-                      v-model="newPaymentMethodForm.cardholder_name"
-                      type="text"
-                      placeholder="Max Mustermann"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Ablaufdatum <span class="text-red-500">*</span></label>
-                      <input
-                        v-model="newPaymentMethodForm.expiry_date"
-                        type="month"
-                        :min="currentMonth"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">CVV <span class="text-red-500">*</span></label>
-                      <input
-                        v-model="newPaymentMethodForm.cvv"
-                        type="text"
-                        maxlength="4"
-                        pattern="[0-9]{3,4}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                  </div>
-                </template>
-
-                <!-- Banküberweisung-spezifische Felder -->
-                <template v-if="isBankTransferType(newPaymentMethodForm.type)">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
-                    <input
-                      v-model="newPaymentMethodForm.bank_name"
-                      type="text"
-                      placeholder="Commerzbank"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
-                    <textarea
-                      v-model="newPaymentMethodForm.notes"
-                      rows="2"
-                      placeholder="z.B. Verwendungszweck-Vorgaben"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    ></textarea>
-                  </div>
-                </template>
-
-                <!-- Standard-Zahlungsmethode -->
-                <div v-if="newPaymentMethodForm.type">
-                  <label class="flex items-center">
-                    <input
-                      v-model="newPaymentMethodForm.is_default"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span class="ml-2 text-sm text-gray-700">Als Standard-Zahlungsmethode setzen</span>
-                  </label>
-                </div>
-              </div>
-
-              <div v-if="newPaymentMethodForm.errors && Object.keys(newPaymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
-                  <ul class="list-disc list-inside">
-                    <li v-for="(error, field) in newPaymentMethodForm.errors" :key="field">{{ error }}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                :disabled="newPaymentMethodForm.processing ||
-                          !newPaymentMethodForm.type ||
-                          (isSepaType(newPaymentMethodForm.type) && !ibanValidation.newPaymentMethod.isValid)"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ newPaymentMethodForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
-              </button>
-              <button
-                type="button"
-                @click="closeAddPaymentMethod"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </teleport>
-
-    <!-- Add Payment Modal -->
-    <teleport to="body">
-      <div v-if="showAddPaymentModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPayment">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
-          <form @submit.prevent="createPayment">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
-                  Neue Zahlung hinzufügen
-                </h3>
-              </div>
-
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="newPaymentForm.amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="newPaymentForm.description"
-                    type="text"
-                    placeholder="z.B. Monatsbeitrag Januar 2024"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Fälligkeitsdatum</label>
-                  <input
-                    v-model="newPaymentForm.due_date"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
-                  <select
-                    v-model="newPaymentForm.payment_method"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">Bitte wählen...</option>
-                    <option
-                      v-for="method in availablePaymentMethodTypes"
-                      :key="method.key"
-                      :value="method.key"
-                    >
-                      {{ method.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    v-model="newPaymentForm.status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="pending">Ausstehend</option>
-                    <option value="paid">Bezahlt</option>
-                  </select>
-                </div>
-
-                <div v-if="newPaymentForm.status === 'paid'">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Bezahlt am</label>
-                  <input
-                    v-model="newPaymentForm.paid_date"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
-                  <textarea
-                    v-model="newPaymentForm.notes"
-                    rows="2"
-                    placeholder="Optionale Notizen zur Zahlung"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  ></textarea>
-                </div>
-              </div>
-
-              <div v-if="newPaymentForm.errors && Object.keys(newPaymentForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
-                  <ul class="list-disc list-inside">
-                    <li v-for="(error, field) in newPaymentForm.errors" :key="field">{{ error }}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                :disabled="newPaymentForm.processing || !newPaymentForm.amount || !newPaymentForm.description"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ newPaymentForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
-              </button>
-              <button
-                type="button"
-                @click="closeAddPayment"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </teleport>
-
     <!-- Sperrliste Modal -->
     <teleport to="body">
       <div v-if="showBlockModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showBlockModal = false">
@@ -2132,29 +580,28 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
-import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
-import MemberAvatar from '@/Components/MemberAvatar.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
-import PaymentsTable from '@/Components/PaymentsTable.vue'
-import IbanInput from '@/Components/IbanInput.vue'
-import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
+import PaymentsTab from '@/Components/Members/PaymentsTab.vue'
 import MemberAddons from '@/Components/Members/MemberAddons.vue'
 import MemberDocumentsTab from '@/Components/MemberDocumentsTab.vue'
+import MemberPersonalDataTab from '@/Components/Members/MemberPersonalDataTab.vue'
+import MemberHeaderCard from '@/Components/Members/MemberHeaderCard.vue'
+import AccessTab from '@/Components/Members/AccessTab.vue'
+import CheckinsTab from '@/Components/Members/CheckinsTab.vue'
+import MemberAvatar from '@/Components/MemberAvatar.vue'
 import {
-  User, FileText, Clock, CreditCard, Plus, Edit,
-  ArrowLeft, Wallet, AlertCircle, CheckCircle,
-  Download, Building2, Banknote, PlayCircle, WalletCards,
-  XCircle, History, Key, QrCode, Nfc,
-  Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio, FolderOpen,
-  Smartphone, X, ShieldX, AlertTriangle, Phone
+  User, FileText, Clock, CreditCard,
+  ArrowLeft, AlertCircle,
+  History, Key, FolderOpen,
+  X, AlertTriangle, MoreVertical
 } from 'lucide-vue-next'
-import { formatCurrency, formatDate, formatDateTime, formatTime, formatMonthYear, formatDateForInput } from '@/utils/formatters'
+import { formatDate, formatDateForInput } from '@/utils/formatters'
+import { getStatusText, getStatusColor } from '@/utils/memberStatus'
 
 const props = defineProps({
   member: Object,
@@ -2180,15 +627,9 @@ const props = defineProps({
   }
 })
 
-const {
-  payments,
-  executePayment,
-  executeBatchPayments,
-  executingPaymentId,
-  executingBatch,
-  updateLocalPayments,
-  isPaymentExecuting
-} = useInertiaPayments(props.member.id)
+// Payments themselves live in the PaymentsTab component; the parent only reads
+// them to drive the outstanding-balance badge on the payments tab.
+const { payments } = useInertiaPayments(props.member.id)
 
 const outstandingBalance = computed(() => {
   const list = payments.value || props.member.payments || []
@@ -2201,6 +642,49 @@ const outstandingBalance = computed(() => {
 })
 
 const editMode = ref(false)
+
+// Mobile collapsing header: the app-bar title morphs into a compact member
+// identity once the page is scrolled past the profile card. Desktop is
+// unaffected (see the lg: overrides in the template).
+const headerCollapsed = ref(false)
+
+// Show the compact identity in the app bar only when scrolled and not editing.
+const showMobileIdentity = computed(() => headerCollapsed.value && !editMode.value)
+
+const headerInitials = computed(() =>
+  `${props.member.first_name?.charAt(0) || ''}${props.member.last_name?.charAt(0) || ''}`.toUpperCase()
+)
+const headerStatusText = computed(() => getStatusText(props.member.status))
+const headerStatusDotClass = computed(() => {
+  const dotColors = {
+    green: 'bg-green-500',
+    gray: 'bg-gray-400',
+    yellow: 'bg-yellow-500',
+    orange: 'bg-orange-500',
+    red: 'bg-red-500',
+    black: 'bg-gray-900',
+  }
+  return dotColors[getStatusColor(props.member.status)] || 'bg-gray-400'
+})
+
+// Component refs: the header card owns the header UI (incl. discard dialog),
+// the personal-data tab owns the personal-data form and its dirty state.
+const headerCard = ref(null)
+const personalDataTab = ref(null)
+
+// Bridge the header controls to the personal-data component
+const isDirty = computed(() => personalDataTab.value?.isDirty ?? false)
+const isSaving = computed(() => personalDataTab.value?.form?.processing ?? false)
+
+// Member number lives in the personal-data form but is edited in the header
+const memberNumber = computed({
+  get: () => personalDataTab.value?.form?.member_number ?? props.member.member_number,
+  set: (value) => {
+    if (personalDataTab.value?.form) {
+      personalDataTab.value.form.member_number = value
+    }
+  },
+})
 
 // Sperrliste
 const showBlockModal = ref(false)
@@ -2218,89 +702,10 @@ const activeTab = ref('personal')
 const documentCount = ref(0)
 const memberDocumentsTab = ref(null)
 
-// Legal Guardian Search
-const legalGuardianSearch = ref('')
-const legalGuardianSearchResults = ref([])
-const showLegalGuardianResults = ref(false)
-const selectedLegalGuardian = ref(props.member.legal_guardian || null)
-let legalGuardianSearchTimeout = null
-
-const searchLegalGuardian = () => {
-  if (legalGuardianSearchTimeout) {
-    clearTimeout(legalGuardianSearchTimeout)
-  }
-
-  if (legalGuardianSearch.value.length < 2) {
-    legalGuardianSearchResults.value = []
-    return
-  }
-
-  legalGuardianSearchTimeout = setTimeout(async () => {
-    try {
-      const response = await fetch(route('members.search') + '?' + new URLSearchParams({
-        search: legalGuardianSearch.value,
-        exclude_id: props.member.id
-      }))
-      const data = await response.json()
-      legalGuardianSearchResults.value = data.members || []
-    } catch (error) {
-      console.error('Error searching members:', error)
-      legalGuardianSearchResults.value = []
-    }
-  }, 300)
-}
-
-const selectLegalGuardian = (member) => {
-  form.legal_guardian_member_id = member.id
-  form.legal_guardian_first_name = null
-  form.legal_guardian_last_name = null
-  selectedLegalGuardian.value = member
-  legalGuardianSearch.value = ''
-  legalGuardianSearchResults.value = []
-  showLegalGuardianResults.value = false
-}
-
-const clearLegalGuardianMember = () => {
-  form.legal_guardian_member_id = null
-  selectedLegalGuardian.value = null
-  legalGuardianSearch.value = ''
-}
-
-// Access Control state
-const editingNfc = ref(false)
-const nfcInputValue = ref('')
-const normalizedNfcId = ref('')
-const isNfcValid = ref(false)
-const accessLogs = ref([])
-
-// Device management
-const removingDeviceId = ref(null)
-
-// NFC Scanning state
-const isNfcScanning = ref(false)
-const nfcScanChannel = ref(null)
-const nfcScanConnected = ref(false)
-
-// Access form for managing permissions
-const accessForm = useForm({
-  // Primary access methods
-  qr_code_enabled: props.member.access_config?.qr_code_enabled ?? props.member?.gym?.pwa_enabled,
-  nfc_enabled: props.member.access_config?.nfc_enabled,
-  nfc_uid: props.member.access_config?.nfc_uid || '',
-
-  // Additional services
-  solarium_enabled: props.member.access_config?.solarium_enabled || false,
-  solarium_minutes: props.member.access_config?.solarium_minutes || 0,
-
-  vending_enabled: props.member.access_config?.vending_enabled || false,
-  vending_credit: props.member.access_config?.vending_credit || 0,
-
-  massage_enabled: props.member.access_config?.massage_enabled || false,
-  massage_sessions: props.member.access_config?.massage_sessions || 0,
-
-  coffee_flat_enabled: props.member.access_config?.coffee_flat_enabled || false,
-  coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
-})
+// Access-control UI lives in the AccessTab component; the parent only reads its
+// active-access count to drive the tab badge.
+const accessTab = ref(null)
+const activeAccessCount = computed(() => accessTab.value?.activeAccessCount ?? 0)
 
 // Age verification state
 const verifyingAge = ref(false)
@@ -2321,18 +726,9 @@ const showCancelMembershipModal = ref(false)
 const showWithdrawMembershipModal = ref(false)
 const selectedMembership = ref(null)
 
-// PaymentMethod-related state
-const showEditPaymentMethodModal = ref(false)
-const showAddPaymentMethodModal = ref(false)
-const showAddPaymentModal = ref(false)
-const settingDefault = ref(null)
-const deactivating = ref(null)
-const markingAsSigned = ref(null)
-const sendingMandate = ref(null)
-const activatingMandate = ref(null)
-
+// Age is derived from the persisted member record (the form lives in the tab component)
 const memberAge = computed(() => {
-  const birthDate = form.birth_date
+  const birthDate = props.member.birth_date
   if (!birthDate) return null
   const birth = new Date(birthDate)
   const today = new Date()
@@ -2342,45 +738,6 @@ const memberAge = computed(() => {
     age--
   }
   return age
-})
-
-// ISO-3166-Alpha-2 -> internationale Telefon-Vorwahl
-const COUNTRY_DIAL_CODES = {
-  DE: '49', AT: '43', CH: '41', LI: '423',
-  NL: '31', BE: '32', LU: '352', FR: '33',
-  IT: '39', ES: '34', PL: '48', CZ: '420',
-  DK: '45', GB: '44',
-}
-
-// Telefonnummer in internationale Ziffern (ohne +) normalisieren
-const normalizedPhoneDigits = computed(() => {
-  const raw = form.phone
-  if (!raw) return null
-  // Nur Ziffern und führendes + behalten
-  let digits = raw.replace(/[^\d+]/g, '')
-  if (!digits) return null
-  // Vorwahl aus der Studio-Einstellung ableiten (Fallback: Deutschland)
-  const country = props.member.gym?.country?.toUpperCase()
-  const dialCode = COUNTRY_DIAL_CODES[country] ?? '49'
-  if (digits.startsWith('+')) {
-    digits = digits.slice(1)
-  } else if (digits.startsWith('00')) {
-    digits = digits.slice(2)
-  } else if (digits.startsWith('0')) {
-    // Nationale Nummer ohne Ländervorwahl -> Vorwahl des Studios
-    digits = dialCode + digits.slice(1)
-  }
-  return digits || null
-})
-
-const whatsappLink = computed(() => {
-  const digits = normalizedPhoneDigits.value
-  return digits ? `https://wa.me/${digits}` : null
-})
-
-const telLink = computed(() => {
-  const digits = normalizedPhoneDigits.value
-  return digits ? `tel:+${digits}` : null
 })
 
 const tabs = computed(() => {
@@ -2394,357 +751,10 @@ const tabs = computed(() => {
   }
   baseTabs.push(
     { id: 'checkins', name: 'Check-Ins', icon: Clock },
-    { id: 'access', name: 'Zugangsverwaltung', icon: Key },
-    { id: 'history', name: 'Status-Verlauf', icon: History },
+    { id: 'access', name: 'Zugänge', icon: Key },
+    { id: 'history', name: 'Verlauf', icon: History },
   )
   return baseTabs
-})
-
-// Payment table columns configuration
-const paymentStatusFilter = ref('')
-const selectedPaymentIds = ref([])
-const paymentTableColumns = ref([
-  { key: 'id', label: 'ID', sortable: true, nowrap: true, visible: false },
-  { key: 'created_at', label: 'Datum', sortable: true, nowrap: true },
-  { key: 'amount', label: 'Betrag', sortable: true, nowrap: true },
-  { key: 'description', label: 'Beschreibung', sortable: false },
-  { key: 'status', label: 'Status', sortable: false, nowrap: true },
-  { key: 'payment_method', label: 'Zahlungsmethode', sortable: false, nowrap: true },
-  { key: 'due_date', label: 'Fälligkeitsdatum', sortable: false, nowrap: true }
-])
-
-// Computed properties
-const availablePaymentMethodTypes = computed(() => {
-  if (props.availablePaymentMethods && props.availablePaymentMethods.length > 0) {
-    return props.availablePaymentMethods
-  }
-  if (props.member?.gym?.enabled_payment_methods) {
-    return props.member.gym.enabled_payment_methods
-  }
-  return []
-})
-
-const currentMonth = computed(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
-})
-
-const filteredPayments = computed(() => {
-  let paymentList = payments.value || []
-
-  if (paymentStatusFilter.value) {
-    paymentList = paymentList.filter(p => p.status === paymentStatusFilter.value)
-  }
-
-  paymentList = [...paymentList].sort((a, b) => b.id - a.id)
-
-  return {
-    data: paymentList,
-    total: paymentList.length
-  }
-})
-
-const selectedPendingPaymentIds = computed(() => {
-  return selectedPaymentIds.value.filter(id => {
-    const payment = payments.value.find(p => p.id === id)
-    return payment && payment.status === 'pending'
-  })
-})
-
-const hasPendingPaymentsSelected = computed(() => {
-  return selectedPendingPaymentIds.value.length > 0
-})
-
-const sendWelcomeToMember = () => {
-  if (confirm(`Möchten Sie dem Mitglied eine Willkommensnachricht per E-Mail an ${props.member.email} senden?`)) {
-    router.post(route('members.send-welcome', props.member.id), {}, {
-      preserveScroll: true,
-      onSuccess: () => {
-        alert('E-Mail wurde erfolgreich versendet.')
-      },
-      onError: (errors) => {
-        console.error('Send welcome email error:', errors)
-        alert('Fehler beim Versenden der E-Mail. Bitte versuchen Sie es erneut.')
-      },
-      onCancel: () => {
-        console.log('Request was cancelled')
-      },
-      onFinish: () => {
-        console.log('Request finished')
-      }
-    })
-  }
-}
-
-// Access Control functions
-const getActiveAccessCount = () => {
-  let count = 0
-  if (accessForm.qr_code_enabled) count++
-  if (accessForm.nfc_enabled) count++
-  if (accessForm.solarium_enabled) count++
-  if (accessForm.vending_enabled) count++
-  if (accessForm.massage_enabled) count++
-  if (accessForm.coffee_flat_enabled) count++
-  return count
-}
-
-// Device management
-const removeDevice = (device) => {
-  if (!confirm('Möchten Sie dieses Gerät wirklich entfernen? Das Mitglied kann sich dann mit einem neuen Gerät anmelden.')) {
-    return
-  }
-  removingDeviceId.value = device.id
-  router.delete(route('members.access.remove-device', { member: props.member.id, device: device.id }), {
-    preserveScroll: true,
-    onFinish: () => {
-      removingDeviceId.value = null
-    }
-  })
-}
-
-// NFC ID Normalisierung
-const normalizeCardId = (cardId) => {
-  if (!cardId) return null
-
-  // Whitespace entfernen und in Großbuchstaben
-  cardId = cardId.trim().toUpperCase()
-
-  // 1. UID-Format mit Trennzeichen (04:A1:B2:C3 oder 04-A1-B2-C3)
-  if (cardId.includes(':') || cardId.includes('-')) {
-    // Trennzeichen entfernen
-    const normalized = cardId.replace(/[:-]/g, '')
-    // Prüfen ob gültiges Hex
-    if (/^[0-9A-F]+$/.test(normalized)) {
-      return normalized
-    }
-  }
-
-  // 2. Hexadezimal mit 0x Prefix
-  else if (cardId.startsWith('0X')) {
-    const hexPart = cardId.substring(2)
-    if (/^[0-9A-F]+$/.test(hexPart)) {
-      return hexPart
-    }
-  }
-
-  // 3. Reines Hexadezimal (nur A-F, 0-9)
-  else if (/^[0-9A-F]+$/.test(cardId)) {
-    return cardId
-  }
-
-  // 4. Reine Dezimalzahl
-  else if (/^[0-9]+$/.test(cardId)) {
-    // Dezimal zu Hex konvertieren für einheitliche Speicherung
-    return parseInt(cardId, 10).toString(16).toUpperCase()
-  }
-
-  return null
-}
-
-// Format NFC ID für Anzeige (mit Doppelpunkten für bessere Lesbarkeit)
-const formatNfcIdForDisplay = (nfcId) => {
-  if (!nfcId) return ''
-  // Normalisierte ID in 2er-Gruppen mit Doppelpunkt trennen
-  return nfcId.match(/.{1,2}/g)?.join(':') || nfcId
-}
-
-const invalidateQrCode = () => {
-  if (confirm('Möchten Sie wirklich den QR-Code invalidieren? Das Mitglied kann sich dann nicht mehr per QR-Code einloggen, bis ein neuer Code generiert wird.')) {
-    router.post(route('members.access.invalidate-qr', props.member.id), {}, {
-      preserveScroll: true,
-      onSuccess: () => {
-        // Status wird automatisch aktualisiert
-      }
-    })
-  }
-}
-
-const sendQrCodeToMember = () => {
-  if (confirm(`Möchten Sie dem Mitglied einen Link zur Mitglieder-App per E-Mail an ${props.member.email} senden?`)) {
-    router.post(route('members.access.send-app-link', props.member.id), {}, {
-      preserveScroll: true,
-      onSuccess: () => {
-        alert('E-Mail wurde erfolgreich versendet.')
-      }
-    })
-  }
-}
-
-const validateNfcInput = () => {
-  const normalized = normalizeCardId(nfcInputValue.value)
-  normalizedNfcId.value = normalized || ''
-  isNfcValid.value = normalized !== null
-}
-
-const startNfcEdit = () => {
-  editingNfc.value = true
-  nfcInputValue.value = formatNfcIdForDisplay(accessForm.nfc_uid) || ''
-  validateNfcInput()
-}
-
-const saveNfcUid = () => {
-  if (!isNfcValid.value) return
-
-  // Speichere die normalisierte Version
-  accessForm.nfc_uid = normalizedNfcId.value
-
-  accessForm.put(route('members.access.update', props.member.id), {
-    preserveScroll: true,
-    onSuccess: () => {
-      editingNfc.value = false
-      nfcInputValue.value = ''
-      normalizedNfcId.value = ''
-    },
-    onError: (errors) => {
-      console.error('Fehler beim Speichern der NFC-ID:', errors)
-      alert('Die NFC-ID konnte nicht gespeichert werden. Möglicherweise ist diese ID bereits einem anderen Mitglied zugeordnet.')
-    }
-  })
-}
-
-const cancelNfcEdit = () => {
-  nfcInputValue.value = formatNfcIdForDisplay(accessForm.nfc_uid) || ''
-  normalizedNfcId.value = ''
-  isNfcValid.value = false
-  editingNfc.value = false
-}
-
-const removeNfcTag = () => {
-  if (confirm('Möchten Sie den NFC-Tag wirklich entfernen?')) {
-    accessForm.nfc_uid = ''
-    nfcInputValue.value = ''
-    normalizedNfcId.value = ''
-
-    accessForm.put(route('members.access.update', props.member.id), {
-      preserveScroll: true,
-      onSuccess: () => {
-        // Erfolgreich entfernt
-      }
-    })
-  }
-}
-
-const updateAccessSettings = () => {
-  accessForm.put(route('members.access.update', props.member.id), {
-    preserveScroll: true
-  })
-}
-
-// NFC Scanning functions
-const startNfcScanning = () => {
-  if (!window.Echo || !props.member.gym?.id) {
-    alert('WebSocket-Verbindung nicht verfügbar.')
-    return
-  }
-
-  isNfcScanning.value = true
-  const gymId = props.member.gym.id
-
-  try {
-    nfcScanChannel.value = window.Echo.private(`gym.${gymId}.access-logs`)
-
-    nfcScanChannel.value.listen('.scanner.access', (event) => {
-      const log = event.log
-      // Only process NFC card scans
-      if (log.scan_type === 'nfc_card' && log.nfc_card_id) {
-        // Found an NFC card scan - use the nfc_card_id
-        const nfcCardId = log.nfc_card_id
-
-        // Set the value and save
-        accessForm.nfc_uid = nfcCardId
-        nfcInputValue.value = formatNfcIdForDisplay(nfcCardId)
-
-        // Save immediately
-        accessForm.put(route('members.access.update', props.member.id), {
-          preserveScroll: true,
-          onSuccess: () => {
-            stopNfcScanning()
-          },
-          onError: (errors) => {
-            console.error('Fehler beim Speichern der NFC-ID:', errors)
-            alert('Die NFC-ID konnte nicht gespeichert werden. Möglicherweise ist diese ID bereits einem anderen Mitglied zugeordnet.')
-            stopNfcScanning()
-          }
-        })
-      }
-    })
-
-    nfcScanChannel.value.subscribed(() => {
-      nfcScanConnected.value = true
-      console.log(`NFC scanning started for gym.${gymId}.access-logs`)
-    })
-
-    nfcScanChannel.value.error((error) => {
-      console.error('NFC scan WebSocket error:', error)
-      nfcScanConnected.value = false
-      stopNfcScanning()
-    })
-  } catch (error) {
-    console.error('Failed to start NFC scanning:', error)
-    isNfcScanning.value = false
-  }
-}
-
-const stopNfcScanning = () => {
-  if (nfcScanChannel.value && window.Echo && props.member.gym?.id) {
-    window.Echo.leave(`gym.${props.member.gym.id}.access-logs`)
-    nfcScanChannel.value = null
-  }
-  isNfcScanning.value = false
-  nfcScanConnected.value = false
-}
-
-
-const getAccessMethodIcon = (method) => {
-  const icons = {
-    'QR-Code': QrCode,
-    'NFC': Nfc,
-    'Manual': Key
-  }
-  return icons[method] || Key
-}
-
-// Helper functions
-const isSepaType = (type) => {
-  return type === 'sepa_direct_debit' ||
-         type === 'mollie_directdebit'
-}
-
-const isCreditCardType = (type) => {
-  return type === 'creditcard' ||
-         type === 'mollie_creditcard' ||
-         type?.includes('creditcard')
-}
-
-const isBankTransferType = (type) => {
-  return type === 'banktransfer' ||
-         type === 'mollie_banktransfer' ||
-         type?.includes('banktransfer')
-}
-
-// Forms
-const form = useForm({
-  member_number: props.member.member_number,
-  salutation: props.member.salutation,
-  first_name: props.member.first_name,
-  last_name: props.member.last_name,
-  email: props.member.email,
-  phone: props.member.phone,
-  birth_date: formatDateForInput(props.member.birth_date),
-  address: props.member.address,
-  address_addition: props.member.address_addition,
-  city: props.member.city,
-  postal_code: props.member.postal_code,
-  country: props.member.country,
-  emergency_contact_name: props.member.emergency_contact_name,
-  emergency_contact_phone: props.member.emergency_contact_phone,
-  legal_guardian_member_id: props.member.legal_guardian_member_id,
-  legal_guardian_first_name: props.member.legal_guardian_first_name,
-  legal_guardian_last_name: props.member.legal_guardian_last_name,
-  notes: props.member.notes,
-  joined_date: formatDateForInput(props.member.joined_date),
 })
 
 // Forms für Mitgliedschafts-Aktionen
@@ -2762,64 +772,6 @@ const cancelMembershipForm = useForm({
   immediate: false,
   min_cancellation_date: null
 })
-
-// Forms für Zahlungsmethoden
-const paymentMethodForm = useForm({
-  id: null,
-  type: '',
-  status: 'active',
-  is_default: false,
-  // SEPA fields
-  iban: '',
-  account_holder: '',
-  bank_name: '',
-  sepa_mandate_status: 'pending',
-  sepa_mandate_reference: '',
-  // Credit card fields
-  last_four: '',
-  cardholder_name: '',
-  expiry_date: '',
-})
-
-const newPaymentMethodForm = useForm({
-  type: '',
-  status: 'active',
-  is_default: false,
-  // SEPA fields
-  iban: '',
-  account_holder: '',
-  bank_name: '',
-  sepa_mandate_acknowledged: false,
-  // Credit card fields
-  card_number: '',
-  cardholder_name: '',
-  expiry_date: '',
-  cvv: '',
-  // Bank transfer fields
-  notes: '',
-})
-
-const newPaymentForm = useForm({
-  amount: '',
-  description: '',
-  due_date: '',
-  paid_date: '',
-  payment_method: '',
-  status: 'pending',
-  notes: ''
-})
-
-// IBAN validation state für beide Forms
-const ibanValidation = ref({
-  newPaymentMethod: { isValid: false },
-  editPaymentMethod: { isValid: false }
-})
-
-// IBAN validation handlers
-const handleIbanValidation = (validation, context) => {
-  ibanValidation.value[context] = validation
-  console.log(`IBAN validation for ${context}:`, validation)
-}
 
 // Status-Change Handler
 const handleStatusChanged = (newStatus) => {
@@ -3081,416 +1033,27 @@ const handleForceStatus = (membership, newStatus) => {
   })
 }
 
-// Payment methods
-const filterPayments = () => {
-  // Filter wird automatisch durch computed property angewendet
-  console.log(`Showing ${filteredPayments.value.total} payments`)
+const enterEditMode = () => {
+  activeTab.value = 'personal'
+  editMode.value = true
+  // Snapshot the form once the component is mounted/updated with editMode on
+  nextTick(() => personalDataTab.value?.enterEdit())
 }
 
-const openAddPayment = () => {
-  newPaymentForm.reset()
-  newPaymentForm.due_date = new Date().toISOString().split('T')[0]
-  showAddPaymentModal.value = true
+// Leave edit mode and discard local edits (the discard confirmation, if any,
+// is handled by the header card before this is emitted).
+const exitEditMode = () => {
+  personalDataTab.value?.resetForm()
+  editMode.value = false
 }
 
-const closeAddPayment = () => {
-  showAddPaymentModal.value = false
-  newPaymentForm.reset()
+// Trigger the save from the header button
+const savePersonalData = () => {
+  personalDataTab.value?.save()
 }
 
-const createPayment = () => {
-  newPaymentForm.post(route('members.payments.store', props.member.id), {
-    preserveScroll: true,
-    onSuccess: () => {
-      closeAddPayment()
-      // Reload member data and re-apply filters
-      router.reload({
-        only: ['member'],
-        preserveScroll: true,
-        onSuccess: () => {
-          filterPayments()
-        }
-      })
-    }
-  })
-}
-
-const handleExecutePayment = (payment) => {
-  executePayment(payment)
-    .then((result) => {
-      if (result && result.success) {
-        console.log('Payment executed successfully:', result.message)
-      }
-    })
-    .catch((error) => {
-      console.error('Payment execution failed:', error)
-    })
-}
-
-const executeSelectedPayments = () => {
-  if (selectedPendingPaymentIds.value.length === 0) {
-    return
-  }
-
-  executeBatchPayments(selectedPendingPaymentIds.value)
-    .then((result) => {
-      if (result && result.success) {
-        selectedPaymentIds.value = []
-        console.log(`${result.count} payments executed successfully`)
-      }
-    })
-    .catch((error) => {
-      console.error('Batch execution failed:', error)
-    })
-}
-
-const downloadInvoice = (payment) => {
-  // Placeholder für Rechnung-Download
-  window.open(route('members.payments.invoice', {
-    member: props.member.id,
-    payment: payment.id
-  }), '_blank')
-}
-
-const handlePaymentMarkedPaid = (payment) => {
-  // Update the payment status in the local state
-  const paymentList = payments.value
-  const paymentIndex = paymentList.findIndex(p => p.id === payment.id)
-
-  if (paymentIndex !== -1) {
-    // Create new array with updated payment
-    const updatedPayments = [...paymentList]
-    updatedPayments[paymentIndex] = {
-      ...updatedPayments[paymentIndex],
-      status: 'paid',
-      status_text: 'Bezahlt',
-      status_color: 'green',
-      paid_date: new Date().toISOString()
-    }
-
-    updateLocalPayments(updatedPayments)
-  }
-}
-
-const handleBeforeMarkPaid = (event) => {
-  // Here we can add additional validation if needed
-  // event.preventDefault = true would prevent the action
-
-  // Optional: Show loading state or confirm dialog
-  // if (!confirm('Möchten Sie diese Zahlung als bezahlt markieren?')) {
-  //   event.preventDefault = true
-  // }
-}
-
-// Payment Method Functions
-const setAsDefault = (paymentMethod) => {
-  settingDefault.value = paymentMethod.id
-
-  router.put(route('members.payment-methods.set-default', {
-    member: props.member.id,
-    paymentMethod: paymentMethod.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      settingDefault.value = null
-    },
-    onError: () => {
-      settingDefault.value = null
-    }
-  })
-}
-
-const deactivatePaymentMethod = (paymentMethod) => {
-  if (!confirm('Möchten Sie diese Zahlungsmethode wirklich deaktivieren?')) {
-    return
-  }
-
-  deactivating.value = paymentMethod.id
-
-  router.put(route('members.payment-methods.deactivate', {
-    member: props.member.id,
-    paymentMethod: paymentMethod.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      deactivating.value = null
-    },
-    onError: () => {
-      deactivating.value = null
-    }
-  })
-}
-
-const openEditPaymentMethod = (paymentMethod) => {
-  paymentMethodForm.id = paymentMethod.id
-  paymentMethodForm.type = paymentMethod.type
-  paymentMethodForm.type_text = paymentMethod.type_text
-  paymentMethodForm.status = paymentMethod.status
-  paymentMethodForm.is_default = paymentMethod.is_default
-
-  // SEPA fields
-  if (isSepaType(paymentMethod.type)) {
-    paymentMethodForm.iban = paymentMethod.iban || ''
-    paymentMethodForm.account_holder = paymentMethod.account_holder || ''
-    paymentMethodForm.bank_name = paymentMethod.bank_name || ''
-    paymentMethodForm.sepa_mandate_status = paymentMethod.sepa_mandate_status || 'pending'
-    paymentMethodForm.sepa_mandate_reference = paymentMethod.sepa_mandate_reference || ''
-  }
-
-  // Credit card fields
-  if (isCreditCardType(paymentMethod.type)) {
-    paymentMethodForm.last_four = paymentMethod.last_four || ''
-    paymentMethodForm.cardholder_name = paymentMethod.cardholder_name || ''
-    paymentMethodForm.expiry_date = formatDateForInput(paymentMethod.expiry_date)
-  }
-
-  // Bank transfer fields
-  if (isBankTransferType(paymentMethod.type)) {
-    paymentMethodForm.bank_name = paymentMethod.bank_name || ''
-  }
-
-  showEditPaymentMethodModal.value = true
-}
-
-const closeEditPaymentMethod = () => {
-  showEditPaymentMethodModal.value = false
-  paymentMethodForm.reset()
-}
-
-const updatePaymentMethod = () => {
-  paymentMethodForm.put(route('members.payment-methods.update', {
-    member: props.member.id,
-    paymentMethod: paymentMethodForm.id
-  }), {
-    preserveScroll: true,
-    onSuccess: () => {
-      closeEditPaymentMethod()
-    }
-  })
-}
-
-const openAddPaymentMethod = () => {
-  newPaymentMethodForm.reset()
-  showAddPaymentMethodModal.value = true
-}
-
-const closeAddPaymentMethod = () => {
-  showAddPaymentMethodModal.value = false
-  newPaymentMethodForm.reset()
-}
-
-const createPaymentMethod = () => {
-  const selectedMethod = availablePaymentMethodTypes.value.find(m => m.key === newPaymentMethodForm.type)
-
-  const dataToSend = {
-    type: newPaymentMethodForm.type,
-    status: newPaymentMethodForm.status,
-    is_default: newPaymentMethodForm.is_default,
-    requires_mandate: selectedMethod?.requires_mandate || false,
-  }
-
-  if (isSepaType(newPaymentMethodForm.type)) {
-    dataToSend.iban = newPaymentMethodForm.iban
-    dataToSend.bank_name = newPaymentMethodForm.bank_name
-    dataToSend.account_holder = newPaymentMethodForm.account_holder
-    dataToSend.sepa_mandate_acknowledged = newPaymentMethodForm.sepa_mandate_acknowledged
-    dataToSend.requires_mandate = true
-  } else if (isCreditCardType(newPaymentMethodForm.type)) {
-    const cardNumber = newPaymentMethodForm.card_number.replace(/\s+/g, '')
-    dataToSend.last_four = cardNumber.slice(-4)
-    dataToSend.cardholder_name = newPaymentMethodForm.cardholder_name
-    dataToSend.expiry_date = newPaymentMethodForm.expiry_date
-  } else if (isBankTransferType(newPaymentMethodForm.type)) {
-    dataToSend.bank_name = newPaymentMethodForm.bank_name
-    dataToSend.notes = newPaymentMethodForm.notes
-  }
-
-  if (newPaymentMethodForm.type.startsWith('mollie_')) {
-    dataToSend.mollie_method_id = selectedMethod?.mollie_method_id || newPaymentMethodForm.type.replace('mollie_', '')
-  }
-
-  newPaymentMethodForm.transform(() => dataToSend).post(
-    route('members.payment-methods.store', props.member.id),
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        closeAddPaymentMethod()
-      }
-    }
-  )
-}
-
-const markSepaMandateAsSigned = (paymentMethod) => {
-  if (!confirm('Möchten Sie dieses SEPA-Mandat als unterschrieben markieren?\n\nDies sollte nur erfolgen, wenn Sie die unterschriebene Mandatserteilung vom Kunden erhalten haben.')) {
-    return
-  }
-
-  markingAsSigned.value = paymentMethod.id
-
-  router.put(route('members.payment-methods.mark-signed', {
-    member: props.member.id,
-    paymentMethod: paymentMethod.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: (page) => {
-      markingAsSigned.value = null
-      if (page.props.flash?.success) {
-        console.log('Erfolg:', page.props.flash.success)
-      }
-    },
-    onError: (errors) => {
-      markingAsSigned.value = null
-      console.error('Fehler:', errors)
-      alert('Das SEPA-Mandat konnte nicht als unterschrieben markiert werden.')
-    }
-  })
-}
-
-const activateSepaMandate = (paymentMethod) => {
-  if (!confirm('Möchten Sie dieses SEPA-Mandat aktivieren?\n\nNach der Aktivierung können Lastschriften eingezogen werden.')) {
-    return
-  }
-
-  activatingMandate.value = paymentMethod.id
-
-  router.put(route('members.payment-methods.activate-mandate', {
-    member: props.member.id,
-    paymentMethod: paymentMethod.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: (page) => {
-      activatingMandate.value = null
-      if (page.props.flash?.success) {
-        console.log('Erfolg:', page.props.flash.success)
-      }
-      memberDocumentsTab.value?.fetchDocuments()
-    },
-    onError: (errors) => {
-      activatingMandate.value = null
-      console.error('Fehler:', errors)
-      alert('Das SEPA-Mandat konnte nicht aktiviert werden.')
-    }
-  })
-}
-
-const sendSepaMandate = (paymentMethod) => {
-  sendingMandate.value = paymentMethod.id
-
-  const message = `Diese Funktion ist noch nicht implementiert.
-
-Das SEPA-Mandat kann aktuell nur manuell versendet werden:
-1. Generieren Sie das Mandat-PDF
-2. Versenden Sie es per E-Mail an: ${props.member.email}
-3. Nach Erhalt der Unterschrift markieren Sie es als "unterschrieben"
-
-Diese Funktion wird in einem zukünftigen Update automatisiert.`
-
-  alert(message)
-
-  setTimeout(() => {
-    sendingMandate.value = null
-  }, 500)
-}
-
-// Utility functions
-const getInitials = (firstName, lastName) => {
-  return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase()
-}
-
-const getStatusBadgeClass = (status) => {
-  const classes = {
-    active: 'bg-green-100 text-green-800',
-    inactive: 'bg-gray-100 text-gray-800',
-    paused: 'bg-yellow-100 text-yellow-800',
-    cancelled: 'bg-red-100 text-red-800',
-    paid: 'bg-green-100 text-green-800',
-    pending: 'bg-orange-100 text-orange-800',
-    failed: 'bg-red-100 text-red-800',
-    expired: 'bg-gray-100 text-gray-800'
-  }
-  return classes[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusText = (status) => {
-  const texts = {
-    active: 'Aktiv',
-    inactive: 'Inaktiv',
-    paused: 'Pausiert',
-    cancelled: 'Gekündigt',
-    paid: 'Bezahlt',
-    pending: 'Ausstehend',
-    failed: 'Fehlgeschlagen',
-    expired: 'Abgelaufen'
-  }
-  return texts[status] || status
-}
-
-const getPaymentMethodIcon = (type) => {
-  const icons = {
-    'sepa_direct_debit': Building2,
-    'creditcard': CreditCard,
-    'banktransfer': Building2,
-    'cash': Banknote,
-    'invoice': FileText,
-    'mollie_creditcard': CreditCard,
-    'mollie_directdebit': Building2,
-    'mollie_paypal': WalletCards,
-    'mollie_klarna': FileText,
-  }
-  return icons[type] || CreditCard
-}
-
-const getPaymentMethodIconClass = (type) => {
-  const classes = {
-    'sepa_direct_debit': 'bg-blue-100 text-blue-600',
-    'creditcard': 'bg-purple-100 text-purple-600',
-    'banktransfer': 'bg-green-100 text-green-600',
-    'cash': 'bg-yellow-100 text-yellow-600',
-    'invoice': 'bg-gray-100 text-gray-600'
-  }
-  return classes[type] || 'bg-gray-100 text-gray-600'
-}
-
-const getSepaMandateStatusClass = (status) => {
-  const classes = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'signed': 'bg-blue-100 text-blue-800',
-    'active': 'bg-green-100 text-green-800',
-    'revoked': 'bg-red-100 text-red-800',
-    'expired': 'bg-gray-100 text-gray-800'
-  }
-  return classes[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getSepaMandateStatusText = (status) => {
-  const texts = {
-    'pending': 'Unterschrift ausstehend',
-    'signed': 'Unterschrieben',
-    'active': 'Aktiv',
-    'revoked': 'Widerrufen',
-    'expired': 'Abgelaufen'
-  }
-  return texts[status] || status
-}
-
-const calculateDuration = (checkIn, checkOut) => {
-  if (!checkIn || !checkOut) return '-'
-  const duration = new Date(checkOut) - new Date(checkIn)
-  const hours = Math.floor(duration / (1000 * 60 * 60))
-  const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60))
-  return `${hours}h ${minutes}m`
-}
-
-const updateMember = () => {
-  form.put(route('members.update', props.member.id), {
-    onSuccess: () => {
-      editMode.value = false
-    }
-  })
-}
-
-const cancelEdit = () => {
-  form.reset()
+// Called after the personal-data form was persisted successfully
+const onPersonalDataSaved = () => {
   editMode.value = false
 }
 
@@ -3522,65 +1085,71 @@ const toggleGuestAccess = () => {
   })
 }
 
-// Watchers
-watch(() => showAddPaymentMethodModal.value, (isOpen) => {
-  if (isOpen && !newPaymentMethodForm.expiry_date) {
-    newPaymentMethodForm.expiry_date = currentMonth.value
-  }
-})
+// Mobile collapsing-header wiring: watch the AppLayout scroll container and
+// flip `headerCollapsed` once the profile card has scrolled under the app bar.
+// Also publishes the app-bar height as a CSS variable so the sticky tab rail
+// can offset itself correctly below it.
+const pageRoot = ref(null)
+let scrollContainer = null
+let appHeader = null
 
-watch(() => props.member?.payments, (newPayments) => {
-  if (newPayments && Array.isArray(newPayments)) {
-    updateLocalPayments(newPayments)
-  }
-}, { deep: true, immediate: true })
-
-watch(paymentStatusFilter, () => {
-  filterPayments()
-})
-
-// Click outside handler for legal guardian search
-const handleClickOutside = (event) => {
-  if (showLegalGuardianResults.value) {
-    const searchContainer = event.target.closest('.relative')
-    if (!searchContainer || !searchContainer.querySelector('[placeholder*="Nach Mitglied suchen"]')) {
-      showLegalGuardianResults.value = false
+// Walk up from our own root to the nearest actually-scrollable ancestor. This
+// is more robust than matching Tailwind class names on the AppLayout container.
+const findScrollParent = (el) => {
+  let node = el?.parentElement
+  while (node && node !== document.body) {
+    const oy = getComputedStyle(node).overflowY
+    if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) {
+      return node
     }
+    node = node.parentElement
+  }
+  return null
+}
+
+const updateHeaderHeight = () => {
+  if (appHeader) {
+    document.documentElement.style.setProperty('--gp-header-height', `${appHeader.offsetHeight}px`)
   }
 }
 
-// Lifecycle
+const onLayoutScroll = () => {
+  if (!scrollContainer) return
+  headerCollapsed.value = scrollContainer.scrollTop > 96
+}
+
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('edit') === 'true') {
-    editMode.value = true
+    enterEditMode()
   }
 
-  // Initial payments laden
-  if (props.member?.payments) {
-    updateLocalPayments(props.member.payments)
+  scrollContainer = findScrollParent(pageRoot.value)
+    || document.querySelector('.flex-1.overflow-y-auto')
+  appHeader = scrollContainer?.querySelector('header')
+    || document.querySelector('header')
+  updateHeaderHeight()
+  window.addEventListener('resize', updateHeaderHeight)
+  if (scrollContainer) {
+    scrollContainer.addEventListener('scroll', onLayoutScroll, { passive: true })
+    onLayoutScroll()
   }
-
-  // Load access logs if available
-  if (props.member?.access_logs) {
-    accessLogs.value = props.member.access_logs
-  }
-
-  // Initialize NFC value with proper formatting
-  if (props.member?.access_config?.nfc_uid) {
-    accessForm.nfc_uid = props.member.access_config.nfc_uid
-    nfcInputValue.value = formatNfcIdForDisplay(props.member.access_config.nfc_uid)
-  }
-
-  // Initial filter anwenden
-  filterPayments()
-
-  // Add click outside listener
-  document.addEventListener('click', handleClickOutside)
 })
 
-onUnmounted(() => {
-  stopNfcScanning()
-  document.removeEventListener('click', handleClickOutside)
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateHeaderHeight)
+  scrollContainer?.removeEventListener('scroll', onLayoutScroll)
+  document.documentElement.style.removeProperty('--gp-header-height')
 })
 </script>
+
+<style scoped>
+/* Hide the horizontal scrollbar on the tab rail (mobile pill / desktop underline) */
+.gp-tab-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.gp-tab-rail::-webkit-scrollbar {
+  display: none;
+}
+</style>
