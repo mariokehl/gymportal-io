@@ -6,6 +6,7 @@ use App\Console\Commands\ProcessMembershipPayments;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
+use App\Services\CreditLedgerService;
 use App\Services\MollieService;
 use App\Services\PaymentService;
 use Carbon\Carbon;
@@ -304,6 +305,7 @@ class MembershipRenewalTest extends TestCase
             ->setConstructorArgs([
                 app(PaymentService::class),
                 app(MollieService::class),
+                app(CreditLedgerService::class),
             ])
             ->onlyMethods(['createPaymentsForMembership'])
             ->getMock();

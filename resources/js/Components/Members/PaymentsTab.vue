@@ -287,6 +287,7 @@
               <div v-else class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             </button>
           </template>
+
         </PaymentsTable>
       </div>
       <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
@@ -666,95 +667,211 @@
 
     <!-- Add Payment Modal -->
     <teleport to="body">
-      <div v-if="showAddPaymentModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPayment">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+      <div v-if="showAddPaymentModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50 flex justify-center items-start py-12 sm:py-20 px-2" @click="closeAddPayment">
+        <div class="relative mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/2 xl:w-2/5 shadow-lg rounded-md bg-white" @click.stop>
           <form @submit.prevent="createPayment">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="mb-4">
                 <h3 class="text-lg font-medium text-gray-900">
-                  Neue Zahlung hinzufügen
+                  {{ newPaymentForm.payment_type === 'topup' ? 'Guthaben aufladen' : 'Neue Zahlung hinzufügen' }}
                 </h3>
               </div>
 
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="newPaymentForm.amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="newPaymentForm.description"
-                    type="text"
-                    placeholder="z.B. Monatsbeitrag Januar 2024"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Fälligkeitsdatum</label>
-                  <input
-                    v-model="newPaymentForm.due_date"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
-                  <select
-                    v-model="newPaymentForm.payment_method"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              <!-- Payment type selector -->
+              <div class="mb-5">
+                <div class="text-sm font-semibold text-gray-700 mb-2">Zahlungstyp</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    @click="newPaymentForm.payment_type = 'regular'"
+                    class="text-left rounded-lg border px-4 py-3.5 transition-colors"
+                    :class="newPaymentForm.payment_type === 'regular'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
                   >
-                    <option value="">Bitte wählen...</option>
-                    <option
-                      v-for="method in availablePaymentMethodTypes"
-                      :key="method.key"
-                      :value="method.key"
-                    >
-                      {{ method.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
-                    v-model="newPaymentForm.status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    <div class="flex items-center gap-2.5">
+                      <CreditCard class="w-[18px] h-[18px]" />
+                      <span class="font-semibold text-sm">Reguläre Zahlung</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1.5">Forderung über eine Zahlungsmethode.</div>
+                  </button>
+                  <button
+                    type="button"
+                    @click="newPaymentForm.payment_type = 'topup'"
+                    class="text-left rounded-lg border px-4 py-3.5 transition-colors"
+                    :class="newPaymentForm.payment_type === 'topup'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
                   >
-                    <option value="pending">Ausstehend</option>
-                    <option value="paid">Bezahlt</option>
-                  </select>
-                </div>
-
-                <div v-if="newPaymentForm.status === 'paid'">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Bezahlt am</label>
-                  <input
-                    v-model="newPaymentForm.paid_date"
-                    type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
-                  <textarea
-                    v-model="newPaymentForm.notes"
-                    rows="2"
-                    placeholder="Optionale Notizen zur Zahlung"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  ></textarea>
+                    <div class="flex items-center gap-2.5">
+                      <Wallet class="w-[18px] h-[18px]" />
+                      <span class="font-semibold text-sm">Guthaben-Aufladung</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1.5">Betrag als Guthaben gutschreiben.</div>
+                  </button>
                 </div>
               </div>
+
+              <!-- Top-up branch -->
+              <template v-if="newPaymentForm.payment_type === 'topup'">
+                <div class="flex gap-3 bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3.5 mb-5">
+                  <Info class="w-5 h-5 text-indigo-600 flex-none" />
+                  <div class="text-[13px] text-indigo-800 leading-relaxed">
+                    Der Betrag wird dem Mitgliedskonto als Guthaben gutgeschrieben und bei zukünftigen Abbuchungen
+                    <strong>automatisch vorrangig</strong> verwendet. Ideal für Voraus- und Jahreszahlungen per Überweisung.
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentForm.amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentForm.description"
+                      type="text"
+                      placeholder="z.B. Guthaben-Aufladung: Überweisung"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Eingangsdatum</label>
+                      <input
+                        v-model="newPaymentForm.paid_date"
+                        type="date"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsart</label>
+                      <select
+                        v-model="newPaymentForm.payment_method"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option
+                          v-for="method in topupPaymentMethods"
+                          :key="method.key"
+                          :value="method.key"
+                        >
+                          {{ method.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                  <div v-if="isMollieTopupMethod" class="flex gap-2.5 bg-amber-100 rounded-md px-3.5 py-3">
+                    <Info class="w-[17px] h-[17px] text-amber-600 flex-none" />
+                    <div class="text-xs text-amber-700 leading-relaxed">
+                      Die Aufladung wird zunächst als <strong>ausstehend</strong> vermerkt. Das Guthaben wird erst
+                      gutgeschrieben, sobald die Zahlung über den Zahlungsanbieter bestätigt wurde.
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 bg-gray-50 border border-dashed border-gray-300 rounded-md px-4 py-3.5">
+                    <span class="text-sm text-gray-600">{{ isMollieTopupMethod ? 'Guthaben-Stand nach Zahlungseingang' : 'Neuer Guthaben-Stand nach Aufladung' }}</span>
+                    <span class="text-lg font-bold text-indigo-600 whitespace-nowrap flex-none">{{ newBalancePreview }}</span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Regular branch -->
+              <template v-else>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentForm.amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="newPaymentForm.description"
+                      type="text"
+                      placeholder="z.B. Monatsbeitrag Januar 2024"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fälligkeitsdatum</label>
+                    <input
+                      v-model="newPaymentForm.due_date"
+                      type="date"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
+                    <select
+                      v-model="newPaymentForm.payment_method"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Bitte wählen...</option>
+                      <option value="credit">Guthaben (verfügbar: {{ creditBalanceFormatted }}) — vorrangig</option>
+                      <option
+                        v-for="method in availablePaymentMethodTypes"
+                        :key="method.key"
+                        :value="method.key"
+                      >
+                        {{ method.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div v-if="newPaymentForm.payment_method === 'credit'" class="flex gap-2.5 bg-amber-100 rounded-md px-3.5 py-3">
+                    <Info class="w-[17px] h-[17px] text-amber-600 flex-none" />
+                    <div class="text-xs text-amber-700 leading-relaxed">
+                      Reicht das Guthaben nicht aus, wird der Restbetrag automatisch über die Standard-Zahlungsmethode abgebucht.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select
+                      v-model="newPaymentForm.status"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="pending">Ausstehend</option>
+                      <option value="paid">Bezahlt</option>
+                    </select>
+                  </div>
+
+                  <div v-if="newPaymentForm.status === 'paid'">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bezahlt am</label>
+                    <input
+                      v-model="newPaymentForm.paid_date"
+                      type="date"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                    <textarea
+                      v-model="newPaymentForm.notes"
+                      rows="2"
+                      placeholder="Optionale Notizen zur Zahlung"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    ></textarea>
+                  </div>
+                </div>
+              </template>
 
               <div v-if="newPaymentForm.errors && Object.keys(newPaymentForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
                 <div class="text-sm text-red-800">
@@ -771,7 +888,8 @@
                 :disabled="newPaymentForm.processing || !newPaymentForm.amount || !newPaymentForm.description"
                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {{ newPaymentForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
+                <template v-if="newPaymentForm.processing">Wird gespeichert...</template>
+                <template v-else>{{ newPaymentForm.payment_type === 'topup' ? 'Als Guthaben verbuchen' : 'Hinzufügen' }}</template>
               </button>
               <button
                 type="button"
@@ -797,7 +915,7 @@ import IbanInput from '@/Components/IbanInput.vue'
 import {
   CreditCard, Plus, Wallet, AlertCircle, CheckCircle, XCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  FileText, AlertTriangle, ChevronDown, Send, Check
+  FileText, AlertTriangle, ChevronDown, Send, Check, Info
 } from 'lucide-vue-next'
 import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 
@@ -871,6 +989,29 @@ const availablePaymentMethodTypes = computed(() => {
   }
   return []
 })
+
+// Whether Mollie is enabled for the gym (any mollie_ method is available).
+const isMollieEnabled = computed(() =>
+  availablePaymentMethodTypes.value.some(m => String(m.key || '').startsWith('mollie_'))
+)
+
+// Payment methods offered for a credit top-up: the manual (non-Mollie) methods
+// plus a single "Mollie: Zahlungslink" option when Mollie is enabled.
+const topupPaymentMethods = computed(() => {
+  const manual = availablePaymentMethodTypes.value.filter(
+    m => !String(m.key || '').startsWith('mollie_')
+  )
+  if (isMollieEnabled.value) {
+    manual.push({ key: 'mollie_paymentlink', name: 'Mollie: Zahlungslink' })
+  }
+  return manual
+})
+
+// A Mollie method for a top-up is collected asynchronously: the credit is only
+// granted once the webhook confirms the payment.
+const isMollieTopupMethod = computed(() =>
+  String(newPaymentForm.payment_method || '').startsWith('mollie_')
+)
 
 const currentMonth = computed(() => {
   const now = new Date()
@@ -960,6 +1101,7 @@ const newPaymentMethodForm = useForm({
 })
 
 const newPaymentForm = useForm({
+  payment_type: 'regular',
   amount: '',
   description: '',
   due_date: '',
@@ -967,6 +1109,20 @@ const newPaymentForm = useForm({
   payment_method: '',
   status: 'pending',
   notes: ''
+})
+
+// Credit balance surfaced by the backend (verified server-side).
+const creditBalanceCents = computed(() => props.member?.credit_balance_cents ?? 0)
+const creditBalanceFormatted = computed(() => props.member?.credit_balance_formatted ?? '0,00 €')
+
+const formatEuro = (cents) =>
+  (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+
+// Live preview of the balance after a top-up.
+const newBalancePreview = computed(() => {
+  const amount = parseFloat(String(newPaymentForm.amount).replace(',', '.'))
+  const addCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0
+  return formatEuro(creditBalanceCents.value + Math.max(0, addCents))
 })
 
 // IBAN validation state für beide Forms
@@ -983,7 +1139,22 @@ const handleIbanValidation = (validation, context) => {
 // Payment history
 const openAddPayment = () => {
   newPaymentForm.reset()
+  newPaymentForm.payment_type = 'regular'
   newPaymentForm.due_date = new Date().toISOString().split('T')[0]
+  showAddPaymentModal.value = true
+}
+
+// Opened from the header "Aufladen" action (exposed to the parent).
+const openTopup = () => {
+  newPaymentForm.reset()
+  newPaymentForm.payment_type = 'topup'
+  newPaymentForm.description = 'Guthaben-Aufladung: Überweisung'
+  // Prefer bank transfer; fall back to the first available top-up method.
+  const methods = topupPaymentMethods.value
+  newPaymentForm.payment_method = methods.some(m => m.key === 'banktransfer')
+    ? 'banktransfer'
+    : (methods[0]?.key ?? 'banktransfer')
+  newPaymentForm.paid_date = new Date().toISOString().split('T')[0]
   showAddPaymentModal.value = true
 }
 
@@ -993,11 +1164,16 @@ const closeAddPayment = () => {
 }
 
 const createPayment = () => {
+  // A top-up is always booked as a completed credit deposit.
+  if (newPaymentForm.payment_type === 'topup') {
+    newPaymentForm.status = 'paid'
+  }
+
   newPaymentForm.post(route('members.payments.store', props.member.id), {
     preserveScroll: true,
     onSuccess: () => {
       closeAddPayment()
-      // Reload member data
+      // Reload member data (payments + credit balance)
       router.reload({
         only: ['member'],
         preserveScroll: true,
@@ -1005,6 +1181,8 @@ const createPayment = () => {
     }
   })
 }
+
+defineExpose({ openTopup, openAddPayment })
 
 const handleExecutePayment = (payment) => {
   executePayment(payment)

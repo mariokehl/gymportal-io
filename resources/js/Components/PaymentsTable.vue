@@ -141,10 +141,13 @@
                 <!-- Description Column -->
                 <template v-else-if="column.key === 'description'">
                   <div class="text-sm text-gray-900 text-nowrap">{{ payment.description }}</div>
-                  <div v-if="payment.transaction_id" class="text-sm text-gray-500 text-nowrap">
+                  <div v-if="isCreditTopup(payment)" class="text-xs text-gray-500 text-nowrap font-mono">
+                    {{ creditTopupSource(payment) }}
+                  </div>
+                  <div v-else-if="payment.transaction_id" class="text-xs text-gray-500 text-nowrap font-mono">
                     Tx: {{ payment.transaction_id }}
                   </div>
-                  <div v-else-if="payment.mollie_payment_id" class="text-sm text-gray-500 text-nowrap">
+                  <div v-else-if="payment.mollie_payment_id" class="text-xs text-gray-500 text-nowrap font-mono">
                     Tx: {{ payment.mollie_payment_id }}
                   </div>
                 </template>
@@ -171,6 +174,19 @@
                       />
                       {{ getChargebackRefundCount(payment) }}
                     </button>
+                    <!-- Credit redemption badge -->
+                    <button
+                      v-if="hasCreditRedemption(payment)"
+                      @click.stop="toggleRowExpansion(payment.id)"
+                      class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer"
+                      :title="isRowExpanded(payment.id) ? 'Guthaben-Einlösung ausblenden' : 'Guthaben-Einlösung anzeigen'"
+                    >
+                      1
+                      <component
+                        :is="isRowExpanded(payment.id) ? ChevronDown : ChevronRight"
+                        class="w-3 h-3"
+                      />
+                    </button>
                     <div
                       v-if="executingPaymentId === payment.id"
                       class="ml-2 w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"
@@ -181,7 +197,24 @@
 
                 <!-- Payment Method Column -->
                 <template v-else-if="column.key === 'payment_method'">
-                  <span class="text-sm text-gray-900">{{ payment.payment_method_text }}</span>
+                  <span class="text-sm text-gray-900 inline-flex items-center gap-1.5">
+                    <BanknoteArrowUp
+                      v-if="isCreditTopup(payment)"
+                      class="w-4 h-4 text-indigo-600 flex-none"
+                      title="Guthaben-Aufladung"
+                    />
+                    <BanknoteArrowDown
+                      v-else-if="hasCreditRedemption(payment)"
+                      class="w-4 h-4 text-indigo-600 flex-none"
+                      title="Guthaben-Einlösung"
+                    />
+                    <component
+                      :is="getPaymentMethodIcon(payment)"
+                      v-else-if="getPaymentMethodIcon(payment)"
+                      class="w-4 h-4 text-gray-400 flex-none"
+                    />
+                    {{ getPaymentMethodLabel(payment) }}
+                  </span>
                 </template>
 
                 <!-- Due Date Column -->
@@ -229,10 +262,47 @@
               </td>
             </tr>
 
-            <!-- Expanded Row for Chargebacks/Refunds -->
-            <tr v-if="isRowExpanded(payment.id) && getChargebackRefundCount(payment) > 0">
+            <!-- Expanded Row for Chargebacks/Refunds/Credit -->
+            <tr v-if="isRowExpanded(payment.id) && (getChargebackRefundCount(payment) > 0 || hasCreditRedemption(payment))">
               <td :colspan="visibleColumns.length + (showCheckboxes ? 1 : 0) + (showActions ? 1 : 0)" class="px-6 py-4 bg-gray-50">
                 <div class="space-y-4">
+                  <!-- Credit redemption -->
+                  <div v-if="getCreditRedemption(payment)">
+                    <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
+                      <RotateCcw class="w-4 h-4 mr-2 text-indigo-600" />
+                      Guthaben-Einlösung (1)
+                    </h4>
+                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Restguthaben</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                          <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-sm text-gray-900 font-mono">{{ getCreditRedemption(payment).evId }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ formatDate(payment.paid_date || payment.due_date || payment.created_at) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-indigo-600">− {{ formatCentsEuro(getCreditRedemption(payment).redeemedCents) }}</td>
+                            <td class="px-4 py-2">
+                              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                Eingelöst
+                              </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ payment.description }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ formatCentsEuro(getCreditRedemption(payment).balanceAfterCents) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
                   <!-- Chargebacks -->
                   <div v-if="payment.chargebacks?.length > 0">
                     <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
@@ -329,7 +399,7 @@
         <!-- Header -->
         <div class="flex items-start justify-between mb-5">
           <h3 class="text-lg font-medium text-gray-900">
-            Zahlung #{{ selectedPayment?.id }}
+            {{ selectedPayment && isCreditTopup(selectedPayment) ? 'Guthaben-Aufladung' : 'Zahlung' }} #{{ selectedPayment?.id }}
           </h3>
           <div class="flex items-center gap-2">
             <button
@@ -371,7 +441,19 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500">Zahlungsart</label>
-              <p class="mt-1 text-sm text-gray-900">{{ selectedPayment.payment_method_text }}</p>
+              <p class="mt-1 text-sm text-gray-900 inline-flex items-center gap-1.5">
+                <BanknoteArrowUp
+                  v-if="isCreditTopup(selectedPayment)"
+                  class="w-4 h-4 text-indigo-600 flex-none"
+                  title="Guthaben-Aufladung"
+                />
+                <BanknoteArrowDown
+                  v-else-if="hasCreditRedemption(selectedPayment)"
+                  class="w-4 h-4 text-indigo-600 flex-none"
+                  title="Guthaben-Einlösung"
+                />
+                {{ selectedPayment.payment_method_text }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500">Erstellt am</label>
@@ -416,7 +498,12 @@
             <p class="mt-1 text-sm text-gray-900">{{ selectedPayment.description }}</p>
           </div>
 
-          <div v-if="selectedPayment.transaction_id">
+          <div v-if="isCreditTopup(selectedPayment)">
+            <label class="block text-sm font-medium text-gray-500">Erfassung</label>
+            <p class="mt-1 text-sm text-gray-900">{{ creditTopupSource(selectedPayment) }}</p>
+          </div>
+
+          <div v-else-if="selectedPayment.transaction_id">
             <label class="block text-sm font-medium text-gray-500">Transaktions-ID</label>
             <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedPayment.transaction_id }}</p>
           </div>
@@ -550,7 +637,15 @@ import {
   Link2,
   Pencil,
   Check,
-  Loader2
+  Loader2,
+  BanknoteArrowUp,
+  BanknoteArrowDown,
+  Building2,
+  CreditCard,
+  Banknote,
+  FileText,
+  WalletCards,
+  Wallet
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 
@@ -961,6 +1056,62 @@ const getChargebackRefundCount = (payment) => {
   const refundCount = payment.refunds?.length || 0
   return chargebackCount + refundCount
 }
+
+// Credit-redemption breakdown derived from a payment's metadata.
+const getCreditRedemption = (payment) => {
+  const meta = payment?.metadata
+  if (!meta || !meta.credit_redeemed || !meta.credit_redeemed_cents) {
+    return null
+  }
+  const redeemedCents = Number(meta.credit_redeemed_cents) || 0
+  const originalCents = Number(meta.original_amount_cents) || redeemedCents
+  const remainingCents = Math.max(0, originalCents - redeemedCents)
+  // Original id of the ledger row in member_credit_ledgers.
+  const evId = meta.credit_ledger_id != null ? `#${meta.credit_ledger_id}` : '—'
+  return {
+    evId,
+    redeemedCents,
+    remainingCents,
+    balanceAfterCents: Number(meta.credit_balance_after_cents) || 0,
+  }
+}
+
+const hasCreditRedemption = (payment) => getCreditRedemption(payment) !== null
+
+// A manually booked credit top-up ("Guthaben-Aufladung").
+const isCreditTopup = (payment) => payment?.is_credit_topup === true
+
+// Source label for a top-up: "manuell erfasst · <staff name>".
+const creditTopupSource = (payment) => {
+  const name = payment?.metadata?.created_by_name
+  return name ? `manuell erfasst · ${name}` : 'manuell erfasst'
+}
+
+const formatCentsEuro = (cents) =>
+  (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+
+// Payment method label. A leading wallet icon (rendered separately) marks a
+// credit top-up or redemption, so the credit part is not repeated in the text.
+const getPaymentMethodLabel = (payment) => payment.payment_method_text
+
+// Icon for a payment method. Credit top-ups/redemptions are handled separately
+// with directional banknote icons; this covers the regular methods.
+const paymentMethodIcons = {
+  sepa_direct_debit: Building2,
+  banktransfer: Building2,
+  mollie_directdebit: Building2,
+  mollie_banktransfer: Building2,
+  creditcard: CreditCard,
+  mollie_creditcard: CreditCard,
+  cash: Banknote,
+  invoice: FileText,
+  mollie_klarna: FileText,
+  mollie_paymentlink: Link2,
+  mollie_paypal: WalletCards,
+  credit: Wallet,
+}
+
+const getPaymentMethodIcon = (payment) => paymentMethodIcons[payment?.payment_method] || null
 
 const toggleRowExpansion = (paymentId) => {
   if (expandedRows.value.has(paymentId)) {

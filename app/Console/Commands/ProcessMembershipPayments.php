@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Membership;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Services\CreditLedgerService;
 use App\Services\MollieService;
 use App\Services\PaymentService;
 use Carbon\Carbon;
@@ -38,6 +39,8 @@ class ProcessMembershipPayments extends Command
 
     protected MollieService $mollieService;
 
+    protected CreditLedgerService $creditLedger;
+
     /**
      * Track changes for rollback functionality
      */
@@ -49,11 +52,15 @@ class ProcessMembershipPayments extends Command
 
     protected int $daysAhead = 14;
 
-    public function __construct(PaymentService $paymentService, MollieService $mollieService)
-    {
+    public function __construct(
+        PaymentService $paymentService,
+        MollieService $mollieService,
+        CreditLedgerService $creditLedger,
+    ) {
         parent::__construct();
         $this->paymentService = $paymentService;
         $this->mollieService = $mollieService;
+        $this->creditLedger = $creditLedger;
     }
 
     /**
@@ -228,6 +235,34 @@ class ProcessMembershipPayments extends Command
 
         DB::beginTransaction();
         try {
+            // Apply stored credit first. If it fully covers the payment, it is
+            // already marked paid and no collection over the method is needed.
+            $creditResult = $this->creditLedger->settlePayment($payment);
+
+            if ($creditResult['fully_covered']) {
+                if ($this->verboseLog) {
+                    $this->info("→ Payment #{$payment->id} fully covered by credit");
+                }
+
+                if ($payment->membership_id) {
+                    $membership = $payment->membership;
+                    if ($membership && $membership->status !== 'active') {
+                        if (! $membership->activateMembership()) {
+                            $membership->update(['status' => 'active']);
+                        }
+                    }
+                }
+
+                DB::commit();
+
+                return;
+            }
+
+            if ($creditResult['redeemed_cents'] > 0) {
+                // Only the remaining amount is now collected over the method.
+                $payment->refresh();
+            }
+
             switch ($paymentMethod->type) {
                 case 'sepa_direct_debit':
                     $this->processSepaPayment($payment, $paymentMethod);

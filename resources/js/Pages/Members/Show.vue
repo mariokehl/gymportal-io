@@ -107,6 +107,7 @@
         @block="showBlockModal = true"
         @toggle-age="toggleAgeVerification"
         @toggle-guest="toggleGuestAccess"
+        @topup="handleTopup"
         @status-changed="handleStatusChanged"
         @status-changing="handleStatusChanging"
       />
@@ -220,6 +221,7 @@
       <!-- Payments Tab (rendered directly on the gray canvas; only the cards are white) -->
       <div v-if="!editMode" v-show="activeTab === 'payments'">
         <PaymentsTab
+          ref="paymentsTab"
           :member="member"
           :available-payment-methods="availablePaymentMethods"
         />
@@ -701,6 +703,13 @@ const submitBlock = () => {
 const activeTab = ref('personal')
 const documentCount = ref(0)
 const memberDocumentsTab = ref(null)
+const paymentsTab = ref(null)
+
+// Credit top-up: switch to the payments tab and open its modal in top-up mode.
+const handleTopup = () => {
+  activeTab.value = 'payments'
+  nextTick(() => paymentsTab.value?.openTopup())
+}
 
 // Access-control UI lives in the AccessTab component; the parent only reads its
 // active-access count to drive the tab badge.
