@@ -31,12 +31,14 @@ class Payment extends Model
         'due_date',
         'paid_date',
         'payment_method',
+        'is_credit_topup',
         'transaction_id',
         'notes',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'is_credit_topup' => 'boolean',
         'execution_date' => 'date:Y-m-d',
         'due_date' => 'date:Y-m-d',
         'paid_date' => 'date:Y-m-d',
@@ -127,13 +129,13 @@ class Payment extends Model
             'chargeback' => 'red',
             'expired' => 'gray',
             'canceled' => 'red',
-            'completed' => 'green'
+            'completed' => 'green',
         ][$this->status] ?? 'gray';
     }
 
     public function getFormattedAmountAttribute()
     {
-        return number_format($this->amount, 2, ',', '.') . ' €';
+        return number_format($this->amount, 2, ',', '.').' €';
     }
 
     public function getPaymentMethodTextAttribute()
@@ -150,6 +152,7 @@ class Payment extends Model
             'mollie_klarna' => 'Mollie: Klarna',
             'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
             'mollie_paymentlink' => 'Mollie: Zahlungslink',
+            'credit' => 'Guthaben',
         ][$this->payment_method] ?? $this->payment_method;
     }
 
@@ -181,7 +184,7 @@ class Payment extends Model
     public function scopeOverdue($query)
     {
         return $query->where('status', 'pending')
-                     ->where('due_date', '<', now());
+            ->where('due_date', '<', now());
     }
 
     /**

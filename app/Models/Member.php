@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Pwa\MemberController;
+use App\Services\CreditLedgerService;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 class Member extends Authenticatable
 {
-    use HasFactory, SoftDeletes, HasApiTokens;
+    use HasApiTokens, HasFactory, SoftDeletes;
 
     /**
      * Domain-Suffix für synthetische E-Mails, die Mitgliedern ohne echte
@@ -132,7 +136,7 @@ class Member extends Authenticatable
         }
 
         if ($this->legal_guardian_first_name || $this->legal_guardian_last_name) {
-            return trim($this->legal_guardian_first_name . ' ' . $this->legal_guardian_last_name);
+            return trim($this->legal_guardian_first_name.' '.$this->legal_guardian_last_name);
         }
 
         return null;
@@ -260,8 +264,8 @@ class Member extends Authenticatable
      *
      * @return array{
      *     current: Membership|null,
-     *     free: \Illuminate\Database\Eloquent\Collection,
-     *     paid: \Illuminate\Database\Eloquent\Collection
+     *     free: Collection,
+     *     paid: Collection
      * }
      */
     public function getMembershipOverview(): array
@@ -281,7 +285,7 @@ class Member extends Authenticatable
             ->first();
 
         // Fallback: Erste aktive Mitgliedschaft (auch wenn sie noch nicht begonnen hat)
-        if (!$currentMembership) {
+        if (! $currentMembership) {
             $currentMembership = $this->memberships()
                 ->with('membershipPlan')
                 ->where('status', 'active')
@@ -300,7 +304,7 @@ class Member extends Authenticatable
         })->values();
 
         $paidMemberships = $otherMemberships->filter(function ($membership) {
-            return !$membership->is_free_trial;
+            return ! $membership->is_free_trial;
         })->values();
 
         return [
@@ -334,6 +338,43 @@ class Member extends Authenticatable
     }
 
     /**
+     * Encrypted, tamper-evident credit ledger entries ("Guthaben").
+     */
+    public function creditLedgers(): HasMany
+    {
+        return $this->hasMany(MemberCreditLedger::class)->orderBy('id');
+    }
+
+    /**
+     * Verified credit balance in integer cents. Returns 0 (never the raw stored
+     * value) if the ledger integrity check fails, so tampering cannot inflate it.
+     */
+    public function getCreditBalanceCentsAttribute(): int
+    {
+        try {
+            return app(CreditLedgerService::class)->getBalance($this);
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Credit balance as a decimal number (euros) for the frontend.
+     */
+    public function getCreditBalanceAttribute(): float
+    {
+        return $this->credit_balance_cents / 100;
+    }
+
+    /**
+     * Credit balance formatted as a German currency string, e.g. "3,00 €".
+     */
+    public function getCreditBalanceFormattedAttribute(): string
+    {
+        return number_format($this->credit_balance_cents / 100, 2, ',', '.').' €';
+    }
+
+    /**
      * Scope: Nur Mitglieder mit offenen Posten (OPOS).
      * Offen = Chargeback-Payment ohne zugehörige Ausgleichszahlung (transaction_id → mollie_payment_id).
      */
@@ -341,15 +382,15 @@ class Member extends Authenticatable
     {
         return $query->whereExists(function ($q) {
             $q->select(DB::raw(1))
-              ->from('payments as cb')
-              ->whereColumn('cb.member_id', 'members.id')
-              ->where('cb.status', 'chargeback')
-              ->whereNotExists(function ($sub) {
-                  $sub->select(DB::raw(1))
-                      ->from('payments as settlement')
-                      ->whereColumn('settlement.notes', 'cb.mollie_payment_id')
-                      ->where('settlement.status', 'paid');
-              });
+                ->from('payments as cb')
+                ->whereColumn('cb.member_id', 'members.id')
+                ->where('cb.status', 'chargeback')
+                ->whereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))
+                        ->from('payments as settlement')
+                        ->whereColumn('settlement.notes', 'cb.mollie_payment_id')
+                        ->where('settlement.status', 'paid');
+                });
         });
     }
 
@@ -377,15 +418,15 @@ class Member extends Authenticatable
     public function activeSepaPaymentMethod(): HasOne
     {
         return $this->hasOne(PaymentMethod::class)
-                    ->sepa()
-                    ->where('sepa_mandate_status', 'active');
+            ->sepa()
+            ->where('sepa_mandate_status', 'active');
     }
 
     public function pendingSepaPaymentMethod(): HasOne
     {
         return $this->hasOne(PaymentMethod::class)
-                    ->sepa()
-                    ->where('sepa_mandate_status', 'pending');
+            ->sepa()
+            ->where('sepa_mandate_status', 'pending');
     }
 
     // SEPA-spezifische Methoden
@@ -398,7 +439,7 @@ class Member extends Authenticatable
     {
         // Prüfen ob aktuelle Mitgliedschaft SEPA-Lastschrift verwendet
         $activeMembership = $this->activeMembership();
-        if (!$activeMembership) {
+        if (! $activeMembership) {
             return false;
         }
 
@@ -413,14 +454,15 @@ class Member extends Authenticatable
     public function getSepaMandateStatusAttribute(): ?string
     {
         $sepaPayment = $this->sepaPaymentMethods()->latest()->first();
+
         return $sepaPayment ? $sepaPayment->sepa_mandate_status_text : null;
     }
 
     public function hasPendingSepaMandate(): bool
     {
         return $this->sepaPaymentMethods()
-                    ->where('sepa_mandate_status', 'pending')
-                    ->exists();
+            ->where('sepa_mandate_status', 'pending')
+            ->exists();
     }
 
     // Status-Management Methoden
@@ -450,7 +492,7 @@ class Member extends Authenticatable
             'widget_data' => array_merge($this->widget_data ?? [], [
                 'pending_reason' => $reason,
                 'pending_since' => now()->toISOString(),
-            ])
+            ]),
         ]);
 
         return true;
@@ -483,7 +525,7 @@ class Member extends Authenticatable
 
     public function getStatusDescriptionAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'active' => 'Mitgliedschaft ist aktiv und alle Dienste verfügbar',
             'inactive' => 'Mitgliedschaft ist inaktiv',
             'paused' => 'Mitgliedschaft ist temporär pausiert',
@@ -497,7 +539,7 @@ class Member extends Authenticatable
     // Bestehende Methoden bleiben unverändert
     public function getInitialsAttribute(): string
     {
-        return mb_substr($this->first_name ?? '', 0, 1) . mb_substr($this->last_name ?? '', 0, 1);
+        return mb_substr($this->first_name ?? '', 0, 1).mb_substr($this->last_name ?? '', 0, 1);
     }
 
     public function getIsFraudFlaggedAttribute(): bool
@@ -509,7 +551,7 @@ class Member extends Authenticatable
 
     public function fullName()
     {
-        return $this->first_name . ' ' . $this->last_name;
+        return $this->first_name.' '.$this->last_name;
     }
 
     /**
@@ -517,7 +559,7 @@ class Member extends Authenticatable
      */
     public static function isSyntheticEmail(?string $email): bool
     {
-        if (!$email) {
+        if (! $email) {
             return false;
         }
 
@@ -530,23 +572,24 @@ class Member extends Authenticatable
     public function canReceiveEmails(): bool
     {
         return $this->email !== null
-            && !self::isSyntheticEmail($this->email);
+            && ! self::isSyntheticEmail($this->email);
     }
 
     public function getFullNameAttribute(): string
     {
-        return trim($this->first_name . ' ' . $this->last_name);
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     public function getFullAddressAttribute()
     {
         $address = $this->address;
         if ($this->address_addition) {
-            $address .= ' ' . $this->address_addition;
+            $address .= ' '.$this->address_addition;
         }
         if ($this->postal_code && $this->city) {
-            $address .= ', ' . $this->postal_code . ' ' . $this->city;
+            $address .= ', '.$this->postal_code.' '.$this->city;
         }
+
         return $address;
     }
 
@@ -621,7 +664,7 @@ class Member extends Authenticatable
             ->latest()
             ->first();
 
-        if (!$pauseRecord) {
+        if (! $pauseRecord) {
             return null;
         }
 
@@ -629,7 +672,7 @@ class Member extends Authenticatable
             'paused_at' => $pauseRecord->created_at,
             'reason' => $pauseRecord->reason,
             'paused_by' => $pauseRecord->changedBy ? $pauseRecord->changedBy->name : 'System',
-            'triggered_by' => $pauseRecord->metadata['triggered_by'] ?? null
+            'triggered_by' => $pauseRecord->metadata['triggered_by'] ?? null,
         ];
     }
 
@@ -658,7 +701,6 @@ class Member extends Authenticatable
         return $this->statusHistory()->count();
     }
 
-
     /**
      * Get available status transitions based on current state
      */
@@ -674,7 +716,7 @@ class Member extends Authenticatable
             'paused' => ['active', 'inactive', 'overdue'],
             'overdue' => ['active', 'inactive'],
             'pending' => ['active', 'inactive'],
-            'blocked' => ['active', 'inactive']
+            'blocked' => ['active', 'inactive'],
         ];
 
         return $transitions[$current] ?? [];
@@ -747,16 +789,16 @@ class Member extends Authenticatable
 
     public function scopeWithPendingSepaMandate($query)
     {
-        return $query->whereHas('sepaPaymentMethods', function($q) {
+        return $query->whereHas('sepaPaymentMethods', function ($q) {
             $q->where('sepa_mandate_status', 'pending');
         });
     }
 
     public function scopeRequiringSepaMandate($query)
     {
-        return $query->whereHas('memberships', function($q) {
+        return $query->whereHas('memberships', function ($q) {
             $q->where('status', 'active')
-              ->where('payment_method', 'sepa_direct_debit');
+                ->where('payment_method', 'sepa_direct_debit');
         });
     }
 
@@ -764,9 +806,9 @@ class Member extends Authenticatable
     public function scopePendingDueToSepa($query)
     {
         return $query->where('status', 'pending')
-                    ->whereHas('sepaPaymentMethods', function($q) {
-                        $q->where('sepa_mandate_status', 'pending');
-                    });
+            ->whereHas('sepaPaymentMethods', function ($q) {
+                $q->where('sepa_mandate_status', 'pending');
+            });
     }
 
     /**
@@ -788,7 +830,7 @@ class Member extends Authenticatable
             ->where('payments.status', 'pending')
             ->exists();
 
-        return !$hasPendingPayments;
+        return ! $hasPendingPayments;
     }
 
     /**
@@ -823,7 +865,7 @@ class Member extends Authenticatable
             ->where('payments.due_date', '<', now())
             ->exists();
 
-        return !$hasOverduePayments;
+        return ! $hasOverduePayments;
     }
 
     /**
@@ -857,7 +899,7 @@ class Member extends Authenticatable
 
         switch ($newStatus) {
             case 'inactive':
-                if (!$this->canBeInactivated()) {
+                if (! $this->canBeInactivated()) {
                     // Detaillierte Fehleranalyse
                     $hasActiveMemberships = $this->memberships()
                         ->whereIn('memberships.status', ['active', 'pending'])
@@ -893,7 +935,7 @@ class Member extends Authenticatable
                 break;
 
             case 'active':
-                if ($this->status === 'pending' && !$this->canBeActivatedFromPending()) {
+                if ($this->status === 'pending' && ! $this->canBeActivatedFromPending()) {
                     $needsSepa = $this->paymentMethods()
                         ->where('requires_mandate', true)
                         ->where('sepa_mandate_status', '!=', 'active')
@@ -916,12 +958,12 @@ class Member extends Authenticatable
                         ->where('payment_methods.status', 'active')
                         ->exists();
 
-                    if (!$hasPaymentMethod) {
+                    if (! $hasPaymentMethod) {
                         return 'Aktivierung nicht möglich - keine aktive Zahlungsmethode vorhanden.';
                     }
                 }
 
-                if ($this->status === 'overdue' && !$this->canBeActivatedFromOverdue()) {
+                if ($this->status === 'overdue' && ! $this->canBeActivatedFromOverdue()) {
                     $overdueCount = $this->payments()
                         ->where('payments.status', 'pending')
                         ->where('payments.due_date', '<', now())
@@ -945,7 +987,7 @@ class Member extends Authenticatable
                 break;
 
             case 'paused':
-                if (!$this->canBePaused()) {
+                if (! $this->canBePaused()) {
                     $activeMemberships = $this->memberships()
                         ->where('memberships.status', 'active')
                         ->count();
@@ -968,7 +1010,7 @@ class Member extends Authenticatable
                 break;
 
             case 'overdue':
-                if (!$this->canBeMarkedOverdue()) {
+                if (! $this->canBeMarkedOverdue()) {
                     return 'Überfällig-Status kann nur von aktiven oder pausierten Mitgliedern gesetzt werden.';
                 }
                 break;
@@ -986,7 +1028,7 @@ class Member extends Authenticatable
 
         return [
             'allowed' => $blockReason === null,
-            'reason' => $blockReason
+            'reason' => $blockReason,
         ];
     }
 
@@ -997,7 +1039,7 @@ class Member extends Authenticatable
     {
         $validation = $this->validateStatusChange($newStatus);
 
-        if (!$validation['allowed']) {
+        if (! $validation['allowed']) {
             throw new \Exception($validation['reason']);
         }
 
@@ -1067,7 +1109,7 @@ class Member extends Authenticatable
             return [
                 'reason' => 'Status muss "Inaktiv" sein',
                 'current_status' => $this->status_text,
-                'type' => 'status'
+                'type' => 'status',
             ];
         }
 
@@ -1079,7 +1121,7 @@ class Member extends Authenticatable
             return [
                 'reason' => "Es existieren noch {$activeMemberships} aktive/ausstehende Mitgliedschaft(en)",
                 'count' => $activeMemberships,
-                'type' => 'memberships'
+                'type' => 'memberships',
             ];
         }
 
@@ -1097,7 +1139,7 @@ class Member extends Authenticatable
                     $pendingPayments, $totalAmount),
                 'count' => $pendingPayments,
                 'amount' => $totalAmount,
-                'type' => 'payments'
+                'type' => 'payments',
             ];
         }
 
@@ -1109,7 +1151,7 @@ class Member extends Authenticatable
             return [
                 'reason' => "Es existieren noch {$openMandates} offene SEPA-Mandate",
                 'count' => $openMandates,
-                'type' => 'sepa'
+                'type' => 'sepa',
             ];
         }
 
@@ -1146,7 +1188,7 @@ class Member extends Authenticatable
     public function getOrCreateAccessConfig(): MemberAccessConfig
     {
         return $this->accessConfig()->firstOrCreate([
-            'member_id' => $this->id
+            'member_id' => $this->id,
         ], [
             'qr_code_enabled' => true,
             'nfc_enabled' => false,
@@ -1160,7 +1202,7 @@ class Member extends Authenticatable
     {
         $config = $this->accessConfig;
 
-        if (!$config) {
+        if (! $config) {
             return true; // QR is enabled by default
         }
 
@@ -1178,7 +1220,7 @@ class Member extends Authenticatable
         }
 
         // Check for active membership
-        if (!$this->activeMembership()) {
+        if (! $this->activeMembership()) {
             return false;
         }
 
@@ -1190,7 +1232,7 @@ class Member extends Authenticatable
         }
 
         // Other services require configuration
-        if (!$config) {
+        if (! $config) {
             return false;
         }
 
@@ -1200,14 +1242,14 @@ class Member extends Authenticatable
     /**
      * Generate QR code data for member
      *
-     * @deprecated v0.0.53 Use {@see \App\Http\Controllers\Pwa\MemberController::generateQrCode()} instead.
+     * @deprecated v0.0.53 Use {@see MemberController::generateQrCode()} instead.
      */
     public function generateQrCodeData(): string
     {
         $timestamp = time();
         $gym = $this->gym;
 
-        if (!$gym->scanner_secret_key) {
+        if (! $gym->scanner_secret_key) {
             $gym->generateScannerSecretKey();
         }
 
@@ -1301,7 +1343,7 @@ class Member extends Authenticatable
      */
     public function hasValidQrCode(): bool
     {
-        if (!$this->accessConfig) {
+        if (! $this->accessConfig) {
             return true; // QR is enabled by default
         }
 
@@ -1345,9 +1387,9 @@ class Member extends Authenticatable
      */
     public function scopeCanBeInactivated($query)
     {
-        return $query->whereDoesntHave('memberships', function($q) {
+        return $query->whereDoesntHave('memberships', function ($q) {
             $q->whereIn('memberships.status', ['active', 'pending']);
-        })->whereDoesntHave('payments', function($q) {
+        })->whereDoesntHave('payments', function ($q) {
             $q->where('payments.status', 'pending');
         });
     }
@@ -1358,13 +1400,13 @@ class Member extends Authenticatable
     public function scopeDeletable($query)
     {
         return $query->where('status', 'inactive')
-            ->whereDoesntHave('memberships', function($q) {
+            ->whereDoesntHave('memberships', function ($q) {
                 $q->whereIn('status', ['active', 'pending']);
             })
-            ->whereDoesntHave('payments', function($q) {
+            ->whereDoesntHave('payments', function ($q) {
                 $q->where('payments.status', 'pending');
             })
-            ->whereDoesntHave('sepaPaymentMethods', function($q) {
+            ->whereDoesntHave('sepaPaymentMethods', function ($q) {
                 $q->whereIn('sepa_mandate_status', ['pending', 'active']);
             });
     }
@@ -1374,7 +1416,7 @@ class Member extends Authenticatable
      */
     public function scopeWithActiveMemberships($query)
     {
-        return $query->whereHas('memberships', function($q) {
+        return $query->whereHas('memberships', function ($q) {
             $q->whereIn('memberships.status', ['active', 'pending']);
         });
     }
@@ -1384,7 +1426,7 @@ class Member extends Authenticatable
      */
     public function scopeWithPendingPayments($query)
     {
-        return $query->whereHas('payments', function($q) {
+        return $query->whereHas('payments', function ($q) {
             $q->where('payments.status', 'pending');
         });
     }
@@ -1394,9 +1436,9 @@ class Member extends Authenticatable
      */
     public function scopeWithOverduePayments($query)
     {
-        return $query->whereHas('payments', function($q) {
+        return $query->whereHas('payments', function ($q) {
             $q->where('payments.status', 'pending')
-            ->where('payments.due_date', '<', now());
+                ->where('payments.due_date', '<', now());
         });
     }
 
@@ -1417,7 +1459,7 @@ class Member extends Authenticatable
             'overdue_payments' => $this->payments()
                 ->where('payments.status', 'pending')
                 ->where('payments.due_date', '<', now())
-                ->count()
+                ->count(),
         ];
     }
 
@@ -1426,7 +1468,7 @@ class Member extends Authenticatable
      */
     public function getMaskedPhoneAttribute(): ?string
     {
-        if (!$this->phone) {
+        if (! $this->phone) {
             return null;
         }
 
@@ -1440,10 +1482,11 @@ class Member extends Authenticatable
         if (str_starts_with($phone, '+')) {
             $countryCode = substr($phone, 0, 3);
             $lastDigits = substr($phone, -2);
-            return $countryCode . ' *** ***' . $lastDigits;
+
+            return $countryCode.' *** ***'.$lastDigits;
         }
 
-        return '*** ***' . substr($phone, -2);
+        return '*** ***'.substr($phone, -2);
     }
 
     /**
@@ -1451,7 +1494,7 @@ class Member extends Authenticatable
      */
     public function getMaskedAddressAttribute(): ?string
     {
-        if (!$this->address) {
+        if (! $this->address) {
             return null;
         }
 
@@ -1461,7 +1504,7 @@ class Member extends Authenticatable
         }
 
         $firstPart = $parts[0];
-        $masked = substr($firstPart, 0, 1) . str_repeat('*', min(5, strlen($firstPart) - 1));
+        $masked = substr($firstPart, 0, 1).str_repeat('*', min(5, strlen($firstPart) - 1));
 
         if (count($parts) > 1) {
             $masked .= ' **';
@@ -1475,11 +1518,11 @@ class Member extends Authenticatable
      */
     public function getMaskedPostalCodeAttribute(): ?string
     {
-        if (!$this->postal_code) {
+        if (! $this->postal_code) {
             return null;
         }
 
-        return substr($this->postal_code, 0, 1) . str_repeat('*', strlen($this->postal_code) - 1);
+        return substr($this->postal_code, 0, 1).str_repeat('*', strlen($this->postal_code) - 1);
     }
 
     /**
@@ -1487,7 +1530,7 @@ class Member extends Authenticatable
      */
     public function getMaskedCityAttribute(): ?string
     {
-        if (!$this->city) {
+        if (! $this->city) {
             return null;
         }
 
@@ -1496,7 +1539,7 @@ class Member extends Authenticatable
             return str_repeat('*', $length);
         }
 
-        return substr($this->city, 0, 1) . str_repeat('*', $length - 2) . substr($this->city, -1);
+        return substr($this->city, 0, 1).str_repeat('*', $length - 2).substr($this->city, -1);
     }
 
     /**
@@ -1504,19 +1547,19 @@ class Member extends Authenticatable
      */
     public function getMaskedBirthDateAttribute(): ?string
     {
-        if (!$this->birth_date) {
+        if (! $this->birth_date) {
             return null;
         }
 
-        if ($this->birth_date instanceof \Carbon\Carbon || $this->birth_date instanceof \DateTime) {
-            return '**.' . $this->birth_date->format('m.Y');
+        if ($this->birth_date instanceof Carbon || $this->birth_date instanceof \DateTime) {
+            return '**.'.$this->birth_date->format('m.Y');
         }
 
         $parts = explode('-', $this->birth_date);
         if (count($parts) === 3) {
-            return '**.' . $parts[1] . '.' . $parts[0];
+            return '**.'.$parts[1].'.'.$parts[0];
         }
 
-        return '**.**.' . substr($this->birth_date, 0, 4);
+        return '**.**.'.substr($this->birth_date, 0, 4);
     }
 }

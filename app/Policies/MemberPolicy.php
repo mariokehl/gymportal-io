@@ -48,6 +48,23 @@ class MemberPolicy
     }
 
     /**
+     * Determine whether the user can view the member's credit balance.
+     */
+    public function viewCredit(User $user, Member $member): bool
+    {
+        return $user->current_gym_id === $member->gym_id;
+    }
+
+    /**
+     * Determine whether the user can manage the member's credit
+     * (top-ups and redemptions).
+     */
+    public function manageCredit(User $user, Member $member): bool
+    {
+        return $user->current_gym_id === $member->gym_id;
+    }
+
+    /**
      * Determine whether the user can restore the model.
      */
     public function restore(User $user, Member $member): bool

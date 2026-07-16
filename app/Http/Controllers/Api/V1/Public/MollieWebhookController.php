@@ -10,13 +10,14 @@ use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Refund;
 use App\Models\WidgetRegistration;
+use App\Services\CreditLedgerService;
 use App\Services\MemberStatusService;
 use App\Services\MollieService;
 use App\Services\WidgetService;
 use Carbon\Carbon;
-use Mollie\Api\Resources\Payment as MolliePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Mollie\Api\Resources\Payment as MolliePayment;
 
 class MollieWebhookController extends Controller
 {
@@ -54,15 +55,16 @@ class MollieWebhookController extends Controller
 
             $paymentId = $request->input('id');
 
-            if (!$paymentId) {
+            if (! $paymentId) {
                 return response('Payment ID missing', 400);
             }
 
             // Lokale Payment-Referenz finden
             $localPayment = Payment::where('mollie_payment_id', $paymentId)->first();
 
-            if (!$localPayment) {
+            if (! $localPayment) {
                 Log::warning('Mollie webhook: Payment reference not found', ['payment_id' => $paymentId]);
+
                 return response('Payment not found', 404);
             }
 
@@ -73,8 +75,9 @@ class MollieWebhookController extends Controller
             if (str_starts_with($paymentId, 'pl_')) {
                 $molliePayment = $mollieService->getPaidPaymentForLink($gym, $paymentId);
 
-                if (!$molliePayment) {
+                if (! $molliePayment) {
                     Log::info('Mollie webhook: Payment link has no paid payment yet', ['payment_link_id' => $paymentId]);
+
                     return response('OK', 200);
                 }
 
@@ -114,6 +117,7 @@ class MollieWebhookController extends Controller
             // Wenn 1. Kreditkarten-Authorisierung erfolgreich war
             if ($isFirstCreditCardPayment && $molliePayment->isPaid() && $oldStatus !== 'paid') {
                 $this->handleFirstCreditCardPayment($gym, $localPayment, $molliePayment, $paymentId);
+
                 return response('OK', 200);
             }
 
@@ -139,7 +143,7 @@ class MollieWebhookController extends Controller
             Log::error('Mollie webhook processing failed', [
                 'payment_id' => $request->input('id'),
                 'error' => $e->getMessage(),
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             return response('Webhook processing failed', 500);
@@ -157,7 +161,7 @@ class MollieWebhookController extends Controller
         // Member und Membership aktivieren
         $member->update(['status' => 'active']);
         if ($membership) {
-            if (!$membership->activateMembership()) {
+            if (! $membership->activateMembership()) {
                 $membership->update(['status' => 'active']);
             }
         }
@@ -179,10 +183,10 @@ class MollieWebhookController extends Controller
 
         // Widget-Registrierung abschließen
         WidgetRegistration::where('gym_id', $gym->id)
-            ->where('payment_data', 'like', '%' . $molliePayment->id . '%')
+            ->where('payment_data', 'like', '%'.$molliePayment->id.'%')
             ->update([
                 'status' => 'completed',
-                'completed_at' => now()
+                'completed_at' => now(),
             ]);
 
         // Analytics
@@ -191,14 +195,14 @@ class MollieWebhookController extends Controller
             'membership_id' => $membership?->id,
             'payment_method' => 'creditcard',
             'mollie_payment_id' => $paymentId,
-            'mollie_mandate_id' => $molliePayment->mandateId
+            'mollie_mandate_id' => $molliePayment->mandateId,
         ]);
 
         Log::info('Mollie webhook: Credit card authorization completed', [
             'gym_id' => $gym->id,
             'member_id' => $member->id,
             'payment_id' => $paymentId,
-            'mandate_id' => $molliePayment->mandateId
+            'mandate_id' => $molliePayment->mandateId,
         ]);
     }
 
@@ -210,6 +214,20 @@ class MollieWebhookController extends Controller
         $member = $localPayment->member;
         $membership = $localPayment->membership;
 
+        // A confirmed credit top-up: grant the credit now (idempotent) and stop.
+        if ($localPayment->is_credit_topup) {
+            app(CreditLedgerService::class)->creditFromPaidTopup($localPayment);
+
+            Log::info('Mollie webhook: Credit top-up confirmed and credited', [
+                'gym_id' => $gym->id,
+                'member_id' => $member?->id,
+                'payment_id' => $paymentId,
+                'amount' => $localPayment->amount,
+            ]);
+
+            return;
+        }
+
         // Member und Membership aktivieren
         if ($member) {
             // Only activate when no further outstanding balance remains.
@@ -220,7 +238,7 @@ class MollieWebhookController extends Controller
                 ->hasOutstandingBalance()
                 ->exists();
 
-            if ($member->status === 'overdue' && !$hasOutstandingBalance) {
+            if ($member->status === 'overdue' && ! $hasOutstandingBalance) {
                 $member->update(['status' => 'active']);
                 app(MemberStatusService::class)->handleStatusChangeActions(
                     $member,
@@ -234,10 +252,10 @@ class MollieWebhookController extends Controller
 
         // Widget-Registrierung abschließen
         WidgetRegistration::where('gym_id', $gym->id)
-            ->where('payment_data', 'like', '%' . $molliePayment->id . '%')
+            ->where('payment_data', 'like', '%'.$molliePayment->id.'%')
             ->update([
                 'status' => 'completed',
-                'completed_at' => now()
+                'completed_at' => now(),
             ]);
 
         // PaymentMethod aktualisieren (nicht für Zahlungslinks)
@@ -251,13 +269,13 @@ class MollieWebhookController extends Controller
             'membership_id' => $membership?->id,
             'payment_method' => $localPayment->payment_method,
             'amount' => $localPayment->amount,
-            'mollie_payment_id' => $paymentId
+            'mollie_payment_id' => $paymentId,
         ]);
 
         Log::info('Mollie webhook: Payment completed', [
             'gym_id' => $gym->id,
             'member_id' => $member?->id,
-            'payment_id' => $paymentId
+            'payment_id' => $paymentId,
         ]);
     }
 
@@ -274,7 +292,7 @@ class MollieWebhookController extends Controller
                 'mollie_payment_id' => $paymentId,
                 'amount' => $localPayment->amount,
                 'payment_method' => $localPayment->payment_method,
-                'gym_id' => $gym->id
+                'gym_id' => $gym->id,
             ]);
 
             // Analytics
@@ -282,13 +300,13 @@ class MollieWebhookController extends Controller
                 'member_id' => $member->id,
                 'payment_method' => $localPayment->payment_method,
                 'amount' => $localPayment->amount,
-                'mollie_payment_id' => $paymentId
+                'mollie_payment_id' => $paymentId,
             ]);
 
             Log::warning('Mollie webhook: Payment failed, member set to overdue', [
                 'gym_id' => $gym->id,
                 'member_id' => $member->id,
-                'payment_id' => $paymentId
+                'payment_id' => $paymentId,
             ]);
         }
     }
@@ -323,6 +341,7 @@ class MollieWebhookController extends Controller
                             ]);
                         }
                     }
+
                     continue;
                 }
 
@@ -345,7 +364,7 @@ class MollieWebhookController extends Controller
                     'mollie_payment_id' => $mollieRefund->id,
                     'amount' => -abs($mollieRefund->amount->value),
                     'currency' => $mollieRefund->amount->currency,
-                    'description' => 'Rückerstattung: ' . ($mollieRefund->description ?? $localPayment->description),
+                    'description' => 'Rückerstattung: '.($mollieRefund->description ?? $localPayment->description),
                     'status' => $this->mapMollieRefundStatus($mollieRefund->status) === 'refunded' ? 'refunded' : 'pending',
                     'mollie_status' => $mollieRefund->status,
                     'payment_method' => $localPayment->payment_method,
@@ -416,7 +435,7 @@ class MollieWebhookController extends Controller
                     'mollie_payment_id' => $mollieChargeback->id,
                     'amount' => -abs($mollieChargeback->amount->value),
                     'currency' => $mollieChargeback->amount->currency,
-                    'description' => 'Rückbuchung (Chargeback): ' . $localPayment->description,
+                    'description' => 'Rückbuchung (Chargeback): '.$localPayment->description,
                     'status' => 'chargeback',
                     'mollie_status' => 'chargeback',
                     'payment_method' => $localPayment->payment_method,
@@ -431,7 +450,7 @@ class MollieWebhookController extends Controller
                     'member_id' => $localPayment->member_id,
                     'amount' => abs($mollieChargeback->amount->value) + MollieService::CHARGEBACK_FEE,
                     'currency' => $mollieChargeback->amount->currency,
-                    'description' => 'Ausgleichszahlung inkl. ' . number_format(MollieService::CHARGEBACK_FEE, 2, ',', '') . ' € Gebühr: ' . $localPayment->description,
+                    'description' => 'Ausgleichszahlung inkl. '.number_format(MollieService::CHARGEBACK_FEE, 2, ',', '').' € Gebühr: '.$localPayment->description,
                     'status' => 'pending',
                     'payment_method' => 'mollie_paymentlink',
                     'due_date' => now()->format('Y-m-d'),
@@ -497,7 +516,7 @@ class MollieWebhookController extends Controller
      */
     private function mapMollieRefundStatus(string $mollieStatus): string
     {
-        return match($mollieStatus) {
+        return match ($mollieStatus) {
             'queued' => 'pending',
             'pending' => 'processing',
             'processing' => 'processing',

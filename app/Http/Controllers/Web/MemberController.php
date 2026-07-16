@@ -465,6 +465,13 @@ class MemberController extends Controller
             'legalGuardian:id,first_name,last_name,member_number',
         ]);
 
+        // Expose the verified credit balance to the frontend. Appended only here
+        // (not globally) so list views never trigger the ledger integrity query,
+        // and only when the user is allowed to see the member's credit.
+        if (auth()->user()?->can('viewCredit', $member)) {
+            $member->append(['credit_balance', 'credit_balance_cents', 'credit_balance_formatted']);
+        }
+
         // Transformiere die Status History für das Frontend
         $member->setRelation('status_history',
             $member->statusHistory->map(function ($history) {

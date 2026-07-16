@@ -111,58 +111,88 @@
         </div>
       </div>
 
-      <!-- Toggles: age verification + guest access -->
-      <div class="mt-5 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-x-10 max-w-2xl">
-        <!-- Age verification toggle -->
-        <div class="flex items-center gap-3 py-2.5 border-b border-gray-100 sm:border-b-0">
-          <button
-            type="button"
-            @click="$emit('toggle-age')"
-            :disabled="verifyingAge"
-            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            :class="member.age_verified ? 'bg-blue-500' : 'bg-gray-300'"
-            role="switch"
-            :aria-checked="member.age_verified"
-          >
+      <!-- Toggles + credit tile (variant A): toggles on the left, credit on the
+           right (aligned under the action buttons) -->
+      <div
+        v-if="!editMode"
+        class="mt-5 pt-4 border-t border-gray-100 flex flex-col lg:flex-row lg:items-center gap-x-10 gap-y-4"
+      >
+        <!-- Toggles: age verification + guest access (same two-column grid as in edit mode) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 max-w-2xl flex-1">
+          <!-- Age verification toggle -->
+          <div class="flex items-center gap-3 py-2.5 border-b border-gray-100 sm:border-b-0">
+            <button
+              type="button"
+              @click="$emit('toggle-age')"
+              :disabled="verifyingAge"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              :class="member.age_verified ? 'bg-blue-500' : 'bg-gray-300'"
+              role="switch"
+              :aria-checked="member.age_verified"
+            >
+              <span
+                aria-hidden="true"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                :class="member.age_verified ? 'translate-x-5' : 'translate-x-0'"
+              />
+            </button>
+            <span class="text-sm font-medium text-gray-700">Alter verifiziert</span>
             <span
-              aria-hidden="true"
-              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              :class="member.age_verified ? 'translate-x-5' : 'translate-x-0'"
-            />
-          </button>
-          <span class="text-sm font-medium text-gray-700">Alter verifiziert</span>
-          <span
-            v-if="member.age_verified && member.age_verified_at"
-            class="text-xs text-gray-400"
-          >
-            ({{ formatDate(member.age_verified_at) }})
-          </span>
+              v-if="member.age_verified && member.age_verified_at"
+              class="text-xs text-gray-400"
+            >
+              ({{ formatDate(member.age_verified_at) }})
+            </span>
+          </div>
+
+          <!-- Guest access toggle -->
+          <div class="flex items-center gap-3 py-2.5">
+            <button
+              type="button"
+              @click="$emit('toggle-guest')"
+              :disabled="togglingGuestAccess"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+              :class="member.guest_access ? 'bg-orange-500' : 'bg-gray-300'"
+              role="switch"
+              :aria-checked="member.guest_access"
+            >
+              <span
+                aria-hidden="true"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
+              />
+            </button>
+            <span class="text-sm font-medium text-gray-700">Gastzugang</span>
+            <span
+              v-if="member.guest_access && member.guest_access_granted_at"
+              class="text-xs text-gray-400"
+            >
+              ({{ formatDate(member.guest_access_granted_at) }})
+            </span>
+          </div>
         </div>
 
-        <!-- Guest access toggle -->
-        <div class="flex items-center gap-3 py-2.5">
+        <!-- Credit tile: available balance + top-up action (right, under the action buttons) -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50 to-white px-3.5 py-3 flex-none lg:ml-auto lg:max-w-md">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center flex-none">
+              <Wallet class="w-5 h-5" />
+            </div>
+            <div class="min-w-0">
+              <div class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Verfügbares Guthaben</div>
+              <div class="text-2xl font-bold text-indigo-600 leading-tight">
+                {{ member.credit_balance_formatted ?? '0,00 €' }}
+              </div>
+            </div>
+          </div>
           <button
             type="button"
-            @click="$emit('toggle-guest')"
-            :disabled="togglingGuestAccess"
-            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-            :class="member.guest_access ? 'bg-orange-500' : 'bg-gray-300'"
-            role="switch"
-            :aria-checked="member.guest_access"
+            @click="$emit('topup')"
+            class="inline-flex items-center justify-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors whitespace-nowrap flex-none"
           >
-            <span
-              aria-hidden="true"
-              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
-            />
+            <Plus class="w-[15px] h-[15px]" />
+            Aufladen
           </button>
-          <span class="text-sm font-medium text-gray-700">Gastzugang</span>
-          <span
-            v-if="member.guest_access && member.guest_access_granted_at"
-            class="text-xs text-gray-400"
-          >
-            ({{ formatDate(member.guest_access_granted_at) }})
-          </span>
         </div>
       </div>
     </div>
@@ -276,7 +306,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2 } from 'lucide-vue-next'
+import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet } from 'lucide-vue-next'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
@@ -320,7 +350,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'edit', 'cancel', 'save', 'block',
-  'toggle-age', 'toggle-guest',
+  'toggle-age', 'toggle-guest', 'topup',
   'status-changed', 'status-changing',
   'update:memberNumber',
 ])
