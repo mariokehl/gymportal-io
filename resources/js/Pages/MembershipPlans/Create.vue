@@ -281,6 +281,18 @@
             </p>
           </div>
 
+          <!-- Discount Phases -->
+          <div class="mb-6">
+            <DiscountPhasesSection
+              v-model="form.discount_phases"
+              v-model:enabled="form.discounts_enabled"
+              :price="form.price"
+              :original-price="form.original_price"
+              :commitment-months="form.commitment_months"
+              :errors="errors"
+            />
+          </div>
+
           <!-- Form Actions -->
           <div class="flex space-x-4">
             <button
@@ -310,6 +322,7 @@
 import { reactive } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import DiscountPhasesSection from '@/Components/MembershipPlans/DiscountPhasesSection.vue'
 import { Save, X } from 'lucide-vue-next'
 
 // Form data
@@ -326,7 +339,9 @@ const form = useForm({
   cancellation_period_unit: 'days',
   auto_renew_type: 'indefinite',
   start_date_mode: 'next_possible',
-  fixed_start_date: ''
+  fixed_start_date: '',
+  discounts_enabled: false,
+  discount_phases: []
 })
 
 // Computed

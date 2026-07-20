@@ -17,6 +17,7 @@ class MembershipPlan extends Model
         'description',
         'price',
         'original_price',
+        'discounts_enabled',
         'setup_fee',
         'trial_period_days',
         'trial_price',
@@ -43,6 +44,7 @@ class MembershipPlan extends Model
         'trial_price' => 'decimal:2',
         'is_active' => 'boolean',
         'is_free_trial_plan' => 'boolean',
+        'discounts_enabled' => 'boolean',
         'highlight' => 'boolean',
         'fixed_start_date' => 'date:Y-m-d',
         'features' => 'array',
@@ -64,6 +66,11 @@ class MembershipPlan extends Model
     public function widgetRegistrations()
     {
         return $this->hasMany(WidgetRegistration::class);
+    }
+
+    public function discountPhases()
+    {
+        return $this->hasMany(MembershipPlanDiscountPhase::class)->orderBy('sort_order');
     }
 
     public function addons()

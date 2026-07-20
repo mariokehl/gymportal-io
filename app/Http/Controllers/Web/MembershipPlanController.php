@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\MembershipPlan;
+use App\Services\MembershipPlanDiscountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ use Inertia\Response;
 class MembershipPlanController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        private readonly MembershipPlanDiscountService $discountService
+    ) {}
 
     /**
      * Display a listing of the membership plans.
@@ -66,6 +71,7 @@ class MembershipPlanController extends Controller
             'auto_renew_type' => 'nullable|in:indefinite,monthly',
             'start_date_mode' => 'nullable|in:next_possible,fixed',
             'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
+            ...MembershipPlanDiscountService::rules(),
         ]);
 
         // Additional validation based on unit
@@ -88,7 +94,13 @@ class MembershipPlanController extends Controller
             ? ($validated['fixed_start_date'] ?? null)
             : null;
 
-        MembershipPlan::create($validated);
+        $discountPhases = $validated['discount_phases'] ?? [];
+        unset($validated['discount_phases']);
+        $validated['discounts_enabled'] = $request->boolean('discounts_enabled');
+
+        $membershipPlan = MembershipPlan::create($validated);
+
+        $this->discountService->sync($membershipPlan, $discountPhases);
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',
@@ -136,7 +148,7 @@ class MembershipPlanController extends Controller
         }
 
         return Inertia::render('MembershipPlans/Edit', [
-            'membershipPlan' => $membershipPlan,
+            'membershipPlan' => $membershipPlan->load('discountPhases'),
             'activeMembersCount' => $activeMembersCount,
             'activeMemberships' => $activeMemberships,
         ]);
@@ -163,6 +175,7 @@ class MembershipPlanController extends Controller
             'auto_renew_type' => 'nullable|in:indefinite,monthly',
             'start_date_mode' => 'nullable|in:next_possible,fixed',
             'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
+            ...MembershipPlanDiscountService::rules(),
         ]);
 
         // Additional validation based on unit
@@ -180,7 +193,13 @@ class MembershipPlanController extends Controller
             ? ($validated['fixed_start_date'] ?? null)
             : null;
 
+        $discountPhases = $validated['discount_phases'] ?? [];
+        unset($validated['discount_phases']);
+        $validated['discounts_enabled'] = $request->boolean('discounts_enabled');
+
         $membershipPlan->update($validated);
+
+        $this->discountService->sync($membershipPlan, $discountPhases);
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',

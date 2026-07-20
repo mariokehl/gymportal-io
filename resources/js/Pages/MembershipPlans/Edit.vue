@@ -332,6 +332,30 @@
             </p>
           </div>
 
+          <!-- Discount Phases -->
+          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-6">
+            <DiscountPhasesSection
+              v-model="form.discount_phases"
+              v-model:enabled="form.discounts_enabled"
+              :price="form.price"
+              :original-price="form.original_price"
+              :commitment-months="form.commitment_months"
+              :errors="errors"
+            />
+          </div>
+
+          <!-- Discount Phases -->
+          <div v-if="!membershipPlan.is_free_trial_plan" class="mb-6">
+            <DiscountPhasesSection
+              v-model="form.discount_phases"
+              v-model:enabled="form.discounts_enabled"
+              :price="form.price"
+              :original-price="form.original_price"
+              :commitment-months="form.commitment_months"
+              :errors="errors"
+            />
+          </div>
+
           <!-- Form Actions -->
           <div class="flex space-x-4">
             <button
@@ -368,6 +392,7 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import DiscountPhasesSection from '@/Components/MembershipPlans/DiscountPhasesSection.vue'
 import { Save, X, Eye, AlertTriangle } from 'lucide-vue-next'
 
 // Props
@@ -393,7 +418,13 @@ const form = useForm({
   start_date_mode: props.membershipPlan.start_date_mode || 'next_possible',
   fixed_start_date: props.membershipPlan.fixed_start_date
     ? String(props.membershipPlan.fixed_start_date).slice(0, 10)
-    : ''
+    : '',
+  discounts_enabled: props.membershipPlan.discounts_enabled ?? false,
+  discount_phases: (props.membershipPlan.discount_phases || []).map((phase) => ({
+    duration_months: phase.duration_months,
+    price: phase.price,
+    original_price: phase.original_price ?? ''
+  }))
 })
 
 // Computed
