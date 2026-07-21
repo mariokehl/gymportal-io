@@ -110,7 +110,7 @@ class PaymentMethodsController extends Controller
 
         $config = $gym->mollie_config;
 
-        MollieService::deleteWebhookIfAny($config);
+        MollieService::deleteWebhookIfAny($config, $gym->id);
 
         $gym->update(['mollie_config' => null]);
 

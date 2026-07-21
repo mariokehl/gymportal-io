@@ -123,7 +123,7 @@ class MollieSetupController extends Controller
             $gym = $user->currentGym;
 
             $prevConfig = $this->mollieService->getConfig($gym);
-            MollieService::deleteWebhookIfAny($prevConfig);
+            MollieService::deleteWebhookIfAny($prevConfig, $gym->id);
 
             $config = [
                 'api_key' => $request->api_key,
@@ -139,10 +139,17 @@ class MollieSetupController extends Controller
             // Set webhook only if oauth_token is present
             if ($request->filled('oauth_token')) {
                 $webhookUrl = $request->webhook_url ?: route('v1.public.mollie.webhook');
-                $webhookId = MollieService::createWebhook($request->oauth_token, $webhookUrl, $request->test_mode);
+
+                // A Mollie account holds only one webhook per URL, so adopt an existing one
+                // instead of creating a duplicate (e.g. a second gym on the same account)
+                $webhook = MollieService::findOrCreateWebhook(
+                    $request->oauth_token,
+                    $webhookUrl,
+                    $request->boolean('test_mode')
+                );
 
                 $config['webhook_url'] = $webhookUrl;
-                $config['webhook_id'] = $webhookId;
+                $config['webhook_id'] = $webhook['id'];
             }
 
             $gym->update(['mollie_config' => $config]);
@@ -153,11 +160,37 @@ class MollieSetupController extends Controller
             ]);
 
         } catch (Exception $e) {
+            Log::error('Mollie configuration could not be saved', [
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Fehler beim Speichern der Konfiguration: ' . $e->getMessage()
+                'message' => 'Die Mollie-Konfiguration konnte nicht gespeichert werden.',
+                'detail' => $this->extractMollieErrorDetail($e->getMessage())
             ], 500);
         }
+    }
+
+    /**
+     * Turn a Mollie API error into a readable detail message.
+     * Mollie errors arrive as an embedded JSON body, which is unreadable in the UI.
+     *
+     * @param string $message
+     * @return string
+     */
+    protected function extractMollieErrorDetail(string $message): string
+    {
+        if (preg_match('/\{.*\}/s', $message, $matches)) {
+            $decoded = json_decode($matches[0], true);
+
+            if (is_array($decoded) && !empty($decoded['detail'])) {
+                return $decoded['detail'];
+            }
+        }
+
+        return $message;
     }
 
     /**
@@ -211,6 +244,89 @@ class MollieSetupController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Fehler beim Testen der Integration: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check in the background whether a webhook for the given URL is already registered at Mollie.
+     * Runs during the setup wizard, so the OAuth token may not be persisted yet.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function lookupWebhook(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'oauth_token' => 'nullable|string|min:10',
+            'webhook_url' => 'required|url',
+            'test_mode' => 'boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            /** @var User $user */
+            $user = $request->user();
+
+            /** @var Gym $gym */
+            $gym = $user->currentGym;
+
+            $config = $gym ? $this->mollieService->getConfig($gym) : [];
+
+            // Prefer the token currently entered in the wizard, fall back to the stored one
+            $oauthToken = $request->filled('oauth_token')
+                ? $request->oauth_token
+                : ($config['oauth_token'] ?? null);
+
+            if (!$oauthToken) {
+                return response()->json([
+                    'success' => false,
+                    'exists' => false,
+                    'message' => 'Kein OAuth-Token verfügbar'
+                ], 422);
+            }
+
+            $webhook = MollieService::findWebhookByUrl(
+                $oauthToken,
+                $request->webhook_url,
+                $request->boolean('test_mode')
+            );
+
+            if (!$webhook) {
+                return response()->json([
+                    'success' => true,
+                    'exists' => false,
+                    'message' => 'Für diese URL ist noch kein Webhook angelegt'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'exists' => true,
+                'webhook' => [
+                    'id' => $webhook['id'] ?? null,
+                    'name' => $webhook['name'] ?? null,
+                    'url' => $webhook['url'] ?? null,
+                    'status' => $webhook['status'] ?? 'unknown'
+                ],
+                'message' => 'Für diese URL ist bereits ein Webhook angelegt'
+            ]);
+
+        } catch (Exception $e) {
+            Log::warning('Mollie webhook lookup failed', [
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Webhook konnte nicht geprüft werden'
             ], 500);
         }
     }
