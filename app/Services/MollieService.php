@@ -533,17 +533,40 @@ class MollieService
     }
 
     /**
+     * Query parameter that distinguishes the test webhook from the live one.
+     * Mollie rejects a second webhook using the same URL, so test mode needs a
+     * distinct URL even when both run on the same (live) host.
+     */
+    private const WEBHOOK_TEST_MODE_PARAM = 'mode';
+
+    private const WEBHOOK_TEST_MODE_VALUE = 'test';
+
+    /**
      * Resolve the webhook URL that is actually registered at Mollie.
+     *
      * Locally the request host is used, because Mollie cannot reach a local host name.
+     * In test mode a query parameter is appended: it makes the URL unique for Mollie
+     * while still hitting the very same route and controller on our side, since
+     * Laravel matches routes on the path only.
      *
      * @param string $webhookUrl
+     * @param boolean $testMode
      * @return string
      */
-    public static function resolveWebhookUrl(string $webhookUrl): string
+    public static function resolveWebhookUrl(string $webhookUrl, bool $testMode = false): string
     {
-        return !app()->environment('local')
+        $url = !app()->environment('local')
             ? $webhookUrl
             : request()->getSchemeAndHttpHost() . '/api/v1/public/mollie/webhook';
+
+        if (!$testMode) {
+            return $url;
+        }
+
+        // Keep any query string that is already present on the configured URL
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url . $separator . self::WEBHOOK_TEST_MODE_PARAM . '=' . self::WEBHOOK_TEST_MODE_VALUE;
     }
 
     /**
@@ -584,7 +607,7 @@ class MollieService
             throw new Exception('Webhooks konnten nicht abgerufen werden: ' . $response->body());
         }
 
-        $expectedUrl = rtrim(self::resolveWebhookUrl($webhookUrl), '/');
+        $expectedUrl = rtrim(self::resolveWebhookUrl($webhookUrl, $testMode), '/');
         $expectedName = self::webhookName($testMode);
         $webhooks = $response->json()['_embedded']['webhooks'] ?? [];
 
@@ -621,7 +644,7 @@ class MollieService
             'Authorization' => 'Bearer ' . $oauthToken,
             'Content-Type' => 'application/json'
         ])->patch("https://api.mollie.com/v2/webhooks/{$webhookId}", [
-            'url' => self::resolveWebhookUrl($webhookUrl),
+            'url' => self::resolveWebhookUrl($webhookUrl, $testMode),
             'testmode' => $testMode,
         ]);
 
@@ -645,7 +668,7 @@ class MollieService
             'Authorization' => 'Bearer ' . $oauthToken,
             'Content-Type' => 'application/json'
         ])->post('https://api.mollie.com/v2/webhooks', [
-            'url' => self::resolveWebhookUrl($webhookUrl),
+            'url' => self::resolveWebhookUrl($webhookUrl, $testMode),
             'name' => self::webhookName($testMode),
             'eventTypes' => 'payment-link.paid',
             'testmode' => $testMode,
@@ -675,7 +698,7 @@ class MollieService
 
         if ($existing && isset($existing['id'])) {
             // The webhook was matched by name but points somewhere else, so re-point it
-            $expectedUrl = rtrim(self::resolveWebhookUrl($webhookUrl), '/');
+            $expectedUrl = rtrim(self::resolveWebhookUrl($webhookUrl, $testMode), '/');
 
             if (rtrim($existing['url'] ?? '', '/') !== $expectedUrl) {
                 self::updateWebhookUrl($oauthToken, $existing['id'], $webhookUrl, $testMode);

@@ -52,7 +52,9 @@ class MollieWebhookReuseTest extends TestCase
     public function it_adopts_an_existing_webhook_instead_of_creating_a_new_one(): void
     {
         [$owner, $gym] = $this->ownerWithGym();
-        $webhookUrl = route('v1.public.mollie.webhook');
+
+        // Test mode registers a distinct URL, so the fake has to return exactly that one
+        $webhookUrl = MollieService::resolveWebhookUrl(route('v1.public.mollie.webhook'), true);
 
         Http::fake([
             'api.mollie.com/v2/webhooks*' => Http::response([

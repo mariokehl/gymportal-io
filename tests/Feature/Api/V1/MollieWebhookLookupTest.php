@@ -40,11 +40,12 @@ class MollieWebhookLookupTest extends TestCase
             ]),
         ]);
 
+        // Live mode registers the plain URL; test mode URLs are covered separately
         $this->actingAs($this->owner())
             ->postJson(route('v1.mollie.lookup-webhook'), [
                 'oauth_token' => 'access_'.str_repeat('a', 30),
                 'webhook_url' => self::WEBHOOK_URL,
-                'test_mode' => true,
+                'test_mode' => false,
             ])
             ->assertOk()
             ->assertJson([
