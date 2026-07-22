@@ -125,19 +125,11 @@
 
                 <!-- Member Column -->
                 <template v-else-if="column.key === 'member'">
-                  <div class="flex items-center">
-                    <div class="w-8 h-8 shrink-0 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
-                      {{ getMemberInitials(payment.membership?.member) }}
-                    </div>
-                    <div class="min-w-0 max-w-[250px]">
-                      <div class="text-sm font-medium text-gray-900 truncate">
-                        {{ payment.membership?.member?.first_name }} {{ payment.membership?.member?.last_name }}
-                      </div>
-                      <div class="text-sm text-gray-500 truncate">
-                        {{ payment.membership?.member?.email }}
-                      </div>
-                    </div>
-                  </div>
+                  <MemberIdentity
+                    :member="payment.membership?.member"
+                    size="sm"
+                    max-width="250px"
+                  />
                 </template>
 
                 <!-- Description Column -->
@@ -416,6 +408,7 @@ import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
 import PaymentDetailModal from '@/Components/PaymentDetailModal.vue'
+import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import {
   Download,
   ArrowUpDown,
@@ -442,7 +435,6 @@ import {
   hasCreditRedemption,
   isCreditTopup,
   creditTopupSource,
-  getMemberInitials,
   isScheduledInFuture
 } from '@/utils/payments'
 

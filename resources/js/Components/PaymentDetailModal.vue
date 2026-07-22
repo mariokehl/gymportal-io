@@ -133,17 +133,12 @@
         <!-- Mitglied -->
         <div v-if="payment.membership?.member">
           <label class="block text-sm font-medium text-gray-500">Mitglied</label>
-          <div class="mt-1 flex items-center">
-            <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
-              {{ getMemberInitials(payment.membership.member) }}
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-900">
-                {{ payment.membership.member.first_name }} {{ payment.membership.member.last_name }}
-              </p>
-              <p class="text-sm text-gray-500">{{ payment.membership.member.email }}</p>
-            </div>
-          </div>
+          <MemberIdentity
+            :member="payment.membership.member"
+            size="sm"
+            :max-width="null"
+            class="mt-1"
+          />
         </div>
 
         <div>
@@ -270,6 +265,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
+import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import {
   CheckCircle,
   X,
@@ -289,7 +285,6 @@ import {
   hasCreditRedemption,
   isCreditTopup,
   creditTopupSource,
-  getMemberInitials,
   todayAsIsoDate
 } from '@/utils/payments'
 
