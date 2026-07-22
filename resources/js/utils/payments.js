@@ -57,6 +57,36 @@ export const isScheduledInFuture = (payment, today = todayAsIsoDate()) => {
   return dates.some(date => date > today)
 }
 
+/**
+ * The date a payment is scheduled for: the execution date, falling back to the
+ * due date. Returns an empty string when neither is set.
+ */
+export const scheduledDate = (payment) => {
+  const date = payment?.execution_date || payment?.due_date
+  return date ? String(date).slice(0, 10) : ''
+}
+
+/**
+ * Sorts payments by their scheduled date, newest first, with the highest id as
+ * the tie-breaker. Mirrors the server-side ordering used on the finances page
+ * so both views present payments in the same order.
+ */
+export const sortByScheduledDate = (payments) => {
+  return [...payments].sort((a, b) => {
+    const dateA = scheduledDate(a)
+    const dateB = scheduledDate(b)
+
+    // Payments without any date sort last, regardless of their id.
+    if (dateA !== dateB) {
+      if (!dateA) return 1
+      if (!dateB) return -1
+      return dateA < dateB ? 1 : -1
+    }
+
+    return b.id - a.id
+  })
+}
+
 export const getMemberInitials = (member) => {
   if (!member) return '??'
   const first = member.first_name?.charAt(0) || ''

@@ -232,7 +232,9 @@ const tableColumns = ref([
   { key: 'amount', label: 'Betrag', sortable: true, nowrap: true },
   { key: 'status', label: 'Status', sortable: false, nowrap: true },
   { key: 'payment_method', label: 'Zahlungsart', sortable: false, nowrap: true },
-  { key: 'due_date', label: 'Fälligkeitsdatum', sortable: false, nowrap: true }
+  // Renders the due date with the execution date underneath; sorting uses the
+  // execution date and falls back to the due date.
+  { key: 'due_date', label: 'Fälligkeitsdatum', sortable: true, sortKey: 'scheduled_date', nowrap: true }
 ])
 
 // Methods

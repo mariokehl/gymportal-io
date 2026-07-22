@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   getCreditRedemption, hasCreditRedemption, isCreditTopup, creditTopupSource, getMemberInitials,
-  isScheduledInFuture
+  isScheduledInFuture, scheduledDate, sortByScheduledDate
 } from '@/utils/payments'
 
 describe('getCreditRedemption', () => {
@@ -106,6 +106,75 @@ describe('isScheduledInFuture', () => {
   it('does not highlight a payment without any dates', () => {
     expect(isScheduledInFuture({}, today)).toBe(false)
     expect(isScheduledInFuture(null, today)).toBe(false)
+  })
+})
+
+describe('scheduledDate', () => {
+  it('prefers the execution date over the due date', () => {
+    expect(scheduledDate({ execution_date: '2026-03-01', due_date: '2026-01-01' })).toBe('2026-03-01')
+  })
+
+  it('falls back to the due date', () => {
+    expect(scheduledDate({ due_date: '2026-01-01' })).toBe('2026-01-01')
+  })
+
+  it('strips a time component and handles missing dates', () => {
+    expect(scheduledDate({ due_date: '2026-01-01T00:00:00.000000Z' })).toBe('2026-01-01')
+    expect(scheduledDate({})).toBe('')
+    expect(scheduledDate(null)).toBe('')
+  })
+})
+
+describe('sortByScheduledDate', () => {
+  const ids = (payments) => sortByScheduledDate(payments).map(p => p.id)
+
+  it('sorts by the scheduled date, newest first', () => {
+    const payments = [
+      { id: 1, due_date: '2026-01-10' },
+      { id: 2, due_date: '2026-03-10' },
+      { id: 3, due_date: '2026-02-10' },
+    ]
+
+    expect(ids(payments)).toEqual([2, 3, 1])
+  })
+
+  it('weighs the execution date against another payment due date', () => {
+    const payments = [
+      { id: 1, due_date: '2026-12-01', execution_date: '2026-01-05' },
+      { id: 2, due_date: '2026-02-05' },
+    ]
+
+    expect(ids(payments)).toEqual([2, 1])
+  })
+
+  it('falls back to the highest id for equal dates', () => {
+    const payments = [
+      { id: 1, due_date: '2026-01-10' },
+      { id: 3, due_date: '2026-01-10' },
+      { id: 2, due_date: '2026-01-10' },
+    ]
+
+    expect(ids(payments)).toEqual([3, 2, 1])
+  })
+
+  it('sorts payments without any date last', () => {
+    const payments = [
+      { id: 5 },
+      { id: 1, due_date: '2026-01-10' },
+    ]
+
+    expect(ids(payments)).toEqual([1, 5])
+  })
+
+  it('does not mutate the given array', () => {
+    const payments = [
+      { id: 1, due_date: '2026-01-10' },
+      { id: 2, due_date: '2026-03-10' },
+    ]
+
+    sortByScheduledDate(payments)
+
+    expect(payments.map(p => p.id)).toEqual([1, 2])
   })
 })
 

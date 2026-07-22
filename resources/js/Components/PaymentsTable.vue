@@ -75,7 +75,7 @@
                   'cursor-pointer hover:bg-gray-100': column.sortable,
                   'text-right': column.align === 'right'
                 }"
-                @click="column.sortable && handleSort(column.key)"
+                @click="column.sortable && handleSort(column.sortKey || column.key)"
               >
                 <div class="flex items-center" :class="{ 'justify-end': column.align === 'right' }">
                   {{ column.label }}
