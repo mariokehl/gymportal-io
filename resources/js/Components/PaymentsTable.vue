@@ -90,8 +90,10 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <template v-for="payment in payments.data" :key="payment.id">
             <tr
-              class="hover:bg-gray-50"
-              :class="{ 'opacity-60': executingPaymentId === payment.id }"
+              :class="[
+                isScheduledInFuture(payment) ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50',
+                { 'opacity-60': executingPaymentId === payment.id }
+              ]"
             >
               <td class="px-6 py-4 whitespace-nowrap" v-if="showCheckboxes">
                 <input
@@ -264,7 +266,11 @@
 
             <!-- Expanded Row for Chargebacks/Refunds/Credit -->
             <tr v-if="isRowExpanded(payment.id) && (getChargebackRefundCount(payment) > 0 || hasCreditRedemption(payment))">
-              <td :colspan="visibleColumns.length + (showCheckboxes ? 1 : 0) + (showActions ? 1 : 0)" class="px-6 py-4 bg-gray-50">
+              <td
+                :colspan="visibleColumns.length + (showCheckboxes ? 1 : 0) + (showActions ? 1 : 0)"
+                class="px-6 py-4"
+                :class="isScheduledInFuture(payment) ? 'bg-amber-50' : 'bg-gray-50'"
+              >
                 <div class="space-y-4">
                   <!-- Credit redemption -->
                   <div v-if="getCreditRedemption(payment)">
@@ -436,7 +442,8 @@ import {
   hasCreditRedemption,
   isCreditTopup,
   creditTopupSource,
-  getMemberInitials
+  getMemberInitials,
+  isScheduledInFuture
 } from '@/utils/payments'
 
 // Props

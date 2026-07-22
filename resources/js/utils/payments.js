@@ -34,6 +34,29 @@ export const creditTopupSource = (payment) => {
   return name ? `manuell erfasst · ${name}` : 'manuell erfasst'
 }
 
+/**
+ * Today in local time as YYYY-MM-DD. Both the execution and the due date are
+ * plain dates (Y-m-d), so comparing them as strings avoids any timezone shift.
+ */
+export const todayAsIsoDate = () => {
+  const now = new Date()
+  const offset = now.getTimezoneOffset() * 60000
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
+
+/**
+ * A payment is scheduled when its execution or due date still lies ahead.
+ * Such rows are highlighted in the table to separate them from the ones that
+ * are already due.
+ */
+export const isScheduledInFuture = (payment, today = todayAsIsoDate()) => {
+  const dates = [payment?.execution_date, payment?.due_date]
+    .filter(Boolean)
+    .map(date => String(date).slice(0, 10))
+
+  return dates.some(date => date > today)
+}
+
 export const getMemberInitials = (member) => {
   if (!member) return '??'
   const first = member.first_name?.charAt(0) || ''

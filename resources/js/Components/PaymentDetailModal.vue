@@ -285,7 +285,13 @@ import {
   BanknoteArrowDown
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
-import { hasCreditRedemption, isCreditTopup, creditTopupSource, getMemberInitials } from '@/utils/payments'
+import {
+  hasCreditRedemption,
+  isCreditTopup,
+  creditTopupSource,
+  getMemberInitials,
+  todayAsIsoDate
+} from '@/utils/payments'
 
 const props = defineProps({
   show: {
@@ -321,12 +327,8 @@ const savingExecutionDate = ref(false)
 const executionDateError = ref('')
 const executionDateInput = ref(null)
 
-// Today in local time as YYYY-MM-DD, used as the lower bound for the date input.
-const today = computed(() => {
-  const now = new Date()
-  const offset = now.getTimezoneOffset() * 60000
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
-})
+// Lower bound for the date input.
+const today = computed(() => todayAsIsoDate())
 
 // The execution date may only be changed for pending payments (no credit
 // top-ups) that have not been handed over to a payment provider yet.

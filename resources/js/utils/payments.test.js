@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  getCreditRedemption, hasCreditRedemption, isCreditTopup, creditTopupSource, getMemberInitials
+  getCreditRedemption, hasCreditRedemption, isCreditTopup, creditTopupSource, getMemberInitials,
+  isScheduledInFuture
 } from '@/utils/payments'
 
 describe('getCreditRedemption', () => {
@@ -74,6 +75,37 @@ describe('creditTopupSource', () => {
   it('falls back to the plain label without a name', () => {
     expect(creditTopupSource({ metadata: {} })).toBe('manuell erfasst')
     expect(creditTopupSource(null)).toBe('manuell erfasst')
+  })
+})
+
+describe('isScheduledInFuture', () => {
+  const today = '2026-07-22'
+
+  it('highlights a payment whose execution date lies ahead', () => {
+    expect(isScheduledInFuture({ execution_date: '2026-07-23' }, today)).toBe(true)
+  })
+
+  it('highlights a payment whose due date lies ahead', () => {
+    expect(isScheduledInFuture({ due_date: '2026-08-01' }, today)).toBe(true)
+  })
+
+  it('does not highlight dates of today or earlier', () => {
+    expect(isScheduledInFuture({ execution_date: today, due_date: today }, today)).toBe(false)
+    expect(isScheduledInFuture({ execution_date: '2026-07-21' }, today)).toBe(false)
+  })
+
+  it('highlights when only one of both dates lies ahead', () => {
+    expect(isScheduledInFuture({ execution_date: '2026-07-01', due_date: '2026-08-01' }, today)).toBe(true)
+  })
+
+  it('ignores a time component on the date', () => {
+    expect(isScheduledInFuture({ due_date: '2026-07-23T00:00:00.000000Z' }, today)).toBe(true)
+    expect(isScheduledInFuture({ due_date: '2026-07-22T00:00:00.000000Z' }, today)).toBe(false)
+  })
+
+  it('does not highlight a payment without any dates', () => {
+    expect(isScheduledInFuture({}, today)).toBe(false)
+    expect(isScheduledInFuture(null, today)).toBe(false)
   })
 })
 
