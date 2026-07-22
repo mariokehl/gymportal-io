@@ -72,7 +72,17 @@
             @if($includedAddons->isNotEmpty() || $optionalAddons->isNotEmpty())
             @php $currencyFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY); @endphp
             <div class="plan-addons" data-addons-for="{{ $plan->id }}">
-                <p class="plan-addons-title">Zusatzleistungen (einmalig)</p>
+                @php
+                    // The heading only names a billing rhythm when all add-ons
+                    // of this plan share one; otherwise each row states its own.
+                    $planAddons = $includedAddons->merge($optionalAddons);
+                    $addonsTitle = match (true) {
+                        $planAddons->every(fn ($a) => ! $a->isRecurring()) => 'Zusatzleistungen (einmalig)',
+                        $planAddons->every(fn ($a) => $a->isRecurring()) => 'Zusatzleistungen (monatlich)',
+                        default => 'Zusatzleistungen',
+                    };
+                @endphp
+                <p class="plan-addons-title">{{ $addonsTitle }}</p>
 
                 {{-- Included add-ons: part of the plan, shown as a free benefit (green). --}}
                 @foreach($includedAddons as $addon)
@@ -110,7 +120,7 @@
                             </div>
                             <div class="addon-price-line">
                                 <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
-                                <span class="addon-price-note">einmalig</span>
+                                <span class="addon-price-note">{{ $addon->isRecurring() ? 'monatlich' : 'einmalig' }}</span>
                             </div>
                         </div>
                     </div>

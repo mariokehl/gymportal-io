@@ -67,12 +67,7 @@ class AddonController extends Controller
 
         $addon = Addon::create([
             'gym_id' => $user->current_gym_id,
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
-            'price' => $validated['price'],
-            'payment_method' => $validated['payment_method'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-            'sort_order' => $validated['sort_order'] ?? 0,
+            ...$this->addonAttributes($request, $validated),
         ]);
 
         $this->syncPlanAssignments($addon, $request->input('plan_modes', []));
@@ -114,14 +109,7 @@ class AddonController extends Controller
 
         $validated = $request->validated();
 
-        $addon->update([
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
-            'price' => $validated['price'],
-            'payment_method' => $validated['payment_method'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-            'sort_order' => $validated['sort_order'] ?? 0,
-        ]);
+        $addon->update($this->addonAttributes($request, $validated));
 
         $this->syncPlanAssignments($addon, $request->input('plan_modes', []));
 
@@ -144,6 +132,44 @@ class AddonController extends Controller
             'type' => 'success',
             'message' => 'Add-on wurde erfolgreich gelöscht.',
         ]);
+    }
+
+    /**
+     * Build the addon attributes from the validated payload. Fields that do not
+     * apply to the chosen service or billing type are stored as null so that
+     * switching the type never leaves stale values behind.
+     */
+    private function addonAttributes(StoreAddonRequest $request, array $validated): array
+    {
+        $isUsage = $validated['service_type'] === Addon::SERVICE_TYPE_USAGE;
+        $isRecurring = $validated['billing_type'] === Addon::BILLING_TYPE_RECURRING;
+        $hasFixedPeriod = $isUsage && ($validated['usage_period'] ?? null) === Addon::USAGE_PERIOD_FIXED;
+
+        // An unlimited flat rate is expressed as a null quota amount.
+        $quotaAmount = $isUsage ? ($validated['quota_amount'] ?? null) : null;
+
+        return [
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'price' => $validated['price'],
+            'payment_method' => $validated['payment_method'] ?? null,
+            'is_active' => $request->boolean('is_active'),
+            'sort_order' => $validated['sort_order'] ?? 0,
+
+            'service_type' => $validated['service_type'],
+            'billing_type' => $validated['billing_type'],
+
+            // The trial grants the rest of the month and only applies to
+            // recurring billing.
+            'trial_rest_of_month' => $isRecurring && $request->boolean('trial_rest_of_month'),
+
+            'usage_period' => $isUsage ? ($validated['usage_period'] ?? null) : null,
+            'usage_duration' => $hasFixedPeriod ? ($validated['usage_duration'] ?? null) : null,
+            'usage_duration_unit' => $hasFixedPeriod ? ($validated['usage_duration_unit'] ?? null) : null,
+            'quota_amount' => $quotaAmount,
+            'quota_interval' => $quotaAmount !== null ? ($validated['quota_interval'] ?? null) : null,
+            'settled_via_device' => $isUsage && $request->boolean('settled_via_device'),
+        ];
     }
 
     /**
@@ -177,7 +203,9 @@ class AddonController extends Controller
     }
 
     /**
-     * Active membership plans of the current gym for the assignment UI.
+     * Membership plans of the current gym for the assignment UI. Inactive plans
+     * are included as well so that existing assignments stay visible and
+     * editable; the UI filters by status.
      */
     private function membershipPlansForForm()
     {
@@ -185,10 +213,9 @@ class AddonController extends Controller
         $user = Auth::user();
 
         return MembershipPlan::where('gym_id', $user->current_gym_id)
-            ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'billing_cycle']);
+            ->get(['id', 'name', 'billing_cycle', 'is_active']);
     }
 
     /**

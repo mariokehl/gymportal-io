@@ -13,10 +13,65 @@ class Addon extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * One-off service such as a trainer induction.
+     */
+    public const SERVICE_TYPE_ADDITIONAL = 'additional';
+
+    /**
+     * Consumable service (drinks, sauna) settled through a device.
+     */
+    public const SERVICE_TYPE_USAGE = 'usage';
+
+    public const SERVICE_TYPES = [
+        self::SERVICE_TYPE_ADDITIONAL,
+        self::SERVICE_TYPE_USAGE,
+    ];
+
+    /**
+     * Charged once at contract start.
+     */
+    public const BILLING_TYPE_ONE_TIME = 'one_time';
+
+    /**
+     * Charged monthly, in sync with the membership fee.
+     */
+    public const BILLING_TYPE_RECURRING = 'recurring';
+
+    public const BILLING_TYPES = [
+        self::BILLING_TYPE_ONE_TIME,
+        self::BILLING_TYPE_RECURRING,
+    ];
+
+    public const USAGE_PERIOD_SINGLE = 'single';
+
+    public const USAGE_PERIOD_FIXED = 'fixed_period';
+
+    public const USAGE_PERIOD_FULL_DAY = 'full_day';
+
+    public const USAGE_PERIODS = [
+        self::USAGE_PERIOD_SINGLE,
+        self::USAGE_PERIOD_FIXED,
+        self::USAGE_PERIOD_FULL_DAY,
+    ];
+
+    public const DURATION_UNITS = ['hours', 'days', 'weeks'];
+
+    public const QUOTA_INTERVALS = ['day', 'week', 'month'];
+
     protected $fillable = [
         'gym_id',
         'name',
         'description',
+        'service_type',
+        'billing_type',
+        'trial_rest_of_month',
+        'usage_period',
+        'usage_duration',
+        'usage_duration_unit',
+        'quota_amount',
+        'quota_interval',
+        'settled_via_device',
         'price',
         'payment_method',
         'is_active',
@@ -26,6 +81,10 @@ class Addon extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'is_active' => 'boolean',
+        'trial_rest_of_month' => 'boolean',
+        'settled_via_device' => 'boolean',
+        'usage_duration' => 'integer',
+        'quota_amount' => 'integer',
     ];
 
     protected $appends = ['formatted_price'];
@@ -45,13 +104,50 @@ class Addon extends Model
     public function memberships(): BelongsToMany
     {
         return $this->belongsToMany(Membership::class)
-            ->withPivot('mode', 'price', 'payment_id', 'completed_at', 'completed_by')
+            ->withPivot(
+                'mode',
+                'price',
+                'payment_id',
+                'completed_at',
+                'completed_by',
+                'cancelled_at',
+                'cancellation_effective_at',
+                'cancelled_by'
+            )
             ->withTimestamps();
     }
 
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeUsageServices(Builder $query): Builder
+    {
+        return $query->where('service_type', self::SERVICE_TYPE_USAGE);
+    }
+
+    public function scopeRecurring(Builder $query): Builder
+    {
+        return $query->where('billing_type', self::BILLING_TYPE_RECURRING);
+    }
+
+    public function isUsageService(): bool
+    {
+        return $this->service_type === self::SERVICE_TYPE_USAGE;
+    }
+
+    public function isRecurring(): bool
+    {
+        return $this->billing_type === self::BILLING_TYPE_RECURRING;
+    }
+
+    /**
+     * A usage service without a quota amount is an unlimited flat rate.
+     */
+    public function hasUnlimitedQuota(): bool
+    {
+        return $this->isUsageService() && $this->quota_amount === null;
     }
 
     public function getFormattedPriceAttribute(): string

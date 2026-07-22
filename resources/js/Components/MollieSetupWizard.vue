@@ -347,7 +347,43 @@
                                 readonly>
                             <p class="text-xs text-gray-500 mt-1">
                                 Diese URL wird automatisch in Mollie als Webhook konfiguriert
+                                <template v-if="form.test_mode">
+                                    – im Test-Modus mit dem Parameter <code class="bg-gray-100 px-1 rounded">?mode=test</code>,
+                                    da Mollie pro URL nur einen Webhook zulässt. Die Verarbeitung ist identisch.
+                                </template>
                             </p>
+
+                            <!-- Background check whether a webhook for this URL already exists -->
+                            <div v-if="isLookingUpWebhook" class="mt-2 flex items-center text-xs text-gray-500">
+                                <svg class="animate-spin mr-2 h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Prüfe, ob bereits ein Webhook für diese URL existiert...
+                            </div>
+
+                            <div v-else-if="webhookLookup" class="mt-2 flex items-start text-xs"
+                                :class="webhookLookupClasses.text">
+                                <svg class="w-4 h-4 mr-1 flex-shrink-0" :class="webhookLookupClasses.icon"
+                                    fill="currentColor" viewBox="0 0 20 20">
+                                    <path v-if="webhookLookup.exists" fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd"></path>
+                                    <path v-else fill-rule="evenodd"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                <span>
+                                    {{ webhookLookup.message }}
+                                    <template v-if="webhookLookup.exists && webhookLookup.webhook?.id">
+                                        ({{ webhookLookup.webhook.id }}<template v-if="webhookLookup.webhook.status">,
+                                            Status: {{ webhookLookup.webhook.status }}</template>)
+                                    </template>
+                                </span>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -553,6 +589,35 @@
                 </div>
             </div>
 
+            <!-- Error Modal -->
+            <div v-if="saveError" class="fixed inset-0 overflow-y-auto h-full w-full z-50" @click="closeErrorModal">
+                <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white"
+                    @click.stop>
+                    <div class="mt-3 text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                            <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">{{ saveError.title }}</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <p class="text-sm text-gray-500">{{ saveError.message }}</p>
+                            <p v-if="saveError.detail" class="text-xs text-gray-500 mt-3 p-2 bg-gray-50 rounded border border-gray-200 break-words text-left">
+                                {{ saveError.detail }}
+                            </p>
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button @click="closeErrorModal"
+                                class="px-4 py-2 bg-gray-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                Schließen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Success Modal -->
             <div v-if="showSuccessModal" class="fixed inset-0 overflow-y-auto h-full w-full z-50" @click="closeSuccessModal">
                 <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white" @click.stop>
@@ -614,6 +679,7 @@ export default {
             showOAuthToken: false,
             isTestingIntegration: false,
             isCheckingWebhook: false,
+            isLookingUpWebhook: false,
             isSaving: false,
             isConfigSaved: false,
             showSuccessModal: false,
@@ -639,7 +705,37 @@ export default {
             availableMethods: [],
             apiValidationError: null,
             testResult: null,
-            webhookStatus: null
+            webhookStatus: null,
+            webhookLookup: null,
+            webhookLookupKey: null,
+            saveError: null
+        }
+    },
+
+    watch: {
+        currentStep(step) {
+            // Lazily check for an existing webhook as soon as the configuration step is shown
+            if (step === 3) {
+                this.lookupExistingWebhook();
+            }
+        },
+
+        'form.oauth_token'() {
+            this.webhookLookup = null;
+            this.webhookLookupKey = null;
+
+            if (this.currentStep === 3) {
+                this.lookupExistingWebhook();
+            }
+        },
+
+        'form.test_mode'() {
+            this.webhookLookup = null;
+            this.webhookLookupKey = null;
+
+            if (this.currentStep === 3) {
+                this.lookupExistingWebhook();
+            }
         }
     },
 
@@ -649,7 +745,11 @@ export default {
         },
 
         webhookUrl() {
-            return `${window.location.origin}/api/v1/public/mollie/webhook`;
+            const url = `${window.location.origin}/api/v1/public/mollie/webhook`;
+
+            // Test mode is registered under a distinct URL, because Mollie rejects
+            // a second webhook for an already registered one
+            return this.form.test_mode ? `${url}?mode=test` : url;
         },
 
         canProceed() {
@@ -671,6 +771,20 @@ export default {
 
         isApiValidated() {
             return this.availableMethods.length > 0 && this.form.api_key;
+        },
+
+        webhookLookupClasses() {
+            if (!this.webhookLookup) {
+                return { text: '', icon: '' };
+            }
+
+            if (!this.webhookLookup.success) {
+                return { text: 'text-red-700', icon: 'text-red-400' };
+            }
+
+            return this.webhookLookup.exists
+                ? { text: 'text-green-700', icon: 'text-green-500' }
+                : { text: 'text-gray-500', icon: 'text-gray-400' };
         }
     },
 
@@ -814,6 +928,41 @@ export default {
             }
         },
 
+        async lookupExistingWebhook() {
+            if (!this.form.oauth_token) {
+                this.webhookLookup = null;
+                return;
+            }
+
+            // Skip when the same combination has already been looked up
+            const lookupKey = `${this.form.oauth_token}|${this.form.test_mode}|${this.webhookUrl}`;
+            if (this.webhookLookupKey === lookupKey || this.isLookingUpWebhook) {
+                return;
+            }
+
+            this.isLookingUpWebhook = true;
+            this.webhookLookup = null;
+
+            try {
+                const response = await axios.post(route('v1.mollie.lookup-webhook'), {
+                    oauth_token: this.form.oauth_token,
+                    webhook_url: this.webhookUrl,
+                    test_mode: this.form.test_mode
+                });
+
+                this.webhookLookup = response.data;
+                this.webhookLookupKey = lookupKey;
+            } catch (error) {
+                this.webhookLookup = {
+                    success: false,
+                    exists: false,
+                    message: error.response?.data?.message || 'Webhook konnte nicht geprüft werden'
+                };
+            } finally {
+                this.isLookingUpWebhook = false;
+            }
+        },
+
         async checkWebhookStatus() {
             if (!this.isConfigSaved || !this.form.oauth_token) return;
 
@@ -856,13 +1005,32 @@ export default {
                     this.showSuccessModal = true;
                     this.$emit('configuration-saved', configData);
                 } else {
-                    alert('Fehler beim Speichern: ' + (data.message || 'Unbekannter Fehler'));
+                    this.showSaveError(data);
                 }
             } catch (error) {
-                alert('Fehler beim Speichern: ' + error.message);
+                this.showSaveError(error.response?.data, error);
             } finally {
                 this.isSaving = false;
             }
+        },
+
+        showSaveError(data, error = null) {
+            // Laravel returns field errors as { errors: { field: [message] } }
+            const validationErrors = data?.errors
+                ? Object.values(data.errors).flat().join(' ')
+                : null;
+
+            this.saveError = {
+                title: 'Speichern fehlgeschlagen',
+                message: data?.message
+                    || error?.message
+                    || 'Beim Speichern der Konfiguration ist ein unbekannter Fehler aufgetreten.',
+                detail: data?.detail || validationErrors
+            };
+        },
+
+        closeErrorModal() {
+            this.saveError = null;
         },
 
         closeSuccessModal() {

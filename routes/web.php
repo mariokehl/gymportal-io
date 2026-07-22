@@ -105,7 +105,9 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/abort', [MembershipController::class, 'abort'])->name('members.memberships.abort');
         Route::put('/withdraw', [MembershipController::class, 'withdraw'])->name('members.memberships.withdraw');
         Route::put('/force-status', [MembershipController::class, 'forceStatus'])->name('members.memberships.force-status');
+        Route::post('/addons', [MembershipController::class, 'storeMembershipAddon'])->name('members.memberships.addons.store');
         Route::put('/addons/{addon}/toggle-completion', [MembershipController::class, 'toggleAddonCompletion'])->name('members.memberships.addons.toggle-completion');
+        Route::put('/addons/{addon}/toggle-cancellation', [MembershipController::class, 'toggleAddonCancellation'])->name('members.memberships.addons.toggle-cancellation');
     });
     Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');

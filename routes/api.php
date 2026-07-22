@@ -29,6 +29,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
             Route::post('/mollie/save-config', [MollieSetupController::class, 'saveConfiguration'])->name('save-config');
             Route::post('/mollie/test-payment', [MollieSetupController::class, 'testIntegration'])->name('test-integration');
             Route::post('/mollie/webhook-status', [MollieSetupController::class, 'checkWebhookStatus'])->name('check-webhook-status');
+            Route::post('/mollie/webhook-lookup', [MollieSetupController::class, 'lookupWebhook'])->name('lookup-webhook');
         });
     });
 

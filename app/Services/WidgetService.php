@@ -700,6 +700,9 @@ class WidgetService
 
             $isIncluded = $mode === 'included';
 
+            // This creates the charge for the first period only. Every further
+            // period is created by ProcessMembershipPayments, which bills
+            // recurring add-ons in sync with the membership fee.
             $payment = $isIncluded
                 ? null
                 : $paymentService->createAddonPayment(

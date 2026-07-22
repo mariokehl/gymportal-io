@@ -28,61 +28,115 @@
     </div>
 
     <!-- Header with Add Button -->
-    <div class="mb-6 flex justify-between items-center">
-      <div>
-        <h2 class="text-2xl font-semibold text-gray-900">Add-ons</h2>
-        <p class="text-gray-600 mt-1">
-          Zusatzleistungen, die zu einem Vertrag inklusive oder optional buchbar sind
-          (z.&nbsp;B. Trainereinweisung). Sie werden einmalig zum Vertragsstart abgerechnet.
+    <div class="mb-4 flex flex-wrap gap-3 justify-between items-start">
+      <div class="max-w-3xl">
+        <h2 class="text-2xl font-bold text-gray-900">Add-ons &amp; Leistungen</h2>
+        <p class="text-gray-600 mt-1.5">
+          Zusatzleistungen zu einem Vertrag – <strong class="text-gray-700">einmalig</strong> zum Vertragsstart
+          oder <strong class="text-gray-700">wiederkehrend</strong> (monatlich, synchron zum Mitgliedsbeitrag).
+          Nutzungsleistungen wie Getränke oder Sauna werden über ein Gerät (Spender) mit Kontingent verrechnet.
         </p>
       </div>
       <Link
         v-if="isOwnerOrAdmin"
         :href="route('contracts.addons.create')"
-        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+        class="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white px-4.5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors"
       >
         <Plus class="w-4 h-4" />
         <span>Neues Add-on</span>
       </Link>
     </div>
 
-    <!-- Add-ons Grid -->
-    <div v-if="addons.length > 0" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <div
-        v-for="addon in addons"
-        :key="addon.id"
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col"
+    <!-- Service type filter -->
+    <div v-if="addons.length > 0" class="flex gap-2 flex-wrap my-4">
+      <button
+        v-for="filter in serviceTypeFilters"
+        :key="filter.value"
+        type="button"
+        class="border rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
+        :class="activeFilter === filter.value
+          ? 'bg-gray-900 border-gray-900 text-white'
+          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'"
+        :aria-pressed="activeFilter === filter.value"
+        @click="activeFilter = filter.value"
       >
-        <div class="flex justify-between items-start mb-4">
-          <div class="flex-1">
-            <div class="flex items-center space-x-2">
-              <h3 class="font-semibold text-lg text-gray-900">{{ addon.name }}</h3>
-              <span
-                :class="{
-                  'bg-green-100 text-green-800': addon.is_active,
-                  'bg-gray-100 text-gray-800': !addon.is_active
-                }"
-                class="px-2 py-1 rounded-full text-xs font-medium"
-              >
-                {{ addon.is_active ? 'Aktiv' : 'Inaktiv' }}
-              </span>
-            </div>
-            <p v-if="addon.description" class="text-gray-600 text-sm mt-1">{{ addon.description }}</p>
-          </div>
+        {{ filter.label }}
+      </button>
+    </div>
+
+    <!-- Add-ons Grid -->
+    <div v-if="filteredAddons.length > 0" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        v-for="addon in filteredAddons"
+        :key="addon.id"
+        class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow flex flex-col"
+      >
+        <div class="flex items-center gap-2.5 flex-wrap mb-1">
+          <span
+            class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+            :class="isUsageService(addon) ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500'"
+          >
+            <component :is="isUsageService(addon) ? CupSoda : BadgeCheck" class="w-4.5 h-4.5" />
+          </span>
+          <h3 class="font-semibold text-lg text-gray-900">{{ addon.name }}</h3>
+          <span
+            :class="addon.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+            class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+          >
+            {{ addon.is_active ? 'Aktiv' : 'Inaktiv' }}
+          </span>
         </div>
 
-        <div class="space-y-3 mb-6 flex-grow">
-          <div class="flex justify-between">
-            <span class="text-gray-600 text-sm">Preis:</span>
-            <span class="font-medium">{{ formatPrice(addon.price) }}</span>
+        <div class="flex gap-1.5 flex-wrap my-1.5">
+          <span
+            class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+            :class="isUsageService(addon) ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700'"
+          >
+            {{ isUsageService(addon) ? 'Nutzungsleistung' : 'Zusatzleistung' }}
+          </span>
+          <span
+            class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+            :class="isRecurring(addon) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+          >
+            {{ isRecurring(addon) ? 'Wiederkehrend' : 'Einmalig' }}
+          </span>
+        </div>
+
+        <p class="text-gray-500 text-sm mb-3.5 min-h-5">{{ addon.description }}</p>
+
+        <div class="flex flex-col gap-2.5 text-sm pt-3 border-t mb-6 border-gray-100 flex-grow">
+          <div class="flex justify-between gap-2">
+            <span class="text-gray-500">Preis</span>
+            <span class="font-semibold text-gray-900 text-right">{{ formatAddonPrice(addon) }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 text-sm">Zahlweise:</span>
-            <span class="font-medium">{{ addon.payment_method ? formatPaymentMethod(addon.payment_method) : 'Standard-Zahlungsart' }}</span>
+          <div class="flex justify-between gap-2">
+            <span class="text-gray-500">Abrechnung</span>
+            <span class="text-gray-700 text-right">
+              {{ isRecurring(addon) ? 'Monatlich, synchron zum Beitrag' : 'Einmalig zum Vertragsstart' }}
+            </span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 text-sm">Zugeordnete Verträge:</span>
-            <span class="font-medium text-indigo-600">{{ addon.membership_plans_count || 0 }}</span>
+          <template v-if="isUsageService(addon)">
+            <div class="flex justify-between gap-2">
+              <span class="text-gray-500">Nutzung</span>
+              <span class="text-gray-700 text-right">{{ formatUsage(addon) }}</span>
+            </div>
+            <div v-if="addon.settled_via_device" class="flex justify-between items-center gap-2">
+              <span class="text-gray-500">Gerät</span>
+              <span class="inline-flex items-center gap-1.5 text-gray-700">
+                <CupSoda class="w-3.5 h-3.5 text-indigo-600" />
+                Spender
+              </span>
+            </div>
+          </template>
+          <div class="flex justify-between gap-2">
+            <span class="text-gray-500">Zahlweise</span>
+            <span class="text-gray-700 text-right">
+              {{ addon.payment_method ? formatPaymentMethod(addon.payment_method) : 'Standard-Zahlungsart' }}
+            </span>
+          </div>
+          <div class="flex justify-between gap-2">
+            <span class="text-gray-500">Zugeordnete Verträge</span>
+            <span class="font-semibold text-indigo-600">{{ addon.membership_plans_count || 0 }}</span>
           </div>
         </div>
 
@@ -103,6 +157,12 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- No match for the active filter -->
+    <div v-else-if="addons.length > 0" class="text-center py-12">
+      <PackagePlus class="w-12 h-12 text-gray-300 mx-auto mb-3" />
+      <p class="text-gray-600">In dieser Kategorie sind keine Add-ons vorhanden.</p>
     </div>
 
     <!-- Empty State -->
@@ -162,12 +222,12 @@
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { Plus, PackagePlus, AlertTriangle } from 'lucide-vue-next'
+import { Plus, PackagePlus, AlertTriangle, BadgeCheck, CupSoda } from 'lucide-vue-next'
 import { formatPrice } from '@/utils/formatters'
 
 const page = usePage()
 
-defineProps({
+const props = defineProps({
   addons: Array,
   flash: Object
 })
@@ -189,6 +249,54 @@ const paymentMethodLabels = {
 }
 
 const formatPaymentMethod = (key) => paymentMethodLabels[key] || key
+
+const serviceTypeFilters = [
+  { value: 'all', label: 'Alle' },
+  { value: 'additional', label: 'Zusatzleistungen' },
+  { value: 'usage', label: 'Nutzungsleistungen' }
+]
+
+const activeFilter = ref('all')
+
+const isUsageService = (addon) => addon.service_type === 'usage'
+const isRecurring = (addon) => addon.billing_type === 'recurring'
+
+const filteredAddons = computed(() => {
+  if (activeFilter.value === 'all') {
+    return props.addons
+  }
+
+  return props.addons.filter((addon) => (addon.service_type ?? 'additional') === activeFilter.value)
+})
+
+const formatAddonPrice = (addon) =>
+  isRecurring(addon) ? `${formatPrice(addon.price)} / Monat` : formatPrice(addon.price)
+
+const usagePeriodLabels = {
+  single: 'Einmalige Nutzung',
+  fixed_period: 'Fester Zeitraum',
+  full_day: 'Ganzer Tag'
+}
+
+const quotaIntervalLabels = {
+  day: 'Tag',
+  week: 'Woche',
+  month: 'Monat'
+}
+
+/**
+ * Describes the quota and usage period of a usage service, e.g.
+ * "Flatrate · ganzer Tag" or "8 Einheiten / Monat".
+ */
+const formatUsage = (addon) => {
+  const quota = addon.quota_amount
+    ? `${addon.quota_amount} Einheiten / ${quotaIntervalLabels[addon.quota_interval] ?? addon.quota_interval}`
+    : 'Flatrate'
+
+  const period = usagePeriodLabels[addon.usage_period]
+
+  return period ? `${quota} · ${period.toLowerCase()}` : quota
+}
 
 const confirmDelete = (addon) => {
   addonToDelete.value = addon

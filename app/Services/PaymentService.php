@@ -226,6 +226,75 @@ class PaymentService
     }
 
     /**
+     * Creates a recurring charge for a booked add-on.
+     *
+     * Recurring add-ons are billed in sync with the membership fee, so the
+     * caller passes the same due date the plan payment uses for that period.
+     * The add-on's fixed payment method wins over the member's default, which
+     * mirrors the one-time add-on charge.
+     *
+     * Note: metadata carries no membership_plan_id on purpose — the plan's own
+     * recurring payments are looked up by that key, and an add-on charge must
+     * not be mistaken for the plan's charge for the same period.
+     */
+    public function createRecurringAddonPayment(
+        Member $member,
+        Membership $membership,
+        Addon $addon,
+        Carbon $billingDate,
+        ?PaymentMethod $memberDefaultPaymentMethod = null
+    ): Payment {
+        $paymentMethod = $memberDefaultPaymentMethod ?? $member->defaultPaymentMethod;
+        $paymentMethodType = $addon->payment_method ?? $paymentMethod?->type;
+
+        // Bill the price snapshot taken when the add-on was booked, so a later
+        // price change never alters an existing booking. Falls back to the
+        // add-on's current price when it was not loaded through the relation.
+        $amount = $addon->pivot?->price ?? $addon->price;
+
+        // Only link the member's payment method when it matches the type used.
+        $paymentMethodId = ($addon->payment_method === null || $addon->payment_method === $paymentMethod?->type)
+            ? $paymentMethod?->id
+            : null;
+
+        $periodEnd = $billingDate->copy()->addMonth()->subDay();
+
+        try {
+            return Payment::create([
+                'gym_id' => $member->gym_id,
+                'membership_id' => $membership->id,
+                'member_id' => $member->id,
+                'amount' => $amount,
+                'currency' => 'EUR',
+                'description' => "Add-on: {$addon->name} ({$billingDate->format('d.m.')}–{$periodEnd->format('d.m.Y')})",
+                'status' => 'pending',
+                'payment_method' => $paymentMethodType,
+                'execution_date' => $this->calculateRecurringExecutionDate($billingDate, $paymentMethodType),
+                'due_date' => $billingDate->toDateString(),
+                'notes' => 'Wiederkehrende Add-on-Abrechnung, synchron zum Mitgliedsbeitrag',
+                'metadata' => [
+                    'payment_type' => 'addon_recurring',
+                    'addon_id' => $addon->id,
+                    'billing_period_start' => $billingDate->toDateString(),
+                    'billing_period_end' => $periodEnd->toDateString(),
+                    'created_via' => 'scheduler',
+                    'payment_method_id' => $paymentMethodId,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Recurring add-on payment creation failed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'addon_id' => $addon->id,
+                'billing_date' => $billingDate->toDateString(),
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
      * Erstellt die nächste wiederkehrende Zahlung
      */
     public function createNextRecurringPayment(
@@ -397,7 +466,7 @@ class PaymentService
     /**
      * Calculates execution date for recurring payments
      */
-    private function calculateRecurringExecutionDate(Carbon $billingDate, string $paymentMethod): Carbon
+    private function calculateRecurringExecutionDate(Carbon $billingDate, ?string $paymentMethod): Carbon
     {
         return match ($paymentMethod) {
             'cash' => $billingDate,

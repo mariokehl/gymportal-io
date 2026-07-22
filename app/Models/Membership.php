@@ -78,7 +78,16 @@ class Membership extends Model
     public function addons()
     {
         return $this->belongsToMany(Addon::class)
-            ->withPivot('mode', 'price', 'payment_id', 'completed_at', 'completed_by')
+            ->withPivot(
+                'mode',
+                'price',
+                'payment_id',
+                'completed_at',
+                'completed_by',
+                'cancelled_at',
+                'cancellation_effective_at',
+                'cancelled_by'
+            )
             ->withTimestamps();
     }
 
@@ -242,6 +251,64 @@ class Membership extends Model
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+    }
+
+    /**
+     * Start of the monthly billing period that contains $reference.
+     *
+     * Recurring charges are anchored to the membership start date, so periods
+     * run from the start day of one month to the day before the start day of
+     * the next. Only when the contract itself started on the 1st (e.g. because
+     * the gym runs "Verträge immer zum 1. des Monats starten") do these periods
+     * line up with calendar months. Shorter months clamp to their last day.
+     */
+    public function billingPeriodStart(?Carbon $reference = null): ?Carbon
+    {
+        if (! $this->start_date) {
+            return null;
+        }
+
+        $reference = ($reference ?? Carbon::today())->copy()->startOfDay();
+        $start = $this->start_date->copy()->startOfDay();
+
+        if ($reference->lte($start)) {
+            return $start;
+        }
+
+        $anchorDay = $start->day;
+
+        $periodStart = $reference->copy()->startOfMonth();
+        $periodStart->day = min($anchorDay, $periodStart->daysInMonth);
+
+        // The anchor day has not been reached yet this month, so the current
+        // period still belongs to the previous month.
+        if ($periodStart->gt($reference)) {
+            $periodStart = $reference->copy()->startOfMonth()->subMonth();
+            $periodStart->day = min($anchorDay, $periodStart->daysInMonth);
+        }
+
+        return $periodStart;
+    }
+
+    /**
+     * Last day of the monthly billing period that contains $reference — the day
+     * before the next charge. This is the effective date for a cancellation
+     * "to the end of the current period".
+     */
+    public function billingPeriodEnd(?Carbon $reference = null): ?Carbon
+    {
+        $periodStart = $this->billingPeriodStart($reference);
+
+        if (! $periodStart) {
+            return null;
+        }
+
+        $anchorDay = $this->start_date->day;
+
+        $nextStart = $periodStart->copy()->startOfMonth()->addMonth();
+        $nextStart->day = min($anchorDay, $nextStart->daysInMonth);
+
+        return $nextStart->subDay();
     }
 
     public function getMinCancellationDateAttribute()

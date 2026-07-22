@@ -512,6 +512,33 @@ class MemberController extends Controller
             });
         }
 
+        // Add-ons that can still be booked per membership: active add-ons that
+        // are assigned to the membership's plan and not booked yet. Keyed by
+        // membership id so the frontend can offer them per membership.
+        $bookableAddons = $member->memberships->mapWithKeys(function ($membership) {
+            $bookedIds = $membership->addons->pluck('id')->all();
+
+            $available = $membership->membershipPlan
+                ? $membership->membershipPlan->addons()
+                    ->where('is_active', true)
+                    ->whereNotIn('addons.id', $bookedIds)
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn ($addon) => [
+                        'id' => $addon->id,
+                        'name' => $addon->name,
+                        'description' => $addon->description,
+                        'price' => $addon->price,
+                        'mode' => $addon->pivot->mode,
+                        'billing_type' => $addon->billing_type,
+                        'service_type' => $addon->service_type,
+                    ])
+                    ->values()
+                : collect();
+
+            return [$membership->id => $available];
+        });
+
         // Get available membership plans for adding new memberships
         $membershipPlans = MembershipPlan::where('gym_id', $member->gym_id)
             ->orderBy('name')
@@ -528,6 +555,7 @@ class MemberController extends Controller
             'member' => $member,
             'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
             'membershipPlans' => $membershipPlans,
+            'bookableAddons' => $bookableAddons,
             'updatedPayments' => session('updated_payments', false) ? $member->payments : null,
             'contractsEnabled' => $member->gym->isOnlineContractEnabled(),
             'maxDevicesPerMember' => MemberDevice::maxDevicesPerMember(),
