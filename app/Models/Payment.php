@@ -212,6 +212,20 @@ class Payment extends Model
     }
 
     /**
+     * Check if the execution date may be set or overwritten manually.
+     *
+     * Only pending payments (no credit top-ups) that have not been handed over
+     * to a payment provider yet can still be rescheduled.
+     */
+    public function canUpdateExecutionDate(): bool
+    {
+        return $this->status === 'pending'
+            && ! $this->is_credit_topup
+            && blank($this->mollie_payment_id)
+            && blank($this->transaction_id);
+    }
+
+    /**
      * Check if this payment uses a Mollie payment method.
      */
     public function isMolliePaymentMethod(): bool
