@@ -386,258 +386,41 @@
       />
     </div>
 
-    <!-- Payment Detail Modal -->
-    <div
-      v-if="showPaymentModal"
-      class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50"
-      @click="closePaymentModal"
+    <PaymentDetailModal
+      :show="showPaymentModal"
+      :payment="selectedPayment"
+      :show-mark-as-paid="showMarkAsPaid"
+      :show-cancel-payment="showCancelPayment"
+      @close="closePaymentModal"
+      @mark-as-paid="markAsPaidFromModal"
+      @cancel-payment="cancelPaymentFromModal"
+      @payment-updated="applyPaymentUpdate"
     >
-      <div
-        class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
-        @click.stop
-      >
-        <!-- Header -->
-        <div class="flex items-start justify-between mb-5">
-          <h3 class="text-lg font-medium text-gray-900">
-            {{ selectedPayment && isCreditTopup(selectedPayment) ? 'Guthaben-Aufladung' : 'Zahlung' }} #{{ selectedPayment?.id }}
-          </h3>
-          <div class="flex items-center gap-2">
-            <button
-              v-if="selectedPayment?.status === 'pending' && showMarkAsPaid"
-              @click="markAsPaidFromModal"
-              class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
-              title="Als bezahlt markieren"
-            >
-              <CheckCircle class="w-4 h-4" />
-              <span class="hidden sm:inline">Bezahlt</span>
-            </button>
-            <button
-              v-if="selectedPayment?.status === 'pending' && showCancelPayment"
-              @click="cancelPaymentFromModal"
-              class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-              title="Zahlung abbrechen"
-            >
-              <Ban class="w-4 h-4" />
-              <span class="hidden sm:inline">Abbrechen</span>
-            </button>
-            <button
-              @click="closePaymentModal"
-              class="ml-1 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <X class="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        <div v-if="selectedPayment" class="space-y-4">
-          <!-- Kerndaten -->
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Betrag</label>
-              <div class="mt-1 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
-                <span class="text-sm text-gray-900 font-semibold">{{ formatCurrency(selectedPayment.amount) }}</span>
-                <PaymentStatusBadge :status="selectedPayment.status" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Zahlungsart</label>
-              <p class="mt-1 text-sm text-gray-900 inline-flex items-center gap-1.5">
-                <BanknoteArrowUp
-                  v-if="isCreditTopup(selectedPayment)"
-                  class="w-4 h-4 text-indigo-600 flex-none"
-                  title="Guthaben-Aufladung"
-                />
-                <BanknoteArrowDown
-                  v-else-if="hasCreditRedemption(selectedPayment)"
-                  class="w-4 h-4 text-indigo-600 flex-none"
-                  title="Guthaben-Einlösung"
-                />
-                {{ selectedPayment.payment_method_text }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500">Erstellt am</label>
-              <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.created_at) }}</p>
-            </div>
-            <div v-if="selectedPayment.execution_date">
-              <label class="block text-sm font-medium text-gray-500">Ausführungsdatum</label>
-              <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedPayment.execution_date) }}</p>
-            </div>
-            <div v-if="selectedPayment.due_date">
-              <label class="block text-sm font-medium text-gray-500">Fälligkeitsdatum</label>
-              <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedPayment.due_date) }}</p>
-            </div>
-            <div v-if="selectedPayment.paid_date">
-              <label class="block text-sm font-medium text-gray-500">Bezahlt am</label>
-              <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedPayment.paid_date) }}</p>
-            </div>
-            <div v-if="selectedPayment.canceled_at">
-              <label class="block text-sm font-medium text-gray-500">Abgebrochen am</label>
-              <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(selectedPayment.canceled_at) }}</p>
-            </div>
-          </div>
-
-          <!-- Mitglied -->
-          <div v-if="selectedPayment.membership?.member">
-            <label class="block text-sm font-medium text-gray-500">Mitglied</label>
-            <div class="mt-1 flex items-center">
-              <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold mr-3">
-                {{ getMemberInitials(selectedPayment.membership.member) }}
-              </div>
-              <div>
-                <p class="text-sm font-medium text-gray-900">
-                  {{ selectedPayment.membership.member.first_name }} {{ selectedPayment.membership.member.last_name }}
-                </p>
-                <p class="text-sm text-gray-500">{{ selectedPayment.membership.member.email }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-500">Beschreibung</label>
-            <p class="mt-1 text-sm text-gray-900">{{ selectedPayment.description }}</p>
-          </div>
-
-          <div v-if="isCreditTopup(selectedPayment)">
-            <label class="block text-sm font-medium text-gray-500">Erfassung</label>
-            <p class="mt-1 text-sm text-gray-900">{{ creditTopupSource(selectedPayment) }}</p>
-          </div>
-
-          <div v-else-if="selectedPayment.transaction_id">
-            <label class="block text-sm font-medium text-gray-500">Transaktions-ID</label>
-            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedPayment.transaction_id }}</p>
-          </div>
-
-          <div v-if="selectedPayment.mollie_payment_id">
-            <label class="block text-sm font-medium text-gray-500">Zahlungs-ID (Mollie)</label>
-            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedPayment.mollie_payment_id }}</p>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between">
-              <label class="block text-sm font-medium text-gray-500">Notizen</label>
-              <button
-                v-if="!editingNotes"
-                @click="startEditingNotes"
-                class="text-gray-400 hover:text-indigo-600 transition-colors"
-                title="Notizen bearbeiten"
-              >
-                <Pencil class="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div v-if="editingNotes" class="mt-1">
-              <textarea
-                ref="notesTextarea"
-                v-model="notesForm"
-                rows="3"
-                class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Notizen hinzufügen..."
-                @keydown.ctrl.enter="saveNotes"
-                @keydown.meta.enter="saveNotes"
-                @keydown.escape="cancelEditingNotes"
-              ></textarea>
-              <div class="flex items-center justify-end gap-2 mt-1.5">
-                <button
-                  @click="cancelEditingNotes"
-                  :disabled="savingNotes"
-                  class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  @click="saveNotes"
-                  :disabled="savingNotes"
-                  class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  <Loader2 v-if="savingNotes" class="w-3 h-3 animate-spin" />
-                  <Check v-else class="w-3 h-3" />
-                  Speichern
-                </button>
-              </div>
-            </div>
-            <p v-else-if="selectedPayment.notes" class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ selectedPayment.notes }}</p>
-            <p v-else class="mt-1 text-sm text-gray-400 italic cursor-pointer hover:text-indigo-600" @click="startEditingNotes">Notiz hinzufügen...</p>
-          </div>
-
-          <!-- Mollie Zahlungslink -->
-          <div
-            v-if="selectedPayment.checkout_url || (selectedPayment.status === 'pending' && !selectedPayment.mollie_payment_id && page.props.mollie_configured)"
-            class="border-t border-gray-200 pt-4"
-          >
-            <div v-if="selectedPayment.checkout_url" class="flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3">
-              <div class="flex items-center gap-2 min-w-0">
-                <Link2 class="w-4 h-4 text-indigo-500 shrink-0" />
-                <span class="text-sm font-medium text-indigo-900 truncate">{{ selectedPayment.checkout_url }}</span>
-              </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button
-                  @click="copyPaymentLink"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
-                >
-                  <component :is="paymentLinkCopied ? ClipboardCheck : Clipboard" class="w-3.5 h-3.5" />
-                  {{ paymentLinkCopied ? 'Kopiert!' : 'Kopieren' }}
-                </button>
-                <a
-                  :href="selectedPayment.checkout_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
-                  title="Link extern öffnen"
-                >
-                  <ExternalLink class="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-            <button
-              v-else
-              @click="createPaymentLink"
-              :disabled="creatingPaymentLink"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <template v-if="creatingPaymentLink">
-                <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                Wird erstellt...
-              </template>
-              <template v-else>
-                <Link2 class="w-4 h-4" />
-                Mollie Zahlungslink erstellen
-              </template>
-            </button>
-          </div>
-
-          <!-- Custom detail fields slot -->
-          <slot name="payment-details" :payment="selectedPayment"></slot>
-        </div>
-      </div>
-    </div>
+      <template #payment-details="slotProps">
+        <slot name="payment-details" v-bind="slotProps"></slot>
+      </template>
+    </PaymentDetailModal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { router, usePage } from '@inertiajs/vue3'
+import { ref, computed, watch } from 'vue'
+import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
+import PaymentDetailModal from '@/Components/PaymentDetailModal.vue'
 import {
   Download,
   ArrowUpDown,
   Eye,
   CheckCircle,
   XCircle,
-  X,
   ChevronDown,
   ChevronRight,
   RotateCcw,
   AlertTriangle,
-  Clipboard,
-  ClipboardCheck,
-  ExternalLink,
-  Ban,
   Link2,
-  Pencil,
-  Check,
-  Loader2,
   BanknoteArrowUp,
   BanknoteArrowDown,
   Building2,
@@ -647,7 +430,14 @@ import {
   WalletCards,
   Wallet
 } from 'lucide-vue-next'
-import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
+import { formatCurrency, formatDate } from '@/utils/formatters'
+import {
+  getCreditRedemption,
+  hasCreditRedemption,
+  isCreditTopup,
+  creditTopupSource,
+  getMemberInitials
+} from '@/utils/payments'
 
 // Props
 const props = defineProps({
@@ -752,15 +542,8 @@ const emit = defineEmits([
 const selectedPayments = ref(props.selectedIds)
 const showPaymentModal = ref(false)
 const selectedPayment = ref(null)
-const page = usePage()
 const isProcessing = ref(false)
 const expandedRows = ref(new Set())
-const creatingPaymentLink = ref(false)
-const paymentLinkCopied = ref(false)
-const editingNotes = ref(false)
-const notesForm = ref('')
-const savingNotes = ref(false)
-const notesTextarea = ref(null)
 
 // Watch for external changes to selectedIds
 watch(() => props.selectedIds, (newVal) => {
@@ -890,8 +673,19 @@ const viewPayment = (payment) => {
 const closePaymentModal = () => {
   showPaymentModal.value = false
   selectedPayment.value = null
-  editingNotes.value = false
-  notesForm.value = ''
+}
+
+// Apply a partial update coming from the detail modal to both the selected
+// payment and its row in the table, so the list reflects the change instantly.
+const applyPaymentUpdate = (changes) => {
+  if (!selectedPayment.value) return
+
+  Object.assign(selectedPayment.value, changes)
+
+  const payment = props.payments.data.find(p => p.id === selectedPayment.value.id)
+  if (payment && payment !== selectedPayment.value) {
+    Object.assign(payment, changes)
+  }
 }
 
 const markAsPaid = async (payment) => {
@@ -968,123 +762,11 @@ const performCancelPayment = async (payment) => {
   }
 }
 
-const createPaymentLink = async () => {
-  if (!selectedPayment.value || creatingPaymentLink.value) return
-
-  creatingPaymentLink.value = true
-  try {
-    const response = await axios.post(route('payments.create-payment-link', selectedPayment.value.id))
-    selectedPayment.value.checkout_url = response.data.checkout_url
-    selectedPayment.value.mollie_payment_id = response.data.mollie_payment_id
-    selectedPayment.value.payment_method = response.data.payment_method
-    selectedPayment.value.payment_method_text = response.data.payment_method_text
-  } catch (error) {
-    const message = error.response?.data?.error || 'Zahlungslink konnte nicht erstellt werden.'
-    alert(message)
-  } finally {
-    creatingPaymentLink.value = false
-  }
-}
-
-const startEditingNotes = () => {
-  notesForm.value = selectedPayment.value.notes || ''
-  editingNotes.value = true
-  nextTick(() => {
-    notesTextarea.value?.focus()
-  })
-}
-
-const cancelEditingNotes = () => {
-  editingNotes.value = false
-  notesForm.value = ''
-}
-
-const saveNotes = async () => {
-  savingNotes.value = true
-  try {
-    const response = await axios.patch(route('payments.update-notes', selectedPayment.value.id), {
-      notes: notesForm.value || null,
-    })
-    selectedPayment.value.notes = response.data.notes
-    const payment = props.payments.data.find(p => p.id === selectedPayment.value.id)
-    if (payment) {
-      payment.notes = response.data.notes
-    }
-    editingNotes.value = false
-  } catch (error) {
-    const message = error.response?.data?.message || 'Notizen konnten nicht gespeichert werden.'
-    alert(message)
-  } finally {
-    savingNotes.value = false
-  }
-}
-
-const copyPaymentLink = async () => {
-  if (!selectedPayment.value?.checkout_url) return
-
-  try {
-    await navigator.clipboard.writeText(selectedPayment.value.checkout_url)
-    paymentLinkCopied.value = true
-    setTimeout(() => {
-      paymentLinkCopied.value = false
-    }, 2000)
-  } catch {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea')
-    textArea.value = selectedPayment.value.checkout_url
-    document.body.appendChild(textArea)
-    textArea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textArea)
-    paymentLinkCopied.value = true
-    setTimeout(() => {
-      paymentLinkCopied.value = false
-    }, 2000)
-  }
-}
-
 // Utility functions
-const getMemberInitials = (member) => {
-  if (!member) return '??'
-  const first = member.first_name?.charAt(0) || ''
-  const last = member.last_name?.charAt(0) || ''
-  return (first + last).toUpperCase()
-}
-
 const getChargebackRefundCount = (payment) => {
   const chargebackCount = payment.chargebacks?.length || 0
   const refundCount = payment.refunds?.length || 0
   return chargebackCount + refundCount
-}
-
-// Credit-redemption breakdown derived from a payment's metadata.
-const getCreditRedemption = (payment) => {
-  const meta = payment?.metadata
-  if (!meta || !meta.credit_redeemed || !meta.credit_redeemed_cents) {
-    return null
-  }
-  const redeemedCents = Number(meta.credit_redeemed_cents) || 0
-  const originalCents = Number(meta.original_amount_cents) || redeemedCents
-  const remainingCents = Math.max(0, originalCents - redeemedCents)
-  // Original id of the ledger row in member_credit_ledgers.
-  const evId = meta.credit_ledger_id != null ? `#${meta.credit_ledger_id}` : '—'
-  return {
-    evId,
-    redeemedCents,
-    remainingCents,
-    balanceAfterCents: Number(meta.credit_balance_after_cents) || 0,
-  }
-}
-
-const hasCreditRedemption = (payment) => getCreditRedemption(payment) !== null
-
-// A manually booked credit top-up ("Guthaben-Aufladung").
-const isCreditTopup = (payment) => payment?.is_credit_topup === true
-
-// Source label for a top-up: "manuell erfasst · <staff name>".
-const creditTopupSource = (payment) => {
-  const name = payment?.metadata?.created_by_name
-  return name ? `manuell erfasst · ${name}` : 'manuell erfasst'
 }
 
 const formatCentsEuro = (cents) =>
