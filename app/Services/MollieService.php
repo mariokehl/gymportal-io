@@ -559,14 +559,21 @@ class MollieService
             ? $webhookUrl
             : request()->getSchemeAndHttpHost() . '/api/v1/public/mollie/webhook';
 
+        $marker = self::WEBHOOK_TEST_MODE_PARAM . '=' . self::WEBHOOK_TEST_MODE_VALUE;
+
         if (!$testMode) {
+            return $url;
+        }
+
+        // The client already displays and submits the marked URL, so never append it twice
+        if (str_contains($url, $marker)) {
             return $url;
         }
 
         // Keep any query string that is already present on the configured URL
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url . $separator . self::WEBHOOK_TEST_MODE_PARAM . '=' . self::WEBHOOK_TEST_MODE_VALUE;
+        return $url . $separator . $marker;
     }
 
     /**

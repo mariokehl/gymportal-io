@@ -68,6 +68,16 @@ class MollieWebhookUrlModeTest extends TestCase
     }
 
     #[Test]
+    public function the_test_mode_marker_is_never_appended_twice(): void
+    {
+        // The wizard already displays and submits the marked URL
+        $alreadyMarked = MollieService::resolveWebhookUrl(self::LIVE_URL, true);
+
+        $this->assertSame($alreadyMarked, MollieService::resolveWebhookUrl($alreadyMarked, true));
+        $this->assertSame(1, substr_count(MollieService::resolveWebhookUrl($alreadyMarked, true), 'mode=test'));
+    }
+
+    #[Test]
     public function an_existing_query_string_is_preserved(): void
     {
         $url = MollieService::resolveWebhookUrl('https://my.gymportal.io/hook?tenant=42', true);
@@ -102,6 +112,37 @@ class MollieWebhookUrlModeTest extends TestCase
                 && str_contains($request->url(), '/v2/webhooks')
                 && str_contains($request['url'] ?? '', 'mode=test');
         });
+    }
+
+    #[Test]
+    public function it_registers_a_single_marker_when_the_client_submits_the_marked_url(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+
+        Http::fake([
+            'api.mollie.com/v2/webhooks*' => Http::sequence()
+                ->push(['_embedded' => ['webhooks' => []]])
+                ->push(['id' => 'hook_test']),
+        ]);
+
+        $this->actingAs($owner)
+            ->postJson(route('v1.mollie.save-config'), [
+                'api_key' => 'test_'.str_repeat('b', 30),
+                'oauth_token' => self::OAUTH_TOKEN,
+                'test_mode' => true,
+                'enabled_methods' => ['creditcard'],
+                // Exactly what the wizard sends once it displays the marked URL
+                'webhook_url' => self::LIVE_URL.'?mode=test',
+            ])
+            ->assertOk();
+
+        Http::assertSent(function (ClientRequest $request) {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/v2/webhooks')
+                && substr_count($request['url'] ?? '', 'mode=test') === 1;
+        });
+
+        $this->assertSame('hook_test', $gym->fresh()->mollie_config['webhook_id']);
     }
 
     #[Test]

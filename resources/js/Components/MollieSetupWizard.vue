@@ -347,6 +347,10 @@
                                 readonly>
                             <p class="text-xs text-gray-500 mt-1">
                                 Diese URL wird automatisch in Mollie als Webhook konfiguriert
+                                <template v-if="form.test_mode">
+                                    – im Test-Modus mit dem Parameter <code class="bg-gray-100 px-1 rounded">?mode=test</code>,
+                                    da Mollie pro URL nur einen Webhook zulässt. Die Verarbeitung ist identisch.
+                                </template>
                             </p>
 
                             <!-- Background check whether a webhook for this URL already exists -->
@@ -741,7 +745,11 @@ export default {
         },
 
         webhookUrl() {
-            return `${window.location.origin}/api/v1/public/mollie/webhook`;
+            const url = `${window.location.origin}/api/v1/public/mollie/webhook`;
+
+            // Test mode is registered under a distinct URL, because Mollie rejects
+            // a second webhook for an already registered one
+            return this.form.test_mode ? `${url}?mode=test` : url;
         },
 
         canProceed() {
