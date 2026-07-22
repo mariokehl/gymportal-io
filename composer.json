@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-intl": "*",
         "ably/ably-php": "^1.1",
         "barryvdh/laravel-dompdf": "^3.1",
         "google/apiclient": "*",

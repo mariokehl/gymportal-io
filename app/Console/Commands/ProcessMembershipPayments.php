@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Addon;
 use App\Models\Membership;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
@@ -506,6 +507,127 @@ class ProcessMembershipPayments extends Command
 
             // Move to next payment date
             $nextPaymentDate = $this->calculateNextPaymentDate($nextPaymentDate, $plan->billing_cycle);
+        }
+
+        $created += $this->createAddonPayments($membership);
+
+        return $created;
+    }
+
+    /**
+     * Create the recurring add-on charges for every billing period up to the
+     * look-ahead window.
+     *
+     * This walks the periods independently of the membership fee above: an
+     * add-on booked after the fee for the running period was already created
+     * still has to be billed for that period, which a loop starting at the
+     * plan's next open payment would skip.
+     */
+    protected function createAddonPayments(Membership $membership): int
+    {
+        $plan = $membership->membershipPlan;
+        $created = 0;
+
+        $hasRecurringAddons = $membership->addons()
+            ->where('billing_type', Addon::BILLING_TYPE_RECURRING)
+            ->wherePivot('mode', '!=', 'included')
+            ->exists();
+
+        if (! $hasRecurringAddons) {
+            return 0;
+        }
+
+        $billingDate = $membership->start_date->copy();
+        $endDate = Carbon::today()->addDays($this->daysAhead);
+
+        while ($billingDate <= $endDate) {
+            if ($membership->end_date && $billingDate > $membership->end_date) {
+                break;
+            }
+
+            $created += $this->createAddonPaymentsForPeriod($membership, $billingDate);
+
+            $billingDate = $this->calculateNextPaymentDate($billingDate, $plan->billing_cycle);
+        }
+
+        return $created;
+    }
+
+    /**
+     * Create the recurring add-on charges due together with the membership fee
+     * of the given billing period.
+     *
+     * Add-ons are billed in sync with the fee, so they use the same due date.
+     * Included add-ons are part of the plan and never charged.
+     */
+    protected function createAddonPaymentsForPeriod(Membership $membership, Carbon $billingDate): int
+    {
+        $member = $membership->member;
+        $created = 0;
+
+        $addons = $membership->addons()
+            ->where('billing_type', Addon::BILLING_TYPE_RECURRING)
+            ->get();
+
+        foreach ($addons as $addon) {
+            $pivot = $addon->pivot;
+
+            // Included add-ons come with the plan and are never billed.
+            if ($pivot->mode === 'included') {
+                continue;
+            }
+
+            // A cancelled add-on is only billed for periods that start on or
+            // before the date the cancellation takes effect.
+            if ($pivot->cancellation_effective_at
+                && $billingDate->gt(Carbon::parse($pivot->cancellation_effective_at))) {
+                continue;
+            }
+
+            // The trial grants the remainder of the booking month, so the first
+            // period is free and paid billing starts on the next 1st.
+            if ($addon->trial_rest_of_month
+                && $billingDate->lte(Carbon::parse($pivot->created_at)->endOfMonth())) {
+                continue;
+            }
+
+            // Never bill an add-on before it was booked.
+            if ($billingDate->lt(Carbon::parse($pivot->created_at)->startOfDay())) {
+                continue;
+            }
+
+            // Match any add-on charge for this period, not just scheduler-made
+            // ones: the widget already charges the first period at signup with
+            // payment_type 'addon', and that must not be billed twice.
+            $exists = Payment::where('membership_id', $membership->id)
+                ->where('metadata->addon_id', $addon->id)
+                ->whereDate('due_date', $billingDate)
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            if ($this->testMode) {
+                $this->logTestAction('addon_payment_create', [
+                    'membership_id' => $membership->id,
+                    'member_id' => $member->id,
+                    'addon_id' => $addon->id,
+                    'amount' => $pivot->price,
+                    'due_date' => $billingDate->toDateString(),
+                ]);
+            } else {
+                $payment = $this->paymentService->createRecurringAddonPayment(
+                    $member,
+                    $membership,
+                    $addon,
+                    $billingDate
+                );
+
+                $this->rollbackData['payments'][] = $payment->id;
+            }
+
+            $created++;
         }
 
         return $created;

@@ -214,7 +214,7 @@
 
         <!-- Booked add-ons (addon_membership) -->
         <div class="mt-6">
-          <MemberAddons :member="member" />
+          <MemberAddons :member="member" :bookable-addons="bookableAddons" />
         </div>
       </div>
 
@@ -614,6 +614,11 @@ const props = defineProps({
   membershipPlans: {
     type: Array,
     default: () => []
+  },
+  // Bookable add-ons keyed by membership id.
+  bookableAddons: {
+    type: Object,
+    default: () => ({})
   },
   contractsEnabled: {
     type: Boolean,

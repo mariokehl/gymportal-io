@@ -3,8 +3,15 @@ stages:
 
 unit-tests:
   stage: test
-  image: serversideup/php:8.2-cli
+  image:
+    name: serversideup/php:8.2-cli
+    # Runs as www-data by default, which may not install PHP extensions.
+    docker:
+      user: root
   before_script:
+    # The widget views format currency with NumberFormatter, so the intl
+    # extension is required. It is not part of the base image.
+    - install-php-extensions intl
     - cp .env.example .env
     - composer install --no-interaction --prefer-dist --no-progress --no-scripts
     - php artisan package:discover --ansi

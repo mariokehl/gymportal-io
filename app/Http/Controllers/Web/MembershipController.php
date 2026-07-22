@@ -741,4 +741,106 @@ class MembershipController extends Controller
             $isCompleted ? 'Add-on wurde als offen markiert.' : 'Add-on wurde als erledigt markiert.'
         );
     }
+
+    /**
+     * Book an add-on for an existing membership.
+     *
+     * Only add-ons assigned to the membership's plan can be booked, mirroring
+     * what the booking widget offers. No payment is created here: the charge is
+     * handled manually or by the billing run, so booking never moves money on
+     * its own.
+     */
+    public function storeMembershipAddon(Request $request, Member $member, Membership $membership)
+    {
+        $this->authorize('update', $membership);
+
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        $validated = $request->validate([
+            'addon_id' => 'required|integer|exists:addons,id',
+        ], [
+            'addon_id.required' => 'Bitte wähle ein Add-on aus.',
+        ]);
+
+        // The add-on must be active and assigned to this membership's plan.
+        $addon = $membership->membershipPlan
+            ?->addons()
+            ->where('addons.id', $validated['addon_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $addon) {
+            return back()->withErrors([
+                'error' => 'Dieses Add-on ist für den Vertrag dieser Mitgliedschaft nicht verfügbar.',
+            ]);
+        }
+
+        if ($membership->addons()->where('addons.id', $addon->id)->exists()) {
+            return back()->withErrors([
+                'error' => 'Dieses Add-on ist für diese Mitgliedschaft bereits gebucht.',
+            ]);
+        }
+
+        $mode = $addon->pivot->mode;
+
+        $membership->addons()->attach($addon->id, [
+            'mode' => $mode,
+            // Included add-ons are part of the plan and therefore free.
+            'price' => $mode === 'included' ? 0 : $addon->price,
+        ]);
+
+        return back()->with('success', 'Add-on wurde gebucht.');
+    }
+
+    /**
+     * Cancel a booked recurring add-on, or revoke a pending cancellation.
+     *
+     * Recurring add-ons are cancellable to the end of the current billing
+     * period, so the service stays usable until then and only the following
+     * period is no longer billed. Billing periods are anchored to the
+     * membership start date and only match calendar months when the contract
+     * itself started on the 1st.
+     */
+    public function toggleAddonCancellation(Request $request, Member $member, Membership $membership, Addon $addon)
+    {
+        $this->authorize('update', $membership);
+
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        // Ensure the add-on is actually booked for this membership.
+        $pivot = $membership->addons()->find($addon->id)?->pivot;
+
+        if (! $pivot) {
+            return back()->withErrors([
+                'error' => 'Dieses Add-on ist für diese Mitgliedschaft nicht gebucht.',
+            ]);
+        }
+
+        // Only recurring add-ons have an ongoing term that can be cancelled.
+        if (! $addon->isRecurring()) {
+            return back()->withErrors([
+                'error' => 'Nur wiederkehrende Add-ons können gekündigt werden.',
+            ]);
+        }
+
+        $isCancelled = $pivot->cancelled_at !== null;
+        $effectiveAt = $membership->billingPeriodEnd();
+
+        $membership->addons()->updateExistingPivot($addon->id, [
+            'cancelled_at' => $isCancelled ? null : now(),
+            'cancellation_effective_at' => $isCancelled ? null : $effectiveAt?->toDateString(),
+            'cancelled_by' => $isCancelled ? null : $request->user()->id,
+        ]);
+
+        return back()->with(
+            'success',
+            $isCancelled
+                ? 'Die Kündigung des Add-ons wurde zurückgenommen.'
+                : 'Add-on wurde zum '.$effectiveAt?->format('d.m.Y').' gekündigt.'
+        );
+    }
 }

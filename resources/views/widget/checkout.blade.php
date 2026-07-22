@@ -109,7 +109,7 @@
                         <span style="color: #0e7a43; font-weight: 800;">geschenkt</span>
                     </span>
                 @else
-                    <span class="value">+ {{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }} einmalig</span>
+                    <span class="value">+ {{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }} {{ ($addon['is_recurring'] ?? false) ? 'monatlich' : 'einmalig' }}</span>
                 @endif
             </div>
             @endforeach
@@ -129,15 +129,21 @@
             </div>
             @php
                 // Total cost over the initial contract term: the plan total
-                // (recurring contributions + activation fee) plus the one-time
-                // cost of every paid add-on the customer actually has to pay for.
+                // (recurring contributions + activation fee) plus the cost of
+                // every paid add-on the customer actually has to pay for.
                 // Included add-ons are free ("geschenkt") and must not be added.
+                // Recurring add-ons are charged every month, so they count once
+                // per month of the initial term; one-time add-ons count once.
                 $contractTotal = $planData['membership_price']['total_price'] ?? 0;
                 $addonsTotal = 0;
                 foreach ($addons ?? [] as $addon) {
-                    if (($addon['mode'] ?? null) !== 'included') {
-                        $addonsTotal += $addon['price'];
+                    if (($addon['mode'] ?? null) === 'included') {
+                        continue;
                     }
+
+                    $addonsTotal += ($addon['is_recurring'] ?? false)
+                        ? $addon['price'] * $commitmentMonths
+                        : $addon['price'];
                 }
                 $totalOverTerm = $contractTotal + $addonsTotal;
             @endphp
