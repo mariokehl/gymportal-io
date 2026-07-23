@@ -6,19 +6,7 @@
 
         <div class="max-w-6xl mx-auto">
             <!-- Tabs -->
-            <div class="border-b border-gray-200 mb-6">
-                <nav class="-mb-px flex space-x-8">
-                    <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key" :class="[
-                        'py-2 px-1 border-b-2 font-medium text-sm',
-                        activeTab === tab.key
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    ]">
-                        <component :is="tab.icon" class="w-4 h-4 mr-2 inline" />
-                        {{ tab.label }}
-                    </button>
-                </nav>
-            </div>
+            <TabRail v-model="activeTab" :tabs="tabs" class="mb-6" />
 
             <!-- Success/Error Messages -->
             <div v-if="successMessage"
@@ -482,6 +470,7 @@ import {
     Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import TabRail from '@/Components/TabRail.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
 import ContractWidget from '@/Components/ContractWidget.vue'
 import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'

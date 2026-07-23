@@ -138,46 +138,30 @@
 
       <!-- Tabs navigation (pill rail, consistent across all breakpoints; hidden while editing).
            On mobile the rail sticks below the app header once the page is scrolled. -->
-      <nav
-        v-if="!editMode"
-        class="flex gap-2 overflow-x-auto gp-tab-rail -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-1 sticky z-20 bg-gray-100 border-b border-gray-200 lg:static lg:z-auto lg:bg-transparent lg:border-b-0"
-        :style="{ top: 'var(--gp-header-height, 56px)' }"
-      >
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="[
-            activeTab === tab.id
-              ? 'bg-indigo-600 text-white border-transparent shadow-[0_2px_8px_rgba(79,70,229,0.3)]'
-              : 'bg-white text-gray-600 border-gray-200 shadow-sm hover:border-gray-300',
-            'flex-none whitespace-nowrap flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors'
-          ]"
-        >
-          <component :is="tab.icon" class="w-4 h-4" />
-          {{ tab.name }}
+      <TabRail v-if="!editMode" v-model="activeTab" :tabs="tabs" sticky>
+        <template #badge="{ tab, active }">
           <span
             v-if="tab.id === 'history' && member.status_history?.length > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ member.status_history.length }}</span>
           <span
             v-if="tab.id === 'payments' && outstandingBalance"
             class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
-            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-600'"
+            :class="active ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-600'"
           ><AlertTriangle class="w-3 h-3" /></span>
           <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ documentCount }}</span>
           <span
             v-if="tab.id === 'access' && activeAccessCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="activeTab === tab.id ? 'bg-white/25 text-white' : 'bg-green-100 text-green-600'"
+            :class="active ? 'bg-white/25 text-white' : 'bg-green-100 text-green-600'"
           >{{ activeAccessCount }}</span>
-        </button>
-      </nav>
+        </template>
+      </TabRail>
 
       <!-- Personal Data Tab (own component; sole panel while editing) -->
       <div v-show="editMode || activeTab === 'personal'">
@@ -596,6 +580,7 @@ import MemberHeaderCard from '@/Components/Members/MemberHeaderCard.vue'
 import AccessTab from '@/Components/Members/AccessTab.vue'
 import CheckinsTab from '@/Components/Members/CheckinsTab.vue'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
+import TabRail from '@/Components/TabRail.vue'
 import {
   User, FileText, Clock, CreditCard,
   ArrowLeft, AlertCircle,
@@ -1156,14 +1141,3 @@ onBeforeUnmount(() => {
   document.documentElement.style.removeProperty('--gp-header-height')
 })
 </script>
-
-<style scoped>
-/* Hide the horizontal scrollbar on the tab rail (mobile pill / desktop underline) */
-.gp-tab-rail {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.gp-tab-rail::-webkit-scrollbar {
-  display: none;
-}
-</style>
