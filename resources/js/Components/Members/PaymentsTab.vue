@@ -918,6 +918,7 @@ import {
   FileText, AlertTriangle, ChevronDown, Send, Check, Info
 } from 'lucide-vue-next'
 import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
+import { sortByScheduledDate } from '@/utils/payments'
 
 const props = defineProps({
   member: {
@@ -1027,7 +1028,7 @@ const filteredPayments = computed(() => {
     paymentList = paymentList.filter(p => p.status === paymentStatusFilter.value)
   }
 
-  paymentList = [...paymentList].sort((a, b) => b.id - a.id)
+  paymentList = sortByScheduledDate(paymentList)
 
   return {
     data: paymentList,

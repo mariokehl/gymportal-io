@@ -101,25 +101,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-for="member in members.data" :key="member.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                      <MemberAvatar
-                        :initials="getInitials(member.first_name, member.last_name)"
-                        :age-verified="member.age_verified"
-                        :verified-at="member.age_verified_at"
-                        :is-guest="member.guest_access"
-                        size="md"
-                      />
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">
-                        {{ member.first_name }} {{ member.last_name }}
-                      </div>
-                      <div class="text-sm text-gray-500">
-                        {{ member.email }}
-                      </div>
-                    </div>
-                  </div>
+                  <MemberIdentity :member="member" size="md" :max-width="null" />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ member.member_number }}
@@ -304,7 +286,7 @@ import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
-import MemberAvatar from '@/Components/MemberAvatar.vue'
+import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import {
   Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown
@@ -366,12 +348,6 @@ const handlePaginationEvent = (event) => {
   } else if (event.type === 'finish') {
     isProcessing.value = false
   }
-}
-
-const getInitials = (firstName, lastName) => {
-  const first = firstName?.charAt(0) || ''
-  const last = lastName?.charAt(0) || ''
-  return (first + last).toUpperCase()
 }
 
 const confirmDelete = (member) => {

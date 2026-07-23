@@ -54,19 +54,7 @@
                             <tr v-for="member in props.members" :key="member.id"
                                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                 <td class="py-3 px-4">
-                                    <div class="flex items-center">
-                                        <MemberAvatar
-                                            :initials="member.initials"
-                                            :age-verified="member.age_verified"
-                                            :verified-at="member.age_verified_at"
-                                            :is-guest="member.guest_access"
-                                            size="sm"
-                                        />
-                                        <div class="ml-3 min-w-0 max-w-[200px]">
-                                            <p class="text-sm font-medium truncate">{{ member.name }}</p>
-                                            <p class="text-xs text-gray-500 truncate">{{ member.email }}</p>
-                                        </div>
-                                    </div>
+                                    <MemberIdentity :member="member" size="sm" />
                                 </td>
                                 <td class="py-3 px-4 text-sm">{{ member.membership }}</td>
                                 <td class="py-3 px-4">
@@ -185,7 +173,7 @@ import {
     Plus, Edit, ChevronRight, Eye
 } from 'lucide-vue-next'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
-import MemberAvatar from '@/Components/MemberAvatar.vue'
+import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate } from '@/utils/formatters'
 

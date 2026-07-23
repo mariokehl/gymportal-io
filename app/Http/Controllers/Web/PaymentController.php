@@ -7,8 +7,8 @@ use App\Models\Payment;
 use App\Services\MollieService;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -24,7 +24,7 @@ class PaymentController extends Controller
         $payment->load(['membership.member', 'invoice', 'chargebacks', 'refunds']);
 
         return response()->json([
-            'payment' => $payment
+            'payment' => $payment,
         ]);
     }
 
@@ -75,7 +75,7 @@ class PaymentController extends Controller
                 app(MollieService::class)->cancelPayment($payment->member, $payment);
             } catch (Exception $e) {
                 // Log error but continue with local cancellation
-                Log::error('Failed to cancel Mollie payment: ' . $e->getMessage());
+                Log::error('Failed to cancel Mollie payment: '.$e->getMessage());
             }
         }
 
@@ -114,12 +114,12 @@ class PaymentController extends Controller
                 'payment_method_text' => 'Mollie: Zahlungslink',
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to create Mollie payment link: ' . $e->getMessage(), [
+            Log::error('Failed to create Mollie payment link: '.$e->getMessage(), [
                 'payment_id' => $payment->id,
             ]);
 
             return response()->json([
-                'error' => 'Mollie-Zahlungslink konnte nicht erstellt werden: ' . $e->getMessage(),
+                'error' => 'Mollie-Zahlungslink konnte nicht erstellt werden: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -138,6 +138,31 @@ class PaymentController extends Controller
 
         return response()->json([
             'notes' => $payment->notes,
+        ]);
+    }
+
+    public function updateExecutionDate(Request $request, Payment $payment): JsonResponse
+    {
+        $this->authorize('update', $payment);
+
+        if (! $payment->canUpdateExecutionDate()) {
+            return response()->json([
+                'message' => 'Das Ausführungsdatum kann für diese Zahlung nicht geändert werden.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'execution_date' => ['required', 'date', 'after_or_equal:today'],
+        ], [
+            'execution_date.after_or_equal' => 'Das Ausführungsdatum darf nicht in der Vergangenheit liegen.',
+        ]);
+
+        $payment->update([
+            'execution_date' => $validated['execution_date'],
+        ]);
+
+        return response()->json([
+            'execution_date' => $payment->execution_date?->toDateString(),
         ]);
     }
 

@@ -23,14 +23,14 @@ class FinancesController extends Controller
         // Apply filters
         if ($request->filled('search')) {
             $search = mb_strtolower($request->input('search'));
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(description) like ?', ["%{$search}%"])
-                  ->orWhereRaw('LOWER(transaction_id) like ?', ["%{$search}%"])
-                  ->orWhereHas('membership.member', function($memberQuery) use ($search) {
-                      $memberQuery->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
-                                  ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
-                                  ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
-                  });
+                    ->orWhereRaw('LOWER(transaction_id) like ?', ["%{$search}%"])
+                    ->orWhereHas('membership.member', function ($memberQuery) use ($search) {
+                        $memberQuery->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
+                            ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
+                            ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
+                    });
             });
         }
 
@@ -47,7 +47,7 @@ class FinancesController extends Controller
         }
 
         if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', $request->input('date_to') . ' 23:59:59');
+            $query->where('created_at', '<=', $request->input('date_to').' 23:59:59');
         }
 
         if ($request->filled('amount_from')) {
@@ -59,22 +59,29 @@ class FinancesController extends Controller
         }
 
         // Apply sorting
-        $sortBy = $request->input('sort_by', 'created_at');
+        $sortBy = $request->input('sort_by', 'scheduled_date');
         $sortOrder = $request->input('sort_order', 'desc');
 
         // Validate sort parameters
-        $allowedSortColumns = ['id', 'created_at', 'amount'];
+        $allowedSortColumns = ['id', 'created_at', 'amount', 'scheduled_date'];
         $allowedDirections = ['asc', 'desc'];
 
-        if (!in_array($sortBy, $allowedSortColumns)) {
-            $sortBy = 'created_at';
+        if (! in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'scheduled_date';
         }
 
-        if (!in_array($sortOrder, $allowedDirections)) {
+        if (! in_array($sortOrder, $allowedDirections)) {
             $sortOrder = 'desc';
         }
 
-        $query->orderBy($sortBy, $sortOrder);
+        if ($sortBy === 'scheduled_date') {
+            // The execution date wins; payments without one fall back to their
+            // due date. Ties keep a stable order via the newest payment first.
+            $query->orderByRaw('COALESCE(execution_date, due_date) '.$sortOrder)
+                ->orderBy('id', 'desc');
+        } else {
+            $query->orderBy($sortBy, $sortOrder);
+        }
 
         $payments = $query->paginate(20)->withQueryString();
 
@@ -88,7 +95,7 @@ class FinancesController extends Controller
             'expired' => 'Verfallen',
         ];
 
-        $paymentMethodOptions = array_map(fn($method) => $method['name'], Auth::user()->currentGym->payment_methods_config ?? []);
+        $paymentMethodOptions = array_map(fn ($method) => $method['name'], Auth::user()->currentGym->payment_methods_config ?? []);
 
         // Get summary statistics
         $totalAmount = Payment::where('gym_id', $gymId)->sum('amount');
@@ -97,11 +104,16 @@ class FinancesController extends Controller
         $failedAmount = Payment::where('gym_id', $gymId)
             ->whereIn('status', ['failed', 'chargeback'])
             ->get()
-            ->sum(fn($payment) => abs($payment->amount));
+            ->sum(fn ($payment) => abs($payment->amount));
 
         return Inertia::render('Finances/Index', [
             'payments' => $payments,
-            'filters' => $request->only(['search', 'status', 'payment_method', 'date_from', 'date_to', 'amount_from', 'amount_to', 'sort_by', 'sort_order']),
+            'filters' => array_merge(
+                $request->only(['search', 'status', 'payment_method', 'date_from', 'date_to', 'amount_from', 'amount_to']),
+                // Report the applied sorting, not the raw input, so the table
+                // reflects the default on the first load as well.
+                ['sort_by' => $sortBy, 'sort_order' => $sortOrder],
+            ),
             'statusOptions' => $statusOptions,
             'paymentMethodOptions' => $paymentMethodOptions,
             'statistics' => [
@@ -113,7 +125,7 @@ class FinancesController extends Controller
                 'paid_count' => Payment::where('gym_id', $gymId)->where('status', 'paid')->count(),
                 'pending_count' => Payment::where('gym_id', $gymId)->where('status', 'pending')->count(),
                 'failed_count' => Payment::where('gym_id', $gymId)->whereIn('status', ['failed', 'chargeback'])->count(),
-            ]
+            ],
         ]);
     }
 
@@ -157,7 +169,7 @@ class FinancesController extends Controller
 
         $cstmrDrctDbtInitn = $xml->addChild('CstmrDrctDbtInitn');
         $grpHdr = $cstmrDrctDbtInitn->addChild('GrpHdr');
-        $grpHdr->addChild('MsgId', 'MSGID-' . bin2hex(random_bytes(14)));
+        $grpHdr->addChild('MsgId', 'MSGID-'.bin2hex(random_bytes(14)));
         $grpHdr->addChild('CreDtTm', date('c'));
         $grpHdr->addChild('NbOfTxs', $sepaPayments->count());
         $grpHdr->addChild('CtrlSum', $sepaPayments->sum('amount'));
@@ -166,7 +178,7 @@ class FinancesController extends Controller
         $initgPty->addChild('Nm', htmlspecialchars($gym->account_holder, ENT_XML1, 'UTF-8'));
 
         $pmtInf = $cstmrDrctDbtInitn->addChild('PmtInf');
-        $pmtInf->addChild('PmtInfId', 'PMTINFID-' . bin2hex(random_bytes(13)));
+        $pmtInf->addChild('PmtInfId', 'PMTINFID-'.bin2hex(random_bytes(13)));
         $pmtInf->addChild('PmtMtd', 'DD');
         $pmtInf->addChild('NbOfTxs', $sepaPayments->count());
         $pmtInf->addChild('CtrlSum', $sepaPayments->sum('amount'));
@@ -205,20 +217,20 @@ class FinancesController extends Controller
                 ->first();
 
             // Überspringe Zahlung, wenn keine IBAN vorhanden ist
-            if (!$sepaPaymentMethod || !$sepaPaymentMethod->iban) {
+            if (! $sepaPaymentMethod || ! $sepaPaymentMethod->iban) {
                 continue;
             }
 
             $drctDbtTxInf = $pmtInf->addChild('DrctDbtTxInf');
             $pmtId = $drctDbtTxInf->addChild('PmtId');
-            $pmtId->addChild('EndToEndId', 'PAYMENT-' . $payment->id);
+            $pmtId->addChild('EndToEndId', 'PAYMENT-'.$payment->id);
 
             $instdAmt = $drctDbtTxInf->addChild('InstdAmt', $payment->amount);
             $instdAmt->addAttribute('Ccy', $payment->currency);
 
             $drctDbtTx = $drctDbtTxInf->addChild('DrctDbtTx');
             $mndtRltdInf = $drctDbtTx->addChild('MndtRltdInf');
-            $mndtRltdInf->addChild('MndtId', $sepaPaymentMethod->sepa_mandate_reference ?? 'MANDATE-' . $member->id);
+            $mndtRltdInf->addChild('MndtId', $sepaPaymentMethod->sepa_mandate_reference ?? 'MANDATE-'.$member->id);
             $mndtRltdInf->addChild('DtOfSgntr', $sepaPaymentMethod->sepa_mandate_signed_at ? $sepaPaymentMethod->sepa_mandate_signed_at->format('Y-m-d') : $payment->membership->start_date->format('Y-m-d'));
 
             $dbtrAgt = $drctDbtTxInf->addChild('DbtrAgt');
@@ -226,7 +238,7 @@ class FinancesController extends Controller
             $dbtrAgtFfinInstnId->addChild('Id', 'NOTPROVIDED');
 
             $dbtr = $drctDbtTxInf->addChild('Dbtr');
-            $dbtr->addChild('Nm', $sepaPaymentMethod->account_holder ?? ($member->first_name . ' ' . $member->last_name));
+            $dbtr->addChild('Nm', $sepaPaymentMethod->account_holder ?? ($member->first_name.' '.$member->last_name));
 
             $dbtrAcct = $drctDbtTxInf->addChild('DbtrAcct');
             $dbtrAcct->addChild('Id')->addChild('IBAN', $sepaPaymentMethod->iban);
@@ -241,7 +253,7 @@ class FinancesController extends Controller
 
         return response($dom->saveXML(), 200, [
             'Content-Type' => 'application/xml',
-            'Content-Disposition' => 'attachment; filename="sepa_pain008_' . date('Y-m-d_H-i-s') . '.xml"'
+            'Content-Disposition' => 'attachment; filename="sepa_pain008_'.date('Y-m-d_H-i-s').'.xml"',
         ]);
     }
 
@@ -260,14 +272,14 @@ class FinancesController extends Controller
             'Transaktions-ID',
             'Fälligkeitsdatum',
             'Bezahlt am',
-            'Notizen'
+            'Notizen',
         ];
 
         foreach ($payments as $payment) {
             $csvData[] = [
                 $payment->id,
                 $payment->created_at->format('d.m.Y H:i'),
-                $payment->membership->member->first_name . ' ' . $payment->membership->member->last_name,
+                $payment->membership->member->first_name.' '.$payment->membership->member->last_name,
                 $payment->description,
                 $payment->formatted_amount,
                 $payment->currency,
@@ -276,7 +288,7 @@ class FinancesController extends Controller
                 $payment->transaction_id,
                 $payment->due_date ? $payment->due_date->format('d.m.Y') : '',
                 $payment->paid_date ? $payment->paid_date->format('d.m.Y') : '',
-                $payment->notes
+                $payment->notes,
             ];
         }
 
@@ -290,7 +302,7 @@ class FinancesController extends Controller
 
         return response($csvContent, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="zahlungen_' . date('Y-m-d_H-i-s') . '.csv"'
+            'Content-Disposition' => 'attachment; filename="zahlungen_'.date('Y-m-d_H-i-s').'.csv"',
         ]);
     }
 
