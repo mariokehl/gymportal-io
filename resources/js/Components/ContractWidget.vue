@@ -563,7 +563,6 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { usePage } from '@inertiajs/vue3'
 import {
     Code, Globe, Layers, Settings, Copy, Eye,
     EyeOff, Palette, ToggleLeft, Save, Key,
@@ -572,14 +571,16 @@ import {
     GripVertical, X, Info
 } from 'lucide-vue-next'
 import draggable from 'vuedraggable'
+import { useToast } from '@/composables/useToast'
 
 // Props
 const props = defineProps({
     currentGym: Object
 })
 
+const { success, error: toastError } = useToast()
+
 // Reactive data
-const page = usePage()
 const activeMethod = ref('script')
 const showPrivateKey = ref(false)
 const isSaving = ref(false)
@@ -774,7 +775,7 @@ const loadAvailableContracts = async () => {
         loadSelectedContracts()
     } catch (error) {
         console.error('Fehler beim Laden der Verträge:', error)
-        page.props.flash.error = 'Verträge konnten nicht geladen werden'
+        toastError('Verträge konnten nicht geladen werden')
     } finally {
         contractsLoading.value = false
     }
@@ -823,10 +824,10 @@ const saveWidgetConfig = async () => {
             }
         })
 
-        page.props.flash.message = 'Einstellungen erfolgreich gespeichert!'
+        success('Einstellungen erfolgreich gespeichert!')
     } catch (error) {
         console.error('Fehler beim Speichern:', error)
-        page.props.flash.error = 'Fehler beim Speichern der Einstellungen'
+        toastError('Fehler beim Speichern der Einstellungen')
     } finally {
         isSaving.value = false
     }
@@ -851,10 +852,10 @@ const regenerateApiKeys = async () => {
         try {
             const response = await axios.post(route('admin.widget.regenerate-api-key'))
             apiKeys.value.public = response.data.api_key
-            page.props.flash.message = 'API-Keys erfolgreich neu generiert!'
+            success('API-Keys erfolgreich neu generiert!')
         } catch (error) {
             console.error('Fehler beim Generieren:', error)
-            page.props.flash.error = 'Fehler beim Generieren des API-Keys'
+            toastError('Fehler beim Generieren des API-Keys')
         }
     }
 }

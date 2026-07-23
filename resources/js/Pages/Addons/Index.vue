@@ -13,20 +13,6 @@
       <span class="text-gray-900">Add-ons</span>
     </nav>
 
-    <!-- Flash Messages -->
-    <div v-if="flash?.message" class="mb-6">
-      <div
-        :class="{
-          'bg-green-50 border-green-200 text-green-800': flash.type === 'success',
-          'bg-red-50 border-red-200 text-red-800': flash.type === 'error',
-          'bg-indigo-50 border-indigo-200 text-indigo-800': flash.type === 'info'
-        }"
-        class="border rounded-lg p-4"
-      >
-        {{ flash.message }}
-      </div>
-    </div>
-
     <!-- Header with Add Button -->
     <div class="mb-4 flex flex-wrap gap-3 justify-between items-start">
       <div class="max-w-3xl">
@@ -228,8 +214,7 @@ import { formatPrice } from '@/utils/formatters'
 const page = usePage()
 
 const props = defineProps({
-  addons: Array,
-  flash: Object
+  addons: Array
 })
 
 const isOwnerOrAdmin = computed(() => {

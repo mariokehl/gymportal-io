@@ -25,15 +25,6 @@
                         </option>
                     </select>
                 </div>
-
-                <!-- Success/Error Messages -->
-                <div v-if="successMessage"
-                    class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                    {{ successMessage }}
-                </div>
-                <div v-if="errorMessage" class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                    {{ errorMessage }}
-                </div>
             </div>
         </div>
 
@@ -406,6 +397,9 @@ import {
 } from 'lucide-vue-next'
 import { formatDate } from '@/utils/formatters'
 import EmailAttachmentsDropzone from '@/Components/EmailAttachmentsDropzone.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success, error: toastError } = useToast()
 
 // Props
 const props = defineProps({
@@ -420,8 +414,6 @@ const showPreview = ref(false)
 const showCreateTemplate = ref(false)
 const isSaving = ref(false)
 const isCreating = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
 const editMode = ref('edit') // 'edit' oder 'preview'
 const htmlEditor = ref(null)
 
@@ -462,8 +454,7 @@ const loadTemplates = async () => {
         templates.value = response.data.templates
     } catch (error) {
         console.error('Fehler beim Laden der E-Mail-Vorlagen:', error)
-        errorMessage.value = 'Fehler beim Laden der E-Mail-Vorlagen'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Laden der E-Mail-Vorlagen')
     }
 }
 
@@ -479,8 +470,7 @@ const loadSelectedTemplate = async () => {
         editMode.value = 'edit'
     } catch (error) {
         console.error('Fehler beim Laden der Vorlage:', error)
-        errorMessage.value = 'Fehler beim Laden der Vorlage'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Laden der Vorlage')
     }
 }
 
@@ -515,12 +505,10 @@ const saveTemplate = async () => {
             }
         }
 
-        successMessage.value = 'E-Mail-Vorlage erfolgreich gespeichert!'
-        setTimeout(() => successMessage.value = '', 3000)
+        success('E-Mail-Vorlage erfolgreich gespeichert!')
     } catch (error) {
         console.error('Fehler beim Speichern der Vorlage:', error)
-        errorMessage.value = 'Fehler beim Speichern der Vorlage'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Speichern der Vorlage')
     } finally {
         isSaving.value = false
     }
@@ -556,13 +544,11 @@ const createTemplate = async () => {
                 useStandardTemplate: true
             }
 
-            successMessage.value = 'E-Mail-Vorlage erfolgreich erstellt!'
-            setTimeout(() => successMessage.value = '', 3000)
+            success('E-Mail-Vorlage erfolgreich erstellt!')
         }
     } catch (error) {
         console.error('Fehler beim Erstellen der Vorlage:', error)
-        errorMessage.value = error.response?.data?.message || 'Fehler beim Erstellen der Vorlage'
-        setTimeout(() => errorMessage.value = '', 5000)
+        toastError(error.response?.data?.message || 'Fehler beim Erstellen der Vorlage')
     } finally {
         isCreating.value = false
     }
@@ -595,13 +581,11 @@ const duplicateTemplate = async (template) => {
 
         if (response.data.template) {
             templates.value.push(response.data.template)
-            successMessage.value = 'Vorlage erfolgreich dupliziert!'
-            setTimeout(() => successMessage.value = '', 3000)
+            success('Vorlage erfolgreich dupliziert!')
         }
     } catch (error) {
         console.error('Fehler beim Duplizieren der Vorlage:', error)
-        errorMessage.value = 'Fehler beim Duplizieren der Vorlage'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Duplizieren der Vorlage')
     }
 }
 
@@ -623,12 +607,10 @@ const deleteTemplate = async (template) => {
             selectedTemplateId.value = ''
         }
 
-        successMessage.value = 'E-Mail-Vorlage erfolgreich gelöscht!'
-        setTimeout(() => successMessage.value = '', 3000)
+        success('E-Mail-Vorlage erfolgreich gelöscht!')
     } catch (error) {
         console.error('Fehler beim Löschen der Vorlage:', error)
-        errorMessage.value = 'Fehler beim Löschen der Vorlage'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Löschen der Vorlage')
     }
 }
 

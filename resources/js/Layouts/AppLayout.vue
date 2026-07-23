@@ -89,21 +89,56 @@
         :identity-hash="chatwootIdentityHash"
       />
     </div>
+
+    <!-- Global toast notifications -->
+    <NotificationContainer />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { router, usePage, Head, Link } from '@inertiajs/vue3'
 import { Shield, Menu } from 'lucide-vue-next'
 import SidebarNav from '@/Components/SidebarNav.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
+import NotificationContainer from '@/Components/NotificationContainer.vue'
+import { useToast } from '@/composables/useToast'
 
 // Shared data
 const page = usePage()
 const notificationPopup = ref(null)
+
+// Bridge Laravel/Inertia flash messages into the global toast system.
+// Two flash shapes exist in this app:
+//   1. The shared Inertia middleware exposes { message, error }.
+//   2. Some controllers redirect ->with('flash', { type, message }) where
+//      type is 'success' | 'error' | 'info'.
+// Both are handled here so any flash automatically becomes a toast.
+const { success: toastSuccess, error: toastError, info: toastInfo } = useToast()
+
+function showFlash(flash) {
+  if (!flash) {
+    return
+  }
+
+  if (flash.error) {
+    toastError(flash.error)
+  }
+
+  if (flash.message) {
+    if (flash.type === 'error') {
+      toastError(flash.message)
+    } else if (flash.type === 'info') {
+      toastInfo(flash.message)
+    } else {
+      toastSuccess(flash.message)
+    }
+  }
+}
+
+watch(() => page.props.flash, showFlash, { immediate: true, deep: true })
 
 // Mobile drawer state — auto-closes after Inertia navigates to a new page.
 const drawerOpen = ref(false)

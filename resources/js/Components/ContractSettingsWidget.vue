@@ -12,16 +12,6 @@
                 <p class="text-sm text-gray-500">
                     Konfiguriere die Vertragsunterzeichnung und die Vertragsvorlage für automatisch generierte Online-Verträge.
                 </p>
-
-                <!-- Success/Error Messages -->
-                <div v-if="successMessage"
-                    class="mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                    {{ successMessage }}
-                </div>
-                <div v-if="errorMessage"
-                    class="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                    {{ errorMessage }}
-                </div>
             </div>
         </div>
 
@@ -268,17 +258,18 @@
 import { ref, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { FileSignature, Save, Eye, Info } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
 
 // Props
 const props = defineProps({
     currentGym: Object
 })
 
+const { success, error: toastError } = useToast()
+
 // Reactive data
 const isSaving = ref(false)
 const isPreviewing = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
 const showPreviewModal = ref(false)
 const previewHtml = ref('')
 const bodyTextarea = ref(null)
@@ -435,8 +426,6 @@ const insertPlaceholder = (placeholder) => {
 
 const saveSettings = async () => {
     isSaving.value = true
-    successMessage.value = ''
-    errorMessage.value = ''
 
     try {
         await axios.put('/settings/contract-settings', {
@@ -447,12 +436,10 @@ const saveSettings = async () => {
             free_trial_membership_name: freeTrialMembershipName.value,
         })
 
-        successMessage.value = 'Vertragseinstellungen erfolgreich gespeichert!'
-        setTimeout(() => successMessage.value = '', 3000)
+        success('Vertragseinstellungen erfolgreich gespeichert!')
     } catch (error) {
         console.error('Fehler beim Speichern:', error)
-        errorMessage.value = error.response?.data?.message || 'Fehler beim Speichern der Vertragseinstellungen'
-        setTimeout(() => errorMessage.value = '', 5000)
+        toastError(error.response?.data?.message || 'Fehler beim Speichern der Vertragseinstellungen')
     } finally {
         isSaving.value = false
     }
@@ -460,7 +447,6 @@ const saveSettings = async () => {
 
 const previewTemplate = async () => {
     isPreviewing.value = true
-    errorMessage.value = ''
 
     try {
         const response = await axios.post('/settings/contract-template/preview', {
@@ -472,8 +458,7 @@ const previewTemplate = async () => {
         showPreviewModal.value = true
     } catch (error) {
         console.error('Fehler bei der Vorschau:', error)
-        errorMessage.value = error.response?.data?.message || 'Fehler beim Generieren der Vorschau'
-        setTimeout(() => errorMessage.value = '', 5000)
+        toastError(error.response?.data?.message || 'Fehler beim Generieren der Vorschau')
     } finally {
         isPreviewing.value = false
     }

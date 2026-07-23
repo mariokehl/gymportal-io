@@ -8,14 +8,6 @@
             <!-- Tabs -->
             <TabRail v-model="activeTab" :tabs="tabs" />
 
-            <!-- Success/Error Messages -->
-            <div v-if="successMessage" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                {{ successMessage }}
-            </div>
-            <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {{ errorMessage }}
-            </div>
-
             <!-- Live Log Tab (für alle Benutzer) -->
             <div v-if="activeTab === 'live-log'" class="space-y-6">
                 <AccessLogLive
@@ -77,6 +69,9 @@ import AccessLogLive from '@/Components/AccessControl/AccessLogLive.vue'
 import AccessStatistics from '@/Components/AccessControl/AccessStatistics.vue'
 import RollingQrSettings from '@/Components/AccessControl/RollingQrSettings.vue'
 import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success, error: toastError } = useToast()
 
 const page = usePage()
 
@@ -149,18 +144,14 @@ const tabs = computed(() => {
 })
 
 const activeTab = ref('live-log')
-const successMessage = ref('')
-const errorMessage = ref('')
 const scannersData = ref([...props.scanners])
 
 const handleSuccess = (message) => {
-    successMessage.value = message
-    setTimeout(() => successMessage.value = '', 4000)
+    success(message)
 }
 
 const handleError = (message) => {
-    errorMessage.value = message
-    setTimeout(() => errorMessage.value = '', 4000)
+    toastError(message)
 }
 
 const handleScannerCreated = (scanner) => {
