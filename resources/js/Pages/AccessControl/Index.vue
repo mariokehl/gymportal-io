@@ -6,32 +6,7 @@
 
         <div class="space-y-6">
             <!-- Tabs -->
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8">
-                    <button
-                        v-for="tab in tabs"
-                        :key="tab.key"
-                        @click="activeTab = tab.key"
-                        :class="[
-                            'py-2 px-1 border-b-2 font-medium text-sm flex items-center',
-                            activeTab === tab.key
-                                ? 'border-indigo-500 text-indigo-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        ]"
-                    >
-                        <component :is="tab.icon" class="w-4 h-4 mr-2" />
-                        {{ tab.label }}
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Success/Error Messages -->
-            <div v-if="successMessage" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                {{ successMessage }}
-            </div>
-            <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {{ errorMessage }}
-            </div>
+            <TabRail v-model="activeTab" :tabs="tabs" />
 
             <!-- Live Log Tab (für alle Benutzer) -->
             <div v-if="activeTab === 'live-log'" class="space-y-6">
@@ -88,11 +63,15 @@ import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { Scan, Radio, BarChart3, Settings } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import TabRail from '@/Components/TabRail.vue'
 import ScannerManagement from '@/Components/AccessControl/ScannerManagement.vue'
 import AccessLogLive from '@/Components/AccessControl/AccessLogLive.vue'
 import AccessStatistics from '@/Components/AccessControl/AccessStatistics.vue'
 import RollingQrSettings from '@/Components/AccessControl/RollingQrSettings.vue'
 import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success, error: toastError } = useToast()
 
 const page = usePage()
 
@@ -165,18 +144,14 @@ const tabs = computed(() => {
 })
 
 const activeTab = ref('live-log')
-const successMessage = ref('')
-const errorMessage = ref('')
 const scannersData = ref([...props.scanners])
 
 const handleSuccess = (message) => {
-    successMessage.value = message
-    setTimeout(() => successMessage.value = '', 4000)
+    success(message)
 }
 
 const handleError = (message) => {
-    errorMessage.value = message
-    setTimeout(() => errorMessage.value = '', 4000)
+    toastError(message)
 }
 
 const handleScannerCreated = (scanner) => {

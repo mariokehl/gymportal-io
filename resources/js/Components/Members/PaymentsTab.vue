@@ -1,20 +1,5 @@
 <template>
   <div class="flex flex-col gap-6">
-    <!-- Flash Messages -->
-    <div v-if="$page.props.flash?.message" class="bg-green-50 border border-green-200 rounded-md p-4">
-      <div class="flex">
-        <CheckCircle class="w-5 h-5 text-green-400 mr-2" />
-        <div class="text-sm text-green-800">{{ $page.props.flash.message }}</div>
-      </div>
-    </div>
-
-    <div v-if="$page.props.flash?.error" class="bg-red-50 border border-red-200 rounded-md p-4">
-      <div class="flex">
-        <XCircle class="w-5 h-5 text-red-400 mr-2" />
-        <div class="text-sm text-red-800">{{ $page.props.flash.error }}</div>
-      </div>
-    </div>
-
     <!-- Payment Methods Section -->
     <div class="flex flex-col gap-3">
       <div class="flex justify-between items-center gap-3">

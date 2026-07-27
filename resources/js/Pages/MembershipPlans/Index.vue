@@ -4,20 +4,6 @@
       Verträge verwalten
     </template>
 
-    <!-- Flash Messages -->
-    <div v-if="flash?.message" class="mb-6">
-      <div
-        :class="{
-          'bg-green-50 border-green-200 text-green-800': flash.type === 'success',
-          'bg-red-50 border-red-200 text-red-800': flash.type === 'error',
-          'bg-indigo-50 border-indigo-200 text-indigo-800': flash.type === 'info'
-        }"
-        class="border rounded-lg p-4"
-      >
-        {{ flash.message }}
-      </div>
-    </div>
-
     <!-- Header with Add Button -->
     <div class="mb-6 flex justify-between items-center">
       <div>
@@ -211,8 +197,7 @@ const page = usePage()
 
 // Props
 const props = defineProps({
-  membershipPlans: Array,
-  flash: Object
+  membershipPlans: Array
 })
 
 // Computed properties

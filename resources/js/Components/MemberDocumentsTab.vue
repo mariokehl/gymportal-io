@@ -8,22 +8,6 @@
 
     <!-- Content -->
     <template v-else>
-      <!-- Success Message -->
-      <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div class="flex">
-          <FileText class="w-5 h-5 text-green-400 mr-2 flex-shrink-0" />
-          <div class="text-sm text-green-800">{{ successMessage }}</div>
-        </div>
-      </div>
-
-      <!-- Error Message -->
-      <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div class="flex">
-          <FileText class="w-5 h-5 text-red-400 mr-2 flex-shrink-0" />
-          <div class="text-sm text-red-800">{{ errorMessage }}</div>
-        </div>
-      </div>
-
       <!-- Existing Documents -->
       <div v-if="documents.length > 0" class="flex flex-col gap-3.5">
         <h3 class="text-lg font-bold text-gray-900">Dokumente</h3>
@@ -114,6 +98,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { FileText, Download, Plus, FolderOpen, Loader2, MoveHorizontal } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   member: Object
@@ -121,18 +106,13 @@ const props = defineProps({
 
 const emit = defineEmits(['documents-loaded'])
 
+const { success, error: toastError } = useToast()
+
 const loading = ref(true)
 const documents = ref([])
 const membershipsWithoutContract = ref([])
 const contractsEnabled = ref(false)
 const generatingIds = ref({})
-const successMessage = ref('')
-const errorMessage = ref('')
-
-function clearMessages() {
-  successMessage.value = ''
-  errorMessage.value = ''
-}
 
 async function fetchDocuments() {
   loading.value = true
@@ -143,7 +123,7 @@ async function fetchDocuments() {
     contractsEnabled.value = response.data.contracts_enabled || false
     emit('documents-loaded', documents.value.length)
   } catch (error) {
-    errorMessage.value = 'Fehler beim Laden der Dokumente.'
+    toastError('Fehler beim Laden der Dokumente.')
     console.error('Error fetching documents:', error)
   } finally {
     loading.value = false
@@ -151,15 +131,14 @@ async function fetchDocuments() {
 }
 
 async function generateContract(membership) {
-  clearMessages()
   generatingIds.value[membership.id] = true
 
   try {
     await axios.post(`/members/${props.member.id}/documents/${membership.id}/generate`)
-    successMessage.value = `Vertrag für "${membership.plan_name}" wurde erfolgreich erstellt.`
+    success(`Vertrag für "${membership.plan_name}" wurde erfolgreich erstellt.`)
     await fetchDocuments()
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Fehler beim Erstellen des Vertrags.'
+    toastError(error.response?.data?.message || 'Fehler beim Erstellen des Vertrags.')
     console.error('Error generating contract:', error)
   } finally {
     generatingIds.value[membership.id] = false

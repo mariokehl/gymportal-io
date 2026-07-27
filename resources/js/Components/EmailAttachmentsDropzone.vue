@@ -23,16 +23,6 @@
             </div>
         </div>
 
-        <!-- Error Message -->
-        <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-            {{ errorMessage }}
-        </div>
-
-        <!-- Success Message -->
-        <div v-if="successMessage" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded text-sm">
-            {{ successMessage }}
-        </div>
-
         <!-- Upload Dropzone -->
         <div v-if="props.attachments.length < maxAttachments">
             <div
@@ -83,6 +73,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { Paperclip, Upload, Trash2, FileText, Loader2 } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
     templateId: Number,
@@ -94,6 +85,8 @@ const props = defineProps({
 
 const emit = defineEmits(['attachments-updated'])
 
+const { success: showSuccess, error: showError } = useToast()
+
 const maxAttachments = 5
 const maxFileSize = 10 * 1024 * 1024 // 10 MB
 
@@ -101,25 +94,6 @@ const fileInput = ref(null)
 const isDragging = ref(false)
 const isUploading = ref(false)
 const deletingId = ref(null)
-const errorMessage = ref('')
-const successMessage = ref('')
-
-const clearMessages = () => {
-    errorMessage.value = ''
-    successMessage.value = ''
-}
-
-const showError = (message) => {
-    errorMessage.value = message
-    successMessage.value = ''
-    setTimeout(() => errorMessage.value = '', 5000)
-}
-
-const showSuccess = (message) => {
-    successMessage.value = message
-    errorMessage.value = ''
-    setTimeout(() => successMessage.value = '', 3000)
-}
 
 const triggerFileInput = () => {
     if (isUploading.value) return
@@ -173,8 +147,6 @@ const validateFile = (file) => {
 }
 
 const handleFile = async (file) => {
-    clearMessages()
-
     if (!validateFile(file)) {
         return
     }
@@ -218,7 +190,6 @@ const deleteAttachment = async (attachment) => {
         return
     }
 
-    clearMessages()
     deletingId.value = attachment.id
 
     try {

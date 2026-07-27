@@ -6,28 +6,7 @@
 
         <div class="max-w-6xl mx-auto">
             <!-- Tabs -->
-            <div class="border-b border-gray-200 mb-6">
-                <nav class="-mb-px flex space-x-8">
-                    <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key" :class="[
-                        'py-2 px-1 border-b-2 font-medium text-sm',
-                        activeTab === tab.key
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    ]">
-                        <component :is="tab.icon" class="w-4 h-4 mr-2 inline" />
-                        {{ tab.label }}
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Success/Error Messages -->
-            <div v-if="successMessage"
-                class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                {{ successMessage }}
-            </div>
-            <div v-if="errorMessage" class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {{ errorMessage }}
-            </div>
+            <TabRail v-model="activeTab" :tabs="tabs" class="mb-6" />
 
             <!-- Gym Settings -->
             <div v-if="activeTab === 'gym'" class="space-y-6">
@@ -482,6 +461,7 @@ import {
     Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import TabRail from '@/Components/TabRail.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
 import ContractWidget from '@/Components/ContractWidget.vue'
 import MollieSetupWizard from '@/Components/MollieSetupWizard.vue'
@@ -491,6 +471,9 @@ import IbanInput from '@/Components/IbanInput.vue'
 import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
 import PwaSettingsWidget from '@/Components/PwaSettingsWidget.vue'
 import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success, error: toastError } = useToast()
 
 // Props
 const props = defineProps({
@@ -511,8 +494,6 @@ const props = defineProps({
 const activeTab = ref('gym')
 const showMollieSetup = ref(false)
 const isSubmittingGym = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
 
 // Payment methods state - will be loaded by the Model
 const standardMethods = ref([])
@@ -615,11 +596,9 @@ const saveGymSettings = async () => {
             Object.assign(gymForm.value, response.data.gym)
         }
 
-        successMessage.value = 'Organisation erfolgreich gespeichert!'
-        setTimeout(() => successMessage.value = '', 3000)
+        success('Organisation erfolgreich gespeichert!')
     } catch (error) {
-        errorMessage.value = 'Fehler beim Speichern der Organisation'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Speichern der Organisation')
     } finally {
         isSubmittingGym.value = false
     }
@@ -638,8 +617,7 @@ const deleteGym = async () => {
                 router.visit('/dashboard')
             },
             onError: () => {
-                errorMessage.value = 'Fehler beim Löschen der Organisation'
-                setTimeout(() => errorMessage.value = '', 3000)
+                toastError('Fehler beim Löschen der Organisation')
             },
             onFinish: () => {
                 isSubmittingGym.value = false
@@ -653,13 +631,11 @@ const deleteGym = async () => {
 
 // Event handlers for TeamManagement component
 const handleSuccess = (message) => {
-    successMessage.value = message
-    setTimeout(() => successMessage.value = '', 3000)
+    success(message)
 }
 
 const handleError = (message) => {
-    errorMessage.value = message
-    setTimeout(() => errorMessage.value = '', 3000)
+    toastError(message)
 }
 
 // Payment methods - New: Load from Model
@@ -691,16 +667,14 @@ const updateStandardMethod = async (method) => {
             enabled: method.enabled
         })
 
-        successMessage.value = `${method.name} ${method.enabled ? 'aktiviert' : 'deaktiviert'}!`
-        setTimeout(() => successMessage.value = '', 3000)
+        success(`${method.name} ${method.enabled ? 'aktiviert' : 'deaktiviert'}!`)
 
         // Payment methods refresh
         await loadPaymentMethods()
     } catch (error) {
         // Revert change on error
         method.enabled = !method.enabled
-        errorMessage.value = 'Fehler beim Aktualisieren der Zahlungsmethode'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Aktualisieren der Zahlungsmethode')
     }
 }
 
@@ -718,14 +692,11 @@ const closeMollieSetup = () => {
 
 const onMollieSetupCompleted = async () => {
     await loadPaymentMethods()
-    successMessage.value = 'Mollie Integration erfolgreich eingerichtet!'
+    success('Mollie Integration erfolgreich eingerichtet!')
     router.reload({
         only: ['currentGym'],
         preserveScroll: true,
         preserveState: false,
-        onSuccess: () => {
-            setTimeout(() => successMessage.value = '', 3000)
-        }
     })
 }
 
@@ -752,19 +723,15 @@ const removeMollieConfig = async () => {
         }
 
         await loadPaymentMethods()
-        successMessage.value = 'Mollie Integration erfolgreich entfernt!'
+        success('Mollie Integration erfolgreich entfernt!')
         router.reload({
             only: ['currentGym'],
             preserveScroll: true,
             preserveState: false,
-            onSuccess: () => {
-                setTimeout(() => successMessage.value = '', 3000)
-            }
         })
     } catch (error) {
         console.error(error)
-        errorMessage.value = 'Fehler beim Entfernen der Mollie Integration'
-        setTimeout(() => errorMessage.value = '', 3000)
+        toastError('Fehler beim Entfernen der Mollie Integration')
     }
 }
 
