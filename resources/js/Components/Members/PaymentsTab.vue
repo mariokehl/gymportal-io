@@ -1158,12 +1158,10 @@ const createPayment = () => {
   newPaymentForm.post(route('members.payments.store', props.member.id), {
     preserveScroll: true,
     onSuccess: () => {
+      // No reload needed: the controller redirects back, so the response
+      // already carries fresh props including the recalculated credit balance.
+      // Reloading here would remount the layout and replay the flash toast.
       closeAddPayment()
-      // Reload member data (payments + credit balance)
-      router.reload({
-        only: ['member'],
-        preserveScroll: true,
-      })
     }
   })
 }
