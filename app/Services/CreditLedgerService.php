@@ -353,8 +353,10 @@ class CreditLedgerService
                 prevHash: $prevHash,
             );
 
-            $chainOk = hash_equals($expectedHash, (string) $entry->entry_hash)
-                && hash_equals($prevHash, (string) ($entry->prev_hash ?? self::GENESIS_HASH))
+            // Postgres pads char(64) columns with trailing spaces on read
+            // (MariaDB strips them), so normalise before the byte-exact compare.
+            $chainOk = hash_equals($expectedHash, rtrim((string) $entry->entry_hash))
+                && hash_equals($prevHash, rtrim((string) ($entry->prev_hash ?? self::GENESIS_HASH)))
                 && $balanceAfter === $prevBalance + $amount
                 && $balanceAfter >= 0;
 
@@ -367,7 +369,7 @@ class CreditLedgerService
                 throw new RuntimeException("Credit ledger integrity check failed for member #{$member->id}.");
             }
 
-            $prevHash = (string) $entry->entry_hash;
+            $prevHash = rtrim((string) $entry->entry_hash);
             $prevBalance = $balanceAfter;
         }
 
@@ -413,7 +415,7 @@ class CreditLedgerService
         ?User $createdBy,
     ): MemberCreditLedger {
         $prevEntry = $entries->last();
-        $prevHash = $prevEntry?->entry_hash ?? self::GENESIS_HASH;
+        $prevHash = rtrim((string) ($prevEntry?->entry_hash ?? self::GENESIS_HASH));
         $prevBalance = $prevEntry ? $this->decryptCents($prevEntry->encrypted_balance_after) : 0;
 
         $balanceAfter = $prevBalance + $deltaCents;

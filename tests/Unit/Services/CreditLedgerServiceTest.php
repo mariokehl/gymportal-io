@@ -127,6 +127,25 @@ class CreditLedgerServiceTest extends TestCase
         $this->assertFalse($this->service->verify($member->fresh()));
     }
 
+    public function test_chain_survives_blank_padded_hashes(): void
+    {
+        $member = $this->member();
+        $this->service->credit($member, 1000, description: 'A');
+        $this->service->credit($member, 2000, description: 'B');
+
+        // Postgres returns char(64) columns blank-padded to their full width,
+        // unlike MariaDB/SQLite. Simulate that by padding the stored hashes.
+        foreach (DB::table('member_credit_ledgers')->orderBy('id')->get() as $row) {
+            DB::table('member_credit_ledgers')->where('id', $row->id)->update([
+                'entry_hash' => str_pad($row->entry_hash, 64),
+                'prev_hash' => str_pad((string) $row->prev_hash, 64),
+            ]);
+        }
+
+        $this->assertTrue($this->service->verify($member->fresh()));
+        $this->assertSame(3000, $this->service->getBalance($member->fresh()));
+    }
+
     public function test_ledger_entries_are_immutable(): void
     {
         $member = $this->member();
