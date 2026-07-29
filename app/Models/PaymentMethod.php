@@ -82,6 +82,38 @@ class PaymentMethod extends Model
         ],
     ];
 
+    /**
+     * System defaults for the payment execution dates, expressed as an offset in
+     * days relative to the due date. A positive value executes after the due
+     * date, a negative one before it, zero on the due date itself.
+     *
+     * "initial" applies to the first payment of a membership, "recurring" to
+     * every following one. A gym may override these per payment method; see
+     * Gym::getPaymentExecutionOffsets().
+     */
+    public static array $defaultExecutionOffsets = [
+        'cash' => ['initial' => 0, 'recurring' => 0],
+        'sepa_direct_debit' => ['initial' => 3, 'recurring' => -2],
+        'banktransfer' => ['initial' => 7, 'recurring' => -5],
+        'invoice' => ['initial' => 14, 'recurring' => 0],
+        'standingorder' => ['initial' => 30, 'recurring' => -3],
+        'mollie_directdebit' => ['initial' => 5, 'recurring' => -1],
+    ];
+
+    /**
+     * Offsets applied when a payment method has no explicit configuration.
+     */
+    public const FALLBACK_EXECUTION_OFFSETS = ['initial' => 1, 'recurring' => 0];
+
+    /**
+     * Bounds for a gym-specific offset, mirrored by the frontend and the
+     * request validation so a stored value can never shift a payment by an
+     * unreasonable amount.
+     */
+    public const MIN_EXECUTION_OFFSET = -14;
+
+    public const MAX_EXECUTION_OFFSET = 30;
+
     protected function iban(): Attribute
     {
         return Attribute::make(
@@ -123,11 +155,11 @@ class PaymentMethod extends Model
     // SEPA-spezifische Attribute
     public function getSepaMandateStatusTextAttribute(): ?string
     {
-        if (!$this->requiresSepaMandate()) {
+        if (! $this->requiresSepaMandate()) {
             return null;
         }
 
-        return match($this->sepa_mandate_status) {
+        return match ($this->sepa_mandate_status) {
             'pending' => 'Unterschrift ausstehend',
             'signed' => 'Unterschrieben, noch nicht aktiv',
             'active' => 'Aktiv',
@@ -139,11 +171,11 @@ class PaymentMethod extends Model
 
     public function getSepaMandateStatusColorAttribute(): ?string
     {
-        if (!$this->requiresSepaMandate()) {
+        if (! $this->requiresSepaMandate()) {
             return null;
         }
 
-        return match($this->sepa_mandate_status) {
+        return match ($this->sepa_mandate_status) {
             'pending' => 'yellow',
             'signed' => 'blue',
             'active' => 'green',
@@ -155,20 +187,22 @@ class PaymentMethod extends Model
 
     public function getMaskedIbanAttribute()
     {
-        if (!$this->iban) {
+        if (! $this->iban) {
             return null;
         }
         $length = strlen($this->iban);
         $visible = 4;
         $masked = str_repeat('*', $length - $visible);
-        return substr($this->iban, 0, 2) . $masked . substr($this->iban, -$visible);
+
+        return substr($this->iban, 0, 2).$masked.substr($this->iban, -$visible);
     }
 
     public function getIsExpiredAttribute()
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
+
         return $this->expiry_date->isPast();
     }
 
@@ -202,7 +236,7 @@ class PaymentMethod extends Model
 
     public function markSepaMandateAsAcknowledged(): bool
     {
-        if (!$this->requiresSepaMandate() || $this->sepa_mandate_status !== 'pending') {
+        if (! $this->requiresSepaMandate() || $this->sepa_mandate_status !== 'pending') {
             return false;
         }
 
@@ -211,7 +245,7 @@ class PaymentMethod extends Model
             'sepa_mandate_data' => array_merge($this->sepa_mandate_data ?? [], [
                 'acknowledged_at' => now()->toISOString(),
                 'acknowledged_online' => true,
-            ])
+            ]),
         ]);
 
         return true;
@@ -219,7 +253,7 @@ class PaymentMethod extends Model
 
     public function markSepaMandateAsSigned(): bool
     {
-        if (!$this->requiresSepaMandate() || $this->sepa_mandate_status !== 'pending') {
+        if (! $this->requiresSepaMandate() || $this->sepa_mandate_status !== 'pending') {
             return false;
         }
 
@@ -228,8 +262,8 @@ class PaymentMethod extends Model
             'sepa_mandate_signed_at' => now(),
             'sepa_mandate_data' => array_merge($this->sepa_mandate_data ?? [], [
                 'signed_at' => now()->toISOString(),
-                'signature_method' => 'paper'
-            ])
+                'signature_method' => 'paper',
+            ]),
         ]);
 
         return true;
@@ -237,7 +271,7 @@ class PaymentMethod extends Model
 
     public function activateSepaMandate(?string $creditorId = null): bool
     {
-        if (!$this->requiresSepaMandate() || $this->sepa_mandate_status !== 'signed') {
+        if (! $this->requiresSepaMandate() || $this->sepa_mandate_status !== 'signed') {
             return false;
         }
 
@@ -246,7 +280,7 @@ class PaymentMethod extends Model
             'status' => 'active', // PaymentMethod auch aktiv setzen
             'sepa_mandate_data' => array_merge($this->sepa_mandate_data ?? [], [
                 'activated_at' => now()->toISOString(),
-            ])
+            ]),
         ];
 
         if ($creditorId) {
@@ -260,7 +294,7 @@ class PaymentMethod extends Model
 
     public function revokeSepaMandate(?string $reason = null): bool
     {
-        if (!$this->requiresSepaMandate() || !in_array($this->sepa_mandate_status, ['signed', 'active'])) {
+        if (! $this->requiresSepaMandate() || ! in_array($this->sepa_mandate_status, ['signed', 'active'])) {
             return false;
         }
 
@@ -269,8 +303,8 @@ class PaymentMethod extends Model
             'status' => 'expired', // PaymentMethod deaktivieren
             'sepa_mandate_data' => array_merge($this->sepa_mandate_data ?? [], [
                 'revoked_at' => now()->toISOString(),
-                'revocation_reason' => $reason
-            ])
+                'revocation_reason' => $reason,
+            ]),
         ]);
 
         return true;
@@ -309,12 +343,12 @@ class PaymentMethod extends Model
                 'created_at' => now()->toISOString(),
             ],
             'iban' => $iban,
-            'account_holder' => $accountHolder
+            'account_holder' => $accountHolder,
         ]);
 
         // Generiere Mandatsreferenz
         $paymentMethod->update([
-            'sepa_mandate_reference' => $paymentMethod->generateSepaMandateReference()
+            'sepa_mandate_reference' => $paymentMethod->generateSepaMandateReference(),
         ]);
 
         return $paymentMethod;
@@ -337,6 +371,24 @@ class PaymentMethod extends Model
     }
 
     /**
+     * System default execution offsets for a payment method type. Types without
+     * an explicit entry (including Mollie methods other than direct debit) fall
+     * back to the shared default.
+     */
+    public static function getDefaultExecutionOffsets(?string $type): array
+    {
+        return self::$defaultExecutionOffsets[$type] ?? self::FALLBACK_EXECUTION_OFFSETS;
+    }
+
+    /**
+     * Clamp an offset into the supported range.
+     */
+    public static function clampExecutionOffset(int $offset): int
+    {
+        return max(self::MIN_EXECUTION_OFFSET, min(self::MAX_EXECUTION_OFFSET, $offset));
+    }
+
+    /**
      * Prüfe ob eine Zahlungsmethode ein Mandat benötigt
      */
     public static function typeRequiresMandate(string $type, array $config = []): bool
@@ -344,6 +396,7 @@ class PaymentMethod extends Model
         if (count($config) === 0) {
             $config = self::getConfigForType($type);
         }
+
         return $config['requires_mandate'] ?? false;
     }
 
@@ -376,7 +429,7 @@ class PaymentMethod extends Model
     public function scopeRequiringSepaSignature($query)
     {
         return $query->sepa()
-                    ->where('sepa_mandate_status', 'pending')
-                    ->where('sepa_mandate_acknowledged', true);
+            ->where('sepa_mandate_status', 'pending')
+            ->where('sepa_mandate_acknowledged', true);
     }
 }

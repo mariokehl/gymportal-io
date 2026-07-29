@@ -240,6 +240,10 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
             Route::get('/', [PaymentMethodsController::class, 'index'])->name('index');
             Route::get('/overview', [PaymentMethodsController::class, 'overview'])->name('overview');
             Route::put('/update', [PaymentMethodsController::class, 'update'])->name('update');
+            // Execution dates of the payments (per gym overrides)
+            Route::get('/execution-settings', [PaymentMethodsController::class, 'executionSettings'])->name('execution-settings.index');
+            Route::put('/execution-settings', [PaymentMethodsController::class, 'updateExecutionSettings'])->name('execution-settings.update');
+            Route::delete('/execution-settings', [PaymentMethodsController::class, 'resetExecutionSettings'])->name('execution-settings.reset');
         });
         Route::prefix('mollie')->name('mollie.')->group(function () {
             Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');
