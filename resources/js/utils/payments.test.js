@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   getCreditRedemption, hasCreditRedemption, isCreditTopup, creditTopupSource, getMemberInitials,
-  isScheduledInFuture, scheduledDate, sortByScheduledDate
+  isScheduledInFuture, scheduledDate, sortByScheduledDate, executionOffsetText, shiftExecutionDate
 } from '@/utils/payments'
 
 describe('getCreditRedemption', () => {
@@ -187,5 +187,49 @@ describe('getMemberInitials', () => {
     expect(getMemberInitials({ first_name: 'Anna' })).toBe('A')
     expect(getMemberInitials({})).toBe('')
     expect(getMemberInitials(null)).toBe('??')
+  })
+})
+
+describe('executionOffsetText', () => {
+  it('labels a zero offset as same-day', () => {
+    expect(executionOffsetText(0)).toBe('taggleich')
+  })
+
+  it('uses the singular form for a single day', () => {
+    expect(executionOffsetText(1)).toBe('1 Tag danach')
+    expect(executionOffsetText(-1)).toBe('1 Tag vorher')
+  })
+
+  it('labels positive offsets as after and negative ones as before the due date', () => {
+    expect(executionOffsetText(7)).toBe('7 Tage danach')
+    expect(executionOffsetText(-5)).toBe('5 Tage vorher')
+  })
+
+  it('treats a missing offset as same-day', () => {
+    expect(executionOffsetText(undefined)).toBe('taggleich')
+    expect(executionOffsetText(null)).toBe('taggleich')
+  })
+})
+
+describe('shiftExecutionDate', () => {
+  it('shifts the due date forward by a positive offset', () => {
+    expect(shiftExecutionDate('2026-08-01', 3)).toBe('04.08.2026')
+  })
+
+  it('shifts the due date backward by a negative offset', () => {
+    expect(shiftExecutionDate('2026-08-01', -2)).toBe('30.07.2026')
+  })
+
+  it('returns the due date unchanged for a zero offset', () => {
+    expect(shiftExecutionDate('2026-08-01', 0)).toBe('01.08.2026')
+  })
+
+  it('crosses month and year boundaries', () => {
+    expect(shiftExecutionDate('2026-12-30', 5)).toBe('04.01.2027')
+  })
+
+  it('returns an em dash for an unparsable due date', () => {
+    expect(shiftExecutionDate('not-a-date', 3)).toBe('—')
+    expect(shiftExecutionDate('', 3)).toBe('—')
   })
 })

@@ -320,6 +320,9 @@
                     </div>
                 </div>
 
+                <!-- Execution dates of the payments -->
+                <PaymentExecutionSettingsWidget ref="executionSettingsWidget" />
+
                 <!-- External Integrations -->
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
@@ -471,6 +474,7 @@ import IbanInput from '@/Components/IbanInput.vue'
 import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
 import PwaSettingsWidget from '@/Components/PwaSettingsWidget.vue'
 import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
+import PaymentExecutionSettingsWidget from '@/Components/PaymentExecutionSettingsWidget.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -494,6 +498,7 @@ const props = defineProps({
 const activeTab = ref('gym')
 const showMollieSetup = ref(false)
 const isSubmittingGym = ref(false)
+const executionSettingsWidget = ref(null)
 
 // Payment methods state - will be loaded by the Model
 const standardMethods = ref([])
@@ -509,7 +514,7 @@ const mollieStatus = ref({
 const tabs = [
     { key: 'gym', label: 'Organisation', icon: Building2 },
     { key: 'team', label: 'Team', icon: Users },
-    { key: 'payments', label: 'Zahlungsarten', icon: CreditCard },
+    { key: 'payments', label: 'Zahlungen', icon: CreditCard },
     { key: 'emails', label: 'E-Mail-Vorlagen', icon: Mail },
     { key: 'contracts', label: 'Online-Widget', icon: Signature },
     { key: 'contract_settings', label: 'Verträge', icon: FileSignature },
@@ -671,6 +676,9 @@ const updateStandardMethod = async (method) => {
 
         // Payment methods refresh
         await loadPaymentMethods()
+
+        // Enabling/disabling a method changes which ones are configurable
+        await executionSettingsWidget.value?.loadSettings()
     } catch (error) {
         // Revert change on error
         method.enabled = !method.enabled

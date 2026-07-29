@@ -269,7 +269,7 @@ class PaymentService
                 'description' => "Add-on: {$addon->name} ({$billingDate->format('d.m.')}–{$periodEnd->format('d.m.Y')})",
                 'status' => 'pending',
                 'payment_method' => $paymentMethodType,
-                'execution_date' => $this->calculateRecurringExecutionDate($billingDate, $paymentMethodType),
+                'execution_date' => $this->calculateRecurringExecutionDate($billingDate, $paymentMethodType, $member->gym),
                 'due_date' => $billingDate->toDateString(),
                 'notes' => 'Wiederkehrende Add-on-Abrechnung, synchron zum Mitgliedsbeitrag',
                 'metadata' => [
@@ -354,7 +354,7 @@ class PaymentService
                     'description' => $this->generateRecurringPaymentDescription($plan, $currentDate),
                     'status' => 'pending',
                     'payment_method' => $paymentMethod?->type,
-                    'execution_date' => $this->calculateRecurringExecutionDate($currentDate, $paymentMethod?->type),
+                    'execution_date' => $this->calculateRecurringExecutionDate($currentDate, $paymentMethod?->type, $member->gym),
                     'due_date' => $currentDate->toDateString(),
                     'notes' => "Wiederkehrende Zahlung für {$plan->billing_cycle_text}",
                     'metadata' => [
@@ -445,38 +445,55 @@ class PaymentService
     }
 
     /**
-     * Calculates execution date for initial payment
+     * Calculates execution date for initial payment.
+     *
+     * The offset applied to the due date comes from the gym's execution date
+     * settings; without a gym-specific override the system defaults in
+     * PaymentMethod::$defaultExecutionOffsets apply.
      */
     private function calculateInitialExecutionDate(Membership $membership, ?string $paymentMethod, ?Carbon $billingAnchorDate = null): Carbon
     {
         // Use billing anchor date if provided, otherwise use start_date
         $baseDate = $billingAnchorDate ?? $membership->start_date;
 
-        return match ($paymentMethod) {
-            'cash' => $baseDate,
-            'sepa_direct_debit' => $baseDate->copy()->addDays(3),
-            'banktransfer' => $baseDate->copy()->addDays(7),
-            'invoice' => $baseDate->copy()->addDays(14),
-            'standingorder' => $baseDate->copy()->addDays(30),
-            'mollie_directdebit' => $baseDate->copy()->addDays(5),
-            default => $baseDate->copy()->addDays(1),
-        };
+        $offset = $this->resolveExecutionOffsets($this->resolveGymFor($membership), $paymentMethod)['initial'];
+
+        return $baseDate->copy()->addDays($offset);
     }
 
     /**
-     * Calculates execution date for recurring payments
+     * Calculates execution date for recurring payments.
+     *
+     * The gym is passed in explicitly because a recurring payment is derived
+     * from a billing date rather than from a membership.
      */
-    private function calculateRecurringExecutionDate(Carbon $billingDate, ?string $paymentMethod): Carbon
+    private function calculateRecurringExecutionDate(Carbon $billingDate, ?string $paymentMethod, ?Gym $gym = null): Carbon
     {
-        return match ($paymentMethod) {
-            'cash' => $billingDate,
-            'sepa_direct_debit' => $billingDate->copy()->subDays(2),
-            'banktransfer' => $billingDate->copy()->subDays(5),
-            'invoice' => $billingDate,
-            'standingorder' => $billingDate->copy()->subDays(3),
-            'mollie_directdebit' => $billingDate->copy()->subDays(1),
-            default => $billingDate,
-        };
+        $offset = $this->resolveExecutionOffsets($gym, $paymentMethod)['recurring'];
+
+        return $billingDate->copy()->addDays($offset);
+    }
+
+    /**
+     * Resolves the execution offsets for a payment method, preferring the gym's
+     * own settings and falling back to the system defaults when no gym is known.
+     *
+     * @return array{initial: int, recurring: int}
+     */
+    private function resolveExecutionOffsets(?Gym $gym, ?string $paymentMethod): array
+    {
+        return $gym
+            ? $gym->getPaymentExecutionOffsets($paymentMethod)
+            : PaymentMethod::getDefaultExecutionOffsets($paymentMethod);
+    }
+
+    /**
+     * Resolves the gym owning a membership without forcing an extra query when
+     * the relation is already loaded.
+     */
+    private function resolveGymFor(Membership $membership): ?Gym
+    {
+        return $membership->member?->gym;
     }
 
     /**

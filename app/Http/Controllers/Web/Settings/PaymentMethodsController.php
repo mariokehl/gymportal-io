@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\UpdatePaymentExecutionSettingsRequest;
+use App\Models\PaymentMethod;
 use App\Services\MollieService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PaymentMethodsController extends Controller
 {
@@ -16,7 +18,7 @@ class PaymentMethodsController extends Controller
     {
         $gym = $request->user()->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
         }
 
@@ -46,7 +48,7 @@ class PaymentMethodsController extends Controller
 
         $gym = $request->user()->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
         }
 
@@ -55,9 +57,9 @@ class PaymentMethodsController extends Controller
             $request->input('enabled')
         );
 
-        if (!$success) {
+        if (! $success) {
             return response()->json([
-                'error' => 'Unbekannte Zahlungsmethode'
+                'error' => 'Unbekannte Zahlungsmethode',
             ], 400);
         }
 
@@ -74,14 +76,14 @@ class PaymentMethodsController extends Controller
     {
         $gym = $request->user()->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
         }
 
-        if (!$gym->hasMollieConfigured()) {
+        if (! $gym->hasMollieConfigured()) {
             return response()->json([
                 'isActive' => false,
-                'message' => 'Mollie nicht konfiguriert'
+                'message' => 'Mollie nicht konfiguriert',
             ]);
         }
 
@@ -96,15 +98,12 @@ class PaymentMethodsController extends Controller
 
     /**
      * Remove Mollie configuration
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function removeMollieConfig(Request $request): JsonResponse
     {
         $gym = $request->user()->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
         }
 
@@ -127,7 +126,7 @@ class PaymentMethodsController extends Controller
     {
         $gym = $request->user()->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
         }
 
@@ -139,7 +138,7 @@ class PaymentMethodsController extends Controller
             'overview' => [
                 'total_methods' => count($standardMethods) + count($mollieMethods),
                 'enabled_methods' => count($enabledMethods),
-                'standard_methods_count' => count(array_filter($standardMethods, fn($m) => $m['enabled'])),
+                'standard_methods_count' => count(array_filter($standardMethods, fn ($m) => $m['enabled'])),
                 'mollie_methods_count' => count($mollieMethods),
                 'requires_sepa_mandate' => $gym->requiresSepaMandate(),
             ],
@@ -154,5 +153,116 @@ class PaymentMethodsController extends Controller
                 'method_count' => count($gym->getMollieEnabledMethods()),
             ],
         ]);
+    }
+
+    /**
+     * Execution date settings of the current gym, one entry per enabled
+     * payment method.
+     */
+    public function executionSettings(Request $request): JsonResponse
+    {
+        $gym = $request->user()->currentGym;
+
+        if (! $gym) {
+            return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
+        }
+
+        return response()->json($this->executionSettingsPayload($gym));
+    }
+
+    /**
+     * Store or reset the execution date offsets of a single payment method.
+     * Passing a null offset resets the method back to the system default.
+     */
+    public function updateExecutionSettings(UpdatePaymentExecutionSettingsRequest $request): JsonResponse
+    {
+        $gym = $request->user()->currentGym;
+
+        if (! $gym) {
+            return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
+        }
+
+        $methodKey = $request->validated('method');
+
+        // Only methods the gym actually offers may be configured — this keeps a
+        // crafted request from writing arbitrary keys into the settings column.
+        if (! $this->isConfigurableMethod($gym, $methodKey)) {
+            return response()->json(['error' => 'Unbekannte Zahlungsmethode'], 400);
+        }
+
+        $initial = $request->validated('initial');
+        $recurring = $request->validated('recurring');
+
+        if ($initial === null && $recurring === null) {
+            $gym->resetPaymentExecutionOffsets($methodKey);
+        } else {
+            $defaults = PaymentMethod::getDefaultExecutionOffsets($methodKey);
+
+            $gym->setPaymentExecutionOffsets(
+                $methodKey,
+                (int) ($initial ?? $defaults['initial']),
+                (int) ($recurring ?? $defaults['recurring'])
+            );
+        }
+
+        return response()->json(array_merge(
+            ['message' => 'Ausführungsdaten erfolgreich aktualisiert'],
+            $this->executionSettingsPayload($gym)
+        ));
+    }
+
+    /**
+     * Reset every payment method of the current gym to the system defaults.
+     */
+    public function resetExecutionSettings(Request $request): JsonResponse
+    {
+        $gym = $request->user()->currentGym;
+
+        if (! $gym) {
+            return response()->json(['error' => 'Kein Gym ausgewählt'], 404);
+        }
+
+        $gym->resetAllPaymentExecutionOffsets();
+
+        return response()->json(array_merge(
+            ['message' => 'Alle Ausführungsdaten auf Standard zurückgesetzt'],
+            $this->executionSettingsPayload($gym)
+        ));
+    }
+
+    /**
+     * Only enabled payment methods are configurable; disabled ones are shown
+     * read-only in the UI and must be activated first.
+     */
+    private function isConfigurableMethod($gym, string $methodKey): bool
+    {
+        foreach ($gym->getEnabledPaymentMethods() as $method) {
+            if ($method['key'] === $methodKey) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Shared response shape for reading and writing execution settings.
+     */
+    private function executionSettingsPayload($gym): array
+    {
+        return [
+            'methods' => $gym->getPaymentExecutionSettingsOverview(),
+            'inactive_methods' => array_values(array_map(
+                fn ($method) => ['key' => $method['key'], 'name' => $method['name']],
+                array_filter(
+                    $gym->getStandardPaymentMethods(),
+                    fn ($method) => ! $method['enabled']
+                )
+            )),
+            'limits' => [
+                'min' => PaymentMethod::MIN_EXECUTION_OFFSET,
+                'max' => PaymentMethod::MAX_EXECUTION_OFFSET,
+            ],
+        ];
     }
 }

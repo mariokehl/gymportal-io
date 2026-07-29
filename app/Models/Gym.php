@@ -42,6 +42,7 @@ class Gym extends Model
         'subscription_ends_at',
         'mollie_config',
         'payment_methods_config',
+        'payment_execution_settings',
         'api_key',
         'widget_enabled',
         'widget_settings',
@@ -75,6 +76,7 @@ class Gym extends Model
         'subscription_ends_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'payment_methods_config' => 'array',
+        'payment_execution_settings' => 'array',
         'widget_enabled' => 'boolean',
         'widget_settings' => 'array',
         'contracts_start_first_of_month' => 'boolean',
@@ -680,6 +682,124 @@ class Gym extends Model
         }
 
         return false;
+    }
+
+    /**
+     * Resolve the execution offsets for a payment method type, in days relative
+     * to the due date. A gym-specific override wins over the system default;
+     * without one the system default applies unchanged.
+     *
+     * @return array{initial: int, recurring: int}
+     */
+    public function getPaymentExecutionOffsets(?string $methodKey): array
+    {
+        $defaults = PaymentMethod::getDefaultExecutionOffsets($methodKey);
+
+        if ($methodKey === null) {
+            return $defaults;
+        }
+
+        $override = $this->payment_execution_settings[$methodKey] ?? null;
+
+        if (! is_array($override)) {
+            return $defaults;
+        }
+
+        return [
+            'initial' => PaymentMethod::clampExecutionOffset(
+                (int) ($override['initial'] ?? $defaults['initial'])
+            ),
+            'recurring' => PaymentMethod::clampExecutionOffset(
+                (int) ($override['recurring'] ?? $defaults['recurring'])
+            ),
+        ];
+    }
+
+    /**
+     * Offset in days applied to the first payment of a membership.
+     */
+    public function getInitialPaymentExecutionOffset(?string $methodKey): int
+    {
+        return $this->getPaymentExecutionOffsets($methodKey)['initial'];
+    }
+
+    /**
+     * Offset in days applied to every recurring payment.
+     */
+    public function getRecurringPaymentExecutionOffset(?string $methodKey): int
+    {
+        return $this->getPaymentExecutionOffsets($methodKey)['recurring'];
+    }
+
+    /**
+     * Whether the gym overrides the system defaults for a payment method.
+     */
+    public function hasCustomPaymentExecutionOffsets(string $methodKey): bool
+    {
+        return is_array($this->payment_execution_settings[$methodKey] ?? null);
+    }
+
+    /**
+     * Store a gym-specific override for a payment method. Offsets are clamped
+     * into the supported range before they are persisted.
+     */
+    public function setPaymentExecutionOffsets(string $methodKey, int $initial, int $recurring): void
+    {
+        $settings = $this->payment_execution_settings ?? [];
+
+        $settings[$methodKey] = [
+            'initial' => PaymentMethod::clampExecutionOffset($initial),
+            'recurring' => PaymentMethod::clampExecutionOffset($recurring),
+        ];
+
+        $this->payment_execution_settings = $settings;
+        $this->save();
+    }
+
+    /**
+     * Drop a gym-specific override so the system defaults apply again.
+     */
+    public function resetPaymentExecutionOffsets(string $methodKey): void
+    {
+        $settings = $this->payment_execution_settings ?? [];
+
+        unset($settings[$methodKey]);
+
+        $this->payment_execution_settings = $settings;
+        $this->save();
+    }
+
+    /**
+     * Drop every gym-specific override at once.
+     */
+    public function resetAllPaymentExecutionOffsets(): void
+    {
+        $this->payment_execution_settings = [];
+        $this->save();
+    }
+
+    /**
+     * Execution date configuration for the settings UI: one entry per enabled
+     * payment method, carrying the effective offsets, the system defaults and
+     * whether the gym deviates from them.
+     */
+    public function getPaymentExecutionSettingsOverview(): array
+    {
+        return array_map(function (array $method) {
+            $defaults = PaymentMethod::getDefaultExecutionOffsets($method['key']);
+            $offsets = $this->getPaymentExecutionOffsets($method['key']);
+
+            return [
+                'key' => $method['key'],
+                'name' => $method['name'],
+                'type' => $method['type'],
+                'is_custom' => $this->hasCustomPaymentExecutionOffsets($method['key']),
+                'initial' => $offsets['initial'],
+                'recurring' => $offsets['recurring'],
+                'default_initial' => $defaults['initial'],
+                'default_recurring' => $defaults['recurring'],
+            ];
+        }, $this->getEnabledPaymentMethods());
     }
 
     public function updateStandardPaymentMethod(string $methodKey, bool $enabled): bool

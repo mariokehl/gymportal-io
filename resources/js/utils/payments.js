@@ -93,3 +93,40 @@ export const getMemberInitials = (member) => {
   const last = member.last_name?.charAt(0) || ''
   return (first + last).toUpperCase()
 }
+
+/**
+ * Renders an execution date offset (in days, relative to the due date) as
+ * human readable German text, e.g. -2 => "2 Tage vorher".
+ */
+export const executionOffsetText = (offset) => {
+  const days = Number(offset) || 0
+  if (days === 0) return 'taggleich'
+  const absolute = Math.abs(days)
+  const label = absolute === 1 ? '1 Tag' : `${absolute} Tage`
+  return days > 0 ? `${label} danach` : `${label} vorher`
+}
+
+/**
+ * Applies an execution date offset to a due date (YYYY-MM-DD) and formats the
+ * result for display. Returns an em dash for an unparsable due date.
+ *
+ * The date parts are parsed explicitly rather than via `new Date(string)`,
+ * which would read the value as UTC midnight and render the previous day for
+ * visitors in a negative-offset timezone. See formatters.js for the same
+ * pitfall on the display side.
+ */
+export const shiftExecutionDate = (dueDate, offset) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dueDate ?? '').trim())
+  if (!match) return '—'
+
+  const [, year, month, day] = match
+  // Local-time construction keeps the calendar date free of any UTC shift.
+  const due = new Date(Number(year), Number(month) - 1, Number(day))
+  if (Number.isNaN(due.getTime())) return '—'
+
+  due.setDate(due.getDate() + (Number(offset) || 0))
+
+  const pad = (value) => String(value).padStart(2, '0')
+
+  return `${pad(due.getDate())}.${pad(due.getMonth() + 1)}.${due.getFullYear()}`
+}
