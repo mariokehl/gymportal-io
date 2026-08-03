@@ -114,6 +114,29 @@ export function isTrialActive(trialEndsAt) {
 }
 
 /**
+ * Weeks per month (12 months / 52 weeks), used to derive the weekly price.
+ * Kept in sync with Addon::WEEKS_PER_MONTH.
+ */
+export const WEEKS_PER_MONTH = 52 / 12
+
+/**
+ * Monthly price converted to a weekly comparison figure. This is never charged
+ * — the monthly price stays the amount billed.
+ *
+ * @param {number} monthlyPrice
+ * @returns {number} the weekly equivalent, rounded to cents
+ */
+export function weeklyPriceOf(monthlyPrice) {
+  const price = Number(monthlyPrice)
+
+  if (!Number.isFinite(price)) {
+    return 0
+  }
+
+  return Math.round((price / WEEKS_PER_MONTH) * 100) / 100
+}
+
+/**
  * Determine which add-on ids should be submitted for a chosen plan.
  *
  * Included add-ons are preselected and not deselectable, so they are always

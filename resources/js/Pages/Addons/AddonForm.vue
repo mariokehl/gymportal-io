@@ -187,6 +187,60 @@
         </div>
       </div>
 
+      <!-- Price display in the widget (recurring add-ons only) -->
+      <section
+        v-if="isRecurring"
+        aria-labelledby="price-display-heading"
+        class="mt-5.5 border border-gray-200 rounded-lg p-4.5 bg-gray-50"
+      >
+        <h3 id="price-display-heading" class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <Tag class="w-4 h-4 text-indigo-600" />
+          Preisdarstellung im Widget
+        </h3>
+
+        <p class="text-sm text-gray-500 mt-1.5 mb-3">
+          Betrifft nur die Anzeige bei der Auswahl. Abgerechnet wird immer monatlich, synchron zum
+          Beitrag – im Checkout und auf der Rechnung erscheint stets der Monatspreis.
+        </p>
+
+        <div class="flex gap-2 flex-wrap">
+          <button
+            v-for="display in priceDisplays"
+            :key="display.value"
+            type="button"
+            class="border rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
+            :class="form.price_display === display.value
+              ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+              : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'"
+            :aria-pressed="form.price_display === display.value"
+            @click="form.price_display = display.value"
+          >
+            {{ display.label }}
+          </button>
+        </div>
+        <p v-if="form.errors.price_display" class="mt-1 text-sm text-red-600">{{ form.errors.price_display }}</p>
+
+        <div class="flex gap-2 mt-2.5 text-xs text-gray-500 leading-relaxed">
+          <Calculator class="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+          <span>
+            Der Wochenpreis wird automatisch aus dem Monatspreis berechnet (× 12 ÷ 52 – ein Monat hat
+            4,35 Wochen) und ist nicht frei eingebbar. Er gilt als Vergleichsangabe; der Monatsbetrag
+            bleibt der Gesamtpreis und wird gleich sichtbar ausgewiesen.
+          </span>
+        </div>
+
+        <!-- Live preview of the widget price line -->
+        <div
+          class="mt-3.5 bg-white border border-gray-200 rounded-lg px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap"
+        >
+          <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Vorschau Widget</span>
+          <span class="text-right">
+            <span class="block text-base font-bold text-gray-900">{{ pricePreview.main }}</span>
+            <span class="block text-sm text-gray-600">{{ pricePreview.sub }}</span>
+          </span>
+        </div>
+      </section>
+
       <!-- Usage and quota -->
       <section
         v-if="isUsageService"
@@ -444,8 +498,9 @@
 import { computed, ref, watch } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import {
-  ArrowRight, BadgeCheck, CheckCircle2, CupSoda, Gauge, Info, Save, Search, X
+  ArrowRight, BadgeCheck, Calculator, CheckCircle2, CupSoda, Gauge, Info, Save, Search, Tag, X
 } from 'lucide-vue-next'
+import { weeklyPriceOf } from '@/utils/addons'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -492,6 +547,11 @@ const durationUnits = [
   { value: 'weeks', label: 'Wochen' }
 ]
 
+const priceDisplays = [
+  { value: 'monthly', label: 'Monatspreis' },
+  { value: 'weekly', label: 'Wochenpreis' }
+]
+
 const quotaIntervals = [
   { value: 'month', label: 'Monat' },
   { value: 'week', label: 'Woche' },
@@ -512,6 +572,25 @@ const hasUnlimitedQuota = computed(() => props.form.quota_amount === null || pro
 const usagePeriodHint = computed(
   () => usagePeriods.find((period) => period.value === props.form.usage_period)?.hint ?? ''
 )
+
+const formatEuro = (value) => `${value.toFixed(2).replace('.', ',')} €`
+
+// Mirrors the widget's price line so the admin sees the effect of the choice.
+const pricePreview = computed(() => {
+  const price = Number.parseFloat(props.form.price) || 0
+
+  if (props.form.price_display === 'weekly') {
+    return {
+      main: `${formatEuro(weeklyPriceOf(price))} / Woche`,
+      sub: `${formatEuro(price)} · Abrechnung monatlich`
+    }
+  }
+
+  return {
+    main: `${formatEuro(price)} / Monat`,
+    sub: 'Abrechnung monatlich'
+  }
+})
 
 const setUnlimitedQuota = () => {
   props.form.quota_amount = null
@@ -553,10 +632,11 @@ watch(hasFixedUsagePeriod, (fixed) => {
   props.form.usage_duration_unit = null
 })
 
-// The trial only applies to recurring billing.
+// The trial and the weekly price display only apply to recurring billing.
 watch(isRecurring, (recurring) => {
   if (!recurring) {
     props.form.trial_rest_of_month = false
+    props.form.price_display = 'monthly'
   }
 })
 

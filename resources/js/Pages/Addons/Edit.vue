@@ -49,6 +49,7 @@ const form = useForm({
   name: props.addon.name,
   description: props.addon.description ?? '',
   price: props.addon.price,
+  price_display: props.addon.price_display ?? 'monthly',
   payment_method: props.addon.payment_method ?? '',
   service_type: props.addon.service_type ?? 'additional',
   billing_type: props.addon.billing_type ?? 'one_time',

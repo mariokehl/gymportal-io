@@ -59,6 +59,27 @@ class Addon extends Model
 
     public const QUOTA_INTERVALS = ['day', 'week', 'month'];
 
+    /**
+     * Show the monthly price in the widget.
+     */
+    public const PRICE_DISPLAY_MONTHLY = 'monthly';
+
+    /**
+     * Show the computed weekly equivalent in the widget. Purely a display
+     * choice — billing stays monthly, in sync with the membership fee.
+     */
+    public const PRICE_DISPLAY_WEEKLY = 'weekly';
+
+    public const PRICE_DISPLAYS = [
+        self::PRICE_DISPLAY_MONTHLY,
+        self::PRICE_DISPLAY_WEEKLY,
+    ];
+
+    /**
+     * Weeks per month (12 months / 52 weeks), used to derive the weekly price.
+     */
+    public const WEEKS_PER_MONTH = 52 / 12;
+
     protected $fillable = [
         'gym_id',
         'name',
@@ -73,6 +94,7 @@ class Addon extends Model
         'quota_interval',
         'settled_via_device',
         'price',
+        'price_display',
         'payment_method',
         'is_active',
         'sort_order',
@@ -87,7 +109,7 @@ class Addon extends Model
         'quota_amount' => 'integer',
     ];
 
-    protected $appends = ['formatted_price'];
+    protected $appends = ['formatted_price', 'weekly_price', 'formatted_weekly_price'];
 
     public function gym(): BelongsTo
     {
@@ -150,8 +172,32 @@ class Addon extends Model
         return $this->isUsageService() && $this->quota_amount === null;
     }
 
+    /**
+     * Whether the widget shows the weekly equivalent instead of the monthly
+     * price. Only recurring add-ons are billed monthly, so only those have a
+     * meaningful weekly conversion.
+     */
+    public function showsWeeklyPrice(): bool
+    {
+        return $this->isRecurring() && $this->price_display === self::PRICE_DISPLAY_WEEKLY;
+    }
+
+    /**
+     * Monthly price converted to a weekly comparison figure. This is never
+     * charged — the monthly price stays the amount billed.
+     */
+    public function getWeeklyPriceAttribute(): float
+    {
+        return round((float) $this->price / self::WEEKS_PER_MONTH, 2);
+    }
+
     public function getFormattedPriceAttribute(): string
     {
         return number_format($this->price, 2, ',', '.').' €';
+    }
+
+    public function getFormattedWeeklyPriceAttribute(): string
+    {
+        return number_format($this->weekly_price, 2, ',', '.').' €';
     }
 }

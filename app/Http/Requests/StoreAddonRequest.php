@@ -20,9 +20,16 @@ class StoreAddonRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $billingType = $this->input('billing_type') ?: Addon::BILLING_TYPE_ONE_TIME;
+
         $this->merge([
             'service_type' => $this->input('service_type') ?: Addon::SERVICE_TYPE_ADDITIONAL,
-            'billing_type' => $this->input('billing_type') ?: Addon::BILLING_TYPE_ONE_TIME,
+            'billing_type' => $billingType,
+            // A weekly display only makes sense for monthly billing, so one-off
+            // add-ons always fall back to the monthly price.
+            'price_display' => $billingType === Addon::BILLING_TYPE_RECURRING
+                ? ($this->input('price_display') ?: Addon::PRICE_DISPLAY_MONTHLY)
+                : Addon::PRICE_DISPLAY_MONTHLY,
         ]);
     }
 
@@ -32,6 +39,8 @@ class StoreAddonRequest extends FormRequest
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0|max:9999.99',
+            // Display-only choice; the weekly figure is derived, never stored.
+            'price_display' => ['sometimes', Rule::in(Addon::PRICE_DISPLAYS)],
             'payment_method' => 'nullable|string|max:255',
             'is_active' => 'boolean',
             'sort_order' => 'nullable|integer|min:0',

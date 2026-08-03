@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
-  endOfBookingMonth, isTrialActive, nextMonthlyBillingDate, resolveSelectedAddonIds
+  endOfBookingMonth, isTrialActive, nextMonthlyBillingDate, resolveSelectedAddonIds, weeklyPriceOf
 } from '@/utils/addons'
 
 describe('nextMonthlyBillingDate', () => {
@@ -124,5 +124,23 @@ describe('resolveSelectedAddonIds', () => {
     expect(resolveSelectedAddonIds([])).toEqual([])
     expect(resolveSelectedAddonIds(null)).toEqual([])
     expect(resolveSelectedAddonIds(undefined)).toEqual([])
+  })
+})
+
+describe('weeklyPriceOf', () => {
+  it('converts a monthly price to its weekly equivalent', () => {
+    // 8.62 × 12 ÷ 52 = 1.9892… → 1.99
+    expect(weeklyPriceOf(8.62)).toBe(1.99)
+    expect(weeklyPriceOf(12)).toBe(2.77)
+  })
+
+  it('matches the monthly price when it is zero', () => {
+    expect(weeklyPriceOf(0)).toBe(0)
+  })
+
+  it('returns 0 for invalid input', () => {
+    expect(weeklyPriceOf(null)).toBe(0)
+    expect(weeklyPriceOf(undefined)).toBe(0)
+    expect(weeklyPriceOf('abc')).toBe(0)
   })
 })

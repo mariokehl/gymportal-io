@@ -119,8 +119,19 @@
                                 <span class="addon-badge addon-badge-optional">optional</span>
                             </div>
                             <div class="addon-price-line">
-                                <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
-                                <span class="addon-price-note">{{ $addon->isRecurring() ? 'monatlich' : 'einmalig' }}</span>
+                                @if($addon->showsWeeklyPrice())
+                                    {{--
+                                        Weekly display: the computed weekly figure leads as a
+                                        comparison, the monthly amount that is actually billed
+                                        stays visible right below it.
+                                    --}}
+                                    <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->weekly_price, 'EUR') }}</span>
+                                    <span class="addon-price-note">/ Woche (rechnerisch)</span>
+                                    <span class="addon-price-billing">{{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }} · Abrechnung monatlich</span>
+                                @else
+                                    <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
+                                    <span class="addon-price-note">{{ $addon->isRecurring() ? 'monatlich' : 'einmalig' }}</span>
+                                @endif
                             </div>
                         </div>
                     </div>

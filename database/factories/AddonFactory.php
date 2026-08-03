@@ -20,6 +20,7 @@ class AddonFactory extends Factory
             'name' => $this->faker->words(2, true),
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 5, 99),
+            'price_display' => Addon::PRICE_DISPLAY_MONTHLY,
             'service_type' => Addon::SERVICE_TYPE_ADDITIONAL,
             'billing_type' => Addon::BILLING_TYPE_ONE_TIME,
             'trial_rest_of_month' => false,
@@ -47,6 +48,17 @@ class AddonFactory extends Factory
     {
         return $this->state(fn () => [
             'billing_type' => Addon::BILLING_TYPE_RECURRING,
+        ]);
+    }
+
+    /**
+     * Shows the computed weekly price in the widget instead of the monthly one.
+     */
+    public function weeklyPriceDisplay(): static
+    {
+        return $this->state(fn () => [
+            'billing_type' => Addon::BILLING_TYPE_RECURRING,
+            'price_display' => Addon::PRICE_DISPLAY_WEEKLY,
         ]);
     }
 
