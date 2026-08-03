@@ -20,7 +20,7 @@
         <p class="text-gray-600 mt-1.5">
           Zusatzleistungen zu einem Vertrag – <strong class="text-gray-700">einmalig</strong> zum Vertragsstart
           oder <strong class="text-gray-700">wiederkehrend</strong> (monatlich, synchron zum Mitgliedsbeitrag).
-          Nutzungsleistungen wie Getränke oder Sauna werden über ein Gerät (Spender) mit Kontingent verrechnet.
+          Nutzungsleistungen wie Getränke oder Sauna werden über ein Gerät mit Kontingent verrechnet.
         </p>
       </div>
       <Link
@@ -110,7 +110,7 @@
               <span class="text-gray-500">Gerät</span>
               <span class="inline-flex items-center gap-1.5 text-gray-700">
                 <CupSoda class="w-3.5 h-3.5 text-indigo-600" />
-                Spender
+                Ausgabeautomat
               </span>
             </div>
           </template>

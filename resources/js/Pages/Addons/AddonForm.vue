@@ -308,16 +308,17 @@
               ></span>
             </button>
             <div class="flex-1">
-              <div class="text-sm font-semibold text-gray-900">Über Gerät verrechnen (Spender)</div>
+              <div class="text-sm font-semibold text-gray-900">Über Gerät verrechnen</div>
               <div class="text-sm text-gray-600">
-                Die Nutzung wird automatisch über ein Gerät gebucht. Das Kontingent wird beim Zapfvorgang geprüft.
+                Die Nutzung erfolgt automatisch, zum Beispiel über den Getränkespender. Beim Zapfvorgang wird geprüft,
+                ob ein verfügbares Kontingent vorhanden ist, und die Nutzung wird automatisch erfasst.
               </div>
               <Link
                 v-if="form.settled_via_device"
                 :href="route('access-control.index')"
                 class="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800"
               >
-                In Zugangskontrolle Spender anlegen
+                In Zugangskontrolle anlegen
                 <ArrowRight class="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -462,7 +463,7 @@ const serviceTypes = [
     value: 'usage',
     label: 'Nutzungsleistung',
     icon: CupSoda,
-    description: 'Getränke, Sauna & Co. mit Kontingent, verrechnet über ein Gerät (Spender).'
+    description: 'Getränke, Sauna & Co. mit Kontingent, verrechnet über ein Gerät.'
   }
 ]
 

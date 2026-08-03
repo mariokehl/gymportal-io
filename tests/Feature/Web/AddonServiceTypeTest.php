@@ -42,7 +42,7 @@ class AddonServiceTypeTest extends TestCase
     {
         return array_merge([
             'name' => 'Getränke-Flatrate',
-            'description' => 'Unbegrenzt Wasser, Kaffee & Softdrinks am Spender.',
+            'description' => 'Unbegrenzt Wasser, Kaffee & Softdrinks am Getränkespender.',
             'price' => 8.62,
             'service_type' => Addon::SERVICE_TYPE_USAGE,
             'billing_type' => Addon::BILLING_TYPE_RECURRING,
