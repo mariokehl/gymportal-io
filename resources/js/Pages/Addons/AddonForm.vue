@@ -188,13 +188,17 @@
       </div>
 
       <!-- Usage and quota -->
-      <fieldset v-if="isUsageService" class="mt-6 border border-gray-200 rounded-lg p-4.5 bg-gray-50">
-        <legend class="flex items-center gap-2 text-sm font-semibold text-gray-900 px-1">
+      <section
+        v-if="isUsageService"
+        aria-labelledby="usage-quota-heading"
+        class="mt-6 border border-gray-200 rounded-lg p-4.5 bg-gray-50"
+      >
+        <h3 id="usage-quota-heading" class="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3.5">
           <Gauge class="w-4 h-4 text-indigo-600" />
           Nutzung &amp; Kontingent
-        </legend>
+        </h3>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label for="usage_period" class="block text-sm font-medium text-gray-700 mb-1.5">Nutzungszeitraum</label>
             <select
@@ -324,7 +328,7 @@
             </div>
           </div>
         </div>
-      </fieldset>
+      </section>
 
       <!-- Active -->
       <label class="flex items-center gap-2.5 mt-6 cursor-pointer">
