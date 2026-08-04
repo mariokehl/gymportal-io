@@ -47,6 +47,7 @@ const form = useForm({
   name: '',
   description: '',
   price: '',
+  price_display: 'monthly',
   payment_method: '',
   service_type: 'additional',
   billing_type: 'one_time',

@@ -152,6 +152,12 @@ class AddonController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
+
+            // A weekly display is only meaningful for monthly billing.
+            'price_display' => $isRecurring
+                ? ($validated['price_display'] ?? Addon::PRICE_DISPLAY_MONTHLY)
+                : Addon::PRICE_DISPLAY_MONTHLY,
+
             'payment_method' => $validated['payment_method'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'sort_order' => $validated['sort_order'] ?? 0,
