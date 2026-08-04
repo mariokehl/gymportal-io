@@ -153,6 +153,25 @@ class Membership extends Model
         return $this->status === 'paused';
     }
 
+    /**
+     * Check whether the given date falls into the scheduled pause period.
+     *
+     * Both boundaries are inclusive: the pause covers the start and the end day
+     * in full. A membership without a complete pause period is never paused for
+     * a date, independent of its current status.
+     */
+    public function isDateWithinPause(Carbon $date): bool
+    {
+        if (! $this->pause_start_date || ! $this->pause_end_date) {
+            return false;
+        }
+
+        return $date->copy()->startOfDay()->betweenIncluded(
+            $this->pause_start_date->copy()->startOfDay(),
+            $this->pause_end_date->copy()->startOfDay()
+        );
+    }
+
     public function getIsActiveAttribute()
     {
         return $this->status === 'active';

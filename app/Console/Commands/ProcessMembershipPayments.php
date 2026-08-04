@@ -209,6 +209,11 @@ class ProcessMembershipPayments extends Command
      */
     protected function processPayment(Payment $payment): void
     {
+        // A payment due inside a scheduled pause period must never be collected.
+        if ($this->cancelPaymentDuringPause($payment)) {
+            return;
+        }
+
         $member = $payment->member;
         $paymentMethod = $member->defaultPaymentMethod;
 
@@ -295,6 +300,72 @@ class ProcessMembershipPayments extends Command
             DB::rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Cancel a payment whose due date falls into the membership's pause period.
+     *
+     * While a membership is paused no service is provided, so the charge must
+     * not be collected. The payment is closed as canceled and carries a note
+     * naming the pause period, so the reason stays visible in the member file.
+     *
+     * @return bool True when the payment was handled and must not be collected.
+     */
+    protected function cancelPaymentDuringPause(Payment $payment): bool
+    {
+        $membership = $payment->membership;
+
+        if (! $membership) {
+            return false;
+        }
+
+        // The due date decides, not the execution date: the charge belongs to
+        // the period it is due for, no matter when it would be collected.
+        $dueDate = $payment->due_date;
+
+        if (! $dueDate || ! $membership->isDateWithinPause(Carbon::parse($dueDate))) {
+            return false;
+        }
+
+        $pauseStart = $membership->pause_start_date->format('d.m.Y');
+        $pauseEnd = $membership->pause_end_date->format('d.m.Y');
+        $note = "Keine Ausführung aufgrund der Pausenzeit von {$pauseStart} bis {$pauseEnd}.";
+
+        if ($this->testMode) {
+            $this->logTestAction('payment_cancel_paused', [
+                'payment_id' => $payment->id,
+                'membership_id' => $membership->id,
+                'due_date' => Carbon::parse($dueDate)->toDateString(),
+                'pause_start_date' => $membership->pause_start_date->toDateString(),
+                'pause_end_date' => $membership->pause_end_date->toDateString(),
+            ]);
+
+            return true;
+        }
+
+        $payment->update([
+            'status' => 'canceled',
+            'notes' => trim(trim((string) $payment->notes).' | '.$note, ' |'),
+            'metadata' => array_merge($payment->metadata ?? [], [
+                'canceled_reason' => 'membership_paused',
+                'pause_start_date' => $membership->pause_start_date->toDateString(),
+                'pause_end_date' => $membership->pause_end_date->toDateString(),
+            ]),
+        ]);
+
+        if ($this->verboseLog) {
+            $this->info("→ Canceled payment #{$payment->id}: {$note}");
+        }
+
+        Log::info('Payment canceled due to membership pause', [
+            'payment_id' => $payment->id,
+            'membership_id' => $membership->id,
+            'due_date' => Carbon::parse($dueDate)->toDateString(),
+            'pause_start_date' => $membership->pause_start_date->toDateString(),
+            'pause_end_date' => $membership->pause_end_date->toDateString(),
+        ]);
+
+        return true;
     }
 
     /**
