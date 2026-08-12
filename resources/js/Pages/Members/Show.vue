@@ -160,6 +160,11 @@
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
             :class="active ? 'bg-white/25 text-white' : 'bg-green-100 text-green-600'"
           >{{ activeAccessCount }}</span>
+          <span
+            v-if="tab.id === 'inkasso' && inkassoCaseCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
+          >{{ inkassoCaseCount }}</span>
         </template>
       </TabRail>
 
@@ -233,6 +238,11 @@
       <!-- Check-ins Tab (own component; rendered directly on the gray canvas) -->
       <div v-if="!editMode" v-show="activeTab === 'checkins'">
         <CheckinsTab :member="member" />
+      </div>
+
+      <!-- Inkasso Tab (own component; rendered directly on the gray canvas) -->
+      <div v-if="!editMode" v-show="activeTab === 'inkasso'">
+        <InkassoTab :member="member" @case-count="inkassoCaseCount = $event" />
       </div>
 
       <!-- Status History Tab (rendered directly on the gray canvas; only the cards are white) -->
@@ -579,12 +589,13 @@ import MemberPersonalDataTab from '@/Components/Members/MemberPersonalDataTab.vu
 import MemberHeaderCard from '@/Components/Members/MemberHeaderCard.vue'
 import AccessTab from '@/Components/Members/AccessTab.vue'
 import CheckinsTab from '@/Components/Members/CheckinsTab.vue'
+import InkassoTab from '@/Components/Members/InkassoTab.vue'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import TabRail from '@/Components/TabRail.vue'
 import {
   User, FileText, Clock, CreditCard,
   ArrowLeft, AlertCircle,
-  History, Key, FolderOpen,
+  History, Key, FolderOpen, Scale,
   X, AlertTriangle, MoreVertical
 } from 'lucide-vue-next'
 import { formatDate, formatDateForInput } from '@/utils/formatters'
@@ -694,6 +705,8 @@ const activeTab = ref('personal')
 const documentCount = ref(0)
 const memberDocumentsTab = ref(null)
 const paymentsTab = ref(null)
+// Number of collection cases, reported by the Inkasso tab for its badge.
+const inkassoCaseCount = ref(0)
 
 // Credit top-up: switch to the payments tab and open its modal in top-up mode.
 const handleTopup = () => {
@@ -751,6 +764,7 @@ const tabs = computed(() => {
   baseTabs.push(
     { id: 'checkins', name: 'Check-Ins', icon: Clock },
     { id: 'access', name: 'Zugänge', icon: Key },
+    { id: 'inkasso', name: 'Inkasso', icon: Scale },
     { id: 'history', name: 'Verlauf', icon: History },
   )
   return baseTabs
@@ -1121,6 +1135,12 @@ onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('edit') === 'true') {
     enterEditMode()
+  }
+
+  // Allow deep links such as ?tab=inkasso coming from the collection run detail.
+  const requestedTab = urlParams.get('tab')
+  if (requestedTab && tabs.value.some(tab => tab.id === requestedTab)) {
+    activeTab.value = requestedTab
   }
 
   scrollContainer = findScrollParent(pageRoot.value)

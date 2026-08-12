@@ -346,6 +346,42 @@ class Member extends Authenticatable
     }
 
     /**
+     * Dunning steps that were reached for this member.
+     */
+    public function dunningNotices(): HasMany
+    {
+        return $this->hasMany(DunningNotice::class)->orderBy('level');
+    }
+
+    /**
+     * Debt collection cases, newest first.
+     */
+    public function collectionCases(): HasMany
+    {
+        return $this->hasMany(CollectionCase::class)->orderByDesc('handed_over_at');
+    }
+
+    /**
+     * The currently open collection case, if the member is in collection.
+     */
+    public function activeCollectionCase(): HasOne
+    {
+        return $this->hasOne(CollectionCase::class)
+            ->whereIn('status', CollectionCase::OPEN_STATUSES)
+            ->latestOfMany();
+    }
+
+    /**
+     * Highest dunning level the member has reached (0 when never dunned).
+     */
+    public function getCurrentDunningLevelAttribute(): int
+    {
+        return (int) ($this->relationLoaded('dunningNotices')
+            ? $this->dunningNotices->max('level')
+            : $this->dunningNotices()->max('level'));
+    }
+
+    /**
      * Verified credit balance in integer cents. Returns 0 (never the raw stored
      * value) if the ledger integrity check fails, so tampering cannot inflate it.
      */

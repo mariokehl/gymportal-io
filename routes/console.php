@@ -128,3 +128,23 @@ Schedule::command('google-sheets:sync-checkins')
     ->withoutOverlapping()
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/scheduler-google-sheets.log'));
+
+// ===================================
+// DUNNING & DEBT COLLECTION
+// ===================================
+
+// Escalate dunning levels for members with overdue payments
+Schedule::command('dunning:process')
+    ->dailyAt('06:00')
+    ->timezone('Europe/Berlin')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/scheduler-dunning.log'));
+
+// Pull the processing state of transmitted collection cases from the partner
+Schedule::command('inkasso:sync-states')
+    ->dailyAt('06:30')
+    ->timezone('Europe/Berlin')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/scheduler-inkasso.log'));

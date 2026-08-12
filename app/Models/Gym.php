@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -94,6 +95,7 @@ class Gym extends Model
         'social_media',
         'member_app_description',
         'contract_settings',
+        'inkasso_settings',
     ];
 
     protected $casts = [
@@ -111,14 +113,18 @@ class Gym extends Model
         'opening_hours' => 'array',
         'social_media' => 'array',
         'contract_settings' => 'array',
+        'inkasso_settings' => 'array',
     ];
 
     protected $hidden = [
         'api_key',
         'scanner_secret_key',
+        // Contains the encrypted partner password; the frontend gets the
+        // sanitised version through the appended `inkasso` attribute instead.
+        'inkasso_settings',
     ];
 
-    protected $appends = ['theme', 'pwa_manifest', 'logo_url'];
+    protected $appends = ['theme', 'pwa_manifest', 'logo_url', 'inkasso'];
 
     protected static function boot()
     {
@@ -1282,5 +1288,110 @@ class Gym extends Model
     public function isOnlineContractEnabled(): bool
     {
         return ($this->contract_settings['signing_method'] ?? 'offline') === 'online';
+    }
+
+    // === INKASSO SETTINGS ===
+
+    /** Remaining claims are always written off once the partner closes a case. */
+    public const RESIDUAL_ALWAYS_WRITE_OFF = 'always_write_off';
+
+    /** Remaining claims are only written off when the partner says so. */
+    public const RESIDUAL_PARTNER_DECISION = 'partner_decision';
+
+    /**
+     * Default dunning levels. Level 4 is the handover to the collection partner
+     * and is never triggered automatically.
+     */
+    public const DEFAULT_DUNNING_LEVELS = [
+        ['level' => 1, 'trigger_days' => 7, 'fee' => 0.0, 'effect' => 'Zahlungserinnerung per E-Mail'],
+        ['level' => 2, 'trigger_days' => 14, 'fee' => 5.0, 'effect' => '1. Mahnung, Gebühr wird als Forderung gebucht'],
+        ['level' => 3, 'trigger_days' => 14, 'fee' => 10.0, 'effect' => '2. Mahnung, Mitglied wird „Bereit für Inkasso“'],
+        ['level' => 4, 'trigger_days' => null, 'fee' => 58.5, 'effect' => 'Übergabe an den Inkassopartner, Zugangssperre'],
+    ];
+
+    public function getInkassoSettingsAttribute($value): array
+    {
+        $defaults = [
+            'active' => false,
+            'partner' => 'diagonal',
+            'tenant_id' => null,
+            // Five character creditor number issued by DIAGONAL (ClientDataItem.clientNumber).
+            'client_number' => null,
+            'username' => null,
+            'password' => null,
+            'creditor_name' => null,
+            'contact' => null,
+            'min_amount' => 10.0,
+            'include_minors' => false,
+            'residual_handling' => self::RESIDUAL_ALWAYS_WRITE_OFF,
+            'auto_resubmit' => true,
+            'handover_flat_fee' => 58.5,
+            'default_interest_rate' => 5.0,
+            'activated_at' => null,
+            'levels' => self::DEFAULT_DUNNING_LEVELS,
+        ];
+
+        $settings = $value ? json_decode($value, true) : [];
+
+        return array_merge($defaults, is_array($settings) ? $settings : []);
+    }
+
+    public function isInkassoEnabled(): bool
+    {
+        return (bool) ($this->inkasso_settings['active'] ?? false);
+    }
+
+    /**
+     * The partner password is stored encrypted; decrypt it for API calls only.
+     */
+    public function getInkassoPassword(): ?string
+    {
+        $stored = $this->inkasso_settings['password'] ?? null;
+
+        if (! $stored) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($stored);
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    /**
+     * Appended counterpart of the hidden `inkasso_settings` column, so pages
+     * that serialise the whole gym still see the safe settings.
+     */
+    public function getInkassoAttribute(): array
+    {
+        return $this->getInkassoSettingsForDisplay();
+    }
+
+    /**
+     * Settings safe to expose to the frontend: the password is reduced to a
+     * boolean flag so the secret never leaves the server.
+     */
+    public function getInkassoSettingsForDisplay(): array
+    {
+        $settings = $this->inkasso_settings;
+        $settings['has_password'] = ! empty($settings['password']);
+        unset($settings['password']);
+
+        return $settings;
+    }
+
+    /**
+     * The configured fee for a dunning level, falling back to the defaults.
+     */
+    public function getDunningFee(int $level): float
+    {
+        foreach ($this->inkasso_settings['levels'] ?? [] as $config) {
+            if ((int) ($config['level'] ?? 0) === $level) {
+                return (float) ($config['fee'] ?? 0);
+            }
+        }
+
+        return 0.0;
     }
 }

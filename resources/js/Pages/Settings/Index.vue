@@ -414,6 +414,15 @@
                 </div>
             </div>
 
+            <!-- Debt collection -->
+            <div v-if="activeTab === 'inkasso'" class="space-y-6">
+                <InkassoSettingsWidget
+                    :current-gym="currentGym"
+                    @success="handleSuccess"
+                    @error="handleError"
+                />
+            </div>
+
             <!-- Email Templates -->
             <div v-if="activeTab === 'emails'">
                 <EmailTemplatesWidget :current-gym="currentGym" />
@@ -461,7 +470,7 @@ import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
     Building2, Users, Plus, Signature, CreditCard,
-    Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature
+    Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature, Scale
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
@@ -475,6 +484,7 @@ import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
 import PwaSettingsWidget from '@/Components/PwaSettingsWidget.vue'
 import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
 import PaymentExecutionSettingsWidget from '@/Components/PaymentExecutionSettingsWidget.vue'
+import InkassoSettingsWidget from '@/Components/InkassoSettingsWidget.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -515,6 +525,7 @@ const tabs = [
     { key: 'gym', label: 'Organisation', icon: Building2 },
     { key: 'team', label: 'Team', icon: Users },
     { key: 'payments', label: 'Zahlungen', icon: CreditCard },
+    { key: 'inkasso', label: 'Inkasso', icon: Scale },
     { key: 'emails', label: 'E-Mail-Vorlagen', icon: Mail },
     { key: 'contracts', label: 'Online-Widget', icon: Signature },
     { key: 'contract_settings', label: 'Verträge', icon: FileSignature },

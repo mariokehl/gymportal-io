@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Addon;
+use App\Models\CollectionCase;
+use App\Models\CollectionRun;
 use App\Models\Gym;
 use App\Models\GymUser;
 use App\Models\Member;
@@ -11,6 +13,8 @@ use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Policies\AddonPolicy;
+use App\Policies\CollectionCasePolicy;
+use App\Policies\CollectionRunPolicy;
 use App\Policies\GymPolicy;
 use App\Policies\GymUserPolicy;
 use App\Policies\MemberPolicy;
@@ -29,6 +33,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Addon::class => AddonPolicy::class,
+        CollectionCase::class => CollectionCasePolicy::class,
+        CollectionRun::class => CollectionRunPolicy::class,
         Gym::class => GymPolicy::class,
         GymUser::class => GymUserPolicy::class,
         Member::class => MemberPolicy::class,

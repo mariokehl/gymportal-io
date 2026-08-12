@@ -6,12 +6,14 @@ use App\Http\Controllers\Web\AccessControlController;
 use App\Http\Controllers\Web\AddonController;
 use App\Http\Controllers\Web\BillingController;
 use App\Http\Controllers\Web\BlocklistController;
+use App\Http\Controllers\Web\CollectionRunController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DataTransferController;
 use App\Http\Controllers\Web\FinancesController;
 use App\Http\Controllers\Web\GymController;
 use App\Http\Controllers\Web\GymInvitationController;
 use App\Http\Controllers\Web\MemberAccessController;
+use App\Http\Controllers\Web\MemberCollectionController;
 use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MemberDocumentController;
 use App\Http\Controllers\Web\MemberPaymentController;
@@ -24,6 +26,7 @@ use App\Http\Controllers\Web\PaymentReturnController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
+use App\Http\Controllers\Web\Settings\InkassoController as InkassoSettingsController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
 use Illuminate\Http\Request;
@@ -160,6 +163,27 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     });
     Route::get('/finances', [FinancesController::class, 'index'])->name('finances.index');
     Route::post('/finances/export', [FinancesController::class, 'export'])->name('finances.export');
+
+    // Dunning and debt collection runs ("Mahn- & Inkassoläufe")
+    Route::prefix('finances/inkasso')->name('finances.inkasso.')->group(function () {
+        Route::get('/', [CollectionRunController::class, 'index'])->name('index');
+        Route::post('/', [CollectionRunController::class, 'store'])->name('store');
+        Route::get('/{run}', [CollectionRunController::class, 'show'])->name('show');
+        Route::get('/{run}/export', [CollectionRunController::class, 'export'])->name('export');
+        Route::delete('/{run}', [CollectionRunController::class, 'undo'])->name('undo');
+    });
+
+    // Collection cases per member
+    Route::prefix('members/{member}/inkasso')->name('members.inkasso.')->group(function () {
+        Route::get('/', [MemberCollectionController::class, 'show'])->name('show');
+        Route::post('/handover', [MemberCollectionController::class, 'handover'])->name('handover');
+    });
+    Route::prefix('inkasso/cases/{case}')->name('inkasso.cases.')->group(function () {
+        Route::post('/payments', [MemberCollectionController::class, 'bookPayment'])->name('payments.store');
+        Route::post('/close', [MemberCollectionController::class, 'close'])->name('close');
+        Route::post('/cancel', [MemberCollectionController::class, 'cancel'])->name('cancel');
+        Route::put('/reference', [MemberCollectionController::class, 'updateReference'])->name('reference.update');
+    });
     Route::prefix('payments')->name('payments.')->group(function () {
         Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
         Route::patch('/{payment}/mark-paid', [PaymentController::class, 'markAsPaid'])->name('mark-paid');
@@ -248,6 +272,14 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
             Route::get('/execution-settings', [PaymentMethodsController::class, 'executionSettings'])->name('execution-settings.index');
             Route::put('/execution-settings', [PaymentMethodsController::class, 'updateExecutionSettings'])->name('execution-settings.update');
             Route::delete('/execution-settings', [PaymentMethodsController::class, 'resetExecutionSettings'])->name('execution-settings.reset');
+        });
+        // Debt collection ("Inkasso") partner configuration
+        Route::prefix('inkasso')->name('inkasso.')->group(function () {
+            Route::get('/', [InkassoSettingsController::class, 'index'])->name('index');
+            Route::put('/', [InkassoSettingsController::class, 'update'])->name('update');
+            Route::post('/activate', [InkassoSettingsController::class, 'activate'])->name('activate');
+            Route::post('/deactivate', [InkassoSettingsController::class, 'deactivate'])->name('deactivate');
+            Route::post('/test-connection', [InkassoSettingsController::class, 'testConnection'])->name('test-connection');
         });
         Route::prefix('mollie')->name('mollie.')->group(function () {
             Route::get('/status', [PaymentMethodsController::class, 'mollieStatus'])->name('status');

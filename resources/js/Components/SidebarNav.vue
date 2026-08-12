@@ -79,10 +79,27 @@
         v-if="isOwnerOrAdmin"
         :icon="DollarSign"
         label="Finanzen"
-        :active="route().current('finances.index')"
+        :active="route().current('finances.*')"
         :href="route('finances.index')"
         :disabled="!canAccessPremiumFeatures"
-      />
+      >
+        <template #children>
+          <Link
+            :href="route('finances.inkasso.index')"
+            :class="[
+              'flex items-center px-4 py-2 text-xs font-medium transition-colors',
+              route().current('finances.inkasso.*')
+                ? 'text-indigo-700'
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+          >
+            <span class="w-5 mr-3 flex justify-center">
+              <span class="w-px h-full min-h-4 bg-gray-300" />
+            </span>
+            Mahn- &amp; Inkassoläufe
+          </Link>
+        </template>
+      </SidebarItem>
       <SidebarItem
         v-if="isOwnerOrAdmin"
         :icon="Bell"
