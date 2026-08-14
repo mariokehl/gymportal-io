@@ -21,6 +21,7 @@
             <div v-if="activeTab === 'scanners' && isOwnerOrAdmin" class="space-y-6">
                 <ScannerManagement
                     :scanners="scannersData"
+                    :usage-addons="usageAddons"
                     :gym-id="gymId"
                     :initial-secret-key="scannerSecretKey"
                     @scanner-created="handleScannerCreated"
@@ -61,7 +62,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { Scan, Radio, BarChart3, Settings } from 'lucide-vue-next'
+import { ScanLine, Radio, BarChart3, Settings } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
 import ScannerManagement from '@/Components/AccessControl/ScannerManagement.vue'
@@ -77,6 +78,10 @@ const page = usePage()
 
 const props = defineProps({
     scanners: {
+        type: Array,
+        default: () => []
+    },
+    usageAddons: {
         type: Array,
         default: () => []
     },
@@ -129,7 +134,7 @@ const isOwnerOrAdmin = computed(() => {
 // Alle verfügbaren Tabs
 const allTabs = [
     { key: 'live-log', label: 'Live-Protokoll', icon: Radio, requiresAdmin: false },
-    { key: 'scanners', label: 'Scanner', icon: Scan, requiresAdmin: true },
+    { key: 'scanners', label: 'Geräte', icon: ScanLine, requiresAdmin: true },
     { key: 'config', label: 'Konfiguration', icon: Settings, requiresAdmin: true },
     { key: 'statistics', label: 'Statistiken', icon: BarChart3, requiresAdmin: true },
 ]

@@ -377,11 +377,13 @@
 
       <div v-if="accessLogs && accessLogs.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="min-w-[560px] w-full border-collapse">
+          <table class="min-w-[820px] w-full border-collapse">
             <thead>
               <tr class="bg-gray-50">
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Zeitpunkt</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Service</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Aktion</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Leistung</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Gerät</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Methode</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Status</th>
               </tr>
@@ -389,17 +391,31 @@
             <tbody class="divide-y divide-gray-100">
               <tr v-for="log in accessLogs" :key="log.id" class="hover:bg-gray-50">
                 <td class="px-4 py-3 text-sm whitespace-nowrap">{{ formatDateTime(log.accessed_at) }}</td>
-                <td class="px-4 py-3 text-sm whitespace-nowrap">{{ log.service_name }}</td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
-                  <span class="inline-flex items-center gap-1">
+                  {{ log.action_name }}
+                  <span v-if="log.performed_by_name" class="block text-xs text-gray-500">
+                    durch {{ log.performed_by_name }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap">{{ log.service_name || '—' }}</td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap text-gray-500">{{ log.device_name || '—' }}</td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap">
+                  <span v-if="log.method" class="inline-flex items-center gap-1">
                     <component :is="getAccessMethodIcon(log.method)" class="w-4 h-4" />
                     {{ log.method }}
                   </span>
+                  <span v-else class="text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
-                  <span :class="log.success ? 'text-green-600' : 'text-red-600'">
-                    {{ log.success ? 'Erfolgreich' : 'Verweigert' }}
-                  </span>
+                  <template v-if="log.is_access_attempt">
+                    <span :class="log.success ? 'text-green-600' : 'text-red-600'">
+                      {{ log.success ? 'Erfolgreich' : 'Verweigert' }}
+                    </span>
+                    <span v-if="!log.success && log.reason" class="block text-xs text-gray-500">
+                      {{ log.reason }}
+                    </span>
+                  </template>
+                  <span v-else class="text-gray-400">—</span>
                 </td>
               </tr>
             </tbody>
@@ -443,7 +459,8 @@ const editingNfc = ref(false)
 const nfcInputValue = ref('')
 const normalizedNfcId = ref('')
 const isNfcValid = ref(false)
-const accessLogs = ref([])
+// Computed rather than copied on mount, so the list follows Inertia reloads.
+const accessLogs = computed(() => props.member?.access_logs ?? [])
 
 // Device management
 const removingDeviceId = ref(null)
@@ -684,22 +701,19 @@ const stopNfcScanning = () => {
   nfcScanConnected.value = false
 }
 
+// Keys match MemberAccessLog::getMethodNameAttribute(), which is what the
+// backend sends — not the raw slugs.
 const getAccessMethodIcon = (method) => {
   const icons = {
     'QR-Code': QrCode,
-    'NFC': Nfc,
-    'Manual': Key,
+    'NFC-Tag': Nfc,
+    'Manuell': Key,
   }
   return icons[method] || Key
 }
 
 // Lifecycle
 onMounted(() => {
-  // Load access logs if available
-  if (props.member?.access_logs) {
-    accessLogs.value = props.member.access_logs
-  }
-
   // Initialize NFC value with proper formatting
   if (props.member?.access_config?.nfc_uid) {
     accessForm.nfc_uid = props.member.access_config.nfc_uid

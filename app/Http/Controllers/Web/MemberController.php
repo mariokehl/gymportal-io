@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FraudCheck;
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\MemberAccessLog;
 use App\Models\MemberDevice;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
@@ -460,6 +461,17 @@ class MemberController extends Controller
             },
             'accessConfig',
             'devices',
+            // Access history of the "Zugänge" tab. service_name is an accessor
+            // and has to be appended explicitly to reach the frontend.
+            // Zugangsversuche UND Verwaltungsaktionen (QR invalidiert,
+            // Konfiguration geändert, ...). Sortiert wird nach created_at:
+            // accessed_at setzen nur die Zugangsversuche, die übrigen
+            // Aktionen wären mit NULL sonst ans Ende gerutscht.
+            'accessLogs' => function ($query) {
+                $query->with('performedBy:id,first_name,last_name')
+                    ->latest('created_at')
+                    ->take(25);
+            },
             'statusHistory.changedBy:id,first_name,last_name',
             'ageVerifiedByUser:id,first_name,last_name',
             'legalGuardian:id,first_name,last_name,member_number',
@@ -471,6 +483,32 @@ class MemberController extends Controller
         if (auth()->user()?->can('viewCredit', $member)) {
             $member->append(['credit_balance', 'credit_balance_cents', 'credit_balance_formatted']);
         }
+
+        // Zugangshistorie für das Frontend aufbereiten. service_name und
+        // method_name sind Accessoren und müssen aufgelöst werden, damit die
+        // Anzeige nicht auf die rohen Slugs zurückfällt.
+        $member->setRelation('access_logs',
+            $member->accessLogs->map(function ($log) {
+                $isAccessAttempt = $log->action === MemberAccessLog::ACTION_ACCESS_ATTEMPT;
+
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'action_name' => $log->action_name,
+                    // Only access attempts carry a service, device or outcome —
+                    // for a config change those columns stay empty.
+                    'is_access_attempt' => $isAccessAttempt,
+                    'service' => $log->service,
+                    'service_name' => $log->service ? $log->service_name : null,
+                    'method' => $log->method ? $log->method_name : null,
+                    'success' => $isAccessAttempt ? $log->success : null,
+                    'accessed_at' => ($log->accessed_at ?? $log->created_at)->toISOString(),
+                    'device_name' => $log->metadata['device_name'] ?? null,
+                    'reason' => $log->metadata['reason'] ?? null,
+                    'performed_by_name' => $log->performedBy?->fullName(),
+                ];
+            })
+        );
 
         // Transformiere die Status History für das Frontend
         $member->setRelation('status_history',

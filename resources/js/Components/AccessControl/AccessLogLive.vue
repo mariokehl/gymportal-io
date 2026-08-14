@@ -67,6 +67,17 @@
                         </select>
 
                         <select
+                            v-model="filters.task"
+                            @change="applyFilters"
+                            class="p-2 border border-gray-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option :value="null">Alle Aufgaben</option>
+                            <option v-for="task in DEVICE_TASKS" :key="task.value" :value="task.value">
+                                {{ task.label }}
+                            </option>
+                        </select>
+
+                        <select
                             v-model="filters.status"
                             @change="applyFilters"
                             class="p-2 border border-gray-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -120,8 +131,14 @@
                                     ]"
                                 >
                                     <CheckCircle v-if="log.access_granted" class="w-5 h-5 text-green-600" />
-                                    <Tooltip v-else :text="log.denial_reason || 'Unbekannter Grund'" position="right">
+                                    <!-- Teleported: the surrounding card clips overflow.
+                                         Uses the content slot so a long denial reason wraps. -->
+                                    <Tooltip v-else position="right" teleport>
                                         <XCircle class="w-5 h-5 text-red-600 cursor-help" />
+
+                                        <template #content>
+                                            {{ log.denial_reason || 'Unbekannter Grund' }}
+                                        </template>
                                     </Tooltip>
                                 </div>
 
@@ -142,6 +159,17 @@
                                             <CreditCard v-if="log.scan_type === 'nfc_card'" class="w-3 h-3 mr-1" />
                                             <QrCode v-else class="w-3 h-3 mr-1" />
                                             {{ log.scan_type_label }}
+                                        </span>
+                                        <span
+                                            v-if="log.device_task"
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700"
+                                        >
+                                            <component
+                                                :is="deviceTaskIcon(log.device_task)"
+                                                v-if="deviceTaskIcon(log.device_task)"
+                                                class="w-3 h-3 mr-1 shrink-0"
+                                            />
+                                            {{ deviceTaskLabel(log.device_task) }}
                                         </span>
                                         <span v-if="isNewEntry(log)" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                                             NEU
@@ -281,6 +309,7 @@ import {
 import Tooltip from '@/Components/Tooltip.vue'
 import { useScannerAccessLogs } from '@/composables/useScannerAccessLogs'
 import { getDisplayTimezone } from '@/utils/formatters'
+import { DEVICE_TASKS, deviceTaskIcon, deviceTaskLabel } from '@/utils/deviceTasks'
 
 const props = defineProps({
     initialLogs: {
@@ -322,7 +351,7 @@ onMounted(() => {
 })
 
 const hasActiveFilters = computed(() => {
-    return filters.scanner || filters.type || filters.status
+    return filters.scanner || filters.type || filters.task || filters.status
 })
 
 const applyFilters = () => {

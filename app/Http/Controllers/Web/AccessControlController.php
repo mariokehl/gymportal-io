@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateGoogleSheetSettingsRequest;
 use App\Jobs\SyncCheckInsToGoogleSheet;
+use App\Models\Addon;
 use App\Models\GymScanner;
 use App\Models\ScannerAccessLog;
 use App\Services\GoogleSheetsService;
@@ -13,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,6 +30,7 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
 
         $scanners = $gym->scanners()
+            ->with('addon:id,name')
             ->selectRaw('gym_scanners.*')
             ->selectSub(
                 ScannerAccessLog::selectRaw('COUNT(*)')
@@ -49,7 +52,8 @@ class AccessControlController extends Controller
             });
 
         $recentLogs = ScannerAccessLog::forGym($gym->id)
-            ->with(['scanner', 'member'])
+            ->withScanner($gym->id)
+            ->with('member')
             ->latest()
             ->limit(50)
             ->get()
@@ -57,8 +61,17 @@ class AccessControlController extends Controller
 
         $statistics = ScannerAccessLog::getStatistics($gym->id, now()->startOfDay(), now());
 
+        // Usage add-ons a dispenser or area-control device can settle against.
+        $usageAddons = Addon::where('gym_id', $gym->id)
+            ->usageServices()
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'price', 'quota_amount', 'quota_interval']);
+
         return Inertia::render('AccessControl/Index', [
             'scanners' => $scanners,
+            'usageAddons' => $usageAddons,
             'recentLogs' => $recentLogs,
             'statistics' => $statistics,
             'gymId' => $gym->id,
@@ -94,7 +107,8 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
 
         $query = ScannerAccessLog::forGym($gym->id)
-            ->with(['scanner', 'member'])
+            ->withScanner($gym->id)
+            ->with('member')
             ->latest();
 
         // Apply filters
@@ -116,6 +130,17 @@ class AccessControlController extends Controller
             } elseif ($request->status === 'denied') {
                 $query->denied();
             }
+        }
+
+        // Filter by device task. Logs reference the device by device_number,
+        // so restrict to the gym's devices carrying that task.
+        if ($request->filled('task') && in_array($request->task, GymScanner::DEVICE_TASKS, true)) {
+            $query->whereIn('device_number', function ($sub) use ($gym, $request) {
+                $sub->select('device_number')
+                    ->from('gym_scanners')
+                    ->where('gym_id', $gym->id)
+                    ->where('device_task', $request->task);
+            });
         }
 
         if ($request->filled('date_from')) {
@@ -200,18 +225,12 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
         $this->authorize('manage', $gym);
 
-        $validated = $request->validate([
-            'device_name' => 'required|string|max:255',
-            'allowed_ips' => 'nullable|array',
-            'allowed_ips.*' => 'nullable|string',
-            'token_expires_at' => 'nullable|date|after:today',
-        ]);
+        $validated = $request->validate($this->deviceRules($request, $gym));
 
         // Filter empty IP values
         $allowedIps = array_filter($validated['allowed_ips'] ?? []);
 
-        $scanner = $gym->scanners()->create([
-            'device_name' => $validated['device_name'],
+        $scanner = $gym->scanners()->create($this->deviceAttributes($validated) + [
             'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
             'token_expires_at' => $validated['token_expires_at'] ?? null,
             'is_active' => true,
@@ -219,10 +238,61 @@ class AccessControlController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Scanner erfolgreich angelegt',
-            'scanner' => $scanner,
-            'api_token' => $scanner->api_token,
+            'message' => 'Gerät erfolgreich angelegt',
+            'scanner' => $scanner->load('addon:id,name'),
+            // Only chance to hand out the token — stored is its hash alone.
+            'api_token' => $scanner->getPlainTextToken(),
         ]);
+    }
+
+    /**
+     * Shared validation rules for creating and updating a device.
+     */
+    private function deviceRules(Request $request, $gym): array
+    {
+        return [
+            'device_name' => 'required|string|max:255',
+            'device_task' => ['required', Rule::in(GymScanner::DEVICE_TASKS)],
+            'addon_id' => [
+                Rule::requiredIf(fn () => in_array(
+                    $request->input('device_task'),
+                    GymScanner::ADDON_LINKED_TASKS,
+                    true
+                )),
+                'nullable',
+                // Only usage add-ons of the current gym may be linked.
+                Rule::exists('addons', 'id')
+                    ->where('gym_id', $gym->id)
+                    ->where('service_type', Addon::SERVICE_TYPE_USAGE)
+                    ->whereNull('deleted_at'),
+            ],
+            'enforce_quota' => 'boolean',
+            'allowed_ips' => 'nullable|array',
+            'allowed_ips.*' => 'nullable|string',
+            // Null means the token never expires, which is what most devices
+            // run with — a door must not close because a date passed.
+            'token_expires_at' => 'nullable|date|after:today',
+        ];
+    }
+
+    /**
+     * Normalise the task-dependent attributes. The add-on link and the quota
+     * mode only apply to devices that settle against a usage add-on.
+     */
+    private function deviceAttributes(array $validated): array
+    {
+        $isAddonLinked = in_array(
+            $validated['device_task'],
+            GymScanner::ADDON_LINKED_TASKS,
+            true
+        );
+
+        return [
+            'device_name' => $validated['device_name'],
+            'device_task' => $validated['device_task'],
+            'addon_id' => $isAddonLinked ? $validated['addon_id'] : null,
+            'enforce_quota' => $isAddonLinked ? ($validated['enforce_quota'] ?? true) : true,
+        ];
     }
 
     /**
@@ -237,26 +307,25 @@ class AccessControlController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
-            'device_name' => 'required|string|max:255',
-            'allowed_ips' => 'nullable|array',
-            'allowed_ips.*' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validate(
+            $this->deviceRules($request, $gym) + ['is_active' => 'boolean']
+        );
 
         // Filter empty IP values
         $allowedIps = array_filter($validated['allowed_ips'] ?? []);
 
-        $scanner->update([
-            'device_name' => $validated['device_name'],
+        $scanner->update($this->deviceAttributes($validated) + [
             'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
             'is_active' => $validated['is_active'] ?? $scanner->is_active,
+            // Sent as null when "never expires" is ticked, so it has to be
+            // written through rather than defaulted to the current value.
+            'token_expires_at' => $validated['token_expires_at'] ?? null,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Scanner erfolgreich aktualisiert',
-            'scanner' => $scanner->fresh(),
+            'message' => 'Gerät erfolgreich aktualisiert',
+            'scanner' => $scanner->fresh()->load('addon:id,name'),
         ]);
     }
 
@@ -276,7 +345,7 @@ class AccessControlController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Scanner erfolgreich gelöscht',
+            'message' => 'Gerät erfolgreich gelöscht',
         ]);
     }
 
@@ -333,6 +402,18 @@ class AccessControlController extends Controller
 
         if ($scanner->gym_id !== $gym->id) {
             abort(403);
+        }
+
+        // The token is only stored as a hash, so it cannot be put back into a
+        // config file. Devices created before that change still carry their
+        // plaintext; for all others the operator has to issue a new token.
+        if (! $scanner->getPlainTextToken()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Der API-Token dieses Geräts ist aus Sicherheitsgründen nur als Hash gespeichert '
+                    .'und lässt sich nicht erneut ausgeben. Erneuern Sie den Token, um eine neue '
+                    .'Konfigurationsdatei zu erhalten.',
+            ], 409);
         }
 
         $config = $this->generateScannerConfig($gym, $scanner);
@@ -514,6 +595,9 @@ class AccessControlController extends Controller
             'id' => $log->id,
             'device_number' => $log->device_number,
             'scanner_name' => $log->scanner?->device_name ?? 'Scanner #'.$log->device_number,
+            // Read from the relation like scanner_name, so re-tasking a device
+            // also changes what older entries show.
+            'device_task' => $log->scanner?->device_task,
             'scan_type' => $log->scan_type,
             'scan_type_label' => $log->scan_type_label,
             'access_granted' => $log->access_granted,
@@ -544,8 +628,13 @@ class AccessControlController extends Controller
             '',
             '# API Configuration',
             'SAAS_API_BASE_URL="'.config('app.url').'/api"',
-            'SAAS_API_KEY="'.$scanner->api_token.'"',
+            'SAAS_API_KEY="'.$scanner->getPlainTextToken().'"',
             'DEVICE_NUMBER="'.$scanner->device_number.'"',
+            'DEVICE_TASK="'.$scanner->device_task.'"',
+            '',
+            '# Usage service settled by this device (dispenser / area control)',
+            'ADDON_ID="'.($scanner->addon_id ?? '').'"',
+            'ENFORCE_QUOTA='.($scanner->enforce_quota ? 'True' : 'False'),
             '',
             '# Security Configuration',
             'SECRET_KEY="'.$gym->scanner_secret_key.'"',

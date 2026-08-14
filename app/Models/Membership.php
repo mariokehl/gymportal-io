@@ -6,6 +6,7 @@ use App\Events\MembershipActivated;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
 
@@ -89,6 +90,35 @@ class Membership extends Model
                 'cancelled_by'
             )
             ->withTimestamps();
+    }
+
+    /**
+     * Add-ons the member may currently use.
+     *
+     * A cancelled add-on stays usable until the end of the period it was last
+     * billed for — the same boundary ProcessMembershipPayments applies, so the
+     * member gets what they paid for. Add-ons deactivated gym-wide are excluded.
+     */
+    public function activeAddons(): BelongsToMany
+    {
+        return $this->addons()
+            ->where('addons.is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('addon_membership.cancellation_effective_at')
+                    ->orWhereDate(
+                        'addon_membership.cancellation_effective_at',
+                        '>=',
+                        now()->startOfDay()->toDateString()
+                    );
+            });
+    }
+
+    /**
+     * Whether a specific add-on is currently usable on this membership.
+     */
+    public function hasActiveAddon(int $addonId): bool
+    {
+        return $this->activeAddons()->where('addons.id', $addonId)->exists();
     }
 
     /**

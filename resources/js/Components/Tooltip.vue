@@ -1,6 +1,7 @@
 <template>
   <div class="relative inline-block">
     <div
+      ref="triggerRef"
       @mouseenter="showTooltip"
       @mouseleave="hideTooltip"
       @focus="showTooltip"
@@ -8,7 +9,28 @@
     >
       <slot></slot>
     </div>
-    <Transition name="tooltip">
+
+    <!-- Teleported variant: escapes ancestors with overflow (e.g. a scrolling
+         table), which would otherwise clip the panel and widen the scroll area.
+         Positioned against the viewport, so it follows fixed coordinates. -->
+    <Teleport v-if="teleport" to="body">
+      <Transition name="tooltip">
+        <div
+          v-if="isVisible"
+          :class="tooltipClasses"
+          :style="tooltipStyles"
+        >
+          <div class="w-full">
+            <slot name="content">
+              {{ text }}
+            </slot>
+          </div>
+          <div :class="arrowClasses"></div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <Transition v-else name="tooltip">
       <div
         v-if="isVisible"
         :class="tooltipClasses"
@@ -27,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, computed, useSlots } from 'vue'
+import { ref, computed, useSlots, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
 // Props
 const props = defineProps({
@@ -48,6 +70,12 @@ const props = defineProps({
     type: String,
     default: 'dark',
     validator: (value) => ['dark', 'light'].includes(value)
+  },
+  // Render into the body instead of next to the trigger. Needed whenever an
+  // ancestor clips overflow, such as a horizontally scrolling table.
+  teleport: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -56,15 +84,41 @@ const slots = useSlots()
 
 // State
 const isVisible = ref(false)
+const triggerRef = ref(null)
+const triggerRect = ref(null)
 
 // Methods
-const showTooltip = () => {
+const showTooltip = async () => {
   isVisible.value = true
+
+  if (!props.teleport) {
+    return
+  }
+
+  // Measure the trigger so the teleported panel can be placed against the
+  // viewport. Read after paint, otherwise the rect is stale while scrolling.
+  await nextTick()
+  triggerRect.value = triggerRef.value?.getBoundingClientRect() ?? null
 }
 
 const hideTooltip = () => {
   isVisible.value = false
+  triggerRect.value = null
 }
+
+// A teleported panel keeps viewport coordinates, so scrolling would leave it
+// behind. Hiding on scroll is both simpler and less distracting than tracking.
+onMounted(() => {
+  if (props.teleport) {
+    window.addEventListener('scroll', hideTooltip, true)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (props.teleport) {
+    window.removeEventListener('scroll', hideTooltip, true)
+  }
+})
 
 // Computed Properties
 const tooltipClasses = computed(() => {
@@ -73,13 +127,20 @@ const tooltipClasses = computed(() => {
     ? 'text-white text-xs bg-gray-900'
     : 'text-gray-900 text-xs bg-white border border-gray-200'
 
-  // Whitespace handling - nur nowrap bei einfachem Text (kein content slot)
-  const whitespaceClass = !slots.content ? 'whitespace-nowrap' : ''
+  // Whitespace handling - nur nowrap bei einfachem Text (kein content slot).
+  // Mit content slot darf der Text umbrechen, sonst sprengt er die maxWidth.
+  const whitespaceClass = !slots.content ? 'whitespace-nowrap' : 'whitespace-normal break-words'
 
   // Text alignment - always left-aligned for consistent display
   const textAlign = 'text-left'
 
-  const baseClasses = `absolute z-50 px-3 py-2 text-sm ${themeClasses} ${textAlign} rounded-lg shadow-lg pointer-events-none ${whitespaceClass}`
+  const baseClasses = `z-50 px-3 py-2 text-sm ${themeClasses} ${textAlign} rounded-lg shadow-lg pointer-events-none ${whitespaceClass}`
+
+  // Teleported panels sit in the body and are placed via inline coordinates,
+  // so they must not carry the trigger-relative offsets.
+  if (props.teleport) {
+    return `fixed ${baseClasses} tooltip-${props.position}`
+  }
 
   const positionClasses = {
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
@@ -88,13 +149,30 @@ const tooltipClasses = computed(() => {
     left: 'right-full top-1/2 -translate-y-1/2 mr-2'
   }
 
-  return `${baseClasses} ${positionClasses[props.position]} tooltip-${props.position}`
+  return `absolute ${baseClasses} ${positionClasses[props.position]} tooltip-${props.position}`
 })
 
+const GAP = 8
+
 const tooltipStyles = computed(() => {
-  return {
-    maxWidth: props.maxWidth
+  const styles = { maxWidth: props.maxWidth }
+
+  if (!props.teleport || !triggerRect.value) {
+    return styles
   }
+
+  const rect = triggerRect.value
+
+  // Anchor to the trigger, then keep the panel inside the viewport. The width
+  // is capped by maxWidth, so a long text wraps instead of overflowing.
+  const placements = {
+    top: { bottom: `${window.innerHeight - rect.top + GAP}px`, left: `${rect.left + rect.width / 2}px`, transform: 'translateX(-50%)' },
+    bottom: { top: `${rect.bottom + GAP}px`, left: `${rect.left + rect.width / 2}px`, transform: 'translateX(-50%)' },
+    left: { top: `${rect.top + rect.height / 2}px`, right: `${window.innerWidth - rect.left + GAP}px`, transform: 'translateY(-50%)' },
+    right: { top: `${rect.top + rect.height / 2}px`, left: `${rect.right + GAP}px`, transform: 'translateY(-50%)' }
+  }
+
+  return { ...styles, ...placements[props.position] }
 })
 
 const darkArrowPositions = {

@@ -21,6 +21,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
     const filters = reactive({
         scanner: options.scanner || null,
         type: options.type || null,         // 'qr_code' | 'nfc_card'
+        task: options.task || null,         // device task, e.g. 'dispenser'
         status: options.status || null,     // 'granted' | 'denied'
         dateFrom: options.dateFrom || null,
         dateTo: options.dateTo || null,
@@ -105,6 +106,9 @@ export function useScannerAccessLogs(gymId, options = {}) {
                 return false
             }
         }
+        if (filters.task && log.device_task !== filters.task) {
+            return false
+        }
         if (filters.status === 'granted' && !log.access_granted) {
             return false
         }
@@ -176,6 +180,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
             const params = new URLSearchParams()
             if (filters.scanner) params.append('scanner', filters.scanner)
             if (filters.type) params.append('type', filters.type)
+            if (filters.task) params.append('task', filters.task)
             if (filters.status) params.append('status', filters.status)
 
             const response = await axios.get(route('access-control.logs') + '?' + params.toString())
@@ -208,6 +213,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
             params.append('page', currentPage.value + 1)
             if (filters.scanner) params.append('scanner', filters.scanner)
             if (filters.type) params.append('type', filters.type)
+            if (filters.task) params.append('task', filters.task)
             if (filters.status) params.append('status', filters.status)
             if (filters.dateFrom) params.append('date_from', filters.dateFrom)
             if (filters.dateTo) params.append('date_to', filters.dateTo)
@@ -240,6 +246,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
             const params = new URLSearchParams()
             if (filters.scanner) params.append('scanner', filters.scanner)
             if (filters.type) params.append('type', filters.type)
+            if (filters.task) params.append('task', filters.task)
             if (filters.status) params.append('status', filters.status)
             if (filters.dateFrom) params.append('date_from', filters.dateFrom)
             if (filters.dateTo) params.append('date_to', filters.dateTo)
@@ -271,6 +278,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
     const clearFilters = () => {
         filters.scanner = null
         filters.type = null
+        filters.task = null
         filters.status = null
         filters.dateFrom = null
         filters.dateTo = null

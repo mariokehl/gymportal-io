@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Web\AccessControlController;
 use App\Models\Gym;
 use App\Models\GymScanner;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
 /**
- * @deprecated v0.0.53 Use {@see \App\Http\Controllers\Web\AccessControlController} instead.
+ * @deprecated v0.0.53 Use {@see AccessControlController} instead.
  */
 class ScannerManagementController extends Controller
 {
@@ -26,14 +27,14 @@ class ScannerManagementController extends Controller
             'device_name' => 'required|string|max:255',
             'allowed_ips' => 'nullable|array',
             'allowed_ips.*' => 'ip',
-            'token_expires_at' => 'nullable|date|after:today'
+            'token_expires_at' => 'nullable|date|after:today',
         ]);
 
         $scanner = $gym->scanners()->create([
             'device_name' => $validated['device_name'],
             'allowed_ips' => $validated['allowed_ips'] ?? null,
             'token_expires_at' => $validated['token_expires_at'] ?? null,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Token wird automatisch durch Model Boot generiert
@@ -42,7 +43,7 @@ class ScannerManagementController extends Controller
             ->route('admin.gym.scanners.show', [$gym, $scanner])
             ->with('success', 'Scanner erfolgreich angelegt')
             ->with('show_token', true) // Flag um Token einmalig anzuzeigen
-            ->with('api_token', $scanner->api_token);
+            ->with('api_token', $scanner->getPlainTextToken());
     }
 
     /**
@@ -64,7 +65,7 @@ class ScannerManagementController extends Controller
             'recentLogs' => $scanner->accessLogs()
                 ->latest()
                 ->limit(50)
-                ->get()
+                ->get(),
         ]);
     }
 
@@ -92,7 +93,7 @@ class ScannerManagementController extends Controller
         $this->authorize('manage', $gym);
 
         $scanner->update([
-            'is_active' => !$scanner->is_active
+            'is_active' => ! $scanner->is_active,
         ]);
 
         $status = $scanner->is_active ? 'aktiviert' : 'deaktiviert';
@@ -112,7 +113,7 @@ class ScannerManagementController extends Controller
         $config = $this->generateScannerConfig($gym, $scanner);
 
         return response()
-            ->streamDownload(function() use ($config) {
+            ->streamDownload(function () use ($config) {
                 echo $config;
             }, "scanner_{$scanner->device_number}_config.env");
     }
@@ -124,29 +125,29 @@ class ScannerManagementController extends Controller
     {
         $config = [
             '# Scanner Configuration',
-            '# Generated: ' . now()->toIso8601String(),
-            '# Gym: ' . $gym->name,
-            '# Device: ' . $scanner->device_name,
+            '# Generated: '.now()->toIso8601String(),
+            '# Gym: '.$gym->name,
+            '# Device: '.$scanner->device_name,
             '',
             '# API Configuration',
-            'SAAS_API_BASE_URL="' . config('app.url') . '/api/scanner"',
-            'SCANNER_API_TOKEN="' . $scanner->api_token . '"',
-            'DEVICE_NUMBER="' . $scanner->device_number . '"',
+            'SAAS_API_BASE_URL="'.config('app.url').'/api/scanner"',
+            'SCANNER_API_TOKEN="'.$scanner->getPlainTextToken().'"',
+            'DEVICE_NUMBER="'.$scanner->device_number.'"',
             '',
             '# Security Configuration',
-            'SECRET_KEY="' . $gym->scanner_secret_key . '"',
+            'SECRET_KEY="'.$gym->scanner_secret_key.'"',
             'QR_CODE_VALIDITY_MINUTES=30',
             'ENABLE_TIMESTAMP_CHECK=true',
             'ENABLE_HASH_CHECK=true',
             'ENABLE_NFC_CARDS=true',
             '',
             '# Rolling QR-Code Konfiguration',
-            'ENABLE_ROLLING_QR=' . ($gym->rolling_qr_enabled ? 'True' : 'False'),
-            'ROLLING_QR_INTERVAL_SECONDS=' . ($gym->rolling_qr_interval ?? 3),
-            'ROLLING_QR_TOLERANCE_WINDOWS=' . ($gym->rolling_qr_tolerance_windows ?? 1),
+            'ENABLE_ROLLING_QR='.($gym->rolling_qr_enabled ? 'True' : 'False'),
+            'ROLLING_QR_INTERVAL_SECONDS='.($gym->rolling_qr_interval ?? 3),
+            'ROLLING_QR_TOLERANCE_WINDOWS='.($gym->rolling_qr_tolerance_windows ?? 1),
             '',
             '# Optional IP Whitelist',
-            '# ALLOWED_IPS=' . ($scanner->allowed_ips ? implode(',', $scanner->allowed_ips) : ''),
+            '# ALLOWED_IPS='.($scanner->allowed_ips ? implode(',', $scanner->allowed_ips) : ''),
         ];
 
         return implode("\n", $config);

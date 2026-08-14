@@ -34,28 +34,49 @@ class MemberAccessLog extends Model
      * Action types
      */
     const ACTION_ACCESS_ATTEMPT = 'access_attempt';
+
     const ACTION_CONFIG_UPDATED = 'config_updated';
+
     const ACTION_QR_INVALIDATED = 'qr_invalidated';
+
     const ACTION_APP_LINK_SENT = 'app_link_sent';
+
     const ACTION_CREDIT_CONSUMED = 'credit_consumed';
+
     const ACTION_CREDIT_ADDED = 'credit_added';
+
     const ACTION_NFC_REGISTERED = 'nfc_registered';
+
     const ACTION_NFC_REMOVED = 'nfc_removed';
+
+    const ACTION_DEVICE_REMOVED = 'device_removed';
 
     /**
      * Service types
      */
     const SERVICE_GYM = 'gym';
+
     const SERVICE_SOLARIUM = 'solarium';
+
     const SERVICE_VENDING = 'vending';
+
     const SERVICE_MASSAGE = 'massage';
+
     const SERVICE_COFFEE = 'coffee';
+
+    /**
+     * Usage of a booked add-on at a device (drink dispenser, area control).
+     * The add-on itself is named in metadata, so one constant covers them all.
+     */
+    const SERVICE_ADDON = 'addon';
 
     /**
      * Access methods
      */
     const METHOD_QR = 'qr';
+
     const METHOD_NFC = 'nfc';
+
     const METHOD_MANUAL = 'manual';
 
     /**
@@ -88,6 +109,7 @@ class MemberAccessLog extends Model
             self::ACTION_CREDIT_ADDED => 'Guthaben hinzugefügt',
             self::ACTION_NFC_REGISTERED => 'NFC-Tag registriert',
             self::ACTION_NFC_REMOVED => 'NFC-Tag entfernt',
+            self::ACTION_DEVICE_REMOVED => 'Gerät entfernt',
         ];
 
         return $actions[$this->action] ?? $this->action;
@@ -98,6 +120,12 @@ class MemberAccessLog extends Model
      */
     public function getServiceNameAttribute(): string
     {
+        // Add-on usage names the booked service itself ("Getränke-Flatrate"),
+        // which is more useful than the generic category.
+        if ($this->service === self::SERVICE_ADDON) {
+            return $this->metadata['addon_name'] ?? 'Zusatzleistung';
+        }
+
         $services = [
             self::SERVICE_GYM => 'Fitnessstudio',
             self::SERVICE_SOLARIUM => 'Solarium',
@@ -129,6 +157,7 @@ class MemberAccessLog extends Model
     public function getFormattedTimeAttribute(): string
     {
         $timestamp = $this->accessed_at ?? $this->created_at;
+
         return $timestamp->format('d.m.Y H:i:s');
     }
 
