@@ -145,13 +145,14 @@
                       <Trash2 class="w-4 h-4" />
                     </button>
 
-                    <!-- Deaktivierter Delete Button mit Tooltip -->
-                    <Tooltip v-else position="left">
+                    <!-- Disabled delete button with tooltip.
+                         Teleported: the table scrolls horizontally, which would
+                         clip the panel and widen the scroll area. -->
+                    <Tooltip v-else position="left" teleport>
                       <template #default>
                         <button
                           disabled
                           class="text-gray-300 cursor-not-allowed p-1 rounded opacity-50"
-                          :title="member.delete_block_reason"
                         >
                           <Trash2 class="w-4 h-4" />
                         </button>

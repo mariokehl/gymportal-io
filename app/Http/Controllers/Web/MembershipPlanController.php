@@ -4,17 +4,24 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\MembershipPlan;
+use App\Services\CrossLocationAccessService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MembershipPlanController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(
+        private CrossLocationAccessService $crossLocationService
+    ) {}
 
     /**
      * Display a listing of the membership plans.
@@ -135,10 +142,78 @@ class MembershipPlanController extends Controller
                 ->get();
         }
 
+        $gym = Auth::user()->currentGym;
+        $scope = $membershipPlan->location_scope ?? MembershipPlan::SCOPE_OWN;
+        $allowedGymIds = $membershipPlan->allowedGyms()->pluck('gyms.id')->all();
+        $locations = $this->crossLocationService->organizationLocations($gym);
+
         return Inertia::render('MembershipPlans/Edit', [
             'membershipPlan' => $membershipPlan,
             'activeMembersCount' => $activeMembersCount,
             'activeMemberships' => $activeMemberships,
+            'locationScope' => [
+                'scope' => $scope,
+                'allowed_gym_ids' => $allowedGymIds,
+                'locations' => $locations,
+                'has_siblings' => count($locations) > 1,
+                // While this location only admits its own members, no contract
+                // setting can produce a cross-location check-in — the tab says
+                // so instead of offering a choice without effect.
+                'location_rule' => $gym->checkinRule(),
+                'gym_name' => $gym->name,
+                'effect' => $this->crossLocationService->contractEffect($gym, $scope, $allowedGymIds),
+            ],
+        ]);
+    }
+
+    /**
+     * Update the locations this plan is valid at.
+     */
+    public function updateLocations(Request $request, MembershipPlan $membershipPlan): JsonResponse
+    {
+        $this->authorize('update', $membershipPlan);
+
+        $validated = $request->validate([
+            'location_scope' => ['required', Rule::in(MembershipPlan::LOCATION_SCOPES)],
+            'allowed_gym_ids' => ['array'],
+            'allowed_gym_ids.*' => ['integer'],
+        ], [], [
+            'location_scope' => 'Standortgeltung',
+            'allowed_gym_ids' => 'erlaubte Standorte',
+        ]);
+
+        $gym = Auth::user()->currentGym;
+
+        // Never trust the submitted ids: only locations of the same organisation
+        // may be selected, and the plan's own location is always implied.
+        $organizationIds = $gym->organizationGyms()
+            ->where('gyms.id', '!=', $membershipPlan->gym_id)
+            ->pluck('gyms.id')
+            ->all();
+
+        $allowed = array_values(array_intersect(
+            $validated['allowed_gym_ids'] ?? [],
+            $organizationIds
+        ));
+
+        if ($validated['location_scope'] === MembershipPlan::SCOPE_SELECTED && $allowed === []) {
+            return response()->json([
+                'message' => 'Wählen Sie mindestens einen zusätzlichen Standort aus, an dem dieser Vertrag gelten soll.',
+            ], 422);
+        }
+
+        $membershipPlan->update(['location_scope' => $validated['location_scope']]);
+        $membershipPlan->allowedGyms()->sync(
+            $validated['location_scope'] === MembershipPlan::SCOPE_SELECTED ? $allowed : []
+        );
+
+        return response()->json([
+            'message' => 'Die Standorteinschränkungen des Vertrags wurden gespeichert.',
+            'effect' => $this->crossLocationService->contractEffect(
+                $gym,
+                $validated['location_scope'],
+                $allowed
+            ),
         ]);
     }
 

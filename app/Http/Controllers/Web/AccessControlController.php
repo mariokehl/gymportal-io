@@ -5,20 +5,35 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateGoogleSheetSettingsRequest;
 use App\Jobs\SyncCheckInsToGoogleSheet;
+use App\Models\Addon;
+use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\ScannerAccessLog;
+use App\Services\CrossLocationAccessService;
 use App\Services\GoogleSheetsService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AccessControlController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * Memoised location names of the current organisation.
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $organizationGymNames = null;
+
+    public function __construct(
+        private CrossLocationAccessService $crossLocationService
+    ) {}
 
     /**
      * Display the access control dashboard
@@ -28,6 +43,7 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
 
         $scanners = $gym->scanners()
+            ->with('addon:id,name')
             ->selectRaw('gym_scanners.*')
             ->selectSub(
                 ScannerAccessLog::selectRaw('COUNT(*)')
@@ -49,7 +65,12 @@ class AccessControlController extends Controller
             });
 
         $recentLogs = ScannerAccessLog::forGym($gym->id)
-            ->with(['scanner', 'member'])
+            ->withScanner($gym->id)
+            ->with(['member' => fn ($q) => $q->with([
+                // Only used for cross-location contract denials, where the
+                // dialog names the plan it is about to open.
+                'memberships' => fn ($m) => $m->active()->with('membershipPlan:id,name,gym_id')->limit(1),
+            ])])
             ->latest()
             ->limit(50)
             ->get()
@@ -57,8 +78,17 @@ class AccessControlController extends Controller
 
         $statistics = ScannerAccessLog::getStatistics($gym->id, now()->startOfDay(), now());
 
+        // Usage add-ons a dispenser or area-control device can settle against.
+        $usageAddons = Addon::where('gym_id', $gym->id)
+            ->usageServices()
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'price', 'quota_amount', 'quota_interval']);
+
         return Inertia::render('AccessControl/Index', [
             'scanners' => $scanners,
+            'usageAddons' => $usageAddons,
             'recentLogs' => $recentLogs,
             'statistics' => $statistics,
             'gymId' => $gym->id,
@@ -67,6 +97,78 @@ class AccessControlController extends Controller
             'rollingQrInterval' => (int) ($gym->rolling_qr_interval ?? 3),
             'rollingQrToleranceWindows' => (int) ($gym->rolling_qr_tolerance_windows ?? 1),
             'googleSheet' => $this->googleSheetPayload($gym),
+            'crossLocation' => $this->crossLocationPayload($gym),
+            'crossLocationSummary' => $this->crossLocationService->todaysSummary($gym),
+        ]);
+    }
+
+    /**
+     * Cross-location check-in state for the configuration tab.
+     */
+    private function crossLocationPayload(Gym $gym): array
+    {
+        $locations = $this->crossLocationService->organizationLocations($gym);
+
+        return [
+            'rule' => $gym->checkinRule(),
+            'allowed_gym_ids' => $gym->allowedCheckinGyms()->pluck('gyms.id')->all(),
+            'locations' => $locations,
+            // A single-location organisation has nothing to configure; the UI
+            // hides the card instead of showing an empty picker.
+            'has_siblings' => count($locations) > 1,
+        ];
+    }
+
+    /**
+     * Update which members of the organisation may check in at this location.
+     */
+    public function updateCrossLocation(Request $request): JsonResponse
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $validated = $request->validate([
+            'rule' => ['required', Rule::in(Gym::CHECKIN_RULES)],
+            'allowed_gym_ids' => ['array'],
+            'allowed_gym_ids.*' => ['integer'],
+        ], [], [
+            'rule' => 'Check-in-Regel',
+            'allowed_gym_ids' => 'erlaubte Standorte',
+        ]);
+
+        // Only locations of the same organisation may be selected — never trust
+        // the ids from the request, they decide who gets through the door.
+        $organizationIds = $gym->organizationGyms()
+            ->where('gyms.id', '!=', $gym->id)
+            ->pluck('gyms.id')
+            ->all();
+
+        $allowed = array_values(array_intersect(
+            $validated['allowed_gym_ids'] ?? [],
+            $organizationIds
+        ));
+
+        if ($validated['rule'] === Gym::CHECKIN_RULE_SELECTED && $allowed === []) {
+            return response()->json([
+                'message' => 'Wählen Sie mindestens einen Standort aus, dessen Mitglieder hier einchecken dürfen.',
+            ], 422);
+        }
+
+        $gym->update(['cross_location_checkin_rule' => $validated['rule']]);
+
+        // The selection only matters for the 'selected' rule; clearing it
+        // otherwise keeps the stored state and the effective one in sync.
+        $gym->allowedCheckinGyms()->sync(
+            $validated['rule'] === Gym::CHECKIN_RULE_SELECTED ? $allowed : []
+        );
+
+        // Devices cache their organisation lookup, and the accepted keys are
+        // baked into their config file.
+        Cache::forget("gym_organization_ids:{$gym->id}");
+
+        return response()->json([
+            'message' => 'Die Check-in-Einstellungen wurden gespeichert. Laden Sie die Gerätekonfiguration neu herunter, damit die Scanner die Änderung übernehmen.',
+            'crossLocation' => $this->crossLocationPayload($gym->fresh()),
         ]);
     }
 
@@ -94,7 +196,12 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
 
         $query = ScannerAccessLog::forGym($gym->id)
-            ->with(['scanner', 'member'])
+            ->withScanner($gym->id)
+            ->with(['member' => fn ($q) => $q->with([
+                // Only used for cross-location contract denials, where the
+                // dialog names the plan it is about to open.
+                'memberships' => fn ($m) => $m->active()->with('membershipPlan:id,name,gym_id')->limit(1),
+            ])])
             ->latest();
 
         // Apply filters
@@ -115,6 +222,32 @@ class AccessControlController extends Controller
                 $query->granted();
             } elseif ($request->status === 'denied') {
                 $query->denied();
+            }
+        }
+
+        // Filter by device task. Logs reference the device by device_number,
+        // so restrict to the gym's devices carrying that task.
+        if ($request->filled('task') && in_array($request->task, GymScanner::DEVICE_TASKS, true)) {
+            $query->whereIn('device_number', function ($sub) use ($gym, $request) {
+                $sub->select('device_number')
+                    ->from('gym_scanners')
+                    ->where('gym_id', $gym->id)
+                    ->where('device_task', $request->task);
+            });
+        }
+
+        // Origin: own members vs. members visiting from another location.
+        // Rows written before cross-location check-in existed have a null
+        // home_gym_id and count as own members.
+        if ($request->filled('origin')) {
+            if ($request->origin === 'guest') {
+                $query->whereNotNull('home_gym_id')
+                    ->where('home_gym_id', '!=', $gym->id);
+            } elseif ($request->origin === 'home') {
+                $query->where(function ($sub) use ($gym) {
+                    $sub->whereNull('home_gym_id')
+                        ->orWhere('home_gym_id', $gym->id);
+                });
             }
         }
 
@@ -200,18 +333,12 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
         $this->authorize('manage', $gym);
 
-        $validated = $request->validate([
-            'device_name' => 'required|string|max:255',
-            'allowed_ips' => 'nullable|array',
-            'allowed_ips.*' => 'nullable|string',
-            'token_expires_at' => 'nullable|date|after:today',
-        ]);
+        $validated = $request->validate($this->deviceRules($request, $gym));
 
         // Filter empty IP values
         $allowedIps = array_filter($validated['allowed_ips'] ?? []);
 
-        $scanner = $gym->scanners()->create([
-            'device_name' => $validated['device_name'],
+        $scanner = $gym->scanners()->create($this->deviceAttributes($validated) + [
             'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
             'token_expires_at' => $validated['token_expires_at'] ?? null,
             'is_active' => true,
@@ -219,10 +346,61 @@ class AccessControlController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Scanner erfolgreich angelegt',
-            'scanner' => $scanner,
-            'api_token' => $scanner->api_token,
+            'message' => 'Gerät erfolgreich angelegt',
+            'scanner' => $scanner->load('addon:id,name'),
+            // Only chance to hand out the token — stored is its hash alone.
+            'api_token' => $scanner->getPlainTextToken(),
         ]);
+    }
+
+    /**
+     * Shared validation rules for creating and updating a device.
+     */
+    private function deviceRules(Request $request, $gym): array
+    {
+        return [
+            'device_name' => 'required|string|max:255',
+            'device_task' => ['required', Rule::in(GymScanner::DEVICE_TASKS)],
+            'addon_id' => [
+                Rule::requiredIf(fn () => in_array(
+                    $request->input('device_task'),
+                    GymScanner::ADDON_LINKED_TASKS,
+                    true
+                )),
+                'nullable',
+                // Only usage add-ons of the current gym may be linked.
+                Rule::exists('addons', 'id')
+                    ->where('gym_id', $gym->id)
+                    ->where('service_type', Addon::SERVICE_TYPE_USAGE)
+                    ->whereNull('deleted_at'),
+            ],
+            'enforce_quota' => 'boolean',
+            'allowed_ips' => 'nullable|array',
+            'allowed_ips.*' => 'nullable|string',
+            // Null means the token never expires, which is what most devices
+            // run with — a door must not close because a date passed.
+            'token_expires_at' => 'nullable|date|after:today',
+        ];
+    }
+
+    /**
+     * Normalise the task-dependent attributes. The add-on link and the quota
+     * mode only apply to devices that settle against a usage add-on.
+     */
+    private function deviceAttributes(array $validated): array
+    {
+        $isAddonLinked = in_array(
+            $validated['device_task'],
+            GymScanner::ADDON_LINKED_TASKS,
+            true
+        );
+
+        return [
+            'device_name' => $validated['device_name'],
+            'device_task' => $validated['device_task'],
+            'addon_id' => $isAddonLinked ? $validated['addon_id'] : null,
+            'enforce_quota' => $isAddonLinked ? ($validated['enforce_quota'] ?? true) : true,
+        ];
     }
 
     /**
@@ -237,26 +415,25 @@ class AccessControlController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
-            'device_name' => 'required|string|max:255',
-            'allowed_ips' => 'nullable|array',
-            'allowed_ips.*' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validate(
+            $this->deviceRules($request, $gym) + ['is_active' => 'boolean']
+        );
 
         // Filter empty IP values
         $allowedIps = array_filter($validated['allowed_ips'] ?? []);
 
-        $scanner->update([
-            'device_name' => $validated['device_name'],
+        $scanner->update($this->deviceAttributes($validated) + [
             'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
             'is_active' => $validated['is_active'] ?? $scanner->is_active,
+            // Sent as null when "never expires" is ticked, so it has to be
+            // written through rather than defaulted to the current value.
+            'token_expires_at' => $validated['token_expires_at'] ?? null,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Scanner erfolgreich aktualisiert',
-            'scanner' => $scanner->fresh(),
+            'message' => 'Gerät erfolgreich aktualisiert',
+            'scanner' => $scanner->fresh()->load('addon:id,name'),
         ]);
     }
 
@@ -276,7 +453,7 @@ class AccessControlController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Scanner erfolgreich gelöscht',
+            'message' => 'Gerät erfolgreich gelöscht',
         ]);
     }
 
@@ -333,6 +510,18 @@ class AccessControlController extends Controller
 
         if ($scanner->gym_id !== $gym->id) {
             abort(403);
+        }
+
+        // The token is only stored as a hash, so it cannot be put back into a
+        // config file. Devices created before that change still carry their
+        // plaintext; for all others the operator has to issue a new token.
+        if (! $scanner->getPlainTextToken()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Der API-Token dieses Geräts ist aus Sicherheitsgründen nur als Hash gespeichert '
+                    .'und lässt sich nicht erneut ausgeben. Erneuern Sie den Token, um eine neue '
+                    .'Konfigurationsdatei zu erhalten.',
+            ], 409);
         }
 
         $config = $this->generateScannerConfig($gym, $scanner);
@@ -510,10 +699,21 @@ class AccessControlController extends Controller
      */
     private function formatLogForFrontend(ScannerAccessLog $log): array
     {
+        // Only a contract denial from another location offers the shortcut, so
+        // the plan is resolved for those rows alone. Relies on the eager loads
+        // in the two callers, see crossLocationLogQuery().
+        $crossLocationPlan = $log->isCrossLocation()
+            && $log->denial_kind === ScannerAccessLog::DENIAL_KIND_CONTRACT
+                ? $log->member?->memberships->first()?->membershipPlan
+                : null;
+
         return [
             'id' => $log->id,
             'device_number' => $log->device_number,
             'scanner_name' => $log->scanner?->device_name ?? 'Scanner #'.$log->device_number,
+            // Read from the relation like scanner_name, so re-tasking a device
+            // also changes what older entries show.
+            'device_task' => $log->scanner?->device_task,
             'scan_type' => $log->scan_type,
             'scan_type_label' => $log->scan_type_label,
             'access_granted' => $log->access_granted,
@@ -522,13 +722,47 @@ class AccessControlController extends Controller
             'member_id' => $log->member_id,
             'member_name' => $log->member ? trim($log->member->first_name.' '.$log->member->last_name) : null,
             'member_number' => $log->member?->member_number,
-            'member_url' => $log->member ? route('members.show', $log->member->id) : null,
+            // Only linkable while the member belongs to the current gym —
+            // MemberPolicy::view compares against current_gym_id, so a visiting
+            // member's profile 403s. Those go through the switch dialog instead.
+            'member_url' => $log->member && ! $log->isCrossLocation()
+                ? route('members.show', $log->member->id)
+                : null,
             'nfc_card_id' => $log->metadata['nfc_card_id'] ?? null,
             'metadata' => $log->metadata,
             'created_at' => $log->created_at->toIso8601String(),
             'formatted_time' => $log->formatted_time,
             'time_ago' => $log->time_ago,
+            // Cross-location: null home_gym_id means an own member, which is
+            // also how the rows written before this feature read.
+            'is_cross_location' => $log->isCrossLocation(),
+            'home_gym_id' => $log->home_gym_id,
+            'home_gym_name' => $log->isCrossLocation()
+                ? ($this->organizationGymNames()[$log->home_gym_id] ?? 'Anderer Standort')
+                : null,
+            'denial_kind' => $log->denial_kind,
+            // The contract behind a cross-location denial lives in the member's
+            // own organisation. Named here so the switch dialog can say what it
+            // is about to open; the id is re-checked after the switch.
+            'contract_id' => $crossLocationPlan?->id,
+            'contract_name' => $crossLocationPlan?->name,
         ];
+    }
+
+    /**
+     * Location id => name for the current organisation.
+     *
+     * Memoised per request: formatLogForFrontend() runs for every row of the
+     * log and would otherwise query once per entry.
+     *
+     * @return array<int, string>
+     */
+    private function organizationGymNames(): array
+    {
+        return $this->organizationGymNames ??= Auth::user()->currentGym
+            ->organizationGyms()
+            ->pluck('name', 'id')
+            ->all();
     }
 
     /**
@@ -544,11 +778,20 @@ class AccessControlController extends Controller
             '',
             '# API Configuration',
             'SAAS_API_BASE_URL="'.config('app.url').'/api"',
-            'SAAS_API_KEY="'.$scanner->api_token.'"',
+            'SAAS_API_KEY="'.$scanner->getPlainTextToken().'"',
             'DEVICE_NUMBER="'.$scanner->device_number.'"',
+            'DEVICE_TASK="'.$scanner->device_task.'"',
+            '',
+            '# Usage service settled by this device (dispenser / area control)',
+            'ADDON_ID="'.($scanner->addon_id ?? '').'"',
+            'ENFORCE_QUOTA='.($scanner->enforce_quota ? 'True' : 'False'),
             '',
             '# Security Configuration',
             'SECRET_KEY="'.$gym->scanner_secret_key.'"',
+            '# Keys of the locations whose members may check in here. The device',
+            '# tries these after SECRET_KEY, so a visiting member\'s QR code',
+            '# validates offline. Empty unless cross-location check-in is on.',
+            'ADDITIONAL_SECRET_KEYS="'.implode(',', $gym->acceptedCheckinKeys()).'"',
             'QR_CODE_VALIDITY_MINUTES=30',
             'ENABLE_TIMESTAMP_CHECK=True',
             'ENABLE_HASH_CHECK=True',

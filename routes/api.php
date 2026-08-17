@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Public\MollieWebhookController;
-use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\ScannerController;
+use App\Http\Controllers\Api\V1\MollieSetupController;
+use App\Http\Controllers\Api\V1\Public\MollieWebhookController;
 use App\Http\Controllers\Api\WidgetController;
 use App\Http\Controllers\Pwa\AuthController;
 use App\Http\Controllers\Pwa\CheckInController;
@@ -84,22 +84,28 @@ Route::group(['prefix' => 'pwa'], function () {
 
 /*
 | Scanner Routes
+|
+| Only `ping` and `verify-membership` are called by the scanner client
+| (gymportal-qr-scanner, see devices/saas.py).
 */
 Route::prefix('scanner')->group(function () {
     Route::middleware(['scanner.auth'])->group(function () {
         Route::get('ping', [ScannerController::class, 'ping']);
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
-        //Route::post('validate', [ScannerController::class, 'validateAccess']);
-        //Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
+
+        // @deprecated No scanner client calls these; the scan is validated
+        // on the device itself (qr-scanner-server.py).
+        // Route::post('validate', [ScannerController::class, 'validateAccess']);
+        // Route::post('test', [ScannerController::class, 'validateAccess']); // Alias
     });
 });
 
-// API Routes for scanner devices
-//Route::prefix('api/v1')->group(function () {
-//    Route::post('/access/validate', [MemberAccessController::class, 'validateAccess'])
-//        ->middleware('throttle:60,1')
-//        ->name('api.access.validate');
-//});
+// @deprecated Superseded by the scanner routes above.
+// Route::prefix('api/v1')->group(function () {
+//     Route::post('/access/validate', [MemberAccessController::class, 'validateAccess'])
+//         ->middleware('throttle:60,1')
+//         ->name('api.access.validate');
+// });
 
 /*
 | Widget API Routes

@@ -17,6 +17,7 @@ class MembershipPlanFactory extends Factory
     {
         return [
             'gym_id' => Gym::factory(),
+            'location_scope' => MembershipPlan::SCOPE_OWN,
             'name' => $this->faker->words(2, true),
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 19, 99),

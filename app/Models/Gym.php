@@ -14,6 +14,29 @@ class Gym extends Model
 {
     const DEFAULT_ORGANIZATION_NAME = 'Mein Fitnessstudio';
 
+    /**
+     * Only members registered at this location may check in. Matches the
+     * behaviour of the system before cross-location check-in existed.
+     */
+    public const CHECKIN_RULE_OWN = 'own';
+
+    /**
+     * Members of this location plus the locations listed in
+     * allowedCheckinGyms() may check in.
+     */
+    public const CHECKIN_RULE_SELECTED = 'selected';
+
+    /**
+     * Every member of the organisation may check in here.
+     */
+    public const CHECKIN_RULE_ALL = 'all';
+
+    public const CHECKIN_RULES = [
+        self::CHECKIN_RULE_OWN,
+        self::CHECKIN_RULE_SELECTED,
+        self::CHECKIN_RULE_ALL,
+    ];
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -51,6 +74,7 @@ class Gym extends Model
         'api_key_generated_at',
         'trial_ends_at',
         'scanner_secret_key',
+        'cross_location_checkin_rule',
         'rolling_qr_enabled',
         'rolling_qr_interval',
         'rolling_qr_tolerance_windows',
@@ -202,6 +226,78 @@ class Gym extends Model
     public function googleSheetIntegration()
     {
         return $this->hasOne(GymGoogleSheetIntegration::class);
+    }
+
+    /**
+     * Locations whose members this gym accepts while its rule is 'selected'.
+     *
+     * Directed: an entry here means "we let their members in", it says nothing
+     * about the other direction.
+     */
+    public function allowedCheckinGyms()
+    {
+        return $this->belongsToMany(
+            self::class,
+            'gym_allowed_checkin_gyms',
+            'gym_id',
+            'allowed_gym_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * All locations of the organisation this gym belongs to.
+     *
+     * The organisation is implied by the owner — every gym owned by the same
+     * user forms one organisation. Returns at least this gym itself.
+     */
+    public function organizationGyms()
+    {
+        return self::query()
+            ->where('owner_id', $this->owner_id)
+            ->orderBy('name');
+    }
+
+    /**
+     * The effective check-in rule, defaulting to the closed 'own'.
+     *
+     * The column is non-null in the database, but a model may still carry null
+     * here (factory-built, partial select), and that must read as closed rather
+     * than falling through to a permissive branch.
+     */
+    public function checkinRule(): string
+    {
+        return $this->cross_location_checkin_rule ?? self::CHECKIN_RULE_OWN;
+    }
+
+    /**
+     * Whether this location lets a member whose home location is $homeGymId
+     * check in. Answers only the location half of the decision — the member's
+     * contract has to allow it as well, see CrossLocationAccessService.
+     */
+    public function acceptsMembersFrom(int $homeGymId): bool
+    {
+        if ($homeGymId === $this->id) {
+            return true;
+        }
+
+        // A foreign location is only ever reachable inside the same organisation.
+        // A gym without an owner belongs to no organisation at all — guard it,
+        // or every ownerless gym would match every other one.
+        if (! $this->owner_id) {
+            return false;
+        }
+
+        if (! self::whereKey($homeGymId)->where('owner_id', $this->owner_id)->exists()) {
+            return false;
+        }
+
+        return match ($this->checkinRule()) {
+            self::CHECKIN_RULE_ALL => true,
+            self::CHECKIN_RULE_SELECTED => $this->allowedCheckinGyms()
+                ->where('allowed_gym_id', $homeGymId)
+                ->exists(),
+            default => false,
+        };
     }
 
     /**
@@ -1097,7 +1193,48 @@ class Gym extends Model
             return true;
         }
 
+        // A visiting member's code is signed with their home location's key, so
+        // fall back to the keys of the locations this one accepts. Whether the
+        // member may actually enter is a separate decision — a valid signature
+        // only proves the code is genuine, see CrossLocationAccessService.
+        foreach ($this->acceptedCheckinKeys() as $key) {
+            if ($this->checkHashWithKey($memberId, $timestamp, $providedHash, $key)) {
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    /**
+     * Scanner keys of the locations whose members this gym accepts.
+     *
+     * Handed to the devices in their config so they can verify a visiting
+     * member's QR code offline. Empty while the rule is 'own', which keeps
+     * every existing installation exactly as it is today.
+     *
+     * @return array<string>
+     */
+    public function acceptedCheckinKeys(): array
+    {
+        // Anything but an explicit opt-in means no foreign key is handed out —
+        // a model built without the column (factory, partial select) reads null
+        // here, and null must never be treated as "open".
+        if ($this->checkinRule() !== self::CHECKIN_RULE_SELECTED
+            && $this->checkinRule() !== self::CHECKIN_RULE_ALL) {
+            return [];
+        }
+
+        $query = $this->organizationGyms()->where('gyms.id', '!=', $this->id);
+
+        if ($this->checkinRule() === self::CHECKIN_RULE_SELECTED) {
+            $query->whereIn('gyms.id', $this->allowedCheckinGyms()->pluck('gyms.id'));
+        }
+
+        return $query->pluck('scanner_secret_key')
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function checkHashWithKey($memberId, $timestamp, $providedHash, $secretKey): bool

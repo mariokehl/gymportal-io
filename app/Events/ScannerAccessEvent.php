@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\ScannerAccessLog;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -15,6 +14,7 @@ class ScannerAccessEvent implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public ScannerAccessLog $accessLog;
+
     public array $logData;
 
     public function __construct(ScannerAccessLog $accessLog)
@@ -26,7 +26,7 @@ class ScannerAccessEvent implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('gym.' . $this->accessLog->gym_id . '.access-logs'),
+            new PrivateChannel('gym.'.$this->accessLog->gym_id.'.access-logs'),
         ];
     }
 
@@ -44,19 +44,24 @@ class ScannerAccessEvent implements ShouldBroadcast
 
     private function formatLogData(ScannerAccessLog $log): array
     {
-        $log->load(['scanner', 'member']);
+        $log->load([
+            // Device numbers repeat across gyms, so scope the scanner by gym.
+            'scanner' => fn ($q) => $q->where('gym_id', $log->gym_id),
+            'member',
+        ]);
 
         return [
             'id' => $log->id,
             'device_number' => $log->device_number,
-            'scanner_name' => $log->scanner?->device_name ?? 'Scanner #' . $log->device_number,
+            'scanner_name' => $log->scanner?->device_name ?? 'Scanner #'.$log->device_number,
+            'device_task' => $log->scanner?->device_task,
             'scan_type' => $log->scan_type,
             'scan_type_label' => $log->scan_type_label,
             'access_granted' => $log->access_granted,
             'status_label' => $log->status_label,
             'denial_reason' => $log->denial_reason,
             'member_id' => $log->member_id,
-            'member_name' => $log->member ? trim($log->member->first_name . ' ' . $log->member->last_name) : null,
+            'member_name' => $log->member ? trim($log->member->first_name.' '.$log->member->last_name) : null,
             'member_number' => $log->member?->member_number,
             'nfc_card_id' => $log->metadata['nfc_card_id'] ?? null,
             'metadata' => $log->metadata,

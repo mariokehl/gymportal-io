@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use App\Events\ScannerAccessEvent;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ScannerAccessLog extends Model
 {
@@ -29,10 +30,11 @@ class ScannerAccessLog extends Model
         'gym_id',
         'device_number',
         'member_id',
+        'home_gym_id',
         'scan_type',
         'access_granted',
         'denial_reason',
-        'metadata'
+        'metadata',
     ];
 
     /**
@@ -44,7 +46,7 @@ class ScannerAccessLog extends Model
         'access_granted' => 'boolean',
         'metadata' => 'array',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -55,14 +57,16 @@ class ScannerAccessLog extends Model
     protected $appends = [
         'status_label',
         'scan_type_label',
-        'formatted_time'
+        'formatted_time',
     ];
 
     /**
      * Scan type constants
      */
     const SCAN_TYPE_QR = 'qr_code';
+
     const SCAN_TYPE_NFC = 'nfc_card';
+
     const SCAN_TYPE_ROLLING_QR = 'rolling_qr';
 
     const SCAN_TYPES = [
@@ -70,6 +74,31 @@ class ScannerAccessLog extends Model
         self::SCAN_TYPE_NFC => 'NFC-Karte',
         self::SCAN_TYPE_ROLLING_QR => 'Rolling QR',
     ];
+
+    /**
+     * Denial kinds the operator can actually resolve, stored in the metadata so
+     * the live log can offer the matching shortcut. Matching on the German
+     * denial text would break the moment the wording changes.
+     */
+    const DENIAL_KIND_CONTRACT = 'contract';
+
+    const DENIAL_KIND_LOCATION = 'location';
+
+    /**
+     * The kind of denial, when it is one the operator can fix.
+     */
+    public function getDenialKindAttribute(): ?string
+    {
+        return $this->metadata['denial_kind'] ?? null;
+    }
+
+    /**
+     * Whether the scan came from a member of another location.
+     */
+    public function isCrossLocation(): bool
+    {
+        return $this->home_gym_id !== null && $this->home_gym_id !== $this->gym_id;
+    }
 
     /**
      * Get database-agnostic SQL for summing a boolean column.
@@ -135,12 +164,28 @@ class ScannerAccessLog extends Model
     }
 
     /**
-     * Get the scanner that created this log
+     * Get the scanner that created this log.
+     *
+     * Device numbers are only unique per gym, so the gym has to be part of the
+     * match. It cannot be added as a relation constraint: reading
+     * $this->gym_id there returns null during eager loading, where the relation
+     * is built on an empty model — the join then silently matches nothing.
+     * The gym is therefore constrained on the query side, see scopeWithScanner().
      */
     public function scanner(): BelongsTo
     {
-        return $this->belongsTo(GymScanner::class, 'device_number', 'device_number')
-            ->where('gym_id', $this->gym_id);
+        return $this->belongsTo(GymScanner::class, 'device_number', 'device_number');
+    }
+
+    /**
+     * Eager load the scanner, restricted to the devices of one gym.
+     *
+     * Always prefer this over a bare with('scanner') — device numbers repeat
+     * across gyms, so an unscoped eager load could attach another gym's device.
+     */
+    public function scopeWithScanner(Builder $query, int $gymId): Builder
+    {
+        return $query->with(['scanner' => fn ($q) => $q->where('gym_id', $gymId)]);
     }
 
     /**
@@ -310,7 +355,7 @@ class ScannerAccessLog extends Model
     {
         return $query->whereBetween('created_at', [
             Carbon::parse($startDate)->startOfDay(),
-            Carbon::parse($endDate)->endOfDay()
+            Carbon::parse($endDate)->endOfDay(),
         ]);
     }
 
@@ -366,7 +411,7 @@ class ScannerAccessLog extends Model
      */
     public function getScanTypeIcon(): string
     {
-        return match($this->scan_type) {
+        return match ($this->scan_type) {
             self::SCAN_TYPE_QR, self::SCAN_TYPE_ROLLING_QR => '📱',
             self::SCAN_TYPE_NFC => '💳',
             default => '❓'
@@ -414,7 +459,7 @@ class ScannerAccessLog extends Model
             'scan_type' => $scanType,
             'access_granted' => $granted,
             'denial_reason' => $granted ? null : $denialReason,
-            'metadata' => $metadata
+            'metadata' => $metadata,
         ]);
     }
 
@@ -447,7 +492,7 @@ class ScannerAccessLog extends Model
             ],
             'by_device' => (clone $query)->select('device_number')
                 ->selectRaw('COUNT(*) as total')
-                ->selectRaw(self::sumBooleanSql('access_granted') . ' as granted')
+                ->selectRaw(self::sumBooleanSql('access_granted').' as granted')
                 ->groupBy('device_number')
                 ->get()
                 ->map(function ($item) {
@@ -456,17 +501,17 @@ class ScannerAccessLog extends Model
                         'total' => (int) $item->total,
                         'granted' => (int) $item->granted,
                         'denied' => (int) $item->total - (int) $item->granted,
-                        'success_rate' => $item->total > 0 ? round(((int) $item->granted / (int) $item->total) * 100, 2) : 0
+                        'success_rate' => $item->total > 0 ? round(((int) $item->granted / (int) $item->total) * 100, 2) : 0,
                     ];
                 })
-                ->toArray()
+                ->toArray(),
         ];
     }
 
     /**
      * Get member access history
      */
-    public static function getMemberHistory(string $memberId, int $limit = 10): \Illuminate\Database\Eloquent\Collection
+    public static function getMemberHistory(string $memberId, int $limit = 10): Collection
     {
         return self::forMember($memberId)
             ->with(['gym', 'scanner'])

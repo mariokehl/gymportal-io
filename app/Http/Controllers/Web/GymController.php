@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gym;
+use App\Models\Member;
+use App\Models\MembershipPlan;
 use App\Models\User;
 use App\Rules\SafeCss;
 use App\Services\CssSanitizer;
@@ -11,6 +13,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class GymController extends Controller
@@ -94,16 +97,30 @@ class GymController extends Controller
             ->with('success', 'Organisation wurde entfernt!');
     }
 
+    /**
+     * Where a switch may land besides the dashboard.
+     *
+     * An allowlist rather than a free-form URL: the target comes from the
+     * client, and an open redirect here would carry a logged-in session.
+     * Each entry maps to a route name plus the kind of id it expects.
+     */
+    private const SWITCH_TARGETS = [
+        'member' => ['route' => 'members.show', 'model' => Member::class],
+        'contract' => ['route' => 'contracts.edit', 'model' => MembershipPlan::class],
+    ];
+
     public function switchOrganization(Request $request)
     {
         /** @var User $user */
         $user = Auth::user();
 
-        $request->validate([
+        $validated = $request->validate([
             'gym_id' => 'required|exists:gyms,id',
+            'target' => ['nullable', Rule::in(array_keys(self::SWITCH_TARGETS))],
+            'target_id' => ['nullable', 'required_with:target', 'integer'],
         ]);
 
-        $gym = Gym::findOrFail($request->gym_id);
+        $gym = Gym::findOrFail($validated['gym_id']);
 
         // The user may only switch into a gym they are a member of (owned or via
         // gym_users) — strangers are rejected by the view ability.
@@ -111,7 +128,35 @@ class GymController extends Controller
 
         $user->update(['current_gym_id' => $gym->id]);
 
-        return redirect()->route('dashboard');
+        return redirect()->to($this->switchRedirectUrl($gym, $validated));
+    }
+
+    /**
+     * Resolve where the switch lands.
+     *
+     * Falls back to the dashboard whenever the requested target does not exist
+     * in the gym just switched into — the id is user input, so it must never be
+     * trusted to point at another organisation's record.
+     *
+     * @param  array{target?: string|null, target_id?: int|null}  $validated
+     */
+    private function switchRedirectUrl(Gym $gym, array $validated): string
+    {
+        $target = $validated['target'] ?? null;
+
+        if (! $target) {
+            return route('dashboard');
+        }
+
+        $config = self::SWITCH_TARGETS[$target];
+
+        $belongsToGym = $config['model']::whereKey($validated['target_id'])
+            ->where('gym_id', $gym->id)
+            ->exists();
+
+        return $belongsToGym
+            ? route($config['route'], $validated['target_id'])
+            : route('dashboard');
     }
 
     /**

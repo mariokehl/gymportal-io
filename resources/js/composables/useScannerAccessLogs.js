@@ -21,7 +21,9 @@ export function useScannerAccessLogs(gymId, options = {}) {
     const filters = reactive({
         scanner: options.scanner || null,
         type: options.type || null,         // 'qr_code' | 'nfc_card'
+        task: options.task || null,         // device task, e.g. 'dispenser'
         status: options.status || null,     // 'granted' | 'denied'
+        origin: options.origin || null,     // 'home' | 'guest'
         dateFrom: options.dateFrom || null,
         dateTo: options.dateTo || null,
     })
@@ -105,10 +107,19 @@ export function useScannerAccessLogs(gymId, options = {}) {
                 return false
             }
         }
+        if (filters.task && log.device_task !== filters.task) {
+            return false
+        }
         if (filters.status === 'granted' && !log.access_granted) {
             return false
         }
         if (filters.status === 'denied' && log.access_granted) {
+            return false
+        }
+        if (filters.origin === 'guest' && !log.is_cross_location) {
+            return false
+        }
+        if (filters.origin === 'home' && log.is_cross_location) {
             return false
         }
         return true
@@ -154,6 +165,32 @@ export function useScannerAccessLogs(gymId, options = {}) {
     }
 
     /**
+     * Build the query string for the logs endpoint from the active filters.
+     */
+    const buildFilterParams = (extra = {}) => {
+        const params = new URLSearchParams()
+
+        const mapping = {
+            scanner: filters.scanner,
+            type: filters.type,
+            task: filters.task,
+            status: filters.status,
+            origin: filters.origin,
+            date_from: filters.dateFrom,
+            date_to: filters.dateTo,
+            ...extra,
+        }
+
+        Object.entries(mapping).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                params.append(key, value)
+            }
+        })
+
+        return params.toString()
+    }
+
+    /**
      * Toggle live mode on/off
      */
     const toggleLive = () => {
@@ -173,12 +210,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
 
         isLoading.value = true
         try {
-            const params = new URLSearchParams()
-            if (filters.scanner) params.append('scanner', filters.scanner)
-            if (filters.type) params.append('type', filters.type)
-            if (filters.status) params.append('status', filters.status)
-
-            const response = await axios.get(route('access-control.logs') + '?' + params.toString())
+            const response = await axios.get(route('access-control.logs') + '?' + buildFilterParams())
 
             if (response.data.data) {
                 // Merge new entries
@@ -204,15 +236,9 @@ export function useScannerAccessLogs(gymId, options = {}) {
 
         isLoading.value = true
         try {
-            const params = new URLSearchParams()
-            params.append('page', currentPage.value + 1)
-            if (filters.scanner) params.append('scanner', filters.scanner)
-            if (filters.type) params.append('type', filters.type)
-            if (filters.status) params.append('status', filters.status)
-            if (filters.dateFrom) params.append('date_from', filters.dateFrom)
-            if (filters.dateTo) params.append('date_to', filters.dateTo)
-
-            const response = await axios.get(route('access-control.logs') + '?' + params.toString())
+            const response = await axios.get(
+                route('access-control.logs') + '?' + buildFilterParams({ page: currentPage.value + 1 })
+            )
 
             if (response.data.data) {
                 logs.value.push(...response.data.data)
@@ -237,14 +263,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
         hasMore.value = true
 
         try {
-            const params = new URLSearchParams()
-            if (filters.scanner) params.append('scanner', filters.scanner)
-            if (filters.type) params.append('type', filters.type)
-            if (filters.status) params.append('status', filters.status)
-            if (filters.dateFrom) params.append('date_from', filters.dateFrom)
-            if (filters.dateTo) params.append('date_to', filters.dateTo)
-
-            const response = await axios.get(route('access-control.logs') + '?' + params.toString())
+            const response = await axios.get(route('access-control.logs') + '?' + buildFilterParams())
 
             if (response.data.data) {
                 logs.value = response.data.data
@@ -271,7 +290,9 @@ export function useScannerAccessLogs(gymId, options = {}) {
     const clearFilters = () => {
         filters.scanner = null
         filters.type = null
+        filters.task = null
         filters.status = null
+        filters.origin = null
         filters.dateFrom = null
         filters.dateTo = null
         refresh()

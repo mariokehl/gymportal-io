@@ -14,6 +14,9 @@
                     :initial-logs="recentLogs"
                     :scanners="scannersData"
                     :gym-id="gymId"
+                    :summary="crossLocationSummary"
+                    :has-sibling-locations="crossLocation.has_siblings"
+                    @open-config="activeTab = 'config'"
                 />
             </div>
 
@@ -21,6 +24,7 @@
             <div v-if="activeTab === 'scanners' && isOwnerOrAdmin" class="space-y-6">
                 <ScannerManagement
                     :scanners="scannersData"
+                    :usage-addons="usageAddons"
                     :gym-id="gymId"
                     :initial-secret-key="scannerSecretKey"
                     @scanner-created="handleScannerCreated"
@@ -33,6 +37,11 @@
 
             <!-- Konfiguration Tab (nur für Owner/Admin) -->
             <div v-if="activeTab === 'config' && isOwnerOrAdmin" class="space-y-6">
+                <CrossLocationSettings
+                    :cross-location="crossLocation"
+                    @success="handleSuccess"
+                    @error="handleError"
+                />
                 <RollingQrSettings
                     :rolling-qr-enabled="rollingQrEnabled"
                     :rolling-qr-interval="rollingQrInterval"
@@ -61,7 +70,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { Scan, Radio, BarChart3, Settings } from 'lucide-vue-next'
+import { ScanLine, Radio, BarChart3, Settings } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
 import ScannerManagement from '@/Components/AccessControl/ScannerManagement.vue'
@@ -69,6 +78,7 @@ import AccessLogLive from '@/Components/AccessControl/AccessLogLive.vue'
 import AccessStatistics from '@/Components/AccessControl/AccessStatistics.vue'
 import RollingQrSettings from '@/Components/AccessControl/RollingQrSettings.vue'
 import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.vue'
+import CrossLocationSettings from '@/Components/AccessControl/CrossLocationSettings.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -77,6 +87,10 @@ const page = usePage()
 
 const props = defineProps({
     scanners: {
+        type: Array,
+        default: () => []
+    },
+    usageAddons: {
         type: Array,
         default: () => []
     },
@@ -117,6 +131,25 @@ const props = defineProps({
             service_account_email: null,
             last_synced_at: null
         })
+    },
+    crossLocation: {
+        type: Object,
+        default: () => ({
+            rule: 'own',
+            allowed_gym_ids: [],
+            locations: [],
+            has_siblings: false
+        })
+    },
+    crossLocationSummary: {
+        type: Object,
+        default: () => ({
+            checkins: 0,
+            guests: 0,
+            denied: 0,
+            guests_granted: 0,
+            breakdown: []
+        })
     }
 })
 
@@ -129,7 +162,7 @@ const isOwnerOrAdmin = computed(() => {
 // Alle verfügbaren Tabs
 const allTabs = [
     { key: 'live-log', label: 'Live-Protokoll', icon: Radio, requiresAdmin: false },
-    { key: 'scanners', label: 'Scanner', icon: Scan, requiresAdmin: true },
+    { key: 'scanners', label: 'Geräte', icon: ScanLine, requiresAdmin: true },
     { key: 'config', label: 'Konfiguration', icon: Settings, requiresAdmin: true },
     { key: 'statistics', label: 'Statistiken', icon: BarChart3, requiresAdmin: true },
 ]

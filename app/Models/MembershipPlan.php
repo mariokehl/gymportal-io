@@ -9,10 +9,32 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MembershipPlan extends Model
 {
+    /**
+     * The plan is only valid at the member's home location.
+     */
+    public const SCOPE_OWN = 'own';
+
+    /**
+     * The plan additionally covers the locations in allowedGyms().
+     */
+    public const SCOPE_SELECTED = 'selected';
+
+    /**
+     * The plan covers every location of the organisation.
+     */
+    public const SCOPE_ALL = 'all';
+
+    public const LOCATION_SCOPES = [
+        self::SCOPE_OWN,
+        self::SCOPE_SELECTED,
+        self::SCOPE_ALL,
+    ];
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'gym_id',
+        'location_scope',
         'name',
         'description',
         'price',
@@ -71,6 +93,39 @@ class MembershipPlan extends Model
         return $this->belongsToMany(Addon::class)
             ->withPivot('mode')
             ->withTimestamps();
+    }
+
+    /**
+     * Additional locations this plan is valid at while its scope is 'selected'.
+     * The member's home location is always included and is not stored here.
+     */
+    public function allowedGyms()
+    {
+        return $this->belongsToMany(Gym::class, 'gym_membership_plan')
+            ->withTimestamps();
+    }
+
+    /**
+     * Whether this plan lets its holder check in at $gymId.
+     *
+     * Answers only the contract half of the decision — the location must accept
+     * the member as well, see CrossLocationAccessService.
+     */
+    public function coversGym(int $gymId, int $homeGymId): bool
+    {
+        if ($gymId === $homeGymId) {
+            return true;
+        }
+
+        // A null scope (factory-built, partial select) reads as the closed
+        // 'own' — never let it fall through to a permissive branch.
+        return match ($this->location_scope ?? self::SCOPE_OWN) {
+            self::SCOPE_ALL => true,
+            self::SCOPE_SELECTED => $this->allowedGyms()
+                ->where('gyms.id', $gymId)
+                ->exists(),
+            default => false,
+        };
     }
 
     public function includedAddons()
