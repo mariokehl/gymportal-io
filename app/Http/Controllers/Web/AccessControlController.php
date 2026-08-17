@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateGoogleSheetSettingsRequest;
 use App\Jobs\SyncCheckInsToGoogleSheet;
 use App\Models\Addon;
+use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\ScannerAccessLog;
+use App\Services\CrossLocationAccessService;
 use App\Services\GoogleSheetsService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +23,17 @@ use Inertia\Response;
 class AccessControlController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * Memoised location names of the current organisation.
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $organizationGymNames = null;
+
+    public function __construct(
+        private CrossLocationAccessService $crossLocationService
+    ) {}
 
     /**
      * Display the access control dashboard
@@ -53,7 +66,11 @@ class AccessControlController extends Controller
 
         $recentLogs = ScannerAccessLog::forGym($gym->id)
             ->withScanner($gym->id)
-            ->with('member')
+            ->with(['member' => fn ($q) => $q->with([
+                // Only used for cross-location contract denials, where the
+                // dialog names the plan it is about to open.
+                'memberships' => fn ($m) => $m->active()->with('membershipPlan:id,name,gym_id')->limit(1),
+            ])])
             ->latest()
             ->limit(50)
             ->get()
@@ -80,6 +97,78 @@ class AccessControlController extends Controller
             'rollingQrInterval' => (int) ($gym->rolling_qr_interval ?? 3),
             'rollingQrToleranceWindows' => (int) ($gym->rolling_qr_tolerance_windows ?? 1),
             'googleSheet' => $this->googleSheetPayload($gym),
+            'crossLocation' => $this->crossLocationPayload($gym),
+            'crossLocationSummary' => $this->crossLocationService->todaysSummary($gym),
+        ]);
+    }
+
+    /**
+     * Cross-location check-in state for the configuration tab.
+     */
+    private function crossLocationPayload(Gym $gym): array
+    {
+        $locations = $this->crossLocationService->organizationLocations($gym);
+
+        return [
+            'rule' => $gym->checkinRule(),
+            'allowed_gym_ids' => $gym->allowedCheckinGyms()->pluck('gyms.id')->all(),
+            'locations' => $locations,
+            // A single-location organisation has nothing to configure; the UI
+            // hides the card instead of showing an empty picker.
+            'has_siblings' => count($locations) > 1,
+        ];
+    }
+
+    /**
+     * Update which members of the organisation may check in at this location.
+     */
+    public function updateCrossLocation(Request $request): JsonResponse
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $validated = $request->validate([
+            'rule' => ['required', Rule::in(Gym::CHECKIN_RULES)],
+            'allowed_gym_ids' => ['array'],
+            'allowed_gym_ids.*' => ['integer'],
+        ], [], [
+            'rule' => 'Check-in-Regel',
+            'allowed_gym_ids' => 'erlaubte Standorte',
+        ]);
+
+        // Only locations of the same organisation may be selected — never trust
+        // the ids from the request, they decide who gets through the door.
+        $organizationIds = $gym->organizationGyms()
+            ->where('gyms.id', '!=', $gym->id)
+            ->pluck('gyms.id')
+            ->all();
+
+        $allowed = array_values(array_intersect(
+            $validated['allowed_gym_ids'] ?? [],
+            $organizationIds
+        ));
+
+        if ($validated['rule'] === Gym::CHECKIN_RULE_SELECTED && $allowed === []) {
+            return response()->json([
+                'message' => 'Wählen Sie mindestens einen Standort aus, dessen Mitglieder hier einchecken dürfen.',
+            ], 422);
+        }
+
+        $gym->update(['cross_location_checkin_rule' => $validated['rule']]);
+
+        // The selection only matters for the 'selected' rule; clearing it
+        // otherwise keeps the stored state and the effective one in sync.
+        $gym->allowedCheckinGyms()->sync(
+            $validated['rule'] === Gym::CHECKIN_RULE_SELECTED ? $allowed : []
+        );
+
+        // Devices cache their organisation lookup, and the accepted keys are
+        // baked into their config file.
+        Cache::forget("gym_organization_ids:{$gym->id}");
+
+        return response()->json([
+            'message' => 'Die Check-in-Einstellungen wurden gespeichert. Laden Sie die Gerätekonfiguration neu herunter, damit die Scanner die Änderung übernehmen.',
+            'crossLocation' => $this->crossLocationPayload($gym->fresh()),
         ]);
     }
 
@@ -108,7 +197,11 @@ class AccessControlController extends Controller
 
         $query = ScannerAccessLog::forGym($gym->id)
             ->withScanner($gym->id)
-            ->with('member')
+            ->with(['member' => fn ($q) => $q->with([
+                // Only used for cross-location contract denials, where the
+                // dialog names the plan it is about to open.
+                'memberships' => fn ($m) => $m->active()->with('membershipPlan:id,name,gym_id')->limit(1),
+            ])])
             ->latest();
 
         // Apply filters
@@ -141,6 +234,21 @@ class AccessControlController extends Controller
                     ->where('gym_id', $gym->id)
                     ->where('device_task', $request->task);
             });
+        }
+
+        // Origin: own members vs. members visiting from another location.
+        // Rows written before cross-location check-in existed have a null
+        // home_gym_id and count as own members.
+        if ($request->filled('origin')) {
+            if ($request->origin === 'guest') {
+                $query->whereNotNull('home_gym_id')
+                    ->where('home_gym_id', '!=', $gym->id);
+            } elseif ($request->origin === 'home') {
+                $query->where(function ($sub) use ($gym) {
+                    $sub->whereNull('home_gym_id')
+                        ->orWhere('home_gym_id', $gym->id);
+                });
+            }
         }
 
         if ($request->filled('date_from')) {
@@ -591,6 +699,14 @@ class AccessControlController extends Controller
      */
     private function formatLogForFrontend(ScannerAccessLog $log): array
     {
+        // Only a contract denial from another location offers the shortcut, so
+        // the plan is resolved for those rows alone. Relies on the eager loads
+        // in the two callers, see crossLocationLogQuery().
+        $crossLocationPlan = $log->isCrossLocation()
+            && $log->denial_kind === ScannerAccessLog::DENIAL_KIND_CONTRACT
+                ? $log->member?->memberships->first()?->membershipPlan
+                : null;
+
         return [
             'id' => $log->id,
             'device_number' => $log->device_number,
@@ -606,13 +722,47 @@ class AccessControlController extends Controller
             'member_id' => $log->member_id,
             'member_name' => $log->member ? trim($log->member->first_name.' '.$log->member->last_name) : null,
             'member_number' => $log->member?->member_number,
-            'member_url' => $log->member ? route('members.show', $log->member->id) : null,
+            // Only linkable while the member belongs to the current gym —
+            // MemberPolicy::view compares against current_gym_id, so a visiting
+            // member's profile 403s. Those go through the switch dialog instead.
+            'member_url' => $log->member && ! $log->isCrossLocation()
+                ? route('members.show', $log->member->id)
+                : null,
             'nfc_card_id' => $log->metadata['nfc_card_id'] ?? null,
             'metadata' => $log->metadata,
             'created_at' => $log->created_at->toIso8601String(),
             'formatted_time' => $log->formatted_time,
             'time_ago' => $log->time_ago,
+            // Cross-location: null home_gym_id means an own member, which is
+            // also how the rows written before this feature read.
+            'is_cross_location' => $log->isCrossLocation(),
+            'home_gym_id' => $log->home_gym_id,
+            'home_gym_name' => $log->isCrossLocation()
+                ? ($this->organizationGymNames()[$log->home_gym_id] ?? 'Anderer Standort')
+                : null,
+            'denial_kind' => $log->denial_kind,
+            // The contract behind a cross-location denial lives in the member's
+            // own organisation. Named here so the switch dialog can say what it
+            // is about to open; the id is re-checked after the switch.
+            'contract_id' => $crossLocationPlan?->id,
+            'contract_name' => $crossLocationPlan?->name,
         ];
+    }
+
+    /**
+     * Location id => name for the current organisation.
+     *
+     * Memoised per request: formatLogForFrontend() runs for every row of the
+     * log and would otherwise query once per entry.
+     *
+     * @return array<int, string>
+     */
+    private function organizationGymNames(): array
+    {
+        return $this->organizationGymNames ??= Auth::user()->currentGym
+            ->organizationGyms()
+            ->pluck('name', 'id')
+            ->all();
     }
 
     /**
@@ -638,6 +788,10 @@ class AccessControlController extends Controller
             '',
             '# Security Configuration',
             'SECRET_KEY="'.$gym->scanner_secret_key.'"',
+            '# Keys of the locations whose members may check in here. The device',
+            '# tries these after SECRET_KEY, so a visiting member\'s QR code',
+            '# validates offline. Empty unless cross-location check-in is on.',
+            'ADDITIONAL_SECRET_KEYS="'.implode(',', $gym->acceptedCheckinKeys()).'"',
             'QR_CODE_VALIDITY_MINUTES=30',
             'ENABLE_TIMESTAMP_CHECK=True',
             'ENABLE_HASH_CHECK=True',

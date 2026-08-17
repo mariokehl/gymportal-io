@@ -45,7 +45,10 @@
       </div>
     </div>
 
-    <div class="max-w-3xl">
+    <!-- Tabs (nur wenn die Organisation mehrere Standorte hat) -->
+    <TabRail v-if="showLocationsTab" v-model="activeTab" :tabs="tabs" class="mb-6" />
+
+    <div v-show="!showLocationsTab || activeTab === 'general'" class="max-w-3xl">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <form @submit.prevent="submit">
           <!-- Name -->
@@ -362,20 +365,60 @@
         </form>
       </div>
     </div>
+
+    <!-- Standorte -->
+    <div v-if="showLocationsTab" v-show="activeTab === 'locations'">
+      <ContractLocations
+        :plan-id="membershipPlan.id"
+        :plan-name="membershipPlan.name"
+        :active-members-count="activeMembersCount"
+        :location-scope="locationScope"
+        @success="success"
+        @error="toastError"
+      />
+    </div>
   </AppLayout>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { Save, X, Eye, AlertTriangle } from 'lucide-vue-next'
+import TabRail from '@/Components/TabRail.vue'
+import ContractLocations from '@/Components/MembershipPlans/ContractLocations.vue'
+import { Save, X, Eye, AlertTriangle, MapPin, FileText } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
 
 // Props
 const props = defineProps({
   membershipPlan: Object,
   activeMembersCount: Number,
-  activeMemberships: Array
+  activeMemberships: Array,
+  locationScope: {
+    type: Object,
+    default: () => ({
+      scope: 'own',
+      allowed_gym_ids: [],
+      locations: [],
+      has_siblings: false,
+      location_rule: 'own',
+      gym_name: '',
+      effect: []
+    })
+  }
 })
+
+const { success, error: toastError } = useToast()
+
+// A single-location organisation has nothing to restrict, so the tab stays hidden.
+const showLocationsTab = computed(() => props.locationScope.has_siblings)
+
+const activeTab = ref('general')
+
+const tabs = [
+  { key: 'general', label: 'Allgemein', icon: FileText },
+  { key: 'locations', label: 'Standorte', icon: MapPin }
+]
 
 // Form data
 const form = useForm({

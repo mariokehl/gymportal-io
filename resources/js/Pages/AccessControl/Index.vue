@@ -14,6 +14,9 @@
                     :initial-logs="recentLogs"
                     :scanners="scannersData"
                     :gym-id="gymId"
+                    :summary="crossLocationSummary"
+                    :has-sibling-locations="crossLocation.has_siblings"
+                    @open-config="activeTab = 'config'"
                 />
             </div>
 
@@ -34,6 +37,11 @@
 
             <!-- Konfiguration Tab (nur für Owner/Admin) -->
             <div v-if="activeTab === 'config' && isOwnerOrAdmin" class="space-y-6">
+                <CrossLocationSettings
+                    :cross-location="crossLocation"
+                    @success="handleSuccess"
+                    @error="handleError"
+                />
                 <RollingQrSettings
                     :rolling-qr-enabled="rollingQrEnabled"
                     :rolling-qr-interval="rollingQrInterval"
@@ -70,6 +78,7 @@ import AccessLogLive from '@/Components/AccessControl/AccessLogLive.vue'
 import AccessStatistics from '@/Components/AccessControl/AccessStatistics.vue'
 import RollingQrSettings from '@/Components/AccessControl/RollingQrSettings.vue'
 import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.vue'
+import CrossLocationSettings from '@/Components/AccessControl/CrossLocationSettings.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -121,6 +130,25 @@ const props = defineProps({
             sheet_url: null,
             service_account_email: null,
             last_synced_at: null
+        })
+    },
+    crossLocation: {
+        type: Object,
+        default: () => ({
+            rule: 'own',
+            allowed_gym_ids: [],
+            locations: [],
+            has_siblings: false
+        })
+    },
+    crossLocationSummary: {
+        type: Object,
+        default: () => ({
+            checkins: 0,
+            guests: 0,
+            denied: 0,
+            guests_granted: 0,
+            breakdown: []
         })
     }
 })

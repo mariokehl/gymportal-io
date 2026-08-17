@@ -156,6 +156,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/{membershipPlan}', [MembershipPlanController::class, 'update'])->name('update');
         Route::delete('/{membershipPlan}', [MembershipPlanController::class, 'destroy'])->name('destroy');
         Route::get('/{membershipPlan}/check-deletion', [MembershipPlanController::class, 'checkDeletion'])->name('check-deletion');
+        Route::put('/{membershipPlan}/locations', [MembershipPlanController::class, 'updateLocations'])->name('locations.update');
     });
     Route::get('/finances', [FinancesController::class, 'index'])->name('finances.index');
     Route::post('/finances/export', [FinancesController::class, 'export'])->name('finances.export');
@@ -190,6 +191,9 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Rolling QR-Code Settings
         Route::put('/rolling-qr-settings', [AccessControlController::class, 'updateRollingQrSettings'])->name('rolling-qr-settings.update');
+
+        // Standortübergreifender Check-in
+        Route::put('/cross-location', [AccessControlController::class, 'updateCrossLocation'])->name('cross-location.update');
 
         // Google Sheet Integration
         Route::post('/google-sheet-settings', [AccessControlController::class, 'updateGoogleSheetSettings'])->name('google-sheet-settings.update');

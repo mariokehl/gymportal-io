@@ -4,6 +4,8 @@ namespace Tests\Feature\Web;
 
 use App\Models\Gym;
 use App\Models\GymUser;
+use App\Models\Member;
+use App\Models\MembershipPlan;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,5 +110,104 @@ class SwitchOrganizationTest extends TestCase
 
         $this->post(route('user.switch-organization'), ['gym_id' => $gym->id])
             ->assertRedirect(route('login'));
+    }
+
+    /*
+    | Redirect target — used by the "Standort wechseln" dialog in the live log,
+    | which switches and then opens the visiting member's profile or contract.
+    */
+
+    #[Test]
+    public function it_lands_on_the_member_after_switching(): void
+    {
+        $owner = User::factory()->create();
+        $berlin = Gym::factory()->create(['owner_id' => $owner->id]);
+        $hamburg = Gym::factory()->create(['owner_id' => $owner->id]);
+        $owner->update(['current_gym_id' => $berlin->id]);
+
+        $member = Member::factory()->create(['gym_id' => $hamburg->id]);
+
+        $this->actingAs($owner->fresh())
+            ->post(route('user.switch-organization'), [
+                'gym_id' => $hamburg->id,
+                'target' => 'member',
+                'target_id' => $member->id,
+            ])
+            ->assertRedirect(route('members.show', $member->id));
+
+        $this->assertSame($hamburg->id, $owner->fresh()->current_gym_id);
+    }
+
+    #[Test]
+    public function it_lands_on_the_contract_after_switching(): void
+    {
+        $owner = User::factory()->create();
+        $berlin = Gym::factory()->create(['owner_id' => $owner->id]);
+        $hamburg = Gym::factory()->create(['owner_id' => $owner->id]);
+        $owner->update(['current_gym_id' => $berlin->id]);
+
+        $plan = MembershipPlan::factory()->create(['gym_id' => $hamburg->id]);
+
+        $this->actingAs($owner->fresh())
+            ->post(route('user.switch-organization'), [
+                'gym_id' => $hamburg->id,
+                'target' => 'contract',
+                'target_id' => $plan->id,
+            ])
+            ->assertRedirect(route('contracts.edit', $plan->id));
+    }
+
+    #[Test]
+    public function a_target_outside_the_gym_falls_back_to_the_dashboard(): void
+    {
+        $owner = User::factory()->create();
+        $berlin = Gym::factory()->create(['owner_id' => $owner->id]);
+        $hamburg = Gym::factory()->create(['owner_id' => $owner->id]);
+        $owner->update(['current_gym_id' => $berlin->id]);
+
+        // A member of a gym the user is NOT switching into. Redirecting there
+        // would only produce a 403, so the dashboard is the honest landing.
+        $strangerGym = Gym::factory()->create();
+        $strangerMember = Member::factory()->create(['gym_id' => $strangerGym->id]);
+
+        $this->actingAs($owner->fresh())
+            ->post(route('user.switch-organization'), [
+                'gym_id' => $hamburg->id,
+                'target' => 'member',
+                'target_id' => $strangerMember->id,
+            ])
+            ->assertRedirect(route('dashboard'));
+    }
+
+    #[Test]
+    public function an_unknown_target_is_rejected(): void
+    {
+        [$owner, $gym] = $this->makeOwnerWithGym();
+
+        // The target is an allowlist, so it can never become an open redirect.
+        $this->actingAs($owner)
+            ->post(route('user.switch-organization'), [
+                'gym_id' => $gym->id,
+                'target' => 'https://evil.example.com',
+                'target_id' => 1,
+            ])
+            ->assertSessionHasErrors('target');
+    }
+
+    #[Test]
+    public function a_switch_without_a_target_still_lands_on_the_dashboard(): void
+    {
+        $owner = User::factory()->create();
+        $gymA = Gym::factory()->create(['owner_id' => $owner->id]);
+        $gymB = Gym::factory()->create(['owner_id' => $owner->id]);
+        $owner->update(['current_gym_id' => $gymA->id]);
+
+        $this->actingAs($owner->fresh())
+            ->post(route('user.switch-organization'), [
+                'gym_id' => $gymB->id,
+                'target' => null,
+                'target_id' => null,
+            ])
+            ->assertRedirect(route('dashboard'));
     }
 }

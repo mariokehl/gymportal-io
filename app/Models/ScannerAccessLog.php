@@ -30,6 +30,7 @@ class ScannerAccessLog extends Model
         'gym_id',
         'device_number',
         'member_id',
+        'home_gym_id',
         'scan_type',
         'access_granted',
         'denial_reason',
@@ -73,6 +74,31 @@ class ScannerAccessLog extends Model
         self::SCAN_TYPE_NFC => 'NFC-Karte',
         self::SCAN_TYPE_ROLLING_QR => 'Rolling QR',
     ];
+
+    /**
+     * Denial kinds the operator can actually resolve, stored in the metadata so
+     * the live log can offer the matching shortcut. Matching on the German
+     * denial text would break the moment the wording changes.
+     */
+    const DENIAL_KIND_CONTRACT = 'contract';
+
+    const DENIAL_KIND_LOCATION = 'location';
+
+    /**
+     * The kind of denial, when it is one the operator can fix.
+     */
+    public function getDenialKindAttribute(): ?string
+    {
+        return $this->metadata['denial_kind'] ?? null;
+    }
+
+    /**
+     * Whether the scan came from a member of another location.
+     */
+    public function isCrossLocation(): bool
+    {
+        return $this->home_gym_id !== null && $this->home_gym_id !== $this->gym_id;
+    }
 
     /**
      * Get database-agnostic SQL for summing a boolean column.

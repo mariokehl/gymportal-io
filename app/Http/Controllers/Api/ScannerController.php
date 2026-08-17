@@ -8,7 +8,9 @@ use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
+use App\Models\Membership;
 use App\Models\ScannerAccessLog;
+use App\Services\CrossLocationAccessService;
 use App\Services\DeviceAccessService;
 use App\Services\ScannerValidationService;
 use Exception;
@@ -23,7 +25,8 @@ class ScannerController extends Controller
 {
     public function __construct(
         private ScannerValidationService $validationService,
-        private DeviceAccessService $deviceAccessService
+        private DeviceAccessService $deviceAccessService,
+        private CrossLocationAccessService $crossLocationService
     ) {}
 
     /**
@@ -82,17 +85,22 @@ class ScannerController extends Controller
         $member = null;
 
         try {
-            // Resolve the member based on the scan type. Every lookup stays
-            // inside the scanner's gym — a device must never open for a member
-            // of another studio, so a foreign ID reads as unknown.
+            // Resolve the member based on the scan type. Lookups stay inside the
+            // scanner's organisation — a device must never open for a member of
+            // an unrelated studio, so an outside ID still reads as unknown.
+            // Whether a member of a *sibling* location actually gets in is
+            // decided further down by CrossLocationAccessService; being findable
+            // here is not permission.
+            $organizationGymIds = $this->organizationGymIds($scanner->gym_id);
+
             if ($scanType === 'qr_code' || $scanType === 'rolling_qr') {
                 $memberId = $request->input('member_id');
-                $member = Member::where('gym_id', $scanner->gym_id)
+                $member = Member::whereIn('gym_id', $organizationGymIds)
                     ->whereKey($memberId)
                     ->first();
             } elseif ($scanType === 'nfc_card') {
                 $accessConfig = MemberAccessConfig::where('nfc_uid', $nfcCardId)
-                    ->whereHas('member', fn ($query) => $query->where('gym_id', $scanner->gym_id))
+                    ->whereHas('member', fn ($query) => $query->whereIn('gym_id', $organizationGymIds))
                     ->first();
 
                 if ($accessConfig && ! $accessConfig->nfc_enabled) {
@@ -102,7 +110,8 @@ class ScannerController extends Controller
                         $scanType,
                         false,
                         'NFC-Zugang ist deaktiviert',
-                        $nfcCardId
+                        $nfcCardId,
+                        $accessConfig->member?->gym_id
                     );
 
                     return new Response(status: 403);
@@ -133,7 +142,8 @@ class ScannerController extends Controller
                     $scanType,
                     false,
                     'Mitglied ist nicht aktiv (Status: '.$member->status.')',
-                    $nfcCardId
+                    $nfcCardId,
+                    $member->gym_id
                 );
 
                 return new Response(status: 403);
@@ -162,6 +172,12 @@ class ScannerController extends Controller
 
             // Guest access: skip the membership check
             if ($member->hasGuestAccess()) {
+                // A guest holds no contract, so nothing can cover another
+                // location — check() denies any location but their own.
+                if (! $this->passesCrossLocationCheck($scanner, $member, null, $scanType, $nfcCardId)) {
+                    return new Response(status: 403);
+                }
+
                 // Add-ons are only sold together with a membership, so there is
                 // nothing for a guest to get at a dispenser.
                 [$serviceAllowed, $serviceDenial] = $this->deviceAccessService->check(
@@ -177,7 +193,8 @@ class ScannerController extends Controller
                         $scanType,
                         false,
                         $serviceDenial,
-                        $nfcCardId
+                        $nfcCardId,
+                        $member->gym_id
                     );
                     $this->deviceAccessService->logUsage(
                         $scanner,
@@ -196,12 +213,15 @@ class ScannerController extends Controller
                     $scanType,
                     true,
                     null,
-                    $nfcCardId
+                    $nfcCardId,
+                    $member->gym_id
                 );
 
+                // Booked against the visited location, not the member's home
+                // one — the check-in happened here.
                 CheckIn::create([
                     'member_id' => $member->id,
-                    'gym_id' => $member->gym_id,
+                    'gym_id' => $scanner->gym_id,
                     'check_in_time' => now(),
                     'check_in_method' => $checkInMethod,
                 ]);
@@ -226,7 +246,8 @@ class ScannerController extends Controller
                     $scanType,
                     false,
                     'Keine aktive Mitgliedschaft',
-                    $nfcCardId
+                    $nfcCardId,
+                    $member->gym_id
                 );
 
                 return new Response(status: 403);
@@ -234,8 +255,15 @@ class ScannerController extends Controller
 
             // Check whether start_date lies in the past
             if ($activeMembership->start_date->isPast() || $activeMembership->start_date->isToday()) {
-                // Membership is valid — now check whether the device's service
-                // (e.g. drink package) has been booked as well.
+                // Membership is valid — but if the member belongs to another
+                // location of the organisation, both the location and the
+                // contract have to allow this check-in.
+                if (! $this->passesCrossLocationCheck($scanner, $member, $activeMembership, $scanType, $nfcCardId)) {
+                    return new Response(status: 403);
+                }
+
+                // Now check whether the device's service (e.g. drink package)
+                // has been booked as well.
                 [$serviceAllowed, $serviceDenial] = $this->deviceAccessService->check(
                     $scanner,
                     $member,
@@ -249,7 +277,8 @@ class ScannerController extends Controller
                         $scanType,
                         false,
                         $serviceDenial,
-                        $nfcCardId
+                        $nfcCardId,
+                        $member->gym_id
                     );
                     $this->deviceAccessService->logUsage(
                         $scanner,
@@ -268,7 +297,8 @@ class ScannerController extends Controller
                     $scanType,
                     true,
                     null,
-                    $nfcCardId
+                    $nfcCardId,
+                    $member->gym_id
                 );
                 $this->deviceAccessService->logUsage($scanner, $member, $scanType, true);
 
@@ -277,7 +307,7 @@ class ScannerController extends Controller
                 if (! $scanner->isAddonLinked()) {
                     CheckIn::create([
                         'member_id' => $member->id,
-                        'gym_id' => $member->gym_id,
+                        'gym_id' => $scanner->gym_id,
                         'check_in_time' => now(),
                         'check_in_method' => $checkInMethod,
                     ]);
@@ -299,7 +329,8 @@ class ScannerController extends Controller
                     $scanType,
                     false,
                     'Mitgliedschaft startet am '.$activeMembership->start_date->format('d.m.Y'),
-                    $nfcCardId
+                    $nfcCardId,
+                    $member->gym_id
                 );
 
                 return new Response(status: 403);
@@ -318,12 +349,79 @@ class ScannerController extends Controller
                     $scanType,
                     false,
                     'Systemfehler',
-                    $nfcCardId
+                    $nfcCardId,
+                    $member?->gym_id
                 );
             }
 
             return new Response(status: 500);
         }
+    }
+
+    /**
+     * IDs of every location in the scanner's organisation, itself included.
+     *
+     * The organisation is implied by the owner. Cached briefly: this runs on
+     * every scan, while the set of locations changes at most a few times a year.
+     *
+     * @return array<int>
+     */
+    private function organizationGymIds(int $gymId): array
+    {
+        return Cache::remember(
+            "gym_organization_ids:{$gymId}",
+            now()->addMinutes(10),
+            function () use ($gymId) {
+                $ownerId = Gym::whereKey($gymId)->value('owner_id');
+
+                // Without an owner the gym stands alone — never widen the lookup
+                // on a null owner_id, that would match every ownerless studio.
+                if (! $ownerId) {
+                    return [$gymId];
+                }
+
+                return Gym::where('owner_id', $ownerId)->pluck('id')->all();
+            }
+        );
+    }
+
+    /**
+     * Runs the cross-location rules and logs the denial when they reject.
+     *
+     * Returns true for a member of the scanner's own location, where neither
+     * rule applies.
+     */
+    private function passesCrossLocationCheck(
+        GymScanner $scanner,
+        Member $member,
+        ?Membership $membership,
+        string $scanType,
+        ?string $nfcCardId
+    ): bool {
+        if ($member->gym_id === $scanner->gym_id) {
+            return true;
+        }
+
+        [$allowed, $reason, $kind] = $this->crossLocationService->check(
+            $scanner->gym,
+            $member,
+            $membership
+        );
+
+        if (! $allowed) {
+            $this->logAccessFromVerify(
+                $scanner,
+                $member->id,
+                $scanType,
+                false,
+                $reason,
+                $nfcCardId,
+                $member->gym_id,
+                $kind
+            );
+        }
+
+        return $allowed;
     }
 
     /**
@@ -486,6 +584,10 @@ class ScannerController extends Controller
      *
      * @param  string|int  $memberId  Empty string when the scan could not be
      *                                resolved to a member at all.
+     * @param  int|null  $homeGymId  Home location of the member, so the live log
+     *                               can tell a visitor from an own member.
+     * @param  string|null  $denialKind  One of ScannerAccessLog::DENIAL_KIND_*
+     *                                   when the operator can resolve the denial.
      */
     private function logAccessFromVerify(
         ?GymScanner $scanner,
@@ -493,7 +595,9 @@ class ScannerController extends Controller
         string $scanType,
         bool $granted,
         ?string $message = null,
-        ?string $nfcCardId = null
+        ?string $nfcCardId = null,
+        ?int $homeGymId = null,
+        ?string $denialKind = null
     ): void {
         if (! $scanner) {
             return;
@@ -510,10 +614,15 @@ class ScannerController extends Controller
             $metadata['nfc_card_id'] = $nfcCardId;
         }
 
+        if ($denialKind) {
+            $metadata['denial_kind'] = $denialKind;
+        }
+
         ScannerAccessLog::create([
             'gym_id' => $scanner->gym_id,
             'device_number' => $scanner->device_number,
             'member_id' => $memberId,
+            'home_gym_id' => $homeGymId,
             'scan_type' => $scanType,
             'access_granted' => $granted,
             'denial_reason' => $granted ? null : $message,

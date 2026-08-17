@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Gym;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -21,7 +20,7 @@ class GymFactory extends Factory
 
         return [
             'name' => $name,
-            'slug' => Str::slug($name . '-' . $this->faker->unique()->randomNumber(6)),
+            'slug' => Str::slug($name.'-'.$this->faker->unique()->randomNumber(6)),
             'description' => $this->faker->sentence(),
             'address' => $this->faker->streetAddress(),
             'city' => $this->faker->city(),
@@ -30,6 +29,7 @@ class GymFactory extends Factory
             'phone' => $this->faker->phoneNumber(),
             'email' => $this->faker->unique()->companyEmail(),
             'owner_id' => User::factory(),
+            'cross_location_checkin_rule' => Gym::CHECKIN_RULE_OWN,
             'subscription_status' => 'active',
             'subscription_plan' => 'pro',
             'subscription_ends_at' => now()->addYear(),
