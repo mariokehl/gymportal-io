@@ -804,9 +804,11 @@ const activateMembership = (membership) => {
       activatingMembership.value = null
       memberDocumentsTab.value?.fetchDocuments()
     },
-    onError: () => {
+    onError: (errors) => {
       activatingMembership.value = null
-      alert('Die Mitgliedschaft konnte nicht aktiviert werden.')
+      // Show the concrete reason from the backend so the operator knows what to fix
+      const message = Object.values(errors || {})[0]
+      alert(message || 'Die Mitgliedschaft konnte nicht aktiviert werden.')
     }
   })
 }
