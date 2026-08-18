@@ -4,9 +4,9 @@
         <button @click="canExpand && (showOrgPopover = !showOrgPopover)"
             :class="['w-full flex items-center justify-between p-3 transition-colors', canExpand ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default']">
             <div class="flex items-center flex-1 min-w-0">
-                <div
-                    class="w-8 h-8 flex-shrink-0 bg-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-semibold leading-none">
-                    {{ currentOrgName.charAt(0) }}
+                <div class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold leading-none"
+                    :style="symbolTileStyle(currentOrganization)">
+                    {{ resolveSymbol(currentOrganization).content }}
                 </div>
                 <div class="ml-3 text-left min-w-0">
                     <p class="text-sm font-medium text-gray-900 truncate">{{ currentOrgName }}</p>
@@ -56,13 +56,21 @@
                 <div class="py-1">
                     <template v-for="organization in allOrganizations" :key="organization.id">
                         <button @click="switchOrganization(organization.id)" :disabled="switchingOrg"
-                            class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
-                            <component v-if="organization.id == page.props.auth.user.current_gym?.id"
-                                :is="MapPinCheckInside" class="w-4 h-4 mr-2 text-green-500" />
-                            <component v-else :is="MapPin" class="w-4 h-4 mr-2 text-gray-400" />
-                            {{ organization.name }}
+                            class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span
+                                class="w-6 h-6 flex-shrink-0 rounded-md flex items-center justify-center text-xs font-semibold leading-none"
+                                :style="symbolTileStyle(organization)">
+                                {{ resolveSymbol(organization).content }}
+                            </span>
+                            <span class="flex-1 min-w-0 truncate"
+                                :class="organization.id == page.props.auth.user.current_gym?.id ? 'font-semibold text-gray-900' : ''">
+                                {{ organization.name }}
+                            </span>
                             <component v-if="switchingOrg && switchingOrgId === organization.id" :is="Loader2"
-                                class="w-4 h-4 ml-auto animate-spin text-gray-400" />
+                                class="w-4 h-4 flex-shrink-0 animate-spin text-gray-400" />
+                            <component
+                                v-else-if="organization.id == page.props.auth.user.current_gym?.id"
+                                :is="Check" class="w-4 h-4 flex-shrink-0 text-green-500" />
                         </button>
                     </template>
                 </div>
@@ -74,9 +82,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
-    ChevronDown, Settings, DollarSign, Plus, MapPin, MapPinCheckInside, Loader2
+    ChevronDown, Settings, DollarSign, Plus, Check, Loader2
 } from 'lucide-vue-next'
 import { router, usePage, Link } from '@inertiajs/vue3'
+import { resolveSymbol, symbolTileStyle } from '@/utils/organizationSymbol'
 
 // Shared data
 const page = usePage()
@@ -87,6 +96,10 @@ const switchingOrg = ref(false)
 const switchingOrgId = ref(null)
 
 // Computed properties
+const currentOrganization = computed(() => {
+    return page.props.auth.user.current_gym ?? { name: currentOrgName.value };
+})
+
 const currentOrgName = computed(() => {
     return page.props.auth.user.current_gym?.name || 'Kein Gym vorhanden';
 })

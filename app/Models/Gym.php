@@ -37,11 +37,55 @@ class Gym extends Model
         self::CHECKIN_RULE_ALL,
     ];
 
+    /**
+     * The organisation symbol falls back to the first letter of the name.
+     */
+    public const SYMBOL_TYPE_INITIAL = 'initial';
+
+    /**
+     * The organisation symbol is a single emoji picked by the operator.
+     */
+    public const SYMBOL_TYPE_EMOJI = 'emoji';
+
+    public const SYMBOL_TYPES = [
+        self::SYMBOL_TYPE_INITIAL,
+        self::SYMBOL_TYPE_EMOJI,
+    ];
+
+    /**
+     * Used whenever an organisation has no colour of its own. Matches the
+     * indigo the rest of the backend uses for primary actions.
+     */
+    public const DEFAULT_SYMBOL_COLOR = '#4f46e5';
+
+    /**
+     * The colours offered in the settings form. Mirrors SYMBOL_COLORS in
+     * resources/js/utils/organizationSymbol.js.
+     */
+    public const SYMBOL_COLORS = [
+        '#4f46e5', '#2563eb', '#0891b2', '#059669',
+        '#65a30d', '#d97706', '#ea580c', '#dc2626',
+        '#db2777', '#7c3aed', '#475569', '#111827',
+    ];
+
+    /**
+     * The emojis offered in the settings form. Mirrors SYMBOL_EMOJIS in
+     * resources/js/utils/organizationSymbol.js.
+     */
+    public const SYMBOL_EMOJIS = [
+        '🏋️', '💪', '🤸', '🥊', '🧘', '🏃', '🚴', '🏊',
+        '⚽', '🏆', '🥇', '🎯', '🔥', '⚡', '⭐', '🌊',
+        '🌲', '🍀', '🏙️', '🏢', '📍', '🧭', '🛡️', '🎽',
+    ];
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
         'display_name',
+        'symbol_type',
+        'symbol_emoji',
+        'symbol_color',
         'slug',
         'description',
         'address',
@@ -1262,6 +1306,38 @@ class Gym extends Model
     public function getDisplayName(): string
     {
         return $this->display_name ?: $this->name;
+    }
+
+    /**
+     * The symbol shown in the sidebar and the organization switcher.
+     *
+     * Returns the emoji when the operator picked one, otherwise the first
+     * letter of the display name. The colour always resolves to a value so
+     * the frontend never has to repeat the fallback.
+     *
+     * @return array{type: string, emoji: string|null, color: string, initial: string}
+     */
+    public function getSymbol(): array
+    {
+        $type = in_array($this->symbol_type, self::SYMBOL_TYPES, true)
+            ? $this->symbol_type
+            : self::SYMBOL_TYPE_INITIAL;
+
+        $emoji = $this->symbol_emoji !== null && $this->symbol_emoji !== ''
+            ? $this->symbol_emoji
+            : null;
+
+        // An emoji symbol without an emoji would render an empty tile.
+        if ($type === self::SYMBOL_TYPE_EMOJI && $emoji === null) {
+            $type = self::SYMBOL_TYPE_INITIAL;
+        }
+
+        return [
+            'type' => $type,
+            'emoji' => $emoji,
+            'color' => $this->symbol_color ?: self::DEFAULT_SYMBOL_COLOR,
+            'initial' => Str::upper(Str::substr(trim($this->getDisplayName()), 0, 1)),
+        ];
     }
 
     // === CONTRACT SETTINGS ===
