@@ -144,6 +144,7 @@
               <MembershipCard
                 :membership="membership"
                 :is-secondary="true"
+                :forcingMembershipStatus="forcingMembershipStatus"
                 @force-status="(m, s) => $emit('force-status', m, s)"
               />
 
@@ -161,6 +162,7 @@
               <MembershipCard
                 :membership="membership.linkedMembership"
                 :is-secondary="true"
+                :forcingMembershipStatus="forcingMembershipStatus"
                 @force-status="(m, s) => $emit('force-status', m, s)"
               />
             </div>
@@ -171,6 +173,7 @@
             <MembershipCard
               :membership="membership"
               :is-secondary="true"
+              :forcingMembershipStatus="forcingMembershipStatus"
               @force-status="(m, s) => $emit('force-status', m, s)"
             />
           </div>
