@@ -237,6 +237,11 @@ class ScannerAccessLog extends Model
      */
     public function getTimeAgoAttribute(): string
     {
+        // Avoid the awkward "vor 0 Sekunden" for fresh entries
+        if ($this->created_at->diffInSeconds() < 10) {
+            return 'gerade eben';
+        }
+
         return $this->created_at->diffForHumans();
     }
 
