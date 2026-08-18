@@ -222,6 +222,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::put('/gym/{gym}', [SettingController::class, 'updateGym'])->name('gym.update');
+        Route::put('/gym/{gym}/symbol', [SettingController::class, 'updateGymSymbol'])->name('gym.symbol.update');
         Route::post('/gym/logo/upload', [SettingController::class, 'uploadLogo'])->name('gym.logo.upload');
         Route::delete('/gym/logo/delete', [SettingController::class, 'deleteLogo'])->name('gym.logo.delete');
         Route::put('/gym-users/{gymUser}', [SettingController::class, 'updateGymUser'])->name('gym-users.update');

@@ -58,6 +58,7 @@ class HandleInertiaRequests extends Middleware
                             'name' => $user->currentGym->getDisplayName(),
                             'role' => $user->roleInGym($user->currentGym),
                             'can_manage' => $user->canManageGym($user->currentGym),
+                            'symbol' => $user->currentGym->getSymbol(),
                         ] : null,
                         // Every gym the user can access: owned gyms plus gyms
                         // they belong to via gym_users. Drives the organization
@@ -68,6 +69,7 @@ class HandleInertiaRequests extends Middleware
                                 'name' => $organization->getDisplayName(),
                                 'role' => $user->roleInGym($organization),
                                 'can_manage' => $user->canManageGym($organization),
+                                'symbol' => $organization->getSymbol(),
                             ];
                         })->all(),
                     ];
