@@ -14,9 +14,7 @@ import { router } from '@inertiajs/vue3'
  * @param {Function} [hooks.onActivated]  Called after a successful activation.
  */
 export function useMembershipActions(memberId, { onActivated } = {}) {
-  const pausingMembership = ref(null)
   const resumingMembership = ref(null)
-  const cancellingMembership = ref(null)
   const revokingCancellation = ref(null)
   const activatingMembership = ref(null)
   const abortingMembership = ref(null)
@@ -107,9 +105,7 @@ export function useMembershipActions(memberId, { onActivated } = {}) {
   )
 
   return {
-    pausingMembership,
     resumingMembership,
-    cancellingMembership,
     revokingCancellation,
     activatingMembership,
     abortingMembership,

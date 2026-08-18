@@ -17,6 +17,7 @@
             </h4>
             <MembershipStatusEditor
               :membership="membership"
+              :forcing-membership-status="forcingMembershipStatus"
               @force-status="(m, s) => $emit('force-status', m, s)"
             />
           </div>
@@ -126,15 +127,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  pausingMembership: {
-    type: [Number, null],
-    default: null
-  },
   resumingMembership: {
-    type: [Number, null],
-    default: null
-  },
-  cancellingMembership: {
     type: [Number, null],
     default: null
   },
@@ -147,6 +140,10 @@ const props = defineProps({
     default: null
   },
   abortingMembership: {
+    type: [Number, null],
+    default: null
+  },
+  forcingMembershipStatus: {
     type: [Number, null],
     default: null
   },
@@ -199,8 +196,6 @@ const actions = computed(() => {
     list.push({
       key: 'pause',
       label: 'Stilllegen',
-      loadingLabel: 'Wird stillgelegt...',
-      loading: props.pausingMembership === m.id,
       icon: Clock,
       colorClass: 'text-amber-600',
       handler: () => emit('pause', m),
@@ -225,8 +220,6 @@ const actions = computed(() => {
     list.push({
       key: 'cancel',
       label: 'Kündigen',
-      loadingLabel: 'Wird gekündigt...',
-      loading: props.cancellingMembership === m.id,
       icon: XCircle,
       colorClass: 'text-red-600',
       handler: () => emit('cancel', m),

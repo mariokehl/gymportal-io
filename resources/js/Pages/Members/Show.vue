@@ -198,13 +198,12 @@
         <MembershipTab
           :member="member"
           :membership-plans="membershipPlans"
-          :pausing-membership="pausingMembership"
           :resuming-membership="resumingMembership"
-          :cancelling-membership="cancellingMembership"
           :revoking-cancellation="revokingCancellation"
           :activating-membership="activatingMembership"
           :aborting-membership="abortingMembership"
           :withdrawing-membership="withdrawingMembership"
+          :forcing-membership-status="forcingMembershipStatus"
           @activate="activateMembership"
           @pause="openPauseMembership"
           @resume="resumeMembership"
@@ -487,13 +486,12 @@ const handleStatusChanged = (newStatus) => {
 
 // Membership actions (confirm + PUT + loading state) live in a composable.
 const {
-  pausingMembership,
   resumingMembership,
-  cancellingMembership,
   revokingCancellation,
   activatingMembership,
   abortingMembership,
   withdrawingMembership,
+  forcingMembershipStatus,
   activateMembership,
   resumeMembership,
   abortMembership,

@@ -38,13 +38,12 @@
               <MembershipCard
                 :membership="membership"
                 :is-secondary="!isCurrentlyActive(membership)"
-                :pausingMembership="pausingMembership"
                 :resumingMembership="resumingMembership"
-                :cancellingMembership="cancellingMembership"
                 :revokingCancellation="revokingCancellation"
                 :activatingMembership="activatingMembership"
                 :abortingMembership="abortingMembership"
                 :withdrawingMembership="withdrawingMembership"
+                :forcingMembershipStatus="forcingMembershipStatus"
                 @activate="$emit('activate', $event)"
                 @pause="$emit('pause', $event)"
                 @resume="$emit('resume', $event)"
@@ -69,13 +68,12 @@
               <MembershipCard
                 :membership="membership.linkedMembership"
                 :is-secondary="!isCurrentlyActive(membership.linkedMembership)"
-                :pausingMembership="pausingMembership"
                 :resumingMembership="resumingMembership"
-                :cancellingMembership="cancellingMembership"
                 :revokingCancellation="revokingCancellation"
                 :activatingMembership="activatingMembership"
                 :abortingMembership="abortingMembership"
                 :withdrawingMembership="withdrawingMembership"
+                :forcingMembershipStatus="forcingMembershipStatus"
                 @activate="$emit('activate', $event)"
                 @pause="$emit('pause', $event)"
                 @resume="$emit('resume', $event)"
@@ -93,13 +91,12 @@
             <MembershipCard
               :membership="membership"
               :is-secondary="false"
-              :pausingMembership="pausingMembership"
               :resumingMembership="resumingMembership"
-              :cancellingMembership="cancellingMembership"
               :revokingCancellation="revokingCancellation"
               :activatingMembership="activatingMembership"
               :abortingMembership="abortingMembership"
               :withdrawingMembership="withdrawingMembership"
+              :forcingMembershipStatus="forcingMembershipStatus"
               @activate="$emit('activate', $event)"
               @pause="$emit('pause', $event)"
               @resume="$emit('resume', $event)"
@@ -363,15 +360,7 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  pausingMembership: {
-    type: [Number, null],
-    default: null
-  },
   resumingMembership: {
-    type: [Number, null],
-    default: null
-  },
-  cancellingMembership: {
     type: [Number, null],
     default: null
   },
@@ -384,6 +373,10 @@ const props = defineProps({
     default: null
   },
   abortingMembership: {
+    type: [Number, null],
+    default: null
+  },
+  forcingMembershipStatus: {
     type: [Number, null],
     default: null
   },
