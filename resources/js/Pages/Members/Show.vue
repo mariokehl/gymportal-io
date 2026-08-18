@@ -146,10 +146,29 @@
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ member.status_history.length }}</span>
           <span
-            v-if="tab.id === 'payments' && outstandingBalance"
+            v-if="tab.id === 'membership' && pendingMembershipCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
+            :title="`${pendingMembershipCount} ausstehende Mitgliedschaft(en)`"
+          >{{ pendingMembershipCount }}</span>
+          <span
+            v-if="tab.id === 'payments' && paymentsAttentionSignal"
             class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
-            :class="active ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-600'"
-          ><AlertTriangle class="w-3 h-3" /></span>
+            :class="active ? 'bg-white/25 text-white' : paymentsAttentionSignal.colorClass"
+            :title="paymentsAttentionHint"
+          >
+            <!-- out-in keeps a single icon in the badge at any time, so the
+                 pill never reflows while the two signals alternate. -->
+            <Transition
+              mode="out-in"
+              enter-active-class="transition-opacity duration-200"
+              leave-active-class="transition-opacity duration-200"
+              enter-from-class="opacity-0"
+              leave-to-class="opacity-0"
+            >
+              <component :is="paymentsAttentionSignal.icon" :key="paymentsAttentionSignal.key" class="w-3 h-3" />
+            </Transition>
+          </span>
           <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
@@ -179,13 +198,12 @@
         <MembershipTab
           :member="member"
           :membership-plans="membershipPlans"
-          :pausing-membership="pausingMembership"
           :resuming-membership="resumingMembership"
-          :cancelling-membership="cancellingMembership"
           :revoking-cancellation="revokingCancellation"
           :activating-membership="activatingMembership"
           :aborting-membership="abortingMembership"
           :withdrawing-membership="withdrawingMembership"
+          :forcing-membership-status="forcingMembershipStatus"
           @activate="activateMembership"
           @pause="openPauseMembership"
           @resume="resumeMembership"
@@ -241,333 +259,40 @@
       </div>
     </div>
 
-    <!-- Modal für Mitgliedschaft pausieren -->
-    <teleport to="body">
-      <div v-if="showPauseMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closePauseMembership">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
-          <form @submit.prevent="pauseMembership">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
-                  Mitgliedschaft stilllegen
-                </h3>
-                <p class="mt-2 text-sm text-gray-600">
-                  Die Mitgliedschaft wird für den angegebenen Zeitraum pausiert.
-                  Der Vertrag verlängert sich entsprechend.
-                </p>
-              </div>
+    <!-- Membership action modals (each owns its own form state) -->
+    <PauseMembershipModal
+      v-if="showPauseMembershipModal && selectedMembership"
+      :member-id="member.id"
+      :membership="selectedMembership"
+      @close="closePauseMembership"
+    />
 
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Pausierung beginnt am <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    v-model="pauseMembershipForm.pause_start_date"
-                    type="date"
-                    :min="new Date().toISOString().split('T')[0]"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
+    <CancelMembershipModal
+      v-if="showCancelMembershipModal && selectedMembership"
+      :member-id="member.id"
+      :membership="selectedMembership"
+      @close="closeCancelMembership"
+    />
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Pausierung endet am <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    v-model="pauseMembershipForm.pause_end_date"
-                    type="date"
-                    :min="pauseMembershipForm.pause_start_date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
+    <WithdrawMembershipModal
+      v-if="showWithdrawMembershipModal && selectedMembership"
+      :membership="selectedMembership"
+      :processing="withdrawingMembership !== null"
+      @confirm="confirmWithdrawMembership"
+      @close="closeWithdrawMembership"
+    />
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Grund (optional)
-                  </label>
-                  <textarea
-                    v-model="pauseMembershipForm.reason"
-                    rows="3"
-                    placeholder="z.B. Urlaub, Verletzung, etc."
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  ></textarea>
-                </div>
-              </div>
-
-              <div v-if="pauseMembershipForm.errors && Object.keys(pauseMembershipForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
-                  <ul class="list-disc list-inside">
-                    <li v-for="(error, field) in pauseMembershipForm.errors" :key="field">{{ error }}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                :disabled="pauseMembershipForm.processing"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-              >
-                {{ pauseMembershipForm.processing ? 'Wird pausiert...' : 'Mitgliedschaft pausieren' }}
-              </button>
-              <button
-                type="button"
-                @click="closePauseMembership"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </teleport>
-
-    <!-- Modal für Mitgliedschaft kündigen -->
-    <teleport to="body">
-      <div v-if="showCancelMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeCancelMembership">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
-          <form @submit.prevent="cancelMembership">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
-                  Mitgliedschaft kündigen
-                </h3>
-                <p class="mt-2 text-sm text-gray-600">
-                  Die Mitgliedschaft wird zum angegebenen Datum beendet.
-                </p>
-              </div>
-
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Kündigungsdatum <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    v-model="cancelMembershipForm.cancellation_date"
-                    type="date"
-                    :min="cancelMembershipForm.min_cancellation_date || new Date().toISOString().split('T')[0]"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
-                  />
-                  <p class="mt-1 text-sm text-gray-500">
-                    Die Mitgliedschaft endet zu diesem Datum.
-                  </p>
-                  <p v-if="selectedMembership?.membership_plan?.commitment_months" class="mt-1 text-sm text-yellow-600">
-                    <AlertCircle class="w-3 h-3 inline mr-1" />
-                    Mindestlaufzeit: {{ selectedMembership.membership_plan?.commitment_months }} Monate ab {{ formatDate(selectedMembership.start_date) }}
-                  </p>
-                  <p v-if="selectedMembership?.membership_plan?.cancellation_period" class="mt-1 text-sm text-blue-600">
-                    <Clock class="w-3 h-3 inline mr-1" />
-                    Kündigungsfrist: {{ selectedMembership.membership_plan?.formatted_cancellation_period }}
-                  </p>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Kündigungsgrund <span class="text-red-500">*</span>
-                  </label>
-                  <select
-                    v-model="cancelMembershipForm.cancellation_reason"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
-                  >
-                    <option value="">Bitte wählen...</option>
-                    <option value="move">Umzug</option>
-                    <option value="financial">Finanzielle Gründe</option>
-                    <option value="health">Gesundheitliche Gründe</option>
-                    <option value="dissatisfied">Unzufriedenheit</option>
-                    <option value="no_time">Zeitmangel</option>
-                    <option value="other">Sonstiges</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="flex items-center">
-                    <input
-                      v-model="cancelMembershipForm.immediate"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                    />
-                    <span class="ml-2 text-sm text-gray-700">
-                      Sofort kündigen (außerordentliche Kündigung)
-                      <span v-if="selectedMembership?.membership_plan?.commitment_months" class="text-gray-500">
-                        - umgeht die Mindestlaufzeit
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="mt-4 p-3 bg-yellow-50 rounded-md">
-                <div class="flex items-start">
-                  <AlertCircle class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
-                  <div class="text-sm text-yellow-800">
-                    <p class="font-medium">Wichtiger Hinweis:</p>
-                    <p class="mt-1">
-                      Diese Aktion kann rückgängig gemacht werden, solange das Kündigungsdatum noch nicht erreicht wurde.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="cancelMembershipForm.errors && Object.keys(cancelMembershipForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
-                  <ul class="list-disc list-inside">
-                    <li v-for="(error, field) in cancelMembershipForm.errors" :key="field">{{ error }}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="submit"
-                :disabled="cancelMembershipForm.processing"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-              >
-                {{ cancelMembershipForm.processing ? 'Wird gekündigt...' : 'Mitgliedschaft kündigen' }}
-              </button>
-              <button
-                type="button"
-                @click="closeCancelMembership"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </teleport>
-
-    <!-- Modal für Mitgliedschaft widerrufen (§ 356a BGB) -->
-    <teleport to="body">
-      <div v-if="showWithdrawMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeWithdrawMembership">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div class="mb-4">
-              <h3 class="text-lg font-medium text-gray-900">
-                Mitgliedschaft widerrufen
-              </h3>
-              <p class="text-sm text-gray-500 mt-1">
-                Widerruf gemäß § 356a BGB innerhalb der 14-tägigen Widerrufsfrist.
-              </p>
-            </div>
-
-            <div v-if="selectedMembership" class="space-y-4">
-              <!-- Membership Info -->
-              <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h4 class="font-medium text-purple-900">{{ selectedMembership.membership_plan?.name }}</h4>
-                <p class="text-sm text-purple-700 mt-1">
-                  Vertragsbeginn: {{ formatDate(selectedMembership.contract_start_date || selectedMembership.start_date) }}
-                </p>
-                <p v-if="selectedMembership.withdrawal_deadline" class="text-sm text-purple-700">
-                  Widerrufsfrist endet: {{ formatDate(selectedMembership.withdrawal_deadline) }}
-                </p>
-              </div>
-
-              <!-- Warning -->
-              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div class="flex">
-                  <AlertCircle class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
-                  <div class="text-sm text-yellow-800">
-                    <p class="font-medium">Hinweis zum Widerruf:</p>
-                    <ul class="mt-1 list-disc list-inside space-y-1">
-                      <li>Der Widerruf ist unwiderruflich</li>
-                      <li>Eine E-Mail-Bestätigung wird automatisch versendet</li>
-                      <li>Bereits gezahlte Beträge werden innerhalb von 14 Tagen erstattet</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button
-              type="button"
-              @click="withdrawMembership"
-              :disabled="withdrawingMembership"
-              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-            >
-              {{ withdrawingMembership ? 'Wird widerrufen...' : 'Mitgliedschaft widerrufen' }}
-            </button>
-            <button
-              type="button"
-              @click="closeWithdrawMembership"
-              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              Abbrechen
-            </button>
-          </div>
-        </div>
-      </div>
-    </teleport>
-
-    <!-- Sperrliste Modal -->
-    <teleport to="body">
-      <div v-if="showBlockModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showBlockModal = false">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold text-gray-900">Mitglied auf Sperrliste setzen</h3>
-            <button @click="showBlockModal = false" class="text-gray-400 hover:text-gray-600">
-              <X class="w-5 h-5" />
-            </button>
-          </div>
-
-          <p class="text-sm text-gray-600">
-            <strong>{{ member.first_name }} {{ member.last_name }}</strong> wird gesperrt.
-            Alle Identifikatoren (IBAN, Telefon, Adresse, Name) werden gehashed und
-            bei zukünftigen Registrierungen abgeglichen.
-          </p>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Grund *</label>
-            <select v-model="blockForm.reason" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-              <option value="payment_failed">Zahlungsausfall</option>
-              <option value="chargeback">Rückbuchung</option>
-              <option value="fraud">Betrugsverdacht</option>
-              <option value="manual">Manuell</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Begründung * (min. 10 Zeichen)</label>
-            <textarea
-              v-model="blockForm.notes"
-              rows="3"
-              placeholder="z.B. Mehrfache SEPA-Rücklastschriften, kein Kontakt möglich..."
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <p v-if="blockForm.errors.notes" class="text-red-600 text-xs mt-1">{{ blockForm.errors.notes }}</p>
-          </div>
-
-          <div class="flex gap-3 justify-end">
-            <button @click="showBlockModal = false" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
-              Abbrechen
-            </button>
-            <button
-              @click="submitBlock"
-              :disabled="blockForm.processing || blockForm.notes.length < 10"
-              class="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Auf Sperrliste setzen
-            </button>
-          </div>
-        </div>
-      </div>
-    </teleport>
+    <BlockMemberModal
+      v-if="showBlockModal"
+      :member="member"
+      @close="showBlockModal = false"
+    />
   </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { useForm, Link, router } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
@@ -581,13 +306,17 @@ import AccessTab from '@/Components/Members/AccessTab.vue'
 import CheckinsTab from '@/Components/Members/CheckinsTab.vue'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import TabRail from '@/Components/TabRail.vue'
+import PauseMembershipModal from '@/Components/Members/PauseMembershipModal.vue'
+import CancelMembershipModal from '@/Components/Members/CancelMembershipModal.vue'
+import WithdrawMembershipModal from '@/Components/Members/WithdrawMembershipModal.vue'
+import BlockMemberModal from '@/Components/Members/BlockMemberModal.vue'
+import { useMembershipActions } from '@/composables/useMembershipActions'
+import { useMemberTabBadges } from '@/composables/useMemberTabBadges'
 import {
   User, FileText, Clock, CreditCard,
-  ArrowLeft, AlertCircle,
-  History, Key, FolderOpen,
-  X, AlertTriangle, MoreVertical
+  ArrowLeft, AlertCircle, History, Key, FolderOpen,
+  MoreVertical
 } from 'lucide-vue-next'
-import { formatDate, formatDateForInput } from '@/utils/formatters'
 import { getStatusText, getStatusColor } from '@/utils/memberStatus'
 
 const props = defineProps({
@@ -632,6 +361,13 @@ const outstandingBalance = computed(() => {
   }, 0)
   return sum > 0 ? sum : null
 })
+
+// Tab badges: pending memberships and payment issues that need the operator.
+const {
+  pendingMembershipCount,
+  paymentsAttentionSignal,
+  paymentsAttentionHint,
+} = useMemberTabBadges(props.member, outstandingBalance)
 
 const editMode = ref(false)
 
@@ -678,18 +414,8 @@ const memberNumber = computed({
   },
 })
 
-// Sperrliste
+// Sperrliste (the form itself lives in BlockMemberModal)
 const showBlockModal = ref(false)
-const blockForm = useForm({
-  reason: 'payment_failed',
-  notes: '',
-})
-
-const submitBlock = () => {
-  blockForm.post(route('blocklist.block-member', { member: props.member.id }), {
-    onSuccess: () => { showBlockModal.value = false },
-  })
-}
 const activeTab = ref('personal')
 const documentCount = ref(0)
 const memberDocumentsTab = ref(null)
@@ -713,13 +439,6 @@ const verifyingAge = ref(false)
 const togglingGuestAccess = ref(false)
 
 // Membership-related state
-const pausingMembership = ref(null)
-const resumingMembership = ref(null)
-const cancellingMembership = ref(null)
-const revokingCancellation = ref(null)
-const activatingMembership = ref(null)
-const abortingMembership = ref(null)
-const withdrawingMembership = ref(null)
 const showPauseMembershipModal = ref(false)
 const showCancelMembershipModal = ref(false)
 const showWithdrawMembershipModal = ref(false)
@@ -756,138 +475,51 @@ const tabs = computed(() => {
   return baseTabs
 })
 
-// Forms für Mitgliedschafts-Aktionen
-const pauseMembershipForm = useForm({
-  membership_id: null,
-  pause_start_date: '',
-  pause_end_date: '',
-  reason: ''
-})
-
-const cancelMembershipForm = useForm({
-  membership_id: null,
-  cancellation_date: '',
-  cancellation_reason: '',
-  immediate: false,
-  min_cancellation_date: null
-})
-
 // Status-Change Handler
 const handleStatusChanged = (newStatus) => {
-  console.log('Status wurde geändert zu:', newStatus)
-  // Die Seite wird automatisch durch Inertia aktualisiert
-  // Dokumente-Tab neu laden, da bei Aktivierung ggf. Verträge generiert werden
+  // Die Seite wird automatisch durch Inertia aktualisiert.
+  // Dokumente-Tab neu laden, da bei Aktivierung ggf. Verträge generiert werden.
   if (newStatus === 'active') {
     memberDocumentsTab.value?.fetchDocuments()
   }
 }
 
-const handleStatusChanging = (newStatus) => {
-  console.log('Status wird geändert zu:', newStatus)
-  // Optional: Zeige Loading-Indicator
-}
-
-// Mitgliedschafts-Aktionen
-const activateMembership = (membership) => {
-  if (!confirm('Möchten Sie diese Mitgliedschaft aktivieren?')) {
-    return
-  }
-
-  activatingMembership.value = membership.id
-
-  router.put(route('members.memberships.activate', {
-    member: props.member.id,
-    membership: membership.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      activatingMembership.value = null
-      memberDocumentsTab.value?.fetchDocuments()
-    },
-    onError: () => {
-      activatingMembership.value = null
-      alert('Die Mitgliedschaft konnte nicht aktiviert werden.')
-    }
-  })
-}
+// Membership actions (confirm + PUT + loading state) live in a composable.
+const {
+  resumingMembership,
+  revokingCancellation,
+  activatingMembership,
+  abortingMembership,
+  withdrawingMembership,
+  forcingMembershipStatus,
+  activateMembership,
+  resumeMembership,
+  abortMembership,
+  revokeCancellation,
+  withdrawMembership,
+  forceMembershipStatus,
+} = useMembershipActions(props.member.id, {
+  onActivated: () => memberDocumentsTab.value?.fetchDocuments(),
+})
 
 const openPauseMembership = (membership) => {
   selectedMembership.value = membership
-  pauseMembershipForm.membership_id = membership.id
-  pauseMembershipForm.pause_start_date = new Date().toISOString().split('T')[0]
-
-  // Standardmäßig für 1 Monat pausieren
-  const endDate = new Date()
-  endDate.setMonth(endDate.getMonth() + 1)
-  pauseMembershipForm.pause_end_date = endDate.toISOString().split('T')[0]
-
   showPauseMembershipModal.value = true
 }
 
 const closePauseMembership = () => {
   showPauseMembershipModal.value = false
-  pauseMembershipForm.reset()
   selectedMembership.value = null
 }
 
-const pauseMembership = () => {
-  pauseMembershipForm.put(route('members.memberships.pause', {
-    member: props.member.id,
-    membership: pauseMembershipForm.membership_id
-  }), {
-    preserveScroll: true,
-    onSuccess: () => {
-      closePauseMembership()
-      pausingMembership.value = null
-    },
-    onError: () => {
-      pausingMembership.value = null
-    }
-  })
+const openCancelMembership = (membership) => {
+  selectedMembership.value = membership
+  showCancelMembershipModal.value = true
 }
 
-const resumeMembership = (membership) => {
-  if (!confirm('Möchten Sie diese Mitgliedschaft wirklich wieder aufnehmen?')) {
-    return
-  }
-
-  resumingMembership.value = membership.id
-
-  router.put(route('members.memberships.resume', {
-    member: props.member.id,
-    membership: membership.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      resumingMembership.value = null
-    },
-    onError: () => {
-      resumingMembership.value = null
-      alert('Die Mitgliedschaft konnte nicht wieder aufgenommen werden.')
-    }
-  })
-}
-
-const abortMembership = (membership) => {
-  if (!confirm('Möchten Sie diesen Gratis-Testzeitraum wirklich abbrechen? Der Zeitraum wird sofort beendet.')) {
-    return
-  }
-
-  abortingMembership.value = membership.id
-
-  router.put(route('members.memberships.abort', {
-    member: props.member.id,
-    membership: membership.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      abortingMembership.value = null
-    },
-    onError: () => {
-      abortingMembership.value = null
-      alert('Der Gratis-Testzeitraum konnte nicht abgebrochen werden.')
-    }
-  })
+const closeCancelMembership = () => {
+  showCancelMembershipModal.value = false
+  selectedMembership.value = null
 }
 
 // Widerruf gemäß § 356a BGB
@@ -905,88 +537,14 @@ const closeWithdrawMembership = () => {
   forceWithdraw.value = false
 }
 
-const withdrawMembership = () => {
-  if (!confirm('Möchten Sie diese Mitgliedschaft wirklich widerrufen? Der Widerruf ist unwiderruflich und löst eine E-Mail-Bestätigung aus.')) {
-    return
-  }
-
-  withdrawingMembership.value = selectedMembership.value.id
-
-  router.put(route('members.memberships.withdraw', {
-    member: props.member.id,
-    membership: selectedMembership.value.id
-  }), {
-    force: forceWithdraw.value,
-  }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      withdrawingMembership.value = null
-      closeWithdrawMembership()
-    },
-    onError: () => {
-      withdrawingMembership.value = null
-    }
+const confirmWithdrawMembership = () => {
+  withdrawMembership(selectedMembership.value, forceWithdraw.value, {
+    onSuccess: closeWithdrawMembership,
   })
 }
 
-const openCancelMembership = (membership) => {
-  selectedMembership.value = membership
-  cancelMembershipForm.membership_id = membership.id
-  cancelMembershipForm.cancellation_date = formatDateForInput(membership.default_cancellation_date)
-  cancelMembershipForm.min_cancellation_date = formatDateForInput(membership.min_cancellation_date)
-  showCancelMembershipModal.value = true
-}
-
-const closeCancelMembership = () => {
-  showCancelMembershipModal.value = false
-  cancelMembershipForm.reset()
-  cancelMembershipForm.min_cancellation_date = null
-  selectedMembership.value = null
-}
-
-const cancelMembership = () => {
-  cancelMembershipForm.put(route('members.memberships.cancel', {
-    member: props.member.id,
-    membership: cancelMembershipForm.membership_id
-  }), {
-    preserveScroll: true,
-    onSuccess: () => {
-      closeCancelMembership()
-      cancellingMembership.value = null
-    },
-    onError: () => {
-      cancellingMembership.value = null
-    }
-  })
-}
-
-const revokeCancellation = (membership) => {
-  if (!confirm('Möchten Sie die Kündigung wirklich zurücknehmen?')) {
-    return
-  }
-
-  revokingCancellation.value = membership.id
-
-  router.put(route('members.memberships.revoke-cancellation', {
-    member: props.member.id,
-    membership: membership.id
-  }), {}, {
-    preserveScroll: true,
-    onSuccess: () => {
-      revokingCancellation.value = null
-    },
-    onError: () => {
-      revokingCancellation.value = null
-      alert('Die Kündigung konnte nicht zurückgenommen werden.')
-    }
-  })
-}
-
-// Force-Status Handler für Mitgliedschaften
-const forcingMembershipStatus = ref(null)
-
+// Force-Status: reuse the existing modals as confirmation where one exists.
 const handleForceStatus = (membership, newStatus) => {
-  // Für bestimmte Status die vorhandenen Modals als Bestätigung nutzen
   if (newStatus === 'paused') {
     openPauseMembership(membership)
     return
@@ -1002,34 +560,7 @@ const handleForceStatus = (membership, newStatus) => {
     return
   }
 
-  // Für alle anderen Stati: direkte Bestätigung und API-Call
-  const statusLabels = {
-    'active': 'Aktiv',
-    'expired': 'Abgelaufen',
-    'pending': 'Ausstehend',
-  }
-
-  if (!confirm(`Möchten Sie den Status dieser Mitgliedschaft wirklich auf "${statusLabels[newStatus] || newStatus}" forcieren?`)) {
-    return
-  }
-
-  forcingMembershipStatus.value = membership.id
-
-  router.put(route('members.memberships.force-status', {
-    member: props.member.id,
-    membership: membership.id
-  }), {
-    status: newStatus
-  }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      forcingMembershipStatus.value = null
-    },
-    onError: () => {
-      forcingMembershipStatus.value = null
-      alert('Der Status konnte nicht geändert werden.')
-    }
-  })
+  forceMembershipStatus(membership, newStatus)
 }
 
 const enterEditMode = () => {

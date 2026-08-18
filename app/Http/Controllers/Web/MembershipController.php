@@ -107,6 +107,15 @@ class MembershipController extends Controller
             ]);
         }
 
+        // Eine kostenpflichtige Mitgliedschaft braucht eine nutzbare Zahlungsart
+        $blockReason = $membership->getActivationBlockReason();
+
+        if ($blockReason !== null) {
+            return back()->withErrors([
+                'payment_method' => $blockReason,
+            ]);
+        }
+
         DB::beginTransaction();
         try {
             // Mitgliedschaft aktivieren (dispatched MembershipActivated Event für Vertragserstellung)

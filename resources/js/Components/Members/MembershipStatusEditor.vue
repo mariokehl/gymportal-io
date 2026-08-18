@@ -83,6 +83,11 @@ const props = defineProps({
   membership: {
     type: Object,
     required: true
+  },
+  // Id of the membership whose status is currently being forced, if any.
+  forcingMembershipStatus: {
+    type: [Number, null],
+    default: null
   }
 })
 
@@ -99,7 +104,7 @@ const allStatuses = [
 
 // State
 const showMenu = ref(false)
-const isChanging = ref(false)
+const isChanging = computed(() => props.forcingMembershipStatus === props.membership.id)
 const buttonRef = ref(null)
 const menuStyle = ref({})
 
@@ -152,7 +157,4 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
-
-// Expose for parent to control loading state
-defineExpose({ isChanging })
 </script>
