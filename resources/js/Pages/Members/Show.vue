@@ -146,10 +146,29 @@
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ member.status_history.length }}</span>
           <span
-            v-if="tab.id === 'payments' && outstandingBalance"
+            v-if="tab.id === 'membership' && pendingMembershipCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
+            :title="`${pendingMembershipCount} ausstehende Mitgliedschaft(en)`"
+          >{{ pendingMembershipCount }}</span>
+          <span
+            v-if="tab.id === 'payments' && paymentsAttentionSignal"
             class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
-            :class="active ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-600'"
-          ><AlertTriangle class="w-3 h-3" /></span>
+            :class="active ? 'bg-white/25 text-white' : paymentsAttentionSignal.colorClass"
+            :title="paymentsAttentionHint"
+          >
+            <!-- out-in keeps a single icon in the badge at any time, so the
+                 pill never reflows while the two signals alternate. -->
+            <Transition
+              mode="out-in"
+              enter-active-class="transition-opacity duration-200"
+              leave-active-class="transition-opacity duration-200"
+              enter-from-class="opacity-0"
+              leave-to-class="opacity-0"
+            >
+              <component :is="paymentsAttentionSignal.icon" :key="paymentsAttentionSignal.key" class="w-3 h-3" />
+            </Transition>
+          </span>
           <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
@@ -566,7 +585,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -585,7 +604,7 @@ import {
   User, FileText, Clock, CreditCard,
   ArrowLeft, AlertCircle,
   History, Key, FolderOpen,
-  X, AlertTriangle, MoreVertical
+  X, CircleAlert, TriangleAlert, MoreVertical
 } from 'lucide-vue-next'
 import { formatDate, formatDateForInput } from '@/utils/formatters'
 import { getStatusText, getStatusColor } from '@/utils/memberStatus'
@@ -632,6 +651,97 @@ const outstandingBalance = computed(() => {
   }, 0)
   return sum > 0 ? sum : null
 })
+
+// Pending memberships waiting to be activated by the operator.
+const pendingMembershipCount = computed(
+  () => (props.member.memberships || []).filter(m => m.status === 'pending').length
+)
+
+// Payment methods that cannot be billed yet, mirroring the backend activation
+// guard: a method is usable when it is active and, if it requires a SEPA
+// mandate, that mandate is active too.
+const unusablePaymentMethodCount = computed(
+  () => (props.member.payment_methods || []).filter(
+    pm => pm.status !== 'active' || (pm.requires_mandate && pm.sepa_mandate_status !== 'active')
+  ).length
+)
+
+// A pending membership can only be activated once a usable payment method
+// exists, so the payments tab is flagged when that is what blocks the operator.
+const hasNoUsablePaymentMethod = computed(() => {
+  const methods = props.member.payment_methods || []
+  return !methods.some(
+    pm => pm.status === 'active' && (!pm.requires_mandate || pm.sepa_mandate_status === 'active')
+  )
+})
+
+// The payments tab can be flagged for two independent reasons, each with its
+// own icon and colour. Outstanding balances outrank payment method issues, so
+// they are listed first and win whenever only a single signal can be shown.
+const paymentsAttentionSignals = computed(() => {
+  const signals = []
+
+  if (outstandingBalance.value !== null) {
+    signals.push({
+      key: 'outstanding',
+      icon: TriangleAlert,
+      colorClass: 'bg-amber-100 text-amber-600',
+      hint: 'Offener Betrag durch Rücklastschrift',
+    })
+  }
+
+  if (hasNoUsablePaymentMethod.value) {
+    signals.push({
+      key: 'payment-method',
+      icon: CircleAlert,
+      colorClass: 'bg-orange-100 text-orange-700',
+      hint: unusablePaymentMethodCount.value > 0
+        ? 'Keine abrechenbare Zahlungsart: Zahlungsart bzw. SEPA-Mandat muss noch aktiviert werden'
+        : 'Keine Zahlungsart hinterlegt',
+    })
+  } else if (unusablePaymentMethodCount.value > 0) {
+    signals.push({
+      key: 'payment-method',
+      icon: CircleAlert,
+      colorClass: 'bg-orange-100 text-orange-700',
+      hint: `${unusablePaymentMethodCount.value} Zahlungsart(en) nicht aktiv`,
+    })
+  }
+
+  return signals
+})
+
+// When both reasons apply the badge alternates between them, so neither signal
+// is hidden behind the other. Index is reset whenever the signals change.
+const paymentsSignalIndex = ref(0)
+let paymentsSignalTimer = null
+
+const paymentsAttentionSignal = computed(
+  () => paymentsAttentionSignals.value[paymentsSignalIndex.value] ?? paymentsAttentionSignals.value[0] ?? null
+)
+
+// The title lists every reason, even while the icon shows only one of them.
+const paymentsAttentionHint = computed(
+  () => paymentsAttentionSignals.value.map(signal => signal.hint).join(' · ')
+)
+
+watch(
+  () => paymentsAttentionSignals.value.length,
+  (count) => {
+    clearInterval(paymentsSignalTimer)
+    paymentsSignalTimer = null
+    paymentsSignalIndex.value = 0
+
+    if (count > 1) {
+      paymentsSignalTimer = setInterval(() => {
+        paymentsSignalIndex.value = (paymentsSignalIndex.value + 1) % count
+      }, 3000)
+    }
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(() => clearInterval(paymentsSignalTimer))
 
 const editMode = ref(false)
 
