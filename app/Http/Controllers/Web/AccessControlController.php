@@ -150,15 +150,26 @@ class AccessControlController extends Controller
             'checkin_station_enabled' => 'required|boolean',
         ]);
 
-        if ($validated['checkin_station_enabled'] && empty($gym->getAttributes()['checkin_station_token'] ?? null)) {
-            $gym->rotateCheckinStationToken();
+        if ($validated['checkin_station_enabled']) {
+            if (empty($gym->getAttributes()['checkin_station_token'] ?? null)) {
+                $gym->rotateCheckinStationToken();
+            }
+        } else {
+            // Switching the station off discards the token rather than parking
+            // it: a disabled station has no code to print, and keeping one on
+            // file would let a leaked sheet work again the moment the feature is
+            // re-enabled. The operator is warned in the UI that this cannot be
+            // undone.
+            $gym->clearCheckinStationToken();
         }
 
         $gym->update($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Einstellungen für den Check-in-Aufsteller wurden gespeichert.',
+            'message' => $validated['checkin_station_enabled']
+                ? 'Einstellungen für den Check-in-Aufsteller wurden gespeichert.'
+                : 'Check-in-Aufsteller deaktiviert. Der Code wurde gelöscht – bereits gedruckte Aufsteller funktionieren nicht mehr.',
             'checkin_station' => $this->checkinStationPayload($gym->fresh()),
         ]);
     }

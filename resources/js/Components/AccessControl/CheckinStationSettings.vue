@@ -46,6 +46,10 @@
                             <p class="text-xs text-gray-500 mt-1">
                                 Beim ersten Aktivieren wird automatisch ein Code erzeugt.
                             </p>
+                            <p v-if="willDisable" class="text-xs text-red-600 mt-1">
+                                Beim Speichern wird der Code gelöscht. Bereits gedruckte Aufsteller
+                                funktionieren danach nicht mehr – auch nicht nach erneutem Aktivieren.
+                            </p>
                         </div>
                     </div>
 
@@ -61,7 +65,7 @@
                 </form>
 
                 <!-- Der Link, aus dem der Aufsteller-Code erzeugt wird -->
-                <div v-if="checkinStation.scan_url" class="mt-8 border-t border-gray-200 pt-6">
+                <div v-if="checkinStation.enabled && checkinStation.scan_url" class="mt-8 border-t border-gray-200 pt-6">
                     <h4 class="text-sm font-medium text-gray-900 mb-1">
                         Link für den Aufsteller
                     </h4>
@@ -105,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { AlertTriangle } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -133,7 +137,17 @@ const isSaving = ref(false)
 const isRegenerating = ref(false)
 const copied = ref(false)
 
+// True while the operator has unticked a station that still holds a code —
+// the one save that destroys something, so it is called out before it happens.
+const willDisable = computed(
+    () => checkinStation.value.enabled && ! form.value.checkin_station_enabled
+)
+
 const saveSettings = async () => {
+    if (willDisable.value && ! window.confirm('Check-in-Aufsteller deaktivieren? Der Code wird gelöscht und alle gedruckten Aufsteller funktionieren danach nicht mehr.')) {
+        return
+    }
+
     isSaving.value = true
     try {
         const { data } = await axios.put(route('access-control.checkin-station.update'), form.value)

@@ -375,6 +375,20 @@ class Gym extends Model
     }
 
     /**
+     * Drop the station token entirely.
+     *
+     * Called when the operator switches the station off: a disabled station has
+     * no reason to keep a working code on file, and leaving one behind would
+     * mean a leaked sheet quietly regains access the moment the feature is
+     * switched back on. Re-enabling therefore mints a fresh token and every
+     * previously printed sheet stays dead.
+     */
+    public function clearCheckinStationToken(): void
+    {
+        $this->forceFill(['checkin_station_token' => null])->save();
+    }
+
+    /**
      * Constant-time comparison of a scanned token against this gym's.
      *
      * Reading the column directly rather than through the hidden-attribute
