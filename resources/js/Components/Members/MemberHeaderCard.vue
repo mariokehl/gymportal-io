@@ -84,21 +84,6 @@
             </button>
           </template>
           <template v-else>
-            <Link
-              :href="route('members.create')"
-              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-            >
-              <Plus class="w-4 h-4" />
-              Neues Mitglied
-            </Link>
-            <button
-              type="button"
-              @click="$emit('block')"
-              class="px-4 py-2 rounded-lg flex items-center gap-2 border border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <ShieldX class="w-4 h-4" />
-              Sperren
-            </button>
             <button
               type="button"
               @click="$emit('edit')"
@@ -107,6 +92,52 @@
               <Edit class="w-4 h-4" />
               Bearbeiten
             </button>
+
+            <!-- Secondary actions (new member / block) in a kebab menu -->
+            <div class="relative" ref="actionMenuRef">
+              <button
+                type="button"
+                @click="showActionMenu = !showActionMenu"
+                class="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+                :class="showActionMenu ? 'bg-gray-50' : ''"
+                aria-haspopup="menu"
+                :aria-expanded="showActionMenu"
+                aria-label="Weitere Aktionen"
+              >
+                <MoreVertical class="w-5 h-5" />
+              </button>
+              <transition
+                enter-active-class="transition duration-150 ease-out"
+                leave-active-class="transition duration-100 ease-in"
+                enter-from-class="opacity-0 scale-95"
+                leave-to-class="opacity-0 scale-95"
+              >
+                <div
+                  v-if="showActionMenu"
+                  class="absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5"
+                  role="menu"
+                >
+                  <Link
+                    :href="route('members.create')"
+                    class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    role="menuitem"
+                    @click="showActionMenu = false"
+                  >
+                    <Plus class="w-4 h-4 text-indigo-600" />
+                    Neues Mitglied
+                  </Link>
+                  <button
+                    type="button"
+                    @click="showActionMenu = false; $emit('block')"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                    role="menuitem"
+                  >
+                    <ShieldX class="w-4 h-4" />
+                    Sperren
+                  </button>
+                </div>
+              </transition>
+            </div>
           </template>
         </div>
       </div>
@@ -304,9 +335,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet } from 'lucide-vue-next'
+import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet, MoreVertical } from 'lucide-vue-next'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
@@ -357,6 +388,31 @@ const emit = defineEmits([
 
 const showActionSheet = ref(false)
 const showDiscardConfirm = ref(false)
+const showActionMenu = ref(false)
+const actionMenuRef = ref(null)
+
+// Close the desktop kebab menu on outside click or Escape
+const handleDocumentClick = (event) => {
+  if (showActionMenu.value && !actionMenuRef.value?.contains(event.target)) {
+    showActionMenu.value = false
+  }
+}
+
+const handleEscape = (event) => {
+  if (event.key === 'Escape') {
+    showActionMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('keydown', handleEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('keydown', handleEscape)
+})
 
 // Initials helper (kept local so the card is self-contained)
 const getInitials = (firstName, lastName) => {
