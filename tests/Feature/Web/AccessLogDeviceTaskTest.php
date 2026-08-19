@@ -87,6 +87,38 @@ class AccessLogDeviceTaskTest extends TestCase
     }
 
     #[Test]
+    public function a_log_without_a_device_has_no_scanner_name(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+        // Member scanned the printed station with their own phone.
+        ScannerAccessLog::create([
+            'gym_id' => $gym->id,
+            'device_number' => null,
+            'member_id' => '1',
+            'scan_type' => ScannerAccessLog::SCAN_TYPE_MANUAL,
+            'access_granted' => true,
+        ]);
+
+        $this->actingAs($owner)
+            ->getJson(route('access-control.logs'))
+            ->assertOk()
+            ->assertJsonPath('data.0.scanner_name', null)
+            ->assertJsonPath('data.0.scan_type_label', 'Manueller Check-in/out');
+    }
+
+    #[Test]
+    public function a_log_of_a_deleted_device_falls_back_to_its_number(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+        $this->log($gym, '099');
+
+        $this->actingAs($owner)
+            ->getJson(route('access-control.logs'))
+            ->assertOk()
+            ->assertJsonPath('data.0.scanner_name', 'Scanner #099');
+    }
+
+    #[Test]
     public function logs_can_be_filtered_by_device_task(): void
     {
         [$owner, $gym] = $this->ownerWithGym();

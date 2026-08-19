@@ -53,7 +53,7 @@ class ScannerAccessEvent implements ShouldBroadcast
         return [
             'id' => $log->id,
             'device_number' => $log->device_number,
-            'scanner_name' => $log->scanner?->device_name ?? 'Scanner #'.$log->device_number,
+            'scanner_name' => $log->scanner_name,
             'device_task' => $log->scanner?->device_task,
             'scan_type' => $log->scan_type,
             'scan_type_label' => $log->scan_type_label,

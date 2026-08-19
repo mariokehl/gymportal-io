@@ -484,6 +484,6 @@ class EmailTemplateService
 
     private function generateMemberPortalLink(Gym $gym): string
     {
-        return "https://members.gymportal.io/{$gym->slug}";
+        return config('app.pwa_url')."/{$gym->slug}";
     }
 }

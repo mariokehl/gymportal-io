@@ -119,6 +119,8 @@ class Gym extends Model
         'trial_ends_at',
         'scanner_secret_key',
         'cross_location_checkin_rule',
+        'checkin_station_enabled',
+        'checkin_station_token',
         'rolling_qr_enabled',
         'rolling_qr_interval',
         'rolling_qr_tolerance_windows',
@@ -148,6 +150,7 @@ class Gym extends Model
         'widget_enabled' => 'boolean',
         'widget_settings' => 'array',
         'contracts_start_first_of_month' => 'boolean',
+        'checkin_station_enabled' => 'boolean',
         'rolling_qr_enabled' => 'boolean',
         'api_key_generated_at' => 'datetime',
         'pwa_enabled' => 'boolean',
@@ -160,6 +163,7 @@ class Gym extends Model
     protected $hidden = [
         'api_key',
         'scanner_secret_key',
+        'checkin_station_token',
     ];
 
     protected $appends = ['theme', 'pwa_manifest', 'logo_url'];
@@ -345,6 +349,46 @@ class Gym extends Model
     }
 
     /**
+     * Whether the printed check-in station is usable at this location.
+     *
+     * Enabled alone is not enough — without a token there is nothing for a
+     * member to scan, and a half-configured gym must read as closed.
+     */
+    public function hasCheckinStation(): bool
+    {
+        return (bool) $this->checkin_station_enabled && ! empty($this->checkin_station_token);
+    }
+
+    /**
+     * Issue a station token, replacing any existing one.
+     *
+     * Rotating invalidates every printed sheet in circulation, which is exactly
+     * what an operator wants after a code leaks — so the caller has to mean it.
+     */
+    public function rotateCheckinStationToken(): string
+    {
+        $token = Str::random(48);
+
+        $this->forceFill(['checkin_station_token' => $token])->save();
+
+        return $token;
+    }
+
+    /**
+     * Constant-time comparison of a scanned token against this gym's.
+     *
+     * Reading the column directly rather than through the hidden-attribute
+     * accessor, and comparing with hash_equals so a wrong token cannot be
+     * narrowed down by timing.
+     */
+    public function matchesCheckinStationToken(string $token): bool
+    {
+        $expected = $this->checkin_station_token;
+
+        return is_string($expected) && $expected !== '' && hash_equals($expected, $token);
+    }
+
+    /**
      * Bestimmte Legal URL nach Typ abrufen
      */
     public function getLegalUrl(string $type): ?string
@@ -391,7 +435,7 @@ class Gym extends Model
         return Attribute::make(
             get: function () {
                 // Domain aus Request oder als Standard festlegen
-                $domain = request()->header('Origin') ?: 'https://members.gymportal.io';
+                $domain = request()->header('Origin') ?: config('app.pwa_url');
 
                 return [
                     'name' => $this->name.' - Mitglieder App',

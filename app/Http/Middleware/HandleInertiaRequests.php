@@ -86,6 +86,10 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            // Root of the member PWA, so the admin UI can build member-facing
+            // links (portal preview, e-mail template previews) without hard-
+            // coding the production domain.
+            'pwaUrl' => config('app.pwa_url'),
             'chatwoot' => [
                 'enabled' => config('chatwoot.enabled'),
                 'token' => config('chatwoot.website_token'),

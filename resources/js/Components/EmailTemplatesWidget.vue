@@ -395,6 +395,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import {
     Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor
 } from 'lucide-vue-next'
+import { usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/utils/formatters'
 import EmailAttachmentsDropzone from '@/Components/EmailAttachmentsDropzone.vue'
 import { useToast } from '@/composables/useToast'
@@ -405,6 +406,8 @@ const { success, error: toastError } = useToast()
 const props = defineProps({
     currentGym: Object
 })
+
+const page = usePage()
 
 // Reactive data
 const templates = ref([])
@@ -775,7 +778,7 @@ const replacePlaceholders = (content) => {
         '[Monatsbeitrag]': '49,90',
         '[Startdatum]': new Date().toLocaleDateString('de-DE'),
         '[Enddatum]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
-        '[Mitgliederbereich-Link]': 'https://members.gymportal.io',
+        '[Mitgliederbereich-Link]': page.props.pwaUrl,
         '[Datum]': new Date().toLocaleDateString('de-DE'),
         '[Anmeldecode]': '482916'
     }

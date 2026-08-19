@@ -69,10 +69,17 @@ class ScannerAccessLog extends Model
 
     const SCAN_TYPE_ROLLING_QR = 'rolling_qr';
 
+    /**
+     * Member scanned the printed station code with their own phone, without a
+     * scanner device. Carries no device_number — there is no device.
+     */
+    const SCAN_TYPE_MANUAL = 'manual';
+
     const SCAN_TYPES = [
         self::SCAN_TYPE_QR => 'QR-Code',
         self::SCAN_TYPE_NFC => 'NFC-Karte',
         self::SCAN_TYPE_ROLLING_QR => 'Rolling QR',
+        self::SCAN_TYPE_MANUAL => 'Manueller Check-in/out',
     ];
 
     /**
@@ -217,6 +224,24 @@ class ScannerAccessLog extends Model
     }
 
     /**
+     * How to name the device behind this entry in the live log.
+     *
+     * Reads through the relation so re-naming a device also changes what older
+     * entries show, and falls back to the bare number for a device that has
+     * since been deleted. Deviceless entries — a member scanning the printed
+     * station with their own phone — return null rather than a "Scanner #"
+     * with nothing after it.
+     */
+    public function getScannerNameAttribute(): ?string
+    {
+        if ($this->device_number === null) {
+            return null;
+        }
+
+        return $this->scanner?->device_name ?? 'Scanner #'.$this->device_number;
+    }
+
+    /**
      * Get formatted time attribute
      */
     public function getFormattedTimeAttribute(): string
@@ -237,6 +262,11 @@ class ScannerAccessLog extends Model
      */
     public function getTimeAgoAttribute(): string
     {
+        // Avoid the awkward "vor 0 Sekunden" for fresh entries
+        if ($this->created_at->diffInSeconds() < 10) {
+            return 'gerade eben';
+        }
+
         return $this->created_at->diffForHumans();
     }
 

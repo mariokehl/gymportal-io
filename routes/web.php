@@ -94,6 +94,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::post('/members/{member}/toggle-age-verification', [MemberController::class, 'toggleAgeVerification'])->name('members.toggle-age-verification');
     Route::post('/members/{member}/toggle-guest-access', [MemberController::class, 'toggleGuestAccess'])->name('members.toggle-guest-access');
+    Route::post('/members/{member}/toggle-checkin', [MemberController::class, 'toggleCheckin'])->name('members.toggle-checkin');
     Route::post('/members/{member}/memberships', [MemberController::class, 'storeMembership'])->name('members.memberships.store');
     Route::post('/members/{member}/memberships/free-period', [MembershipController::class, 'storeFreePeriod'])->name('members.memberships.store-free-period');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {
@@ -194,6 +195,10 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
 
         // Standortübergreifender Check-in
         Route::put('/cross-location', [AccessControlController::class, 'updateCrossLocation'])->name('cross-location.update');
+
+        // Check-in-Aufsteller (gedruckter QR-Code, Scan per Mitglieder-Smartphone)
+        Route::put('/checkin-station', [AccessControlController::class, 'updateCheckinStation'])->name('checkin-station.update');
+        Route::post('/checkin-station/regenerate', [AccessControlController::class, 'regenerateCheckinStationToken'])->name('checkin-station.regenerate');
 
         // Google Sheet Integration
         Route::post('/google-sheet-settings', [AccessControlController::class, 'updateGoogleSheetSettings'])->name('google-sheet-settings.update');

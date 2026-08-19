@@ -337,7 +337,7 @@ class EmailTemplateController extends Controller
             '[Monatsbeitrag]' => '49,90',
             '[Startdatum]' => now()->format('d.m.Y'),
             '[Enddatum]' => now()->addYear()->format('d.m.Y'),
-            '[Mitgliederbereich-Link]' => 'https://members.gymportal.io/' . $gym->slug,
+            '[Mitgliederbereich-Link]' => config('app.pwa_url') . '/' . $gym->slug,
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
         ];
