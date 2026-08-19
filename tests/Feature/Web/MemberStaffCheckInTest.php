@@ -119,20 +119,34 @@ class MemberStaffCheckInTest extends TestCase
     }
 
     #[Test]
-    public function it_writes_the_check_in_to_the_access_log_but_not_the_check_out(): void
+    public function it_keeps_manual_check_ins_out_of_the_access_log(): void
     {
+        // The scanner access log is the studio's live view of device and station
+        // scans. A counter action by a staff member is not a hardware access
+        // decision, so neither direction of the toggle may appear there.
+        [$owner, , $member] = $this->ownerGymMember();
+
+        $this->actingAs($owner)->post(route('members.toggle-checkin', $member->id));
+        $this->actingAs($owner)->post(route('members.toggle-checkin', $member->id));
+
+        $this->assertSame(0, ScannerAccessLog::where('member_id', $member->id)->count());
+    }
+
+    #[Test]
+    public function it_still_attributes_the_visit_to_the_acting_user(): void
+    {
+        // Traceability moved off the access log entirely, so it has to hold on
+        // the check_ins row itself.
         [$owner, $gym, $member] = $this->ownerGymMember();
 
         $this->actingAs($owner)->post(route('members.toggle-checkin', $member->id));
-        $this->actingAs($owner)->post(route('members.toggle-checkin', $member->id));
 
-        $logs = ScannerAccessLog::where('member_id', $member->id)->get();
-
-        $this->assertCount(1, $logs);
-        $this->assertTrue((bool) $logs->first()->access_granted);
-        $this->assertSame($gym->id, $logs->first()->gym_id);
-        $this->assertSame('staff', $logs->first()->metadata['source']);
-        $this->assertSame($owner->id, $logs->first()->metadata['performed_by']);
+        $this->assertDatabaseHas('check_ins', [
+            'member_id' => $member->id,
+            'gym_id' => $gym->id,
+            'check_in_method' => 'manual',
+            'checked_in_by' => $owner->id,
+        ]);
     }
 
     #[Test]

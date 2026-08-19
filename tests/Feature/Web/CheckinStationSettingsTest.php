@@ -76,15 +76,76 @@ class CheckinStationSettingsTest extends TestCase
     }
 
     #[Test]
-    public function disabling_the_station_keeps_the_token_but_closes_the_station(): void
+    public function disabling_the_station_discards_the_token(): void
     {
+        // A disabled station has no code to print, and parking the old one would
+        // let a leaked sheet work again the moment the feature is switched back
+        // on. Disabling therefore destroys it.
         $this->gym->rotateCheckinStationToken();
         $this->gym->update(['checkin_station_enabled' => true]);
 
         $this->actingAs($this->owner)
             ->putJson(route('access-control.checkin-station.update'), [
                 'checkin_station_enabled' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('checkin_station.enabled', false)
+            ->assertJsonPath('checkin_station.has_token', false)
+            ->assertJsonPath('checkin_station.scan_url', null);
+
+        $fresh = $this->gym->fresh();
+
+        $this->assertFalse($fresh->hasCheckinStation());
+        $this->assertNull($fresh->getAttributes()['checkin_station_token']);
+    }
+
+    #[Test]
+    public function a_sheet_printed_before_disabling_stops_working(): void
+    {
+        $this->gym->update(['checkin_station_enabled' => true]);
+        $printed = $this->gym->rotateCheckinStationToken();
+
+        $this->actingAs($this->owner)
+            ->putJson(route('access-control.checkin-station.update'), [
+                'checkin_station_enabled' => false,
             ])->assertOk();
+
+        $this->assertFalse($this->gym->fresh()->matchesCheckinStationToken($printed));
+    }
+
+    #[Test]
+    public function re_enabling_mints_a_new_token_rather_than_reviving_the_old_one(): void
+    {
+        $this->gym->update(['checkin_station_enabled' => true]);
+        $printed = $this->gym->rotateCheckinStationToken();
+
+        $this->actingAs($this->owner)
+            ->putJson(route('access-control.checkin-station.update'), [
+                'checkin_station_enabled' => false,
+            ])->assertOk();
+
+        $this->actingAs($this->owner)
+            ->putJson(route('access-control.checkin-station.update'), [
+                'checkin_station_enabled' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('checkin_station.has_token', true);
+
+        $fresh = $this->gym->fresh();
+
+        $this->assertTrue($fresh->hasCheckinStation());
+        $this->assertFalse($fresh->matchesCheckinStationToken($printed));
+    }
+
+    #[Test]
+    public function disabling_an_already_disabled_station_is_harmless(): void
+    {
+        $this->actingAs($this->owner)
+            ->putJson(route('access-control.checkin-station.update'), [
+                'checkin_station_enabled' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('checkin_station.has_token', false);
 
         $this->assertFalse($this->gym->fresh()->hasCheckinStation());
     }

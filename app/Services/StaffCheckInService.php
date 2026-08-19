@@ -5,9 +5,7 @@ namespace App\Services;
 use App\Models\CheckIn;
 use App\Models\Gym;
 use App\Models\Member;
-use App\Models\ScannerAccessLog;
 use App\Models\User;
-use Carbon\Carbon;
 
 /**
  * Check-in and check-out performed by a staff member from the member's detail
@@ -17,8 +15,12 @@ use Carbon\Carbon;
  * operator standing at the counter can see who is in front of them and already
  * decided to let them in; a blocked account or a lapsed membership is a
  * conversation they are having in person, not something this endpoint should
- * override them on. Every check-in is attributed to the acting user, so the
- * decision stays traceable.
+ * override them on. Every check-in is attributed to the acting user via
+ * check_ins.checked_in_by, so the decision stays traceable.
+ *
+ * Manual check-ins are deliberately kept out of the scanner access log: that
+ * log is the studio's live view of device and station scans, and a counter
+ * action by a staff member is not an access decision made by hardware.
  */
 class StaffCheckInService
 {
@@ -81,8 +83,6 @@ class StaffCheckInService
             'checked_in_by' => $user->id,
         ]);
 
-        $this->log($gym, $member, $user);
-
         return [
             'action' => 'checked_in',
             'checkin' => $checkin,
@@ -104,41 +104,10 @@ class StaffCheckInService
         $open->update(['check_out_time' => now()]);
         $open->refresh();
 
-        // Deliberately unlogged, matching StationCheckInService: the access log
-        // records access decisions, and a check-out grants no access. Logging it
-        // would double every visit in the operator's live view.
-
         return [
             'action' => 'checked_out',
             'checkin' => $open,
             'message' => 'Mitglied wurde ausgecheckt.',
         ];
-    }
-
-    /**
-     * Write to the same access log the scanners use, so a counter check-in shows
-     * up in the studio's live view alongside device and station scans. The
-     * acting user is recorded in the metadata — this is the one check-in path
-     * where a human, not a device, made the call.
-     */
-    private function log(Gym $gym, Member $member, User $user): void
-    {
-        ScannerAccessLog::create([
-            'gym_id' => $gym->id,
-            'device_number' => null,
-            'member_id' => $member->id,
-            'home_gym_id' => $member->gym_id,
-            'scan_type' => ScannerAccessLog::SCAN_TYPE_MANUAL,
-            'access_granted' => true,
-            'denial_reason' => null,
-            'metadata' => [
-                'action' => 'check_in',
-                'source' => 'staff',
-                'performed_by' => $user->id,
-                'performed_by_name' => $user->fullName(),
-                'ip' => request()->ip(),
-                'timestamp' => Carbon::now()->toIso8601String(),
-            ],
-        ]);
     }
 }
