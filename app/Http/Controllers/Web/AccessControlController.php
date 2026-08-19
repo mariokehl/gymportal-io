@@ -99,6 +99,87 @@ class AccessControlController extends Controller
             'googleSheet' => $this->googleSheetPayload($gym),
             'crossLocation' => $this->crossLocationPayload($gym),
             'crossLocationSummary' => $this->crossLocationService->todaysSummary($gym),
+            'checkinStation' => $this->checkinStationPayload($gym),
+        ]);
+    }
+
+    /**
+     * State of the printed check-in station for its configuration card.
+     *
+     * The scan URL is only handed out once a token exists — there is nothing to
+     * print before that, and building a URL with an empty token would produce a
+     * sheet that never works.
+     *
+     * @return array{enabled: bool, has_token: bool, scan_url: string|null}
+     */
+    private function checkinStationPayload(Gym $gym): array
+    {
+        $token = $gym->getAttributes()['checkin_station_token'] ?? null;
+
+        return [
+            'enabled' => (bool) $gym->checkin_station_enabled,
+            'has_token' => ! empty($token),
+            'scan_url' => $token ? $this->stationScanUrl($gym, $token) : null,
+        ];
+    }
+
+    /**
+     * The URL encoded into the printed QR code.
+     *
+     * Points at the member PWA, which resolves the session and posts the token
+     * back to the API. Deliberately not an API endpoint: the sheet has to work
+     * by being scanned with any phone camera.
+     */
+    private function stationScanUrl(Gym $gym, string $token): string
+    {
+        return config('app.pwa_url').'/'.$gym->slug.'/scan?t='.$token;
+    }
+
+    /**
+     * Enable or disable the printed check-in station.
+     *
+     * Enabling it for the first time mints the token, so the operator never has
+     * to think about a separate "generate" step before printing.
+     */
+    public function updateCheckinStation(Request $request): JsonResponse
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $validated = $request->validate([
+            'checkin_station_enabled' => 'required|boolean',
+        ]);
+
+        if ($validated['checkin_station_enabled'] && empty($gym->getAttributes()['checkin_station_token'] ?? null)) {
+            $gym->rotateCheckinStationToken();
+        }
+
+        $gym->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Einstellungen für den Check-in-Aufsteller wurden gespeichert.',
+            'checkin_station' => $this->checkinStationPayload($gym->fresh()),
+        ]);
+    }
+
+    /**
+     * Issue a new station token, invalidating every sheet already printed.
+     *
+     * The one recovery an operator has after a code leaks — which is why the
+     * response spells out that the sheets have to be reprinted.
+     */
+    public function regenerateCheckinStationToken(): JsonResponse
+    {
+        $gym = Auth::user()->currentGym;
+        $this->authorize('manage', $gym);
+
+        $gym->rotateCheckinStationToken();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Neuer Code erzeugt. Bitte den Aufsteller neu ausdrucken – der alte Ausdruck funktioniert nicht mehr.',
+            'checkin_station' => $this->checkinStationPayload($gym->fresh()),
         ]);
     }
 
@@ -710,7 +791,7 @@ class AccessControlController extends Controller
         return [
             'id' => $log->id,
             'device_number' => $log->device_number,
-            'scanner_name' => $log->scanner?->device_name ?? 'Scanner #'.$log->device_number,
+            'scanner_name' => $log->scanner_name,
             // Read from the relation like scanner_name, so re-tasking a device
             // also changes what older entries show.
             'device_task' => $log->scanner?->device_task,

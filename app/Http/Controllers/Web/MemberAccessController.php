@@ -120,7 +120,7 @@ class MemberAccessController extends Controller
         $this->authorize('update', $member);
 
         // Erstelle die App-URL
-        $appUrl = config('app.pwa_url', 'https://members.gymportal.io');
+        $appUrl = config('app.pwa_url');
         $gymSlug = $member->gym->slug;
         $loginUrl = "{$appUrl}/{$gymSlug}/login";
 

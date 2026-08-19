@@ -42,6 +42,11 @@
                     @success="handleSuccess"
                     @error="handleError"
                 />
+                <CheckinStationSettings
+                    :checkin-station="checkinStation"
+                    @success="handleSuccess"
+                    @error="handleError"
+                />
                 <RollingQrSettings
                     :rolling-qr-enabled="rollingQrEnabled"
                     :rolling-qr-interval="rollingQrInterval"
@@ -79,6 +84,7 @@ import AccessStatistics from '@/Components/AccessControl/AccessStatistics.vue'
 import RollingQrSettings from '@/Components/AccessControl/RollingQrSettings.vue'
 import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.vue'
 import CrossLocationSettings from '@/Components/AccessControl/CrossLocationSettings.vue'
+import CheckinStationSettings from '@/Components/AccessControl/CheckinStationSettings.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -149,6 +155,14 @@ const props = defineProps({
             denied: 0,
             guests_granted: 0,
             breakdown: []
+        })
+    },
+    checkinStation: {
+        type: Object,
+        default: () => ({
+            enabled: false,
+            has_token: false,
+            scan_url: null
         })
     }
 })

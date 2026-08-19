@@ -333,7 +333,7 @@
                                             </div>
 
                                             <div class="mt-0.5 text-xs text-gray-500">
-                                                {{ log.scanner_name }} · {{ log.scan_type_label }}
+                                                <template v-if="log.scanner_name">{{ log.scanner_name }} · </template>{{ log.scan_type_label }}
                                                 <template v-if="log.device_task">
                                                     · {{ deviceTaskLabel(log.device_task) }}
                                                 </template>

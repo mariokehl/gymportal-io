@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Member PWA URL
+    |--------------------------------------------------------------------------
+    |
+    | Root of the member-facing PWA, a separate application. Used to build links
+    | handed to members — the app access mail and the printed check-in station's
+    | QR code. No trailing slash.
+    |
+    */
+
+    'pwa_url' => rtrim(env('PWA_URL', 'https://members.gymportal.io'), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

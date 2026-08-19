@@ -195,6 +195,10 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         // Standortübergreifender Check-in
         Route::put('/cross-location', [AccessControlController::class, 'updateCrossLocation'])->name('cross-location.update');
 
+        // Check-in-Aufsteller (gedruckter QR-Code, Scan per Mitglieder-Smartphone)
+        Route::put('/checkin-station', [AccessControlController::class, 'updateCheckinStation'])->name('checkin-station.update');
+        Route::post('/checkin-station/regenerate', [AccessControlController::class, 'regenerateCheckinStationToken'])->name('checkin-station.regenerate');
+
         // Google Sheet Integration
         Route::post('/google-sheet-settings', [AccessControlController::class, 'updateGoogleSheetSettings'])->name('google-sheet-settings.update');
         Route::delete('/google-sheet-settings', [AccessControlController::class, 'removeGoogleSheetSettings'])->name('google-sheet-settings.destroy');

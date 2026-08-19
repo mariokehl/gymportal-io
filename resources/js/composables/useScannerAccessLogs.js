@@ -142,7 +142,8 @@ export function useScannerAccessLogs(gymId, options = {}) {
             const body = log.denial_reason || 'Ein Scan wurde abgelehnt'
 
             new Notification(title, {
-                body: `${log.scanner_name}: ${body}`,
+                // Station entries have no device, so there is nothing to prefix with.
+                body: log.scanner_name ? `${log.scanner_name}: ${body}` : body,
                 icon: '/favicon.ico',
                 tag: `access-denied-${log.id}`,
             })
