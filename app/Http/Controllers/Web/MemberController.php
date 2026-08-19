@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\MemberService;
 use App\Services\MemberStatusService;
 use App\Services\PaymentService;
+use App\Services\StaffCheckInService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -589,8 +590,17 @@ class MemberController extends Controller
             ->latest('checked_at')
             ->first();
 
+        // The member's currently open visit, so the detail page can offer
+        // "einchecken" or "auschecken" instead of guessing from the check-in
+        // list (whose newest entry may be an already closed visit).
+        $openCheckin = app(StaffCheckInService::class)->openCheckIn($member, $member->gym);
+
         return Inertia::render('Members/Show', [
             'member' => $member,
+            'openCheckin' => $openCheckin ? [
+                'id' => $openCheckin->id,
+                'check_in_time' => $openCheckin->check_in_time->toISOString(),
+            ] : null,
             'availablePaymentMethods' => $member->gym->getEnabledPaymentMethods(),
             'membershipPlans' => $membershipPlans,
             'bookableAddons' => $bookableAddons,
@@ -1016,6 +1026,37 @@ class MemberController extends Controller
 
             return back()->with('success', 'Gastzugang wurde gewährt.');
         }
+    }
+
+    /**
+     * Check the member in or out manually from the member detail page.
+     *
+     * For studios without scanner hardware, and for the everyday case of a
+     * member who forgot their phone at the counter. Direction is decided from
+     * the member's open visit rather than sent by the client, so two staff
+     * members acting at once cannot both open a check-in.
+     *
+     * Access rules are not evaluated here — see StaffCheckInService for why.
+     */
+    public function toggleCheckin(Member $member, StaffCheckInService $checkinService)
+    {
+        $this->authorize('update', $member);
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        // The visit belongs to the location the staff member is working at, not
+        // to the member's home gym: the policy above already confirmed the two
+        // are the same, but being explicit keeps a later cross-location change
+        // from silently recording visits at the wrong gym.
+        $gym = Gym::findOrFail($user->current_gym_id);
+
+        $result = $checkinService->toggle($gym, $member, $user);
+
+        // 'message' rather than 'success': that is the session key
+        // HandleInertiaRequests shares as flash.message, which AppLayout turns
+        // into a toast. A 'success' key never reaches the frontend.
+        return back()->with('message', $result['message']);
     }
 
     /**

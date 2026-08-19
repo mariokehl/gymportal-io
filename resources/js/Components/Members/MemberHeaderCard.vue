@@ -117,6 +117,18 @@
                   class="absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5"
                   role="menu"
                 >
+                  <button
+                    type="button"
+                    @click="showActionMenu = false; $emit('toggle-checkin')"
+                    :disabled="togglingCheckin"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    role="menuitem"
+                  >
+                    <LogOut v-if="isCheckedIn" class="w-4 h-4 text-orange-600" />
+                    <LogIn v-else class="w-4 h-4 text-green-600" />
+                    {{ isCheckedIn ? 'Auschecken' : 'Einchecken' }}
+                  </button>
+                  <div class="my-1 border-t border-gray-100"></div>
                   <Link
                     :href="route('members.create')"
                     class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -257,9 +269,19 @@
               <div class="px-4 pt-3.5 pb-2.5 text-center text-xs text-gray-500 border-b border-gray-100">
                 {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }} · #{{ member.member_number }}
               </div>
+              <button
+                type="button"
+                @click="showActionSheet = false; $emit('toggle-checkin')"
+                :disabled="togglingCheckin"
+                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <LogOut v-if="isCheckedIn" class="w-5 h-5 text-orange-600" />
+                <LogIn v-else class="w-5 h-5 text-green-600" />
+                {{ isCheckedIn ? 'Auschecken' : 'Einchecken' }}
+              </button>
               <Link
                 :href="route('members.create')"
-                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-gray-900 hover:bg-gray-50"
+                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-gray-900 border-t border-gray-100 hover:bg-gray-50"
                 @click="showActionSheet = false"
               >
                 <Plus class="w-5 h-5 text-indigo-600" />
@@ -335,9 +357,9 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet, MoreVertical } from 'lucide-vue-next'
+import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet, MoreVertical, LogIn, LogOut } from 'lucide-vue-next'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
@@ -377,14 +399,25 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // The member's currently open visit, or null when they are not checked in.
+  openCheckin: {
+    type: Object,
+    default: null,
+  },
+  togglingCheckin: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits([
   'edit', 'cancel', 'save', 'block',
-  'toggle-age', 'toggle-guest', 'topup',
+  'toggle-age', 'toggle-guest', 'toggle-checkin', 'topup',
   'status-changed', 'status-changing',
   'update:memberNumber',
 ])
+
+const isCheckedIn = computed(() => props.openCheckin !== null)
 
 const showActionSheet = ref(false)
 const showDiscardConfirm = ref(false)

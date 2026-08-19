@@ -103,7 +103,7 @@ class AccessLogDeviceTaskTest extends TestCase
             ->getJson(route('access-control.logs'))
             ->assertOk()
             ->assertJsonPath('data.0.scanner_name', null)
-            ->assertJsonPath('data.0.scan_type_label', 'Manuell (Aufsteller)');
+            ->assertJsonPath('data.0.scan_type_label', 'Manueller Check-in/out');
     }
 
     #[Test]

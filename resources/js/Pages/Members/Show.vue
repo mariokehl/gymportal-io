@@ -101,12 +101,15 @@
         :is-saving="isSaving"
         :verifying-age="verifyingAge"
         :toggling-guest-access="togglingGuestAccess"
+        :open-checkin="openCheckin"
+        :toggling-checkin="togglingCheckin"
         @edit="enterEditMode"
         @cancel="exitEditMode"
         @save="savePersonalData"
         @block="showBlockModal = true"
         @toggle-age="toggleAgeVerification"
         @toggle-guest="toggleGuestAccess"
+        @toggle-checkin="toggleCheckin"
         @topup="handleTopup"
         @status-changed="handleStatusChanged"
         @status-changing="handleStatusChanging"
@@ -343,6 +346,11 @@ const props = defineProps({
     default: 2
   },
   fraudCheck: {
+    type: Object,
+    default: null
+  },
+  // The member's currently open visit, or null when they are not checked in.
+  openCheckin: {
     type: Object,
     default: null
   }
@@ -611,6 +619,21 @@ const toggleGuestAccess = () => {
     },
     onError: () => {
       togglingGuestAccess.value = false
+    }
+  })
+}
+
+// Manual check-in / check-out from the header menu. Direction is decided by
+// the server from the member's open visit, so this posts no direction itself.
+const togglingCheckin = ref(false)
+
+const toggleCheckin = () => {
+  togglingCheckin.value = true
+
+  router.post(route('members.toggle-checkin', props.member.id), {}, {
+    preserveScroll: true,
+    onFinish: () => {
+      togglingCheckin.value = false
     }
   })
 }
