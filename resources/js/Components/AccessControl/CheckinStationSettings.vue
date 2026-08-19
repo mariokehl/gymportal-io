@@ -74,31 +74,33 @@
                         des Studios – bitte nicht öffentlich teilen.
                     </p>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center space-x-2">
                         <input
                             :value="checkinStation.scan_url"
                             type="text"
                             readonly
-                            class="block w-full rounded-md bg-gray-50 px-3 py-1.5 font-mono text-xs text-gray-700 outline-1 -outline-offset-1 outline-gray-300"
+                            class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono"
                         />
                         <button
                             type="button"
                             @click="copyUrl"
-                            class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            :title="copied ? 'Kopiert' : 'Link kopieren'"
+                            class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded"
                         >
-                            {{ copied ? 'Kopiert' : 'Kopieren' }}
+                            <component :is="copied ? CheckIcon : Copy" class="w-4 h-4" />
+                        </button>
+                        <button
+                            type="button"
+                            @click="regenerate"
+                            :disabled="isRegenerating"
+                            class="flex items-center whitespace-nowrap text-sm bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors py-2 px-4 rounded-md"
+                        >
+                            <component :is="RefreshCw" class="w-4 h-4 mr-1" />
+                            {{ isRegenerating ? 'Wird erneuert...' : 'Code erneuern' }}
                         </button>
                     </div>
 
-                    <button
-                        type="button"
-                        @click="regenerate"
-                        :disabled="isRegenerating"
-                        class="mt-4 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
-                    >
-                        {{ isRegenerating ? 'Wird erneuert...' : 'Code erneuern' }}
-                    </button>
-                    <p class="mt-1 text-xs text-gray-500">
+                    <p class="mt-3 text-xs text-gray-500">
                         Erneuern macht alle bereits gedruckten Aufsteller ungültig – nötig, wenn der Code
                         nach außen gelangt ist.
                     </p>
@@ -110,7 +112,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { AlertTriangle } from 'lucide-vue-next'
+import { AlertTriangle, Check as CheckIcon, Copy, RefreshCw } from 'lucide-vue-next'
 
 const props = defineProps({
     checkinStation: {
