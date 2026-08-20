@@ -127,7 +127,7 @@ class ScannerController extends Controller
                     $request->input('member_id', ''),
                     $scanType,
                     false,
-                    $scanType === 'nfc_card' ? 'Unbekannte NFC-Karte' : 'Mitglied nicht gefunden',
+                    $scanType === 'nfc_card' ? 'NFC-ID nicht erkannt' : 'Mitglied nicht gefunden',
                     $nfcCardId
                 );
 
