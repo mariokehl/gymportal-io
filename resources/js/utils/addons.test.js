@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
-  endOfBookingMonth, isTrialActive, nextMonthlyBillingDate, resolveSelectedAddonIds, weeklyPriceOf
+  cappedBillingDate, endOfBookingMonth, isTrialActive, nextMonthlyBillingDate, resolveSelectedAddonIds,
+  weeklyPriceOf
 } from '@/utils/addons'
 
 describe('nextMonthlyBillingDate', () => {
@@ -37,6 +38,24 @@ describe('nextMonthlyBillingDate', () => {
     expect(nextMonthlyBillingDate(null)).toBeNull()
     expect(nextMonthlyBillingDate(undefined)).toBeNull()
     expect(nextMonthlyBillingDate('not-a-date')).toBeNull()
+  })
+})
+
+describe('cappedBillingDate', () => {
+  it('drops a date past the end of the contract', () => {
+    expect(cappedBillingDate('2026-09-01', '2026-08-31')).toBeNull()
+  })
+
+  it('keeps a date on the last contract day', () => {
+    expect(cappedBillingDate('2026-08-31', '2026-08-31')).toBe('2026-08-31')
+  })
+
+  it('keeps the date when the contract has no end', () => {
+    expect(cappedBillingDate('2026-09-01', null)).toBe('2026-09-01')
+  })
+
+  it('passes a missing date through', () => {
+    expect(cappedBillingDate(null, '2026-08-31')).toBeNull()
   })
 })
 

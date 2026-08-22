@@ -85,6 +85,24 @@ export function nextMonthlyBillingDate(startDate, from = new Date()) {
 }
 
 /**
+ * Drops a billing date that falls past the end of the contract, since nothing
+ * is collected after the last day it runs.
+ *
+ * @param {string|null} billingDate YYYY-MM-DD
+ * @param {string|Date|null} endDate last day the contract runs, if any
+ * @returns {string|null}
+ */
+export function cappedBillingDate(billingDate, endDate) {
+  const end = calendarDateOf(endDate)
+
+  if (!billingDate || !end) {
+    return billingDate ?? null
+  }
+
+  return billingDate > toIsoDate(end.year, end.month, end.day) ? null : billingDate
+}
+
+/**
  * Last day of the month the add-on was booked in — the end of a
  * "rest of the month free" trial.
  *

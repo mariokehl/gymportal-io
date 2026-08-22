@@ -137,7 +137,7 @@ export function useScannerAccessLogs(gymId, options = {}) {
         // Browser notification for denied access
         if (options.notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
             const title = log.nfc_card_id
-                ? 'Unbekannte NFC-Karte'
+                ? 'NFC-ID nicht erkannt'
                 : 'Zugang verweigert'
             const body = log.denial_reason || 'Ein Scan wurde abgelehnt'
 

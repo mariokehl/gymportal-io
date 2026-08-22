@@ -129,6 +129,7 @@ class Addon extends Model
             ->withPivot(
                 'mode',
                 'price',
+                'booked_at',
                 'payment_id',
                 'completed_at',
                 'completed_by',

@@ -222,6 +222,9 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/import', [DataTransferController::class, 'import'])->name('import');
         Route::post('/validate-csv', [DataTransferController::class, 'validateCsvImport'])->name('validate-csv');
         Route::post('/import-csv', [DataTransferController::class, 'importCsv'])->name('import-csv');
+        Route::post('/upload-archive-chunk', [DataTransferController::class, 'uploadArchiveChunk'])->name('upload-archive-chunk');
+        Route::post('/validate-archive', [DataTransferController::class, 'validateArchiveImport'])->name('validate-archive');
+        Route::post('/import-archive', [DataTransferController::class, 'importArchive'])->name('import-archive');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {
