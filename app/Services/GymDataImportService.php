@@ -247,25 +247,27 @@ class GymDataImportService
         // Courses
         Course::where('gym_id', $gymId)->forceDelete();
 
-        // Check-ins
-        CheckIn::where('gym_id', $gymId)->delete();
-
         // Get member IDs first (needed for multiple deletions)
-        $memberIds = Member::where('gym_id', $gymId)->pluck('id');
+        $memberIds = Member::withTrashed()->where('gym_id', $gymId)->pluck('id');
+
+        // Check-ins: match on member_id as well, since rows may carry a stale
+        // gym_id while still belonging to a member of this gym
+        CheckIn::where('gym_id', $gymId)->delete();
+        CheckIn::whereIn('member_id', $memberIds)->delete();
 
         // Payment methods (must be deleted before members due to FK constraint)
-        PaymentMethod::whereIn('member_id', $memberIds)->forceDelete();
+        PaymentMethod::withTrashed()->whereIn('member_id', $memberIds)->forceDelete();
 
         // Payments (via memberships)
-        $membershipIds = Membership::whereIn('member_id', $memberIds)->pluck('id');
+        $membershipIds = Membership::withTrashed()->whereIn('member_id', $memberIds)->pluck('id');
         Payment::whereIn('membership_id', $membershipIds)->delete();
         Payment::where('gym_id', $gymId)->delete();
 
         // Memberships
-        Membership::whereIn('member_id', $memberIds)->forceDelete();
+        Membership::withTrashed()->whereIn('member_id', $memberIds)->forceDelete();
 
         // Members
-        Member::where('gym_id', $gymId)->forceDelete();
+        Member::withTrashed()->where('gym_id', $gymId)->forceDelete();
 
         // Membership plans
         MembershipPlan::where('gym_id', $gymId)->forceDelete();
@@ -861,8 +863,10 @@ class GymDataImportService
             }
         }
 
-        // Delete check-ins before members (FK constraint)
-        CheckIn::where('gym_id', $gymId)->delete();
+        // Delete check-ins before members (FK constraint). Match on member_id rather
+        // than gym_id: rows may carry a stale gym_id while still belonging to a
+        // member of this gym
+        CheckIn::whereIn('member_id', $memberIds)->delete();
 
         $deleted = [
             'payments' => Payment::where('gym_id', $gymId)->delete(),
