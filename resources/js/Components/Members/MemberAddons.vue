@@ -274,7 +274,7 @@ import {
   BadgeCheck, Ban, CalendarSync, CalendarX, CheckCircle, CupSoda, Gift, Plus, RotateCcw, X
 } from 'lucide-vue-next'
 import { formatPrice, formatDate, formatDateTime } from '@/utils/formatters'
-import { endOfBookingMonth, isTrialActive, nextMonthlyBillingDate } from '@/utils/addons'
+import { cappedBillingDate, endOfBookingMonth, isTrialActive, nextMonthlyBillingDate } from '@/utils/addons'
 
 const props = defineProps({
   member: {
@@ -363,6 +363,9 @@ const bookedAddons = computed(() => {
 
     ;(membership.addons || []).forEach((addon) => {
       const pivot = addon.pivot || {}
+      // A contract taken over from another system was booked long before its
+      // import row was written, so the stored booking date wins over created_at.
+      const bookedAt = pivot.booked_at || pivot.created_at
       list.push({
         key: `${membership.id}-${addon.id}`,
         membershipId: membership.id,
@@ -380,14 +383,19 @@ const bookedAddons = computed(() => {
         // due dates are anchored to the membership start date — that is only
         // the 1st of the month when the contract itself started on the 1st. A
         // cancelled add-on is not billed again, so it has no next billing date.
+        // The add-on stops with the contract it hangs on, so its own
+        // cancellation date and the membership end both cap the result.
         nextBillingAt: addon.billing_type === 'recurring' && !pivot.cancelled_at
-          ? nextMonthlyBillingDate(membership.start_date)
+          ? cappedBillingDate(
+            nextMonthlyBillingDate(membership.start_date),
+            pivot.cancellation_effective_at || membership.end_date
+          )
           : null,
         // The trial covers the rest of the booking month.
         trialEndsAt: addon.billing_type === 'recurring' && addon.trial_rest_of_month
-          ? endOfBookingMonth(pivot.created_at)
+          ? endOfBookingMonth(bookedAt)
           : null,
-        bookedAt: pivot.created_at,
+        bookedAt,
         completedAt: pivot.completed_at,
         completedByName: pivot.completed_by_name,
         cancelledAt: pivot.cancelled_at,

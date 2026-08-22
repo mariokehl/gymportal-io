@@ -856,6 +856,23 @@ class Gym extends Model
         }));
     }
 
+    /**
+     * The payment method key that actually applies for a standard method,
+     * which is the integration's own key once that integration has taken the
+     * method over — e.g. SEPA direct debit collected through Mollie.
+     */
+    public function resolvePaymentMethodKey(string $methodKey): string
+    {
+        if (! $this->isPaymentMethodOverriddenByIntegration($methodKey)) {
+            return $methodKey;
+        }
+
+        return match ($methodKey) {
+            'sepa_direct_debit', 'standingorder' => 'mollie_directdebit',
+            default => $methodKey,
+        };
+    }
+
     protected function isPaymentMethodOverriddenByIntegration(string $methodKey): bool
     {
         if ($this->hasMollieConfigured()) {

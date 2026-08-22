@@ -83,6 +83,7 @@ class Membership extends Model
             ->withPivot(
                 'mode',
                 'price',
+                'booked_at',
                 'payment_id',
                 'completed_at',
                 'completed_by',

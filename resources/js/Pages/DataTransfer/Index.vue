@@ -561,6 +561,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Migration Import Section -->
+        <MigrationImportCard />
       </div>
     </div>
   </AppLayout>
@@ -582,6 +585,7 @@ import {
   Info
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import MigrationImportCard from '@/Components/DataTransfer/MigrationImportCard.vue'
 import axios from 'axios'
 
 const props = defineProps({
@@ -618,6 +622,7 @@ const nextMonth = new Date()
 nextMonth.setMonth(nextMonth.getMonth() + 1)
 nextMonth.setDate(1)
 const csvStartDate = ref(nextMonth.toISOString().slice(0, 10))
+
 const csvPaymentMethodType = ref('')
 const csvDeleteExisting = ref(false)
 const csvConfirmDelete = ref(false)
