@@ -515,7 +515,7 @@
     <div class="flex flex-col gap-3">
       <h3 class="text-lg font-bold text-gray-900">Zugangshistorie</h3>
 
-      <div v-if="accessLogs && accessLogs.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div v-if="visibleAccessLogs.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-[820px] w-full border-collapse">
             <thead>
@@ -529,7 +529,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="log in accessLogs" :key="log.id" class="hover:bg-gray-50">
+              <tr v-for="log in visibleAccessLogs" :key="log.id" class="hover:bg-gray-50">
                 <td class="px-4 py-3 text-sm whitespace-nowrap">{{ formatDateTime(log.accessed_at) }}</td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
                   {{ log.action_name }}
@@ -565,6 +565,18 @@
           <MoveHorizontal class="w-3.5 h-3.5" />
           Zum Scrollen wischen
         </div>
+
+        <div v-if="hasMoreAccessLogs" class="px-4 py-4 text-center border-t border-gray-100">
+          <button
+            type="button"
+            :disabled="loadingMoreAccessLogs"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            @click="loadMoreAccessLogs"
+          >
+            <Loader2 v-if="loadingMoreAccessLogs" class="w-4 h-4 mr-2 animate-spin" />
+            {{ loadingMoreAccessLogs ? 'Laden...' : 'Weitere laden' }}
+          </button>
+        </div>
       </div>
       <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
         <Key class="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -575,7 +587,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import {
   QrCode, Nfc, Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio,
@@ -592,6 +604,12 @@ const props = defineProps({
     type: Number,
     default: 2,
   },
+  // Total number of access log entries. Only the first page is delivered with
+  // the page; the rest is fetched on demand.
+  accessLogsTotal: {
+    type: Number,
+    default: 0,
+  },
 })
 
 // Access Control state
@@ -601,6 +619,46 @@ const normalizedNfcId = ref('')
 const isNfcValid = ref(false)
 // Computed rather than copied on mount, so the list follows Inertia reloads.
 const accessLogs = computed(() => props.member?.access_logs ?? [])
+
+// Pages loaded on top of the initial one. Reset whenever Inertia delivers a
+// fresh first page, so a reload never shows stale rows below the new ones.
+const additionalAccessLogs = ref([])
+const accessLogsPage = ref(1)
+const accessLogsHasMore = ref(null)
+const loadingMoreAccessLogs = ref(false)
+
+watch(accessLogs, () => {
+  additionalAccessLogs.value = []
+  accessLogsPage.value = 1
+  accessLogsHasMore.value = null
+})
+
+const visibleAccessLogs = computed(() => [...accessLogs.value, ...additionalAccessLogs.value])
+
+// Before the first fetch the server-provided total decides; afterwards the
+// endpoint's own has_more flag is authoritative.
+const hasMoreAccessLogs = computed(() => accessLogsHasMore.value !== null
+  ? accessLogsHasMore.value
+  : visibleAccessLogs.value.length < props.accessLogsTotal)
+
+const loadMoreAccessLogs = async () => {
+  if (loadingMoreAccessLogs.value || !hasMoreAccessLogs.value) return
+
+  loadingMoreAccessLogs.value = true
+  try {
+    const response = await axios.get(route('members.access.logs', props.member.id), {
+      params: { page: accessLogsPage.value + 1 },
+    })
+
+    additionalAccessLogs.value.push(...(response.data.data ?? []))
+    accessLogsPage.value = response.data.current_page ?? accessLogsPage.value + 1
+    accessLogsHasMore.value = response.data.has_more ?? false
+  } catch (error) {
+    console.error('Failed to load more access logs:', error)
+  } finally {
+    loadingMoreAccessLogs.value = false
+  }
+}
 
 // Device management
 const removingDeviceId = ref(null)

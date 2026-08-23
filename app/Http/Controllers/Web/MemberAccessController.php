@@ -12,11 +12,16 @@ use App\Models\MemberDevice;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
 
 class MemberAccessController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * Rows per page of the member's access history, both for the initial
+     * server-side render and for every "Weitere laden" request.
+     */
+    public const HISTORY_PAGE_SIZE = 5;
 
     /**
      * Update member access configuration
@@ -227,17 +232,18 @@ class MemberAccessController extends Controller
         $this->authorize('view', $member);
 
         $logs = MemberAccessLog::where('member_id', $member->id)
-            ->with('performedBy')
+            ->with('performedBy:id,first_name,last_name')
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->paginate(self::HISTORY_PAGE_SIZE);
 
-        if (request()->wantsJson()) {
-            return response()->json($logs);
-        }
-
-        return Inertia::render('Members/AccessLogs', [
-            'member' => $member->load('gym'),
-            'logs' => $logs,
+        // Same row shape the member page renders initially, so the frontend can
+        // simply append the results to its list.
+        return response()->json([
+            'data' => $logs->getCollection()->map(fn ($log) => $log->toHistoryEntry())->all(),
+            'current_page' => $logs->currentPage(),
+            'last_page' => $logs->lastPage(),
+            'total' => $logs->total(),
+            'has_more' => $logs->hasMorePages(),
         ]);
     }
 

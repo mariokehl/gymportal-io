@@ -248,6 +248,7 @@
           ref="accessTab"
           :member="member"
           :max-devices-per-member="maxDevicesPerMember"
+          :access-logs-total="accessLogsTotal"
         />
       </div>
 
@@ -348,6 +349,11 @@ const props = defineProps({
   fraudCheck: {
     type: Object,
     default: null
+  },
+  // Total number of access log entries; the tab lazy-loads beyond the first page.
+  accessLogsTotal: {
+    type: Number,
+    default: 0
   },
   // The member's currently open visit, or null when they are not checked in.
   openCheckin: {

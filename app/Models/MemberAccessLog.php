@@ -168,6 +168,33 @@ class MemberAccessLog extends Model
     }
 
     /**
+     * Frontend shape of one history row for the member's "Zugänge" tab.
+     * service_name and method_name are accessors and have to be resolved here,
+     * otherwise the display falls back to the raw slugs.
+     */
+    public function toHistoryEntry(): array
+    {
+        $isAccessAttempt = $this->action === self::ACTION_ACCESS_ATTEMPT;
+
+        return [
+            'id' => $this->id,
+            'action' => $this->action,
+            'action_name' => $this->action_name,
+            // Only access attempts carry a service, device or outcome —
+            // for a config change those columns stay empty.
+            'is_access_attempt' => $isAccessAttempt,
+            'service' => $this->service,
+            'service_name' => $this->service ? $this->service_name : null,
+            'method' => $this->method ? $this->method_name : null,
+            'success' => $isAccessAttempt ? $this->success : null,
+            'accessed_at' => ($this->accessed_at ?? $this->created_at)->toISOString(),
+            'device_name' => $this->metadata['device_name'] ?? null,
+            'reason' => $this->metadata['reason'] ?? null,
+            'performed_by_name' => $this->performedBy?->fullName(),
+        ];
+    }
+
+    /**
      * Scope: Successful access attempts
      */
     public function scopeSuccessful($query)
