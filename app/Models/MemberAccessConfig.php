@@ -13,7 +13,6 @@ class MemberAccessConfig extends Model
 
     protected $fillable = [
         'member_id',
-        'static_login_code',
         'qr_code_enabled',
         'qr_code_invalidated_at',
         'qr_code_invalidated_by',
@@ -47,9 +46,18 @@ class MemberAccessConfig extends Model
         'additional_services' => 'array',
     ];
 
+    /**
+     * The static login code is write-only: once set it must never be readable
+     * again through any API or Inertia payload.
+     */
+    protected $hidden = [
+        'static_login_code',
+    ];
+
     protected $appends = [
         'has_active_services',
         'active_services_count',
+        'has_static_login_code',
     ];
 
     /**
@@ -94,14 +102,34 @@ class MemberAccessConfig extends Model
     {
         $count = 0;
 
-        if ($this->qr_code_enabled) $count++;
-        if ($this->nfc_enabled) $count++;
-        if ($this->solarium_enabled) $count++;
-        if ($this->vending_enabled) $count++;
-        if ($this->massage_enabled) $count++;
-        if ($this->coffee_flat_enabled) $count++;
+        if ($this->qr_code_enabled) {
+            $count++;
+        }
+        if ($this->nfc_enabled) {
+            $count++;
+        }
+        if ($this->solarium_enabled) {
+            $count++;
+        }
+        if ($this->vending_enabled) {
+            $count++;
+        }
+        if ($this->massage_enabled) {
+            $count++;
+        }
+        if ($this->coffee_flat_enabled) {
+            $count++;
+        }
 
         return $count;
+    }
+
+    /**
+     * Expose only whether a static login code exists, never the code itself
+     */
+    public function getHasStaticLoginCodeAttribute(): bool
+    {
+        return $this->hasStaticLoginCode();
     }
 
     /**
@@ -109,7 +137,7 @@ class MemberAccessConfig extends Model
      */
     public function hasStaticLoginCode(): bool
     {
-        return !empty($this->static_login_code);
+        return ! empty($this->static_login_code);
     }
 
     /**
@@ -117,7 +145,7 @@ class MemberAccessConfig extends Model
      */
     public function hasValidNfc(): bool
     {
-        return $this->nfc_enabled && !empty($this->nfc_uid);
+        return $this->nfc_enabled && ! empty($this->nfc_uid);
     }
 
     /**
@@ -125,7 +153,7 @@ class MemberAccessConfig extends Model
      */
     public function hasValidQrCode(): bool
     {
-        return $this->qr_code_enabled && !$this->qr_code_invalidated_at;
+        return $this->qr_code_enabled && ! $this->qr_code_invalidated_at;
     }
 
     /**
@@ -133,11 +161,11 @@ class MemberAccessConfig extends Model
      */
     public function isCoffeeFlatValid(): bool
     {
-        if (!$this->coffee_flat_enabled) {
+        if (! $this->coffee_flat_enabled) {
             return false;
         }
 
-        if (!$this->coffee_flat_expiry) {
+        if (! $this->coffee_flat_expiry) {
             return true; // No expiry means unlimited
         }
 
@@ -149,7 +177,7 @@ class MemberAccessConfig extends Model
      */
     public function getFormattedNfcUidAttribute(): ?string
     {
-        if (!$this->nfc_uid) {
+        if (! $this->nfc_uid) {
             return null;
         }
 
@@ -192,6 +220,7 @@ class MemberAccessConfig extends Model
             case 'solarium':
                 if ($this->solarium_minutes >= $amount) {
                     $this->decrement('solarium_minutes', $amount);
+
                     return true;
                 }
                 break;
@@ -199,6 +228,7 @@ class MemberAccessConfig extends Model
             case 'vending':
                 if ($this->vending_credit >= $amount) {
                     $this->decrement('vending_credit', $amount);
+
                     return true;
                 }
                 break;
@@ -206,6 +236,7 @@ class MemberAccessConfig extends Model
             case 'massage':
                 if ($this->massage_sessions >= $amount) {
                     $this->decrement('massage_sessions', $amount);
+
                     return true;
                 }
                 break;

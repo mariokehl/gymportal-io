@@ -51,6 +51,10 @@ class MemberAccessLog extends Model
 
     const ACTION_DEVICE_REMOVED = 'device_removed';
 
+    const ACTION_STATIC_CODE_SET = 'static_code_set';
+
+    const ACTION_STATIC_CODE_REMOVED = 'static_code_removed';
+
     /**
      * Service types
      */
@@ -110,6 +114,8 @@ class MemberAccessLog extends Model
             self::ACTION_NFC_REGISTERED => 'NFC-Tag registriert',
             self::ACTION_NFC_REMOVED => 'NFC-Tag entfernt',
             self::ACTION_DEVICE_REMOVED => 'Gerät entfernt',
+            self::ACTION_STATIC_CODE_SET => 'Statischer Login-Code gesetzt',
+            self::ACTION_STATIC_CODE_REMOVED => 'Statischer Login-Code entfernt',
         ];
 
         return $actions[$this->action] ?? $this->action;

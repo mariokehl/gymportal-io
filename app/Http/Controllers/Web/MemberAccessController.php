@@ -35,8 +35,9 @@ class MemberAccessController extends Controller
                     if ($value) {
                         // Normalisiere die NFC-ID
                         $normalized = $this->normalizeCardId($value);
-                        if (!$normalized) {
+                        if (! $normalized) {
                             $fail('Die NFC-ID hat ein ungültiges Format.');
+
                             return;
                         }
 
@@ -49,7 +50,7 @@ class MemberAccessController extends Controller
                             $fail('Diese NFC-ID ist bereits einem anderen Mitglied zugeordnet.');
                         }
                     }
-                }
+                },
             ],
             'solarium_enabled' => 'boolean',
             'solarium_minutes' => 'nullable|integer|min:0',
@@ -113,6 +114,74 @@ class MemberAccessController extends Controller
     }
 
     /**
+     * Set or replace the static login code used to bypass the emailed TOTP code.
+     *
+     * Intended for edge cases where the login mail cannot be delivered (e.g.
+     * iCloud soft bounces) or for temporary support access to the member app.
+     * The code is write-only: it is never returned to the frontend again.
+     */
+    public function setStaticLoginCode(Request $request, Member $member)
+    {
+        $this->authorize('update', $member);
+
+        $validated = $request->validate([
+            'static_login_code' => ['required', 'string', 'digits:6'],
+        ], [
+            'static_login_code.digits' => 'Der Login-Code muss aus genau 6 Ziffern bestehen.',
+        ]);
+
+        $config = MemberAccessConfig::firstOrCreate(['member_id' => $member->id]);
+        $wasSet = $config->hasStaticLoginCode();
+
+        $config->static_login_code = $validated['static_login_code'];
+        $config->save();
+
+        MemberAccessLog::create([
+            'member_id' => $member->id,
+            'action' => MemberAccessLog::ACTION_STATIC_CODE_SET,
+            'performed_by' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => [
+                // Never log the code itself — only whether an existing one was replaced.
+                'replaced_existing' => $wasSet,
+            ],
+        ]);
+
+        return back()->with('success', $wasSet
+            ? 'Der statische Login-Code wurde ersetzt.'
+            : 'Der statische Login-Code wurde gesetzt.');
+    }
+
+    /**
+     * Remove the static login code and fall back to the regular emailed code.
+     */
+    public function removeStaticLoginCode(Request $request, Member $member)
+    {
+        $this->authorize('update', $member);
+
+        $config = $member->accessConfig;
+
+        if (! $config || ! $config->hasStaticLoginCode()) {
+            return back()->with('error', 'Für dieses Mitglied ist kein statischer Login-Code hinterlegt.');
+        }
+
+        $config->static_login_code = null;
+        $config->save();
+
+        MemberAccessLog::create([
+            'member_id' => $member->id,
+            'action' => MemberAccessLog::ACTION_STATIC_CODE_REMOVED,
+            'performed_by' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => [],
+        ]);
+
+        return back()->with('success', 'Der statische Login-Code wurde entfernt.');
+    }
+
+    /**
      * Send app access link to member via email
      */
     public function sendAppLink(Member $member, MemberMailDispatcher $mailDispatcher)
@@ -127,7 +196,7 @@ class MemberAccessController extends Controller
         $result = $mailDispatcher->sendToMember($member, new MemberAppAccessLink($member, $loginUrl));
 
         if ($result->wasSkipped()) {
-            return back()->with('error', 'App-Link konnte nicht versendet werden: ' . $result->reason);
+            return back()->with('error', 'App-Link konnte nicht versendet werden: '.$result->reason);
         }
 
         if ($result->hasFailed()) {
@@ -224,7 +293,7 @@ class MemberAccessController extends Controller
                 'user_agent' => request()->userAgent(),
                 'metadata' => [
                     'message' => $message,
-                    'identifier' => substr($validated['identifier'], 0, 4) . '***',
+                    'identifier' => substr($validated['identifier'], 0, 4).'***',
                 ],
             ]);
         }
@@ -246,7 +315,9 @@ class MemberAccessController extends Controller
      */
     private function normalizeCardId($cardId)
     {
-        if (!$cardId) return null;
+        if (! $cardId) {
+            return null;
+        }
 
         // Whitespace entfernen und in Großbuchstaben
         $cardId = strtoupper(trim($cardId));
@@ -303,19 +374,19 @@ class MemberAccessController extends Controller
             ->where('gym_id', $gymId)
             ->first();
 
-        if (!$member) {
+        if (! $member) {
             throw new \Exception('Mitglied nicht gefunden');
         }
 
         // Validiere Hash
         $gym = $member->gym;
-        if (!$gym->validateHash($memberNumber, $timestamp, $hash)) {
+        if (! $gym->validateHash($memberNumber, $timestamp, $hash)) {
             throw new \Exception('Ungültiger QR-Code');
         }
 
         // Prüfe ob QR-Code aktiviert ist
         $config = $member->accessConfig;
-        if (!$config || !$config->qr_code_enabled) {
+        if (! $config || ! $config->qr_code_enabled) {
             throw new \Exception('QR-Code Zugang ist deaktiviert');
         }
 
@@ -334,11 +405,11 @@ class MemberAccessController extends Controller
             ->with('member')
             ->first();
 
-        if (!$config) {
+        if (! $config) {
             throw new \Exception('NFC-Tag nicht registriert');
         }
 
-        if (!$config->nfc_enabled) {
+        if (! $config->nfc_enabled) {
             throw new \Exception('NFC-Zugang ist deaktiviert');
         }
 
@@ -356,12 +427,12 @@ class MemberAccessController extends Controller
         }
 
         // Prüfe aktive Mitgliedschaft
-        if (!$member->activeMembership()) {
+        if (! $member->activeMembership()) {
             return false;
         }
 
         $config = $member->accessConfig;
-        if (!$config) {
+        if (! $config) {
             return $service === 'gym'; // Nur Gym-Zugang ohne Config
         }
 
@@ -380,7 +451,7 @@ class MemberAccessController extends Controller
 
             case 'coffee':
                 return $config->coffee_flat_enabled &&
-                       (!$config->coffee_flat_expiry || $config->coffee_flat_expiry->isFuture());
+                       (! $config->coffee_flat_expiry || $config->coffee_flat_expiry->isFuture());
 
             default:
                 return false;
@@ -431,7 +502,7 @@ class MemberAccessController extends Controller
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'metadata' => [
-                'device_token' => substr($deviceToken, 0, 8) . '...',
+                'device_token' => substr($deviceToken, 0, 8).'...',
             ],
         ]);
 
@@ -452,7 +523,7 @@ class MemberAccessController extends Controller
         ]);
 
         $config = $member->accessConfig;
-        if (!$config) {
+        if (! $config) {
             return response()->json(['error' => 'Keine Zugangskonfiguration vorhanden'], 404);
         }
 

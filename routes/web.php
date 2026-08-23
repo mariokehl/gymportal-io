@@ -134,6 +134,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/', [MemberAccessController::class, 'update'])->name('update');
         Route::post('/invalidate-qr', [MemberAccessController::class, 'invalidateQr'])->name('invalidate-qr');
         Route::post('/send-app-link', [MemberAccessController::class, 'sendAppLink'])->name('send-app-link');
+        Route::post('/static-login-code', [MemberAccessController::class, 'setStaticLoginCode'])->name('static-login-code.store');
+        Route::delete('/static-login-code', [MemberAccessController::class, 'removeStaticLoginCode'])->name('static-login-code.destroy');
         Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');
         Route::post('/consume-credit', [MemberAccessController::class, 'consumeCredit'])->name('consume-credit');
         Route::delete('/devices/{device}', [MemberAccessController::class, 'removeDevice'])->name('remove-device');

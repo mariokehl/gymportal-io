@@ -24,6 +24,12 @@ class MemberAccessConfigFactory extends Factory
 
     public function withStaticLoginCode(string $code = '123456'): static
     {
-        return $this->state(fn () => ['static_login_code' => $code]);
+        // static_login_code is intentionally not fillable — the factory writes
+        // the attribute directly, which bypasses mass assignment.
+        return $this->afterMaking(fn (MemberAccessConfig $config) => $config->static_login_code = $code)
+            ->afterCreating(function (MemberAccessConfig $config) use ($code) {
+                $config->static_login_code = $code;
+                $config->save();
+            });
     }
 }
