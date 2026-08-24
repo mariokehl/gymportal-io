@@ -148,7 +148,10 @@
 
                 <!-- Amount Column -->
                 <template v-else-if="column.key === 'amount'">
-                  <span class="text-sm font-semibold">{{ formatCurrency(payment.amount) }}</span>
+                  <span class="inline-flex items-center gap-1.5">
+                    <span class="text-sm font-semibold">{{ formatCurrency(payment.amount) }}</span>
+                    <DiscountBadge :discount="payment.metadata?.discount" />
+                  </span>
                 </template>
 
                 <!-- Status Column -->
@@ -409,6 +412,7 @@ import Pagination from '@/Components/Pagination.vue'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
 import PaymentDetailModal from '@/Components/PaymentDetailModal.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
+import DiscountBadge from '@/Components/DiscountBadge.vue'
 import {
   Download,
   ArrowUpDown,

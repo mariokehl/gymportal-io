@@ -83,7 +83,11 @@ class WidgetCheckoutAddonBillingTypeTest extends TestCase
             'is_recurring' => true,
         ]);
 
-        $this->assertStringContainsString('geschenkt', $html);
+        // Free for the member: 0,00 € leads, the regular price stays as the
+        // struck-through reference behind its billing rhythm.
+        $this->assertStringContainsString('addon-gift-price', $html);
+        $this->assertStringContainsString('0,00', $html);
+        $this->assertStringContainsString('8,62', $html);
 
         // The plan total stays untouched.
         $this->assertStringContainsString('609,88', $html);

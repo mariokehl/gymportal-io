@@ -338,11 +338,16 @@ class WidgetService
 
         $mollieService->storeMolliePaymentMethod($member, $data['payment_method'], $mollieCustomer->id, null);
 
-        $amount = $plan->price;
+        // The membership fee follows the discount frozen onto this contract;
+        // the setup fee is a one-off and is never discounted.
+        $discountedPrice = app(MembershipDiscountService::class)
+            ->priceFor($membership, $membership->start_date);
+
+        $amount = (float) ($discountedPrice ?? $plan->price);
         $description = "1. Mitgliedsbeitrag: {$plan->name}";
 
         if ($plan->setup_fee > 0) {
-            $amount += $plan->setup_fee;
+            $amount += (float) $plan->setup_fee;
             $description = 'Aktivierungsgebühr + '.$description;
         }
 

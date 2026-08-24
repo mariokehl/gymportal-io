@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\MembershipPlan;
 use App\Services\CrossLocationAccessService;
+use App\Services\MembershipPlanAddonService;
+use App\Services\MembershipPlanDiscountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +22,9 @@ class MembershipPlanController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        private CrossLocationAccessService $crossLocationService
+        private readonly CrossLocationAccessService $crossLocationService,
+        private readonly MembershipPlanDiscountService $discountService,
+        private readonly MembershipPlanAddonService $addonService
     ) {}
 
     /**
@@ -49,7 +53,13 @@ class MembershipPlanController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('MembershipPlans/Create');
+        /** @var User $user */
+        $user = Auth::user();
+
+        return Inertia::render('MembershipPlans/Create', [
+            'addons' => $this->addonService->optionsForGym($user->current_gym_id),
+            'addonModes' => (object) [],
+        ]);
     }
 
     /**
@@ -73,6 +83,8 @@ class MembershipPlanController extends Controller
             'auto_renew_type' => 'nullable|in:indefinite,monthly',
             'start_date_mode' => 'nullable|in:next_possible,fixed',
             'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
+            ...MembershipPlanDiscountService::rules(),
+            ...MembershipPlanAddonService::rules(),
         ]);
 
         // Additional validation based on unit
@@ -95,7 +107,18 @@ class MembershipPlanController extends Controller
             ? ($validated['fixed_start_date'] ?? null)
             : null;
 
-        MembershipPlan::create($validated);
+        $discountPhases = $validated['discount_phases'] ?? [];
+        $addonModes = $validated['addon_modes'] ?? [];
+        unset($validated['discount_phases'], $validated['addon_modes']);
+        // Discount phases run in months, so a non-monthly cycle turns them off
+        // and MembershipPlanDiscountService::sync() then drops the phases.
+        $validated['discounts_enabled'] = $request->boolean('discounts_enabled')
+            && MembershipPlanDiscountService::supportsBillingCycle($validated['billing_cycle']);
+
+        $membershipPlan = MembershipPlan::create($validated);
+
+        $this->discountService->sync($membershipPlan, $discountPhases);
+        $this->addonService->sync($membershipPlan, $addonModes);
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',
@@ -148,7 +171,9 @@ class MembershipPlanController extends Controller
         $locations = $this->crossLocationService->organizationLocations($gym);
 
         return Inertia::render('MembershipPlans/Edit', [
-            'membershipPlan' => $membershipPlan,
+            'membershipPlan' => $membershipPlan->load('discountPhases'),
+            'addons' => $this->addonService->optionsForGym($membershipPlan->gym_id),
+            'addonModes' => (object) $this->addonService->modesFor($membershipPlan),
             'activeMembersCount' => $activeMembersCount,
             'activeMemberships' => $activeMemberships,
             'locationScope' => [
@@ -238,6 +263,8 @@ class MembershipPlanController extends Controller
             'auto_renew_type' => 'nullable|in:indefinite,monthly',
             'start_date_mode' => 'nullable|in:next_possible,fixed',
             'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
+            ...MembershipPlanDiscountService::rules(),
+            ...MembershipPlanAddonService::rules(),
         ]);
 
         // Additional validation based on unit
@@ -255,7 +282,18 @@ class MembershipPlanController extends Controller
             ? ($validated['fixed_start_date'] ?? null)
             : null;
 
+        $discountPhases = $validated['discount_phases'] ?? [];
+        $addonModes = $validated['addon_modes'] ?? [];
+        unset($validated['discount_phases'], $validated['addon_modes']);
+        // Discount phases run in months, so a non-monthly cycle turns them off
+        // and MembershipPlanDiscountService::sync() then drops the phases.
+        $validated['discounts_enabled'] = $request->boolean('discounts_enabled')
+            && MembershipPlanDiscountService::supportsBillingCycle($validated['billing_cycle']);
+
         $membershipPlan->update($validated);
+
+        $this->discountService->sync($membershipPlan, $discountPhases);
+        $this->addonService->sync($membershipPlan, $addonModes);
 
         return Redirect::route('contracts.index')->with('flash', [
             'type' => 'success',

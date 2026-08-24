@@ -50,11 +50,11 @@ class WidgetAddonPriceDisplayTest extends TestCase
 
         // 8.62 × 12 ÷ 52 = 1.99 leads as the comparison figure.
         $this->assertStringContainsString('1,99', $html);
-        $this->assertStringContainsString('/ Woche (rechnerisch)', $html);
+        $this->assertStringContainsString('wöchentlich', $html);
 
         // The monthly amount that is actually billed stays visible.
         $this->assertStringContainsString('8,62', $html);
-        $this->assertStringContainsString('Abrechnung monatlich', $html);
+        $this->assertStringContainsString('/Monat · monatl. kündbar', $html);
     }
 
     #[Test]

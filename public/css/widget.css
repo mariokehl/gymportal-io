@@ -1,6 +1,6 @@
 .widget-container {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 20px;
     background: #fff;
@@ -136,13 +136,28 @@
     text-align: center;
 }
 
+/*
+ * The grid owns the card rows: name, description, badge, activation fee,
+ * add-ons, discount, price and cycle each get one row that every card shares
+ * through subgrid. Only the add-ons row grows, so the price block stays on a
+ * common baseline no matter how much text a plan carries.
+ */
 .plans-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    column-gap: 20px;
+    row-gap: 20px;
     margin-bottom: 30px;
-    grid-auto-rows: 1fr;
+    grid-template-rows: auto auto auto auto 1fr auto auto auto;
     align-items: stretch;
+}
+
+/*
+ * Hidden by the duration filter. A class rather than an inline display value,
+ * so showing a card again cannot overwrite its grid/subgrid display type.
+ */
+.plan-card.is-hidden {
+    display: none;
 }
 
 .plan-card {
@@ -152,10 +167,32 @@
     cursor: pointer;
     transition: all 0.3s;
     background: #fff;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
     box-sizing: border-box;
+    display: grid;
+    grid-row: span 8;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+}
+
+/*
+ * Fallback for browsers without subgrid: the cards fall back to a column
+ * layout, which keeps them readable even though rows no longer align.
+ */
+@supports not (grid-template-rows: subgrid) {
+    .plans-grid {
+        grid-template-rows: none;
+    }
+
+    .plan-card {
+        display: flex;
+        flex-direction: column;
+        grid-row: auto;
+        height: 100%;
+    }
+
+    .plan-card .plan-addons {
+        margin-top: auto;
+    }
 }
 
 .plan-card:hover {
@@ -169,32 +206,30 @@
     background: var(--secondary-color);
 }
 
-.plan-header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
 .plan-name {
     font-size: 24px;
     font-weight: bold;
     color: var(--text-color);
-    margin-bottom: 8px;
+    margin: 0 0 8px;
+    text-align: center;
 }
 
 .plan-description {
     color: #6b7280;
     font-size: 14px;
     line-height: 1.4;
+    margin: 0 0 12px;
+    text-align: center;
+}
+
+/* Own row, so the badge sits at the same height on every card. */
+.plan-duration {
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 .plan-features {
     margin-bottom: 20px;
-}
-
-.feature-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
 }
 
 .feature {
@@ -215,31 +250,19 @@
     color: #6b7280;
 }
 
-.plan-pricing {
-    border-top: 1px solid #e5e7eb;
-    padding-top: 20px;
-    text-align: center;
-    /* Push the monthly price to the bottom so all plan prices align. */
-    margin-top: auto;
-}
-
-/* Add-ons (one-time extras tied to a plan) */
+/* Add-ons (extras tied to a plan) */
 .plan-addons {
     border-top: 1px solid #eef0f3;
-    /* Extra space so the add-on card never touches the price divider below. */
+    /* Extra space so the add-on card never touches the price block below. */
     margin-bottom: 8px;
     padding-top: 16px;
     display: flex;
     flex-direction: column;
+    /* Top-aligned: this is the row that absorbs the height difference, so the
+       add-on cards themselves start at the same line on every plan. */
+    justify-content: flex-start;
     gap: 9px;
     text-align: left;
-}
-
-/* When a card has add-ons, the pricing follows them; only cards without add-ons
-   need the pricing itself to absorb the remaining space. */
-.plan-addons + .plan-pricing {
-    border-top: 0;
-    margin-top: auto;
 }
 
 .plan-addons-title {
@@ -267,6 +290,7 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    position: relative;
     transition: border-color .15s, background-color .15s;
 }
 
@@ -275,23 +299,28 @@
     cursor: pointer;
 }
 
-/* Square checkbox indicator (the real input is visually hidden). */
+/*
+ * Selection indicator: a small dot in the top right corner rather than a large
+ * checkbox, so the add-on name stays the first thing read. The real input is
+ * visually hidden.
+ */
 .addon-item .addon-checkbox-box {
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
-    border: 2px solid #c9ced6;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #c9ced6;
     background: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     color: transparent;
-    font-size: 13px;
+    font-size: 9px;
     font-weight: 900;
     line-height: 1;
     flex-shrink: 0;
-    /* Nudge to align with the first text line in the multi-line row. */
-    margin-top: -1px;
     transition: background-color .15s, border-color .15s, color .15s;
 }
 
@@ -305,6 +334,8 @@
     align-items: center;
     gap: 7px;
     flex-wrap: wrap;
+    /* Keep the name clear of the selection dot. */
+    padding-right: 22px;
 }
 
 /* Price sits on its own line below the add-on name. */
@@ -322,29 +353,45 @@
     color: #17202a;
 }
 
+/*
+ * The description is collapsed by default and revealed through the info handle,
+ * so a long text cannot push the cards to different heights.
+ */
 .addon-item .addon-description {
+    display: none;
     color: #8a94a3;
     font-size: 12px;
     line-height: 1.35;
-    margin: 1px 0 0;
+    margin: 4px 0 0;
 }
 
-.addon-item .addon-badge {
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    color: #0e7a43;
-    background: #d6f1e1;
-    padding: 2px 7px;
-    border-radius: 6px;
-    flex-shrink: 0;
+.addon-item.info-open .addon-description {
+    display: block;
 }
 
-/* Neutral badge for optional add-ons (keeps both add-on cards the same height). */
-.addon-item .addon-badge-optional {
-    color: #6b7280;
-    background: #eef0f3;
+/*
+ * Info handle in the bottom right corner (mirrors a textarea resize grip).
+ * The 44px box keeps a comfortable tap target while the glyph stays small.
+ */
+.addon-item .addon-info-btn {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0 6px 6px 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    color: #c9ced6;
+    transition: color .15s;
+}
+
+.addon-item.info-open .addon-info-btn {
+    color: #5b6472;
 }
 
 .addon-item .addon-price {
@@ -355,18 +402,20 @@
 }
 
 .addon-item .addon-price-note {
-    font-size: 11px;
-    color: #8a94a3;
+    font-size: 12px;
+    color: #5b6472;
 }
 
 /*
- * Weekly display only: the monthly amount that is actually billed. Breaks onto
- * its own line so the weekly comparison figure stays the headline.
+ * Third line present on every add-on card (billing rhythm or cancellation
+ * note), so all cards in a plan keep the same height.
  */
-.addon-item .addon-price-billing {
+.addon-item .addon-price-sub {
     flex-basis: 100%;
-    font-size: 12px;
-    color: #5b6472;
+    font-size: 11px;
+    padding-right: 14px;
+    white-space: nowrap;
+    color: #8a94a3;
     margin-top: 1px;
 }
 
@@ -374,13 +423,14 @@
     font-size: 12px;
     font-weight: 600;
     color: #9aa7a0;
-    text-decoration: line-through;
+    white-space: nowrap;
 }
 
 .addon-item .addon-price-gift {
     font-weight: 900;
     font-size: 15px;
     color: #0e7a43;
+    white-space: nowrap;
 }
 
 /* Included add-on: green "free benefit" treatment. */
@@ -395,11 +445,11 @@
     color: #fff;
 }
 
-.addon-item.addon-included .addon-description {
+.addon-item.addon-included .addon-price-sub {
     color: #5b8c73;
 }
 
-/* Optional add-on, selected: rose surcharge treatment. */
+/* Optional add-on, selected: picks up the studio's primary colour. */
 .addon-item.addon-optional.selected .addon-row {
     border-color: var(--primary-color);
     background: var(--secondary-color);
@@ -424,13 +474,19 @@
 
 /* UVP / discount: struck-through original price plus a discount badge,
    shown above the price only when an original_price higher than the price is set. */
+/*
+ * Reserved row: it keeps its height even on a plan without a discount, so the
+ * price below stays on the same line across all cards.
+ */
 .price-discount {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     margin-bottom: 6px;
+    min-height: 25px;
 }
+
 
 .price-original {
     font-size: 16px;
@@ -452,6 +508,7 @@
 
 .price-main {
     margin-bottom: 8px;
+    text-align: center;
 }
 
 .price-amount {
@@ -462,6 +519,7 @@
 
 .price-details {
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .price-frequency {
@@ -874,6 +932,63 @@ span.mandatory {
     color: var(--text-color);
 }
 
+/* Section heading paired with its "ändern" shortcut back to that step. */
+.summary-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 20px 0;
+}
+
+.summary-heading h2 {
+    margin: 0;
+}
+
+.summary-edit-link {
+    font-size: 14px;
+    color: var(--primary-color);
+    text-decoration: underline;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.summary-edit-link:hover {
+    text-decoration: none;
+}
+
+/*
+ * Billing rhythm ahead of the amount, set small and muted: the label already
+ * says what the row is, so the eye lands on the figure.
+ */
+.detail-row .value-cycle {
+    color: #6b7280;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Included add-on in the summary: free, with the regular price as reference. */
+.detail-row .value-gift {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.detail-row .addon-gift-price {
+    color: #0e7a43;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.detail-row .addon-gift-struck {
+    color: #9aa7a0;
+    font-size: 12px;
+    text-decoration: line-through;
+    white-space: nowrap;
+}
+
 .detail-row {
     display: flex;
     justify-content: space-between;
@@ -886,6 +1001,13 @@ span.mandatory {
     border-bottom: none;
 }
 
+/* Renewal and notice-period note under the contract term. */
+.renewal-note {
+    margin: -4px 0 16px 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
 .detail-row .label {
     font-weight: 500;
     color: #4b5563;
@@ -893,6 +1015,12 @@ span.mandatory {
 
 .detail-row .value {
     color: var(--text-color);
+    /* Cycle and amount share a baseline and stay flush right. */
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 6px;
+    text-align: right;
 }
 
 .pricing-summary {
@@ -948,6 +1076,13 @@ span.mandatory {
 .final-price .price-frequency {
     font-size: 14px;
     color: #6b7280;
+}
+
+.final-price .price-after {
+    font-size: 12px;
+    color: #6b7280;
+    display: block;
+    margin-top: 4px;
 }
 
 .registration-note {

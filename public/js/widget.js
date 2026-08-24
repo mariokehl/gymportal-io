@@ -84,7 +84,7 @@
             style.textContent = `
                 .widget-container {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    max-width: 800px;
+                    max-width: 900px;
                     margin: 0 auto;
                     padding: 20px;
                     background: #fff;
@@ -271,7 +271,7 @@
             } else {
                 // If no duration selector, show all plans
                 plans.forEach((plan) => {
-                    plan.style.display = 'flex';
+                    plan.classList.remove('is-hidden');
                 });
             }
 
@@ -281,7 +281,7 @@
                 if (selectedPlanInput) {
                     const selectedPlanCard = selectedPlanInput.closest('label');
                     // Check if the selected plan is visible with current duration filter
-                    if (selectedPlanCard && selectedPlanCard.style.display !== 'none') {
+                    if (selectedPlanCard && !selectedPlanCard.classList.contains('is-hidden')) {
                         selectedPlanInput.checked = true;
                         selectedPlanCard.classList.add('selected');
                         nextBtn.disabled = false;
@@ -298,7 +298,7 @@
             plans.forEach((plan) => {
                 plan.addEventListener("click", () => {
                     // Only allow selection if plan is visible
-                    if (plan.style.display === 'none') return;
+                    if (plan.classList.contains('is-hidden')) return;
 
                     plans.forEach((p) => p.classList.remove("selected"));
                     plan.classList.add("selected");
@@ -359,11 +359,34 @@
         // their (visually hidden) checkbox. Included add-ons are fixed and have
         // no checkbox interaction.
         setupAddonToggles() {
+            // The info handle expands the add-on description in place. It must not
+            // reach the surrounding label, which would toggle the add-on itself.
+            this.shadowRoot.querySelectorAll('.addon-info-btn').forEach((button) => {
+                const item = button.closest('.addon-item');
+                if (!item) return;
+
+                button.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const open = item.classList.toggle('info-open');
+                    const label = open ? 'Beschreibung ausblenden' : 'Beschreibung anzeigen';
+                    button.setAttribute('aria-label', label);
+                    button.setAttribute('title', label);
+                });
+            });
+
             const optionalItems = this.shadowRoot.querySelectorAll('.addon-item.addon-optional');
 
             optionalItems.forEach((item) => {
                 const checkbox = item.querySelector('.addon-checkbox');
                 if (!checkbox) return;
+
+                // Coming back from the checkout via "ändern" re-renders the step,
+                // so restore what was picked before instead of dropping it.
+                if (this.selectedAddons.includes(parseInt(checkbox.value, 10))) {
+                    checkbox.checked = true;
+                }
 
                 const sync = () => item.classList.toggle('selected', checkbox.checked);
                 sync();
@@ -407,7 +430,7 @@
                 const planDuration = parseInt(plan.dataset.duration);
 
                 if (planDuration === selectedDuration) {
-                    plan.style.display = 'flex';
+                    plan.classList.remove('is-hidden');
                     visiblePlansCount++;
 
                     // Check if this plan was previously selected
@@ -416,7 +439,7 @@
                         hasSelectedPlan = true;
                     }
                 } else {
-                    plan.style.display = 'none';
+                    plan.classList.add('is-hidden');
 
                     // Uncheck hidden plans
                     const input = plan.querySelector('input[name="plan"]');
@@ -449,7 +472,7 @@
         getVisiblePlansCount(plans) {
             let count = 0;
             plans.forEach((plan) => {
-                if (plan.style.display !== 'none') {
+                if (!plan.classList.contains('is-hidden')) {
                     count++;
                 }
             });
@@ -737,6 +760,19 @@
                               this.shadowRoot.querySelector('.purchase-btn');
 
             const backBtn = this.shadowRoot.querySelector(".back-btn");
+
+            // "ändern" next to a summary heading returns to the step that owns
+            // those values, so a correction never means restarting the flow.
+            this.shadowRoot.querySelectorAll('.summary-edit-link').forEach((link) => {
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const step = link.dataset.editStep;
+                    if (!step) return;
+
+                    this.trackEvent('checkout_edit_clicked', 'checkout', { target_step: step });
+                    await this.goToStep(step);
+                });
+            });
 
             if (backBtn) {
                 backBtn.addEventListener("click", async (e) => {
