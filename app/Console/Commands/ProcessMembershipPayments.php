@@ -7,6 +7,7 @@ use App\Models\Membership;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Services\CreditLedgerService;
+use App\Services\MembershipDiscountService;
 use App\Services\MollieService;
 use App\Services\PaymentService;
 use Carbon\Carbon;
@@ -561,7 +562,8 @@ class ProcessMembershipPayments extends Command
                     $this->logTestAction('payment_create', [
                         'membership_id' => $membership->id,
                         'member_id' => $member->id,
-                        'amount' => $plan->price,
+                        'amount' => app(MembershipDiscountService::class)
+                            ->priceFor($membership, $nextPaymentDate) ?? $plan->price,
                         'due_date' => $nextPaymentDate->toDateString(),
                     ]);
                 } else {

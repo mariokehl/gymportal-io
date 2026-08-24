@@ -13,13 +13,22 @@
         $countryCodes = [
             'DE' => 'Deutschland',
             'AT' => 'Österreich',
-            'CT' => 'Schweiz'
+            'CH' => 'Schweiz'
         ];
+        $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
+
+        // The discount ladder is resolved server-side and frozen into the
+        // session payload, so the summary shows exactly what will be charged.
+        $discountSegments = $planData['discount_segments'] ?? [];
+        $entryPrice = $planData['entry_price'] ?? null;
     @endphp
 
     <div class="checkout-content">
         <div class="membership-details">
-            <h2>Vertrag im Überblick</h2>
+            <div class="summary-heading">
+                <h2>Vertrag im Überblick</h2>
+                <a href="#" class="summary-edit-link" data-edit-step="plans">ändern</a>
+            </div>
 
             <div class="detail-row">
                 <span class="label">Standort:</span>
@@ -84,32 +93,66 @@
             @php
                 $commitmentMonths = $planData['commitment_months'] ?? 12;
                 $autoRenewType = $planData['auto_renew_type'] ?? 'indefinite';
+
+                // Notice period as configured on the plan, so the sentence never
+                // promises a different one than the row further down states.
+                $noticePeriod = $planData['cancellation_period'] ?? 30;
+                $noticeUnit = $planData['cancellation_period_unit'] ?? 'days';
+                $noticeText = $noticeUnit === 'months'
+                    ? $noticePeriod.' '.($noticePeriod == 1 ? 'Monat' : 'Monate')
+                    : $noticePeriod.' '.($noticePeriod == 1 ? 'Tag' : 'Tage');
+
+                // Only a studio whose contracts always start on the first of a
+                // month cancels to a month boundary; otherwise the period runs
+                // from the individual contract date and naming one would be wrong.
+                if ($gymData['contracts_start_first_of_month'] ?? false) {
+                    $noticeText .= ' zum Monatsende';
+                }
             @endphp
-            <p style="margin: -4px 0 0 0; font-size: 12px; color: #6b7280;">
+            <p class="renewal-note">
+                Nach {{ $commitmentMonths }} {{ $commitmentMonths == 1 ? 'Monat' : 'Monaten' }}
                 @if($autoRenewType === 'monthly')
-                    Nach der Erstlaufzeit von {{ $commitmentMonths }} {{ $commitmentMonths == 1 ? 'Monat' : 'Monaten' }} verlängert sich die Mitgliedschaft automatisch um 1 Monat.
+                    läuft der Vertrag monatlich weiter.
                 @else
-                    Nach der Erstlaufzeit geht der Vertrag in eine unbefristete Mitgliedschaft über.
+                    geht der Vertrag in eine unbefristete Mitgliedschaft über.
                 @endif
+                Kündigungsfrist: {{ $noticeText }}.
             </p>
-            <div class="detail-row">
-                <span class="label">Mitgliedsbeitrag:</span>
-                <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['price'], 'EUR') }} {{ $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle'] }}</span>
-            </div>
+            @php $cycleText = $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle']; @endphp
+            @if(count($discountSegments) > 1)
+                {{-- Discounted plan: every phase is listed with the months it covers. --}}
+                @foreach($discountSegments as $segment)
+                <div class="detail-row">
+                    <span class="label">
+                        @if($segment['to'] === null)
+                            Mitgliedsbeitrag ab dem {{ $segment['from'] }}. Monat:
+                        @else
+                            Mitgliedsbeitrag Monat {{ $segment['from'] }}–{{ $segment['to'] }}:
+                        @endif
+                    </span>
+                    <span class="value"><small class="value-cycle">{{ $cycleText }}</small> {{ $priceFormatter->formatCurrency($segment['price'], 'EUR') }}</span>
+                </div>
+                @endforeach
+            @else
+                <div class="detail-row">
+                    <span class="label">Mitgliedsbeitrag:</span>
+                    <span class="value"><small class="value-cycle">{{ $cycleText }}</small> {{ $priceFormatter->formatCurrency($planData['price'], 'EUR') }}</span>
+                </div>
+            @endif
             <div class="detail-row">
                 <span class="label">Aktivierungsgebühr:</span>
-                <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['setup_fee'], 'EUR') }} einmalig</span>
+                <span class="value"><small class="value-cycle">einmalig</small> {{ $priceFormatter->formatCurrency($planData['setup_fee'], 'EUR') }}</span>
             </div>
             @foreach($addons ?? [] as $addon)
             <div class="detail-row">
                 <span class="label">{{ $addon['name'] }}:</span>
                 @if($addon['mode'] === 'included')
-                    <span class="value">
-                        <span style="text-decoration: line-through; color: #9aa7a0; margin-right: 6px;">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }}</span>
-                        <span style="color: #0e7a43; font-weight: 800;">geschenkt</span>
+                    <span class="value value-gift">
+                        <span class="addon-gift-price">{{ $priceFormatter->formatCurrency(0, 'EUR') }}</span>
+                        <span class="addon-gift-struck"><small class="value-cycle">{{ ($addon['is_recurring'] ?? false) ? 'monatlich' : 'einmalig' }}</small> {{ $priceFormatter->formatCurrency($addon['price'], 'EUR') }}</span>
                     </span>
                 @else
-                    <span class="value">+ {{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($addon['price'], 'EUR') }} {{ ($addon['is_recurring'] ?? false) ? 'monatlich' : 'einmalig' }}</span>
+                    <span class="value">+ <small class="value-cycle">{{ ($addon['is_recurring'] ?? false) ? 'monatlich' : 'einmalig' }}</small> {{ $priceFormatter->formatCurrency($addon['price'], 'EUR') }}</span>
                 @endif
             </div>
             @endforeach
@@ -131,10 +174,16 @@
                 // Total cost over the initial contract term: the plan total
                 // (recurring contributions + activation fee) plus the cost of
                 // every paid add-on the customer actually has to pay for.
-                // Included add-ons are free ("geschenkt") and must not be added.
-                // Recurring add-ons are charged every month, so they count once
-                // per month of the initial term; one-time add-ons count once.
-                $contractTotal = $planData['membership_price']['total_price'] ?? 0;
+                // Included add-ons are free and must not be added. Recurring
+                // add-ons are charged every month, so they count once per month
+                // of the initial term; one-time add-ons count once.
+                //
+                // A discounted plan carries its own contribution sum, which
+                // already accounts for the phases; the activation fee is added
+                // on top of it the same way the calculator does.
+                $contractTotal = isset($planData['discounted_contract_total']) && count($discountSegments) > 1
+                    ? $planData['discounted_contract_total'] + ($planData['setup_fee'] ?? 0)
+                    : ($planData['membership_price']['total_price'] ?? 0);
                 $addonsTotal = 0;
                 foreach ($addons ?? [] as $addon) {
                     if (($addon['mode'] ?? null) === 'included') {
@@ -149,12 +198,15 @@
             @endphp
             <div class="detail-row">
                 <span class="label">Gesamtpreis Erstvertragslaufzeit:</span>
-                <span class="value">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($totalOverTerm, 'EUR') }}</span>
+                <span class="value">{{ $priceFormatter->formatCurrency($totalOverTerm, 'EUR') }}</span>
             </div>
         </div>
 
         <div class="member-summary">
-            <h2>Deine Daten</h2>
+            <div class="summary-heading">
+                <h2>Deine Daten</h2>
+                <a href="#" class="summary-edit-link" data-edit-step="form">ändern</a>
+            </div>
 
             <div class="summary-section">
                 <div class="detail-row">
@@ -189,7 +241,7 @@
                 </div>
                 <div class="detail-row">
                     <span class="label">Land:</span>
-                    <span class="value">{{ $billingCycles[$formData['country']] ?? $formData['country'] }}</span>
+                    <span class="value">{{ $countryCodes[$formData['country'] ?? ''] ?? ($formData['country'] ?? '') }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Mobilnummer:</span>
@@ -218,19 +270,19 @@
                 --}}
 
                 <div class="final-price">
-                    {{-- UVP / discount: only when an original price above the actual price is set. --}}
-                    @if(!empty($planData['original_price']) && $planData['original_price'] > $planData['price'])
-                        @php
-                            $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
-                            $discountPercent = (int) round((1 - $planData['price'] / $planData['original_price']) * 100);
-                        @endphp
+                    {{-- Struck-through reference price plus badge, whenever the entry price is discounted. --}}
+                    @if($entryPrice && $entryPrice['has_discount'])
                         <div class="price-discount">
-                            <span class="price-original">{{ $priceFormatter->formatCurrency($planData['original_price'], 'EUR') }}</span>
-                            <span class="price-discount-badge">&minus;{{ $discountPercent }}%</span>
+                            <span class="price-original">{{ $priceFormatter->formatCurrency($entryPrice['original_price'], 'EUR') }}</span>
+                            <span class="price-discount-badge">&minus;{{ $entryPrice['discount_percent'] }}%</span>
                         </div>
                     @endif
-                    <div class="price-amount">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($planData['price'], 'EUR') }}</div>
-                    <span class="price-frequency">{{ $billingCycles[$planData['billing_cycle']] ?? $planData['billing_cycle'] }}</span>
+                    <div class="price-amount">{{ $priceFormatter->formatCurrency($entryPrice['price'] ?? $planData['price'], 'EUR') }}</div>
+                    <span class="price-frequency">{{ $cycleText }}</span>
+                    {{-- Every follow-up phase, so the customer sees what happens after the promo. --}}
+                    @foreach(array_slice($discountSegments, 1) as $segment)
+                        <span class="price-after">ab dem {{ $segment['from'] }}. Monat: {{ $priceFormatter->formatCurrency($segment['price'], 'EUR') }}</span>
+                    @endforeach
                 </div>
 
                 <div class="registration-note">

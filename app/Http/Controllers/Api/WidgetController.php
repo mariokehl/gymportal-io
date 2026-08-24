@@ -8,6 +8,7 @@ use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\WidgetAnalytics;
 use App\Models\WidgetRegistration;
+use App\Services\MembershipPlanDiscountService;
 use App\Services\WidgetService;
 use App\Util\MembershipPriceCalculator;
 use Carbon\Carbon;
@@ -49,7 +50,10 @@ class WidgetController extends Controller
         // Query builder for the plans including their active add-ons (with pivot mode)
         $plansQuery = MembershipPlan::where('gym_id', $gymId)
             ->where('is_active', true)
-            ->with(['addons' => fn ($query) => $query->where('is_active', true)]);
+            ->with([
+                'addons' => fn ($query) => $query->where('is_active', true),
+                'discountPhases',
+            ]);
 
         // Wenn Verträge in den Einstellungen ausgewählt wurden
         if (! empty($selectedContractIds)) {
@@ -201,7 +205,10 @@ class WidgetController extends Controller
         if ($selectedPlan) {
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $selectedPlan)
-                ->with(['addons' => fn ($query) => $query->where('is_active', true)])
+                ->with([
+                    'addons' => fn ($query) => $query->where('is_active', true),
+                    'discountPhases',
+                ])
                 ->first();
 
             if ($plan) {
@@ -567,6 +574,8 @@ class WidgetController extends Controller
      */
     private function preparePlanDataForSession(MembershipPlan $plan): array
     {
+        $discountService = new MembershipPlanDiscountService;
+
         return [
             'id' => $plan->id,
             'name' => $plan->name,
@@ -582,6 +591,9 @@ class WidgetController extends Controller
                 $plan->setup_fee
             ),
             'currency' => 'EUR',
+            'discount_segments' => $discountService->segmentsFor($plan),
+            'entry_price' => $discountService->entryPriceFor($plan),
+            'discounted_contract_total' => $discountService->contractTotalFor($plan),
             'commitment_months' => $plan->commitment_months,
             'auto_renew_type' => $plan->auto_renew_type,
             'cancellation_period' => $plan->cancellation_period,
@@ -620,6 +632,9 @@ class WidgetController extends Controller
                 'mode' => $mode,
                 'billing_type' => $addon->billing_type,
                 'is_recurring' => $addon->isRecurring(),
+                'description' => $addon->description,
+                'shows_weekly_price' => $addon->showsWeeklyPrice(),
+                'weekly_price' => $addon->weekly_price,
             ];
         }
 

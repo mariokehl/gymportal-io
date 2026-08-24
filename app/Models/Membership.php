@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Events\MembershipActivated;
+use App\Services\MembershipDiscountService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,20 @@ use Illuminate\Support\Facades\Log;
 class Membership extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Freeze the plan's discount ladder onto every new contract.
+     *
+     * This hangs off the model rather than the individual creation sites so
+     * that no path — widget, admin, import — can sign a contract without the
+     * snapshot billing later depends on.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (self $membership): void {
+            app(MembershipDiscountService::class)->snapshot($membership);
+        });
+    }
 
     protected $fillable = [
         'member_id',
@@ -75,6 +90,17 @@ class Membership extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * The discount ladder as it applied when this contract was signed.
+     *
+     * Frozen at creation, so editing the plan's phases later never changes
+     * what this member pays. See MembershipDiscountService.
+     */
+    public function discountPhases()
+    {
+        return $this->hasMany(MembershipDiscountPhase::class)->orderBy('sort_order');
     }
 
     public function addons()
