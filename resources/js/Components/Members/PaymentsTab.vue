@@ -221,6 +221,15 @@
                 >
                   {{ deactivating === paymentMethod.id ? 'Deaktivieren...' : 'Deaktivieren' }}
                 </button>
+                <button
+                  v-if="paymentMethod.status === 'expired'"
+                  @click="deletePaymentMethod(paymentMethod)"
+                  type="button"
+                  class="text-sm font-semibold text-red-600 hover:text-red-800"
+                  :disabled="deleting === paymentMethod.id"
+                >
+                  {{ deleting === paymentMethod.id ? 'Löschen...' : 'Löschen' }}
+                </button>
               </div>
             </div>
           </div>
@@ -1015,6 +1024,7 @@ const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
 const syncingMandate = ref(null)
+const deleting = ref(null)
 
 // Computed properties
 const availablePaymentMethodTypes = computed(() => {
@@ -1340,6 +1350,28 @@ const deactivatePaymentMethod = (paymentMethod) => {
     },
     onError: () => {
       deactivating.value = null
+    }
+  })
+}
+
+const deletePaymentMethod = (paymentMethod) => {
+  if (!confirm('Möchten Sie diese Zahlungsmethode wirklich löschen?\n\nSie verschwindet aus der Kundenakte; bereits gebuchte Zahlungen bleiben erhalten.')) {
+    return
+  }
+
+  deleting.value = paymentMethod.id
+
+  router.delete(route('members.payment-methods.destroy', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      deleting.value = null
+    },
+    onError: () => {
+      deleting.value = null
+      alert('Die Zahlungsmethode konnte nicht gelöscht werden.')
     }
   })
 }

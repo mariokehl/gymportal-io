@@ -135,6 +135,22 @@ class PaymentMethodController extends Controller
     }
 
     /**
+     * Removes a retired payment method.
+     *
+     * Guarded by the policy to expired methods, so account data that is still
+     * being billed against cannot be dropped. The model is soft deleted, which
+     * keeps it available for an audit of past payments.
+     */
+    public function destroy(Member $member, PaymentMethod $paymentMethod)
+    {
+        $this->authorize('delete', $paymentMethod);
+
+        $paymentMethod->delete();
+
+        return back()->with('success', 'Zahlungsmethode gelöscht.');
+    }
+
+    /**
      * Markiert ein SEPA-Mandat als unterschrieben
      */
     public function markSepaMandateAsSigned(Member $member, PaymentMethod $paymentMethod)

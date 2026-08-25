@@ -42,10 +42,15 @@ class PaymentMethodPolicy
 
     /**
      * Determine whether the user can delete the model.
+     *
+     * Only a retired payment method may be removed: an active one is still
+     * being collected from, and deleting it would strip a running membership
+     * of the account data it is billed against.
      */
     public function delete(User $user, PaymentMethod $paymentMethod): bool
     {
-        return false;
+        return $user->current_gym_id === $paymentMethod->member->gym->id
+            && $paymentMethod->status === 'expired';
     }
 
     /**
