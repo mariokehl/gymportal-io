@@ -60,62 +60,77 @@
           <div v-show="expandedMethodId === paymentMethod.id" class="px-4 pb-4 -mt-1">
             <div class="border-t border-gray-100 pt-3 space-y-3">
               <!-- SEPA Details -->
-              <div v-if="isSepaType(paymentMethod.type)" class="space-y-1.5 text-sm">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-gray-500">IBAN:</span>
-                  <span class="font-mono text-gray-900">{{ paymentMethod.masked_iban || '****' }}</span>
-                  <Tooltip
-                    v-if="isMollieManaged(paymentMethod)"
-                    position="top"
-                    text="IBAN wird von Mollie verwaltet"
-                  >
-                    <Link2
-                      class="w-4 h-4 text-indigo-600"
-                      aria-label="IBAN wird von Mollie verwaltet"
-                    />
-                  </Tooltip>
-                  <Tooltip
-                    v-else-if="isMollieLinkBroken(paymentMethod)"
-                    position="top"
-                    text="Keine Verknüpfung zu Mollie"
-                  >
-                    <Unlink
-                      class="w-4 h-4 text-red-600"
-                      aria-label="Keine Verknüpfung zu Mollie"
-                    />
-                  </Tooltip>
+              <div v-if="isSepaType(paymentMethod.type)" class="grid gap-x-10 gap-y-1.5 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
+                <div class="space-y-1.5 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-gray-500">IBAN:</span>
+                    <span class="font-mono text-gray-900">{{ paymentMethod.masked_iban || '****' }}</span>
+                    <Tooltip
+                      v-if="isMollieManaged(paymentMethod)"
+                      position="top"
+                      text="IBAN wird von Mollie verwaltet"
+                    >
+                      <Link2
+                        class="w-4 h-4 text-indigo-600"
+                        aria-label="IBAN wird von Mollie verwaltet"
+                      />
+                    </Tooltip>
+                    <Tooltip
+                      v-else-if="isMollieLinkBroken(paymentMethod)"
+                      position="top"
+                      text="Keine Verknüpfung zu Mollie"
+                    >
+                      <Unlink
+                        class="w-4 h-4 text-red-600"
+                        aria-label="Keine Verknüpfung zu Mollie"
+                      />
+                    </Tooltip>
+                  </div>
+                  <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
+                    <span class="text-gray-500 flex-none">Mandatsreferenz:</span>
+                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.sepa_mandate_reference }}</span>
+                  </div>
+                  <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2 flex-wrap">
+                    <span class="text-gray-500">SEPA-Mandat:</span>
+                    <span
+                      :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
+                      class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
+                    >
+                      {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
+                    </span>
+                    <!-- Mollie holds the account data, so a locally corrected IBAN
+                         only reaches it once the mandate is re-issued. -->
+                    <button
+                      v-if="canSyncMollieMandate(paymentMethod)"
+                      type="button"
+                      @click="syncMollieMandate(paymentMethod)"
+                      :disabled="syncingMandate === paymentMethod.id"
+                      class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                    >
+                      <RefreshCw
+                        class="w-3.5 h-3.5"
+                        :class="syncingMandate === paymentMethod.id ? 'animate-spin' : ''"
+                      />
+                      {{ syncingMandate === paymentMethod.id ? 'Wird übertragen …' : 'IBAN zu Mollie übertragen' }}
+                    </button>
+                  </div>
+                  <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
+                    <span class="text-gray-500">Unterschrieben am:</span>
+                    <span class="text-gray-900">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
+                  </div>
                 </div>
-                <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
-                  <span class="text-gray-500">Mandatsreferenz:</span>
-                  <span class="text-gray-900">{{ paymentMethod.sepa_mandate_reference }}</span>
-                </div>
-                <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2 flex-wrap">
-                  <span class="text-gray-500">SEPA-Mandat:</span>
-                  <span
-                    :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
-                    class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
-                  >
-                    {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
-                  </span>
-                  <!-- Mollie holds the account data, so a locally corrected IBAN
-                       only reaches it once the mandate is re-issued. -->
-                  <button
-                    v-if="canSyncMollieMandate(paymentMethod)"
-                    type="button"
-                    @click="syncMollieMandate(paymentMethod)"
-                    :disabled="syncingMandate === paymentMethod.id"
-                    class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
-                  >
-                    <RefreshCw
-                      class="w-3.5 h-3.5"
-                      :class="syncingMandate === paymentMethod.id ? 'animate-spin' : ''"
-                    />
-                    {{ syncingMandate === paymentMethod.id ? 'Wird übertragen …' : 'IBAN zu Mollie übertragen' }}
-                  </button>
-                </div>
-                <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
-                  <span class="text-gray-500">Unterschrieben am:</span>
-                  <span class="text-gray-900">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
+
+                <!-- Mollie's own identifiers, kept in a second column so they do
+                     not push the account data apart. Wraps below it on mobile. -->
+                <div v-if="hasMollieIds(paymentMethod)" class="space-y-1.5 min-w-0">
+                  <div v-if="paymentMethod.mollie_customer_id" class="flex gap-1.5">
+                    <span class="text-gray-500 flex-none">Mollie-Kunde:</span>
+                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.mollie_customer_id }}</span>
+                  </div>
+                  <div v-if="paymentMethod.mollie_mandate_id" class="flex gap-1.5">
+                    <span class="text-gray-500 flex-none">Mollie-Mandat:</span>
+                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.mollie_mandate_id }}</span>
+                  </div>
                 </div>
               </div>
 
@@ -1175,6 +1190,11 @@ const ibanValidation = ref({
 const handleIbanValidation = (validation, context) => {
   ibanValidation.value[context] = validation
 }
+
+// Mollie stores its own identifiers for a direct debit; they are shown next to
+// the account data whenever Mollie knows this payment method at all.
+const hasMollieIds = paymentMethod =>
+  Boolean(paymentMethod.mollie_customer_id || paymentMethod.mollie_mandate_id)
 
 // A SEPA method normally needs a valid IBAN to be saved. Expiring it is the one
 // case where an empty field is the point: the operator retires the method and
