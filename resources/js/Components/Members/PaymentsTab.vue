@@ -61,9 +61,29 @@
             <div class="border-t border-gray-100 pt-3 space-y-3">
               <!-- SEPA Details -->
               <div v-if="isSepaType(paymentMethod.type)" class="space-y-1.5 text-sm">
-                <div class="flex gap-1.5">
+                <div class="flex items-center gap-1.5">
                   <span class="text-gray-500">IBAN:</span>
                   <span class="font-mono text-gray-900">{{ paymentMethod.masked_iban || '****' }}</span>
+                  <Tooltip
+                    v-if="isMollieManaged(paymentMethod)"
+                    position="top"
+                    text="IBAN wird von Mollie verwaltet"
+                  >
+                    <Link2
+                      class="w-4 h-4 text-indigo-600"
+                      aria-label="IBAN wird von Mollie verwaltet"
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    v-else-if="isMollieLinkBroken(paymentMethod)"
+                    position="top"
+                    text="Keine Verknüpfung zu Mollie"
+                  >
+                    <Unlink
+                      class="w-4 h-4 text-red-600"
+                      aria-label="Keine Verknüpfung zu Mollie"
+                    />
+                  </Tooltip>
                 </div>
                 <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
                   <span class="text-gray-500">Mandatsreferenz:</span>
@@ -900,8 +920,9 @@ import IbanInput from '@/Components/IbanInput.vue'
 import {
   CreditCard, Plus, Wallet, AlertCircle, CheckCircle, XCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  FileText, AlertTriangle, ChevronDown, Send, Check, Info
+  FileText, AlertTriangle, ChevronDown, Send, Check, Info, Link2, Unlink
 } from 'lucide-vue-next'
+import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 import { sortByScheduledDate } from '@/utils/payments'
 
@@ -1049,6 +1070,16 @@ const isBankTransferType = (type) => {
          type === 'mollie_banktransfer' ||
          type?.includes('banktransfer')
 }
+
+// Both ids together mean Mollie holds the account data and the mandate: the
+// IBAN shown here is only a local copy that must not be edited on our side.
+const isMollieManaged = paymentMethod =>
+  Boolean(paymentMethod.mollie_customer_id && paymentMethod.mollie_mandate_id)
+
+// A Mollie direct debit is supposed to carry both ids. Missing either one means
+// the method cannot be collected through Mollie, which the operator has to fix.
+const isMollieLinkBroken = paymentMethod =>
+  paymentMethod.type === 'mollie_directdebit' && !isMollieManaged(paymentMethod)
 
 // Forms für Zahlungsmethoden
 const paymentMethodForm = useForm({
