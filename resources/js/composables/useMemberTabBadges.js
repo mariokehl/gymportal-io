@@ -25,10 +25,13 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
 
   // Payment methods that cannot be billed yet, mirroring the backend activation
   // guard: a method is usable when it is active and, if it requires a SEPA
-  // mandate, that mandate is active too.
+  // mandate, that mandate is active too. Expired methods are left out: they are
+  // closed records the operator cannot activate any more, so counting them would
+  // flag the tab for something that needs no action.
   const unusablePaymentMethodCount = computed(
     () => (memberValue.value.payment_methods || []).filter(
-      pm => pm.status !== 'active' || (pm.requires_mandate && pm.sepa_mandate_status !== 'active')
+      pm => pm.status !== 'expired'
+        && (pm.status !== 'active' || (pm.requires_mandate && pm.sepa_mandate_status !== 'active'))
     ).length
   )
 
