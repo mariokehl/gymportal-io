@@ -10,13 +10,21 @@ import { CircleAlert, TriangleAlert } from 'lucide-vue-next'
  * When both apply the badge alternates between them, so neither signal stays
  * hidden behind the other.
  *
- * @param {import('vue').Ref<Object>|Object} member  The member record.
+ * Pass a getter (`() => props.member`) rather than the record itself whenever
+ * the source can be replaced, as an Inertia page prop is on every visit: a
+ * plain object is read once and would leave the badges on stale data.
+ *
+ * @param {(function(): Object)|import('vue').Ref<Object>|Object} member  The member record.
  * @param {import('vue').Ref<Number|null>} outstandingBalance  Unsettled chargeback total.
  * @param {Object} [options]
  * @param {Number} [options.alternateAfter]  Milliseconds between icon swaps.
  */
 export function useMemberTabBadges(member, outstandingBalance, { alternateAfter = 3000 } = {}) {
-  const memberValue = computed(() => (member?.value ?? member) ?? {})
+  const memberValue = computed(() => {
+    const value = typeof member === 'function' ? member() : (member?.value ?? member)
+
+    return value ?? {}
+  })
 
   // Pending memberships waiting to be activated by the operator.
   const pendingMembershipCount = computed(
@@ -25,10 +33,13 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
 
   // Payment methods that cannot be billed yet, mirroring the backend activation
   // guard: a method is usable when it is active and, if it requires a SEPA
-  // mandate, that mandate is active too.
+  // mandate, that mandate is active too. Expired methods are left out: they are
+  // closed records the operator cannot activate any more, so counting them would
+  // flag the tab for something that needs no action.
   const unusablePaymentMethodCount = computed(
     () => (memberValue.value.payment_methods || []).filter(
-      pm => pm.status !== 'active' || (pm.requires_mandate && pm.sepa_mandate_status !== 'active')
+      pm => pm.status !== 'expired'
+        && (pm.status !== 'active' || (pm.requires_mandate && pm.sepa_mandate_status !== 'active'))
     ).length
   )
 
