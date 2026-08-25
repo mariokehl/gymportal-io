@@ -477,8 +477,7 @@
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                :disabled="paymentMethodForm.processing ||
-                          (isSepaType(paymentMethodForm.type) && !ibanValidation.editPaymentMethod.isValid)"
+                :disabled="paymentMethodForm.processing || !canSubmitEditedPaymentMethod"
                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
               >
                 {{ paymentMethodForm.processing ? 'Speichern...' : 'Speichern' }}
@@ -1176,6 +1175,21 @@ const ibanValidation = ref({
 const handleIbanValidation = (validation, context) => {
   ibanValidation.value[context] = validation
 }
+
+// A SEPA method normally needs a valid IBAN to be saved. Expiring it is the one
+// case where an empty field is the point: the operator retires the method and
+// clears the account data with it, so the IBAN is not demanded any more.
+const canSubmitEditedPaymentMethod = computed(() => {
+  if (!isSepaType(paymentMethodForm.type)) {
+    return true
+  }
+
+  if (paymentMethodForm.status === 'expired' && !paymentMethodForm.iban) {
+    return true
+  }
+
+  return ibanValidation.value.editPaymentMethod.isValid
+})
 
 // Payment history
 const openAddPayment = () => {
