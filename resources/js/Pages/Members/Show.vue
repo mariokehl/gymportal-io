@@ -381,7 +381,7 @@ const {
   pendingMembershipCount,
   paymentsAttentionSignal,
   paymentsAttentionHint,
-} = useMemberTabBadges(props.member, outstandingBalance)
+} = useMemberTabBadges(() => props.member, outstandingBalance)
 
 const editMode = ref(false)
 

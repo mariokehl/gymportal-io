@@ -71,6 +71,39 @@ describe('unusablePaymentMethodCount', () => {
   })
 })
 
+describe('member sources', () => {
+  it('tracks a getter when the record is replaced', () => {
+    // Inertia hands the page a brand new member object on every visit, so the
+    // badges have to follow the getter rather than the object it returned once.
+    const member = ref({ payment_methods: [sepa()] })
+    const { unusablePaymentMethodCount, paymentsAttentionSignal } = badges(() => member.value)
+
+    expect(paymentsAttentionSignal.value).toBeNull()
+
+    member.value = { payment_methods: [sepa({ status: 'pending', sepa_mandate_status: 'pending' })] }
+
+    expect(unusablePaymentMethodCount.value).toBe(1)
+    expect(paymentsAttentionSignal.value?.key).toBe('payment-method')
+  })
+
+  it('tracks a ref when the record is replaced', () => {
+    const member = ref({ payment_methods: [sepa()] })
+    const { unusablePaymentMethodCount } = badges(member)
+
+    member.value = { payment_methods: [sepa({ status: 'pending', sepa_mandate_status: 'pending' })] }
+
+    expect(unusablePaymentMethodCount.value).toBe(1)
+  })
+
+  it('still accepts a plain record', () => {
+    const { unusablePaymentMethodCount } = badges({
+      payment_methods: [sepa({ status: 'pending', sepa_mandate_status: 'pending' })],
+    })
+
+    expect(unusablePaymentMethodCount.value).toBe(1)
+  })
+})
+
 describe('payments attention signals', () => {
   it('does not flag the tab for an expired method alongside a usable one', () => {
     const { paymentsAttentionSignal } = badges({
