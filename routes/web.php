@@ -118,6 +118,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         // Neue SEPA-Mandat Routen
         Route::put('/{paymentMethod}/mark-signed', [PaymentMethodController::class, 'markSepaMandateAsSigned'])->name('mark-signed');
         Route::put('/{paymentMethod}/activate-mandate', [PaymentMethodController::class, 'activateSepaMandate'])->name('activate-mandate');
+        Route::put('/{paymentMethod}/sync-mollie-mandate', [PaymentMethodController::class, 'syncMollieMandate'])->name('sync-mollie-mandate');
     });
     Route::prefix('members/{member}/payments')->name('members.payments.')->group(function () {
         Route::post('/', [MemberPaymentController::class, 'store'])->name('store');

@@ -89,7 +89,7 @@
                   <span class="text-gray-500">Mandatsreferenz:</span>
                   <span class="text-gray-900">{{ paymentMethod.sepa_mandate_reference }}</span>
                 </div>
-                <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2">
+                <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2 flex-wrap">
                   <span class="text-gray-500">SEPA-Mandat:</span>
                   <span
                     :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
@@ -97,6 +97,21 @@
                   >
                     {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
                   </span>
+                  <!-- Mollie holds the account data, so a locally corrected IBAN
+                       only reaches it once the mandate is re-issued. -->
+                  <button
+                    v-if="canSyncMollieMandate(paymentMethod)"
+                    type="button"
+                    @click="syncMollieMandate(paymentMethod)"
+                    :disabled="syncingMandate === paymentMethod.id"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                  >
+                    <RefreshCw
+                      class="w-3.5 h-3.5"
+                      :class="syncingMandate === paymentMethod.id ? 'animate-spin' : ''"
+                    />
+                    {{ syncingMandate === paymentMethod.id ? 'Wird übertragen …' : 'IBAN zu Mollie übertragen' }}
+                  </button>
                 </div>
                 <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
                   <span class="text-gray-500">Unterschrieben am:</span>
@@ -920,7 +935,7 @@ import IbanInput from '@/Components/IbanInput.vue'
 import {
   CreditCard, Plus, Wallet, AlertCircle, CheckCircle, XCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  FileText, AlertTriangle, ChevronDown, Send, Check, Info, Link2, Unlink
+  FileText, AlertTriangle, ChevronDown, Send, Check, Info, Link2, Unlink, RefreshCw
 } from 'lucide-vue-next'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
@@ -985,6 +1000,7 @@ const deactivating = ref(null)
 const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
+const syncingMandate = ref(null)
 
 // Computed properties
 const availablePaymentMethodTypes = computed(() => {
@@ -1080,6 +1096,14 @@ const isMollieManaged = paymentMethod =>
 // the method cannot be collected through Mollie, which the operator has to fix.
 const isMollieLinkBroken = paymentMethod =>
   paymentMethod.type === 'mollie_directdebit' && !isMollieManaged(paymentMethod)
+
+// Mollie stores the account data itself and the local iban is cleared once a
+// mandate is in place. A value sitting here again means the operator corrected
+// the IBAN afterwards, so it still has to be pushed over to Mollie.
+const canSyncMollieMandate = paymentMethod =>
+  paymentMethod.type === 'mollie_directdebit' &&
+  paymentMethod.sepa_mandate_status === 'active' &&
+  Boolean(paymentMethod.iban)
 
 // Forms für Zahlungsmethoden
 const paymentMethodForm = useForm({
@@ -1427,6 +1451,29 @@ const activateSepaMandate = (paymentMethod) => {
       activatingMandate.value = null
       console.error('Fehler:', errors)
       alert('Das SEPA-Mandat konnte nicht aktiviert werden.')
+    }
+  })
+}
+
+const syncMollieMandate = (paymentMethod) => {
+  if (!confirm('Möchten Sie die geänderte IBAN an Mollie übertragen?\n\nDas bestehende SEPA-Mandat wird dabei widerrufen und mit den neuen Kontodaten neu erteilt.')) {
+    return
+  }
+
+  syncingMandate.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.sync-mollie-mandate', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      syncingMandate.value = null
+    },
+    onError: (errors) => {
+      syncingMandate.value = null
+      console.error('Fehler:', errors)
+      alert('Die IBAN konnte nicht an Mollie übertragen werden.')
     }
   })
 }

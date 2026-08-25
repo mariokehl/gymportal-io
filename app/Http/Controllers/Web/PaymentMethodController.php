@@ -193,4 +193,43 @@ class PaymentMethodController extends Controller
 
         return back()->with('error', 'Das SEPA-Mandat konnte nicht aktiviert werden.');
     }
+
+    /**
+     * Transfers a subsequently corrected IBAN to Mollie and renews the mandate.
+     *
+     * Mollie holds the account data itself, so a locally changed IBAN only
+     * reaches the payment provider once the existing mandate is revoked and
+     * re-issued with the new details.
+     */
+    public function syncMollieMandate(Member $member, PaymentMethod $paymentMethod)
+    {
+        // Ensure user can only modify payment methods from their gym
+        $this->authorize('update', $paymentMethod);
+
+        if ($paymentMethod->type !== 'mollie_directdebit') {
+            return back()->with('error', 'Diese Zahlungsmethode wird nicht über Mollie abgerechnet.');
+        }
+
+        if ($paymentMethod->sepa_mandate_status !== 'active') {
+            return back()->with('error', 'Nur ein aktives SEPA-Mandat kann zu Mollie übertragen werden.');
+        }
+
+        if (blank($paymentMethod->iban)) {
+            return back()->with('error', 'Es ist keine neue IBAN hinterlegt, die übertragen werden könnte.');
+        }
+
+        try {
+            $success = app(MollieService::class)->handleMolliePaymentMethod($member, $paymentMethod);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'Die IBAN konnte nicht an Mollie übertragen werden.');
+        }
+
+        if ($success) {
+            return back()->with('success', 'Die IBAN wurde an Mollie übertragen und das SEPA-Mandat erneuert.');
+        }
+
+        return back()->with('error', 'Die IBAN konnte nicht an Mollie übertragen werden.');
+    }
 }
