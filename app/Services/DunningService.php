@@ -170,7 +170,8 @@ class DunningService
     /**
      * Whether the waiting time configured for the level has elapsed.
      *
-     * Level 1 counts from the due date of the oldest overdue payment, every
+     * Level 1 counts from the point the oldest overdue payment actually became
+     * overdue — the later one of its due date and its execution date — every
      * further level counts from the previous notice.
      */
     protected function isLevelDue(Member $member, Gym $gym, int $level, Payment $oldestOverdue): bool
@@ -182,7 +183,7 @@ class DunningService
         }
 
         $reference = $level === DunningNotice::LEVEL_REMINDER
-            ? $oldestOverdue->due_date
+            ? $oldestOverdue->overdue_since
             : optional($this->lastNotice($member))->triggered_at;
 
         if (! $reference) {
@@ -210,9 +211,18 @@ class DunningService
         return $member->dunningNotices()->orderByDesc('level')->first();
     }
 
+    /**
+     * The overdue payment that started running first, measured by the same
+     * reference the escalation uses: the later of due date and execution date.
+     */
     protected function oldestOverduePayment(Member $member): ?Payment
     {
-        return $member->payments()->overdue()->reorder('due_date')->first();
+        return $member->payments()
+            ->overdue()
+            ->reorder()
+            ->get()
+            ->sortBy(fn (Payment $payment) => $payment->overdue_since)
+            ->first();
     }
 
     /**

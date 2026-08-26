@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -185,6 +186,24 @@ class Payment extends Model
     {
         return $query->where('status', 'pending')
             ->where('due_date', '<', now());
+    }
+
+    /**
+     * The date a claim actually became overdue: the later one of the due date
+     * and the execution date. A payment executed after its due date only starts
+     * running from the execution, while an early or missing execution date
+     * leaves the due date in charge.
+     */
+    public function getOverdueSinceAttribute(): ?Carbon
+    {
+        $dueDate = $this->due_date ? Carbon::parse($this->due_date) : null;
+        $executionDate = $this->execution_date ? Carbon::parse($this->execution_date) : null;
+
+        if (! $dueDate) {
+            return $executionDate;
+        }
+
+        return $executionDate && $executionDate->greaterThan($dueDate) ? $executionDate : $dueDate;
     }
 
     /**

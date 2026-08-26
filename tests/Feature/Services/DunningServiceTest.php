@@ -37,8 +37,12 @@ class DunningServiceTest extends TestCase
         return $gym;
     }
 
-    private function overduePayment(Member $member, float $amount = 49.99, int $daysOverdue = 30): Payment
-    {
+    private function overduePayment(
+        Member $member,
+        float $amount = 49.99,
+        int $daysOverdue = 30,
+        ?int $executedDaysAgo = null,
+    ): Payment {
         return Payment::create([
             'gym_id' => $member->gym_id,
             'member_id' => $member->id,
@@ -47,6 +51,7 @@ class DunningServiceTest extends TestCase
             'description' => 'Mitgliedsbeitrag',
             'status' => 'pending',
             'due_date' => Carbon::today()->subDays($daysOverdue),
+            'execution_date' => $executedDaysAgo === null ? null : Carbon::today()->subDays($executedDaysAgo),
         ]);
     }
 
@@ -62,6 +67,73 @@ class DunningServiceTest extends TestCase
         $this->assertSame(DunningNotice::LEVEL_REMINDER, $notice->level);
         $this->assertEquals(0.0, (float) $notice->fee);
         $this->assertSame('overdue', $member->fresh()->status);
+    }
+
+    public function test_an_execution_date_after_the_due_date_delays_the_first_level(): void
+    {
+        $gym = $this->gym();
+        $member = Member::factory()->create(['gym_id' => $gym->id, 'status' => 'active']);
+
+        // Due 20 days ago, but only executed 3 days ago: the reminder counts
+        // from the execution and its 7 day waiting time has not elapsed yet.
+        $this->overduePayment($member, daysOverdue: 20, executedDaysAgo: 3);
+
+        $this->assertNull($this->service->escalate($member->fresh(), $gym));
+    }
+
+    public function test_an_execution_date_after_the_due_date_triggers_once_its_waiting_time_elapsed(): void
+    {
+        $gym = $this->gym();
+        $member = Member::factory()->create(['gym_id' => $gym->id, 'status' => 'active']);
+
+        $this->overduePayment($member, daysOverdue: 40, executedDaysAgo: 10);
+
+        $notice = $this->service->escalate($member->fresh(), $gym);
+
+        $this->assertNotNull($notice);
+        $this->assertSame(DunningNotice::LEVEL_REMINDER, $notice->level);
+    }
+
+    public function test_an_execution_date_before_the_due_date_keeps_the_due_date(): void
+    {
+        $gym = $this->gym();
+        $member = Member::factory()->create(['gym_id' => $gym->id, 'status' => 'active']);
+
+        // Executed before it was due, so the due date stays in charge and its
+        // 7 day waiting time has not elapsed yet.
+        $this->overduePayment($member, daysOverdue: 3, executedDaysAgo: 20);
+
+        $this->assertNull($this->service->escalate($member->fresh(), $gym));
+    }
+
+    public function test_without_an_execution_date_the_due_date_is_used(): void
+    {
+        $gym = $this->gym();
+        $member = Member::factory()->create(['gym_id' => $gym->id, 'status' => 'active']);
+
+        $this->overduePayment($member, daysOverdue: 10, executedDaysAgo: null);
+
+        $notice = $this->service->escalate($member->fresh(), $gym);
+
+        $this->assertNotNull($notice);
+        $this->assertSame(DunningNotice::LEVEL_REMINDER, $notice->level);
+    }
+
+    public function test_the_oldest_overdue_payment_is_measured_by_the_same_reference(): void
+    {
+        $gym = $this->gym();
+        $member = Member::factory()->create(['gym_id' => $gym->id, 'status' => 'active']);
+
+        // Earlier due date, but executed late, so it started running last.
+        $lateExecution = $this->overduePayment($member, daysOverdue: 60, executedDaysAgo: 8);
+        // Later due date and no execution, so this one became overdue first.
+        $earliest = $this->overduePayment($member, daysOverdue: 30);
+
+        $notice = $this->service->escalate($member->fresh(), $gym);
+
+        $this->assertNotNull($notice);
+        $this->assertSame($earliest->id, $notice->payment_id);
+        $this->assertNotSame($lateExecution->id, $notice->payment_id);
     }
 
     public function test_it_does_not_escalate_before_the_waiting_time_elapsed(): void
