@@ -83,7 +83,7 @@
                 <table cellpadding="0" cellspacing="0" role="presentation">
                     <tr>
                         <td>
-                            <a href="https://members.gymportal.io/{{ $gym->slug }}" class="button button--red" style="display: inline-block; color: #ffffff; text-decoration: none; border-radius: 3px; background-color: #e3342f; border-top: 10px solid #e3342f; border-right: 18px solid #e3342f; border-bottom: 10px solid #e3342f; border-left: 18px solid #e3342f;">
+                            <a href="{{ config('app.pwa_url') }}/{{ $gym->slug }}" class="button button--red" style="display: inline-block; color: #ffffff; text-decoration: none; border-radius: 3px; background-color: #e3342f; border-top: 10px solid #e3342f; border-right: 18px solid #e3342f; border-bottom: 10px solid #e3342f; border-left: 18px solid #e3342f;">
                                 Zum Mitgliederbereich
                             </a>
                         </td>

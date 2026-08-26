@@ -38,11 +38,55 @@ class Gym extends Model
         self::CHECKIN_RULE_ALL,
     ];
 
+    /**
+     * The organisation symbol falls back to the first letter of the name.
+     */
+    public const SYMBOL_TYPE_INITIAL = 'initial';
+
+    /**
+     * The organisation symbol is a single emoji picked by the operator.
+     */
+    public const SYMBOL_TYPE_EMOJI = 'emoji';
+
+    public const SYMBOL_TYPES = [
+        self::SYMBOL_TYPE_INITIAL,
+        self::SYMBOL_TYPE_EMOJI,
+    ];
+
+    /**
+     * Used whenever an organisation has no colour of its own. Matches the
+     * indigo the rest of the backend uses for primary actions.
+     */
+    public const DEFAULT_SYMBOL_COLOR = '#4f46e5';
+
+    /**
+     * The colours offered in the settings form. Mirrors SYMBOL_COLORS in
+     * resources/js/utils/organizationSymbol.js.
+     */
+    public const SYMBOL_COLORS = [
+        '#4f46e5', '#2563eb', '#0891b2', '#059669',
+        '#65a30d', '#d97706', '#ea580c', '#dc2626',
+        '#db2777', '#7c3aed', '#475569', '#111827',
+    ];
+
+    /**
+     * The emojis offered in the settings form. Mirrors SYMBOL_EMOJIS in
+     * resources/js/utils/organizationSymbol.js.
+     */
+    public const SYMBOL_EMOJIS = [
+        '🏋️', '💪', '🤸', '🥊', '🧘', '🏃', '🚴', '🏊',
+        '⚽', '🏆', '🥇', '🎯', '🔥', '⚡', '⭐', '🌊',
+        '🌲', '🍀', '🏙️', '🏢', '📍', '🧭', '🛡️', '🎽',
+    ];
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
         'display_name',
+        'symbol_type',
+        'symbol_emoji',
+        'symbol_color',
         'slug',
         'description',
         'address',
@@ -76,6 +120,8 @@ class Gym extends Model
         'trial_ends_at',
         'scanner_secret_key',
         'cross_location_checkin_rule',
+        'checkin_station_enabled',
+        'checkin_station_token',
         'rolling_qr_enabled',
         'rolling_qr_interval',
         'rolling_qr_tolerance_windows',
@@ -106,6 +152,7 @@ class Gym extends Model
         'widget_enabled' => 'boolean',
         'widget_settings' => 'array',
         'contracts_start_first_of_month' => 'boolean',
+        'checkin_station_enabled' => 'boolean',
         'rolling_qr_enabled' => 'boolean',
         'api_key_generated_at' => 'datetime',
         'pwa_enabled' => 'boolean',
@@ -119,6 +166,7 @@ class Gym extends Model
     protected $hidden = [
         'api_key',
         'scanner_secret_key',
+        'checkin_station_token',
         // Contains the encrypted partner password; the frontend gets the
         // sanitised version through the appended `inkasso` attribute instead.
         'inkasso_settings',
@@ -307,6 +355,60 @@ class Gym extends Model
     }
 
     /**
+     * Whether the printed check-in station is usable at this location.
+     *
+     * Enabled alone is not enough — without a token there is nothing for a
+     * member to scan, and a half-configured gym must read as closed.
+     */
+    public function hasCheckinStation(): bool
+    {
+        return (bool) $this->checkin_station_enabled && ! empty($this->checkin_station_token);
+    }
+
+    /**
+     * Issue a station token, replacing any existing one.
+     *
+     * Rotating invalidates every printed sheet in circulation, which is exactly
+     * what an operator wants after a code leaks — so the caller has to mean it.
+     */
+    public function rotateCheckinStationToken(): string
+    {
+        $token = Str::random(48);
+
+        $this->forceFill(['checkin_station_token' => $token])->save();
+
+        return $token;
+    }
+
+    /**
+     * Drop the station token entirely.
+     *
+     * Called when the operator switches the station off: a disabled station has
+     * no reason to keep a working code on file, and leaving one behind would
+     * mean a leaked sheet quietly regains access the moment the feature is
+     * switched back on. Re-enabling therefore mints a fresh token and every
+     * previously printed sheet stays dead.
+     */
+    public function clearCheckinStationToken(): void
+    {
+        $this->forceFill(['checkin_station_token' => null])->save();
+    }
+
+    /**
+     * Constant-time comparison of a scanned token against this gym's.
+     *
+     * Reading the column directly rather than through the hidden-attribute
+     * accessor, and comparing with hash_equals so a wrong token cannot be
+     * narrowed down by timing.
+     */
+    public function matchesCheckinStationToken(string $token): bool
+    {
+        $expected = $this->checkin_station_token;
+
+        return is_string($expected) && $expected !== '' && hash_equals($expected, $token);
+    }
+
+    /**
      * Bestimmte Legal URL nach Typ abrufen
      */
     public function getLegalUrl(string $type): ?string
@@ -353,7 +455,7 @@ class Gym extends Model
         return Attribute::make(
             get: function () {
                 // Domain aus Request oder als Standard festlegen
-                $domain = request()->header('Origin') ?: 'https://members.gymportal.io';
+                $domain = request()->header('Origin') ?: config('app.pwa_url');
 
                 return [
                     'name' => $this->name.' - Mitglieder App',
@@ -758,6 +860,23 @@ class Gym extends Model
         return array_values(array_filter($this->getAllPaymentMethods(), function ($method) {
             return $method['enabled'];
         }));
+    }
+
+    /**
+     * The payment method key that actually applies for a standard method,
+     * which is the integration's own key once that integration has taken the
+     * method over — e.g. SEPA direct debit collected through Mollie.
+     */
+    public function resolvePaymentMethodKey(string $methodKey): string
+    {
+        if (! $this->isPaymentMethodOverriddenByIntegration($methodKey)) {
+            return $methodKey;
+        }
+
+        return match ($methodKey) {
+            'sepa_direct_debit', 'standingorder' => 'mollie_directdebit',
+            default => $methodKey,
+        };
     }
 
     protected function isPaymentMethodOverriddenByIntegration(string $methodKey): bool
@@ -1268,6 +1387,38 @@ class Gym extends Model
     public function getDisplayName(): string
     {
         return $this->display_name ?: $this->name;
+    }
+
+    /**
+     * The symbol shown in the sidebar and the organization switcher.
+     *
+     * Returns the emoji when the operator picked one, otherwise the first
+     * letter of the display name. The colour always resolves to a value so
+     * the frontend never has to repeat the fallback.
+     *
+     * @return array{type: string, emoji: string|null, color: string, initial: string}
+     */
+    public function getSymbol(): array
+    {
+        $type = in_array($this->symbol_type, self::SYMBOL_TYPES, true)
+            ? $this->symbol_type
+            : self::SYMBOL_TYPE_INITIAL;
+
+        $emoji = $this->symbol_emoji !== null && $this->symbol_emoji !== ''
+            ? $this->symbol_emoji
+            : null;
+
+        // An emoji symbol without an emoji would render an empty tile.
+        if ($type === self::SYMBOL_TYPE_EMOJI && $emoji === null) {
+            $type = self::SYMBOL_TYPE_INITIAL;
+        }
+
+        return [
+            'type' => $type,
+            'emoji' => $emoji,
+            'color' => $this->symbol_color ?: self::DEFAULT_SYMBOL_COLOR,
+            'initial' => Str::upper(Str::substr(trim($this->getDisplayName()), 0, 1)),
+        ];
     }
 
     // === CONTRACT SETTINGS ===

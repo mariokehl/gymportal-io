@@ -18,6 +18,7 @@ class PaymentService
 {
     public function __construct(
         private readonly MollieService $mollieService,
+        private readonly MembershipDiscountService $discountService,
     ) {}
 
     /**
@@ -68,6 +69,11 @@ class PaymentService
                     'created_via' => $member->registration_source ?? 'manual',
                     'payment_method_id' => $paymentMethod?->id,
                     'billing_anchor_date' => $billingAnchorDate?->toDateString(),
+                    'discount' => $this->discountService->auditFor(
+                        $membership,
+                        $billingAnchorDate ?? $membership->start_date,
+                        $plan->price
+                    ),
                 ],
             ]);
 
@@ -349,7 +355,9 @@ class PaymentService
                     'gym_id' => $member->gym_id,
                     'membership_id' => $membership->id,
                     'member_id' => $member->id,
-                    'amount' => $plan->price,
+                    // The frozen discount for this period, or the regular
+                    // price once the promotion has run out.
+                    'amount' => $this->discountService->priceFor($membership, $currentDate) ?? $plan->price,
                     'currency' => 'EUR',
                     'description' => $this->generateRecurringPaymentDescription($plan, $currentDate),
                     'status' => 'pending',
@@ -365,6 +373,9 @@ class PaymentService
                         'billing_period_end' => $this->calculateBillingPeriodEnd($currentDate, $plan->billing_cycle)->toDateString(),
                         'created_via' => 'scheduler',
                         'payment_method_id' => $paymentMethod?->id,
+                        // Present only on a reduced charge; makes the amount
+                        // legible to the operator.
+                        'discount' => $this->discountService->auditFor($membership, $currentDate, $plan->price),
                     ],
                 ]);
 
@@ -402,10 +413,12 @@ class PaymentService
         // Use billing_anchor_date if provided, otherwise use start_date
         $dueDate = $billingAnchorDate ?? $membership->start_date;
 
-        // First payment (may include trial period)
+        // First payment (may include trial period). Outside a trial the
+        // membership's frozen discount phases win over the plan price, so the
+        // member is charged the promotion in force when they signed.
         $amount = $plan->trial_period_days > 0 && $plan->trial_price !== null
             ? $plan->trial_price
-            : $plan->price;
+            : $this->discountService->priceFor($membership, $dueDate) ?? $plan->price;
 
         $description = $plan->trial_period_days > 0 && $plan->trial_price !== null
             ? "Probezeitraum ({$plan->trial_period_days} Tage): {$plan->name}"

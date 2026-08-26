@@ -48,6 +48,7 @@
             <label class="block text-sm font-medium text-gray-500">Betrag</label>
             <div class="mt-1 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
               <span class="text-sm text-gray-900 font-semibold">{{ formatCurrency(payment.amount) }}</span>
+              <DiscountBadge :discount="payment.metadata?.discount" />
               <PaymentStatusBadge :status="payment.status" />
             </div>
           </div>
@@ -66,6 +67,32 @@
               />
               {{ payment.payment_method_text }}
             </p>
+          </div>
+          <div v-if="payment.metadata?.discount" class="col-span-2">
+            <label class="block text-sm font-medium text-gray-500">Rabatt</label>
+            <dl class="mt-1 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-sm">
+              <div class="flex justify-between">
+                <dt class="text-gray-600">Regulärer Beitrag</dt>
+                <dd class="text-gray-900 line-through">
+                  {{ formatCurrency(payment.metadata.discount.regular_price) }}
+                </dd>
+              </div>
+              <div class="mt-1 flex justify-between">
+                <dt class="text-gray-600">Aktionspreis</dt>
+                <dd class="font-semibold text-gray-900">
+                  {{ formatCurrency(payment.metadata.discount.discounted_price) }}
+                </dd>
+              </div>
+              <div class="mt-1 flex justify-between">
+                <dt class="text-gray-600">Ersparnis</dt>
+                <dd class="font-semibold text-green-700">
+                  {{ formatCurrency(payment.metadata.discount.savings) }}
+                </dd>
+              </div>
+              <div class="mt-2 border-t border-green-200 pt-2 text-xs text-gray-600">
+                {{ discountPhaseLabel }} · Rabattstaffel vom Vertragsabschluss
+              </div>
+            </dl>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-500">Erstellt am</label>
@@ -266,6 +293,7 @@ import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
+import DiscountBadge from '@/Components/DiscountBadge.vue'
 import {
   CheckCircle,
   X,
@@ -305,6 +333,21 @@ const props = defineProps({
     type: Boolean,
     default: true
   }
+})
+
+/**
+ * The months of the contract this discount phase covers.
+ */
+const discountPhaseLabel = computed(() => {
+  const discount = props.payment?.metadata?.discount
+
+  if (!discount) {
+    return ''
+  }
+
+  return discount.period_start_month === discount.period_end_month
+    ? `Monat ${discount.period_start_month}`
+    : `Monat ${discount.period_start_month}–${discount.period_end_month}`
 })
 
 const emit = defineEmits(['close', 'mark-as-paid', 'cancel-payment', 'payment-updated'])

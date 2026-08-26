@@ -64,6 +64,11 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::prefix('checkin')->group(function () {
             Route::get('latest', [CheckInController::class, 'getLatest']);
             Route::post('{id}/end', [CheckInController::class, 'endCheckin'])->where('id', '[0-9]+');
+
+            // Printed check-in station: member scans the counter's static QR
+            // code with their own phone. Placed before the {id} route would be
+            // ambiguous, so it stays a distinct literal segment.
+            Route::post('toggle', [CheckInController::class, 'toggleAtStation']);
         });
 
         // Auth upgrade routes (require anonymous or full session)

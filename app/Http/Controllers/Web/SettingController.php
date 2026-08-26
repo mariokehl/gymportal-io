@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\UpdateGymSymbolRequest;
 use App\Models\Gym;
 use App\Models\GymLegalUrl;
 use App\Models\GymUser;
@@ -48,6 +49,32 @@ class SettingController extends Controller
             // Inline-Bearbeitung des Team-Mitglied-Namens ist dem Gym-Besitzer
             // vorbehalten.
             'isGymOwner' => $user->id === $currentGym->owner_id,
+        ]);
+    }
+
+    /**
+     * Persist the symbol shown in the sidebar and the organization switcher.
+     */
+    public function updateGymSymbol(UpdateGymSymbolRequest $request, Gym $gym)
+    {
+        $this->authorize('update', $gym);
+
+        $validated = $request->validated();
+
+        $gym->update([
+            'symbol_type' => $validated['symbol_type'],
+            // The emoji is only kept while the emoji symbol is active, so
+            // switching back to the initial does not leave a stale value.
+            'symbol_emoji' => $validated['symbol_type'] === Gym::SYMBOL_TYPE_EMOJI
+                ? $validated['symbol_emoji']
+                : null,
+            'symbol_color' => $validated['symbol_color'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'symbol' => $gym->getSymbol(),
+            'message' => 'Das Symbol der Organisation wurde erfolgreich aktualisiert.',
         ]);
     }
 

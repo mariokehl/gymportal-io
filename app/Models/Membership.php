@@ -3,16 +3,32 @@
 namespace App\Models;
 
 use App\Events\MembershipActivated;
+use App\Services\MembershipDiscountService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class Membership extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Freeze the plan's discount ladder onto every new contract.
+     *
+     * This hangs off the model rather than the individual creation sites so
+     * that no path — widget, admin, import — can sign a contract without the
+     * snapshot billing later depends on.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (self $membership): void {
+            app(MembershipDiscountService::class)->snapshot($membership);
+        });
+    }
 
     protected $fillable = [
         'member_id',
@@ -76,12 +92,24 @@ class Membership extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * The discount ladder as it applied when this contract was signed.
+     *
+     * Frozen at creation, so editing the plan's phases later never changes
+     * what this member pays. See MembershipDiscountService.
+     */
+    public function discountPhases()
+    {
+        return $this->hasMany(MembershipDiscountPhase::class)->orderBy('sort_order');
+    }
+
     public function addons()
     {
         return $this->belongsToMany(Addon::class)
             ->withPivot(
                 'mode',
                 'price',
+                'booked_at',
                 'payment_id',
                 'completed_at',
                 'completed_by',
@@ -230,6 +258,72 @@ class Membership extends Model
         }
 
         return $result;
+    }
+
+    /**
+     * Returns the reason why this membership cannot be activated, or null when
+     * activation is allowed.
+     *
+     * A paid membership must have at least one usable payment method so the
+     * recurring fee can actually be collected. Free trial memberships are
+     * exempt because no fee is ever charged for them.
+     */
+    public function getActivationBlockReason(): ?string
+    {
+        if ($this->is_free_trial) {
+            return null;
+        }
+
+        $paymentMethods = $this->member?->paymentMethods()->get();
+
+        if ($paymentMethods === null || $paymentMethods->isEmpty()) {
+            return 'Aktivierung nicht möglich: Für dieses Mitglied ist keine Zahlungsart hinterlegt. '
+                .'Legen Sie mindestens eine Zahlungsart für die Abrechnung des Mitgliedsbeitrags an.';
+        }
+
+        // An active payment method without an open mandate requirement is enough.
+        $hasUsablePaymentMethod = $paymentMethods->contains(
+            fn (PaymentMethod $paymentMethod) => $paymentMethod->status === 'active'
+                && (! $paymentMethod->requiresSepaMandate() || $paymentMethod->sepa_mandate_status === 'active')
+        );
+
+        if ($hasUsablePaymentMethod) {
+            return null;
+        }
+
+        return $this->getPaymentMethodBlockReason($paymentMethods);
+    }
+
+    /**
+     * Builds an actionable hint from the payment methods that are present but
+     * not usable yet, so the operator knows which step is still missing.
+     *
+     * @param  Collection<int, PaymentMethod>  $paymentMethods
+     */
+    private function getPaymentMethodBlockReason(Collection $paymentMethods): string
+    {
+        $mandateMethods = $paymentMethods->filter(
+            fn (PaymentMethod $paymentMethod) => $paymentMethod->requiresSepaMandate()
+        );
+
+        // SEPA mandates are resolved in the order the operator has to work through them.
+        if ($mandateMethods->contains(fn (PaymentMethod $paymentMethod) => $paymentMethod->sepa_mandate_status === 'pending')) {
+            return 'Aktivierung nicht möglich: Das SEPA-Lastschriftmandat ist noch nicht unterschrieben. '
+                .'Sie müssen das Mandat zuerst als unterschrieben markieren und anschließend aktivieren.';
+        }
+
+        if ($mandateMethods->contains(fn (PaymentMethod $paymentMethod) => $paymentMethod->sepa_mandate_status === 'signed')) {
+            return 'Aktivierung nicht möglich: Das SEPA-Lastschriftmandat ist unterschrieben, aber noch nicht aktiv. '
+                .'Das Lastschriftmandat muss noch aktiviert werden.';
+        }
+
+        if ($mandateMethods->contains(fn (PaymentMethod $paymentMethod) => in_array($paymentMethod->sepa_mandate_status, ['revoked', 'expired'], true))) {
+            return 'Aktivierung nicht möglich: Das SEPA-Lastschriftmandat wurde widerrufen oder ist abgelaufen. '
+                .'Legen Sie eine neue Zahlungsart an oder erteilen Sie ein neues Lastschriftmandat.';
+        }
+
+        return 'Aktivierung nicht möglich: Es ist keine aktive Zahlungsart hinterlegt. '
+            .'Aktivieren Sie eine vorhandene Zahlungsart oder legen Sie eine neue Zahlungsart für die Abrechnung des Mitgliedsbeitrags an.';
     }
 
     public function getNextPaymentAttribute()

@@ -12,6 +12,11 @@
         ];
         $texts = $gymData['widget_settings']['texts'] ?? [];
         $widgetTitle = $texts['title'] ?? 'Wähle deinen Vertrag';
+
+        // Entry price and phase ladder come from the shared service so the plan
+        // card, the checkout and the billing side stay in agreement.
+        $discountService = new \App\Services\MembershipPlanDiscountService;
+        $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
     @endphp
 
     <h2 class="widget-title">{{ $widgetTitle }}</h2>
@@ -28,96 +33,91 @@
         @foreach($plans as $plan)
         <label class="plan-card"
                data-plan="{{ $plan->id }}"
-               data-duration="{{ $plan->commitment_months }}"
-               style="display: {{ $plan->commitment_months == 12 ? 'flex' : 'none' }}">
+               data-duration="{{ $plan->commitment_months }}">
             <input type="radio" name="plan" value="{{ $plan->id }}" style="display: none;">
 
-            <div class="plan-header">
-                <h3 class="plan-name">{{ $plan->name }}</h3>
-                <p class="plan-description">{{ $plan->description }}</p>
+            {{--
+                The card is a subgrid: every row below is a direct child so all
+                cards share one set of rows. Name, description, badge, fee,
+                add-ons, discount and price therefore line up across the grid
+                regardless of how much text each plan carries.
+            --}}
+            <h3 class="plan-name">{{ $plan->name }}</h3>
+            <p class="plan-description">{{ $plan->description }}</p>
 
-                {{-- Laufzeit-Anzeige --}}
+            {{-- Laufzeit-Anzeige --}}
+            <div class="plan-duration">
                 @if($plan->commitment_months > 0)
-                    <div class="plan-duration">
-                        <span class="duration-badge">
-                            @if($plan->commitment_months == 1)
-                                Monatlich kündbar
-                            @else
-                                {{ $plan->commitment_months }} Monate Laufzeit
-                            @endif
-                        </span>
-                    </div>
+                    <span class="duration-badge">
+                        @if($plan->commitment_months == 1)
+                            Monatlich kündbar
+                        @else
+                            {{ $plan->commitment_months }} Monate Laufzeit
+                        @endif
+                    </span>
                 @endif
             </div>
 
             <div class="plan-features">
-                <div class="feature-list">
-                    {{--
-                    <div class="feature">✔️ EGYM</div>
-                    <div class="feature">✔️ Kostenlos Parken</div>
-                    <div class="feature">✔️ Kostenlos Duschen</div>
-                    <div class="feature">✔️ Freies WLAN</div>
-                    --}}
-                    @if($plan->setup_fee > 0)
-                        <div class="feature-addon">Aktivierungsgebühr <span class="addon-price">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($plan->setup_fee, 'EUR') }}</span></div>
-                    @endif
-                </div>
+                @if($plan->setup_fee > 0)
+                    <div class="feature-addon">Aktivierungsgebühr <span class="addon-price">{{ $priceFormatter->formatCurrency($plan->setup_fee, 'EUR') }}</span></div>
+                @endif
             </div>
 
             {{-- Plan add-ons (billed once at the start of the contract term) --}}
             @php
                 $includedAddons = $plan->addons->where('pivot.mode', 'included');
                 $optionalAddons = $plan->addons->where('pivot.mode', 'optional');
+                $planAddons = $includedAddons->merge($optionalAddons);
             @endphp
-            @if($includedAddons->isNotEmpty() || $optionalAddons->isNotEmpty())
-            @php $currencyFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY); @endphp
+            {{-- Always rendered, so a plan without add-ons keeps the same rows. --}}
             <div class="plan-addons" data-addons-for="{{ $plan->id }}">
-                @php
-                    // The heading only names a billing rhythm when all add-ons
-                    // of this plan share one; otherwise each row states its own.
-                    $planAddons = $includedAddons->merge($optionalAddons);
-                    $addonsTitle = match (true) {
-                        $planAddons->every(fn ($a) => ! $a->isRecurring()) => 'Zusatzleistungen (einmalig)',
-                        $planAddons->every(fn ($a) => $a->isRecurring()) => 'Zusatzleistungen (monatlich)',
-                        default => 'Zusatzleistungen',
-                    };
-                @endphp
-                <p class="plan-addons-title">{{ $addonsTitle }}</p>
+                @if($planAddons->isNotEmpty())
+                <p class="plan-addons-title">Add-Ons</p>
 
                 {{-- Included add-ons: part of the plan, shown as a free benefit (green). --}}
                 @foreach($includedAddons as $addon)
                 <label class="addon-item addon-included">
                     <div class="addon-row">
-                        <span class="addon-checkbox-box" aria-hidden="true">✓</span>
                         <input type="checkbox" class="addon-checkbox" name="addon" value="{{ $addon->id }}"
                                data-plan="{{ $plan->id }}" checked disabled hidden>
                         <div class="addon-text">
                             <div class="addon-name-line">
                                 <span class="addon-name">{{ $addon->name }}</span>
-                                <span class="addon-badge">inklusive</span>
                             </div>
+                            @if($addon->description)
+                                <p class="addon-description">{{ $addon->description }}</p>
+                            @endif
                             <div class="addon-price-line">
-                                {{-- Included add-ons are free: show the price struck through as a discount. --}}
-                                <span class="addon-price addon-price-struck">{{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
-                                <span class="addon-price-gift">geschenkt</span>
+                                {{-- Included add-ons are free: the regular price stays visible as the reference. --}}
+                                <span class="addon-price-gift">{{ $priceFormatter->formatCurrency(0, 'EUR') }}</span>
+                                <span class="addon-price-struck">statt {{ $priceFormatter->formatCurrency($addon->price, 'EUR') }}</span>
+                                <span class="addon-price-sub">Inklusive</span>
                             </div>
                         </div>
+                        <span class="addon-checkbox-box" aria-hidden="true">✓</span>
+                        @if($addon->description)
+                            <button type="button" class="addon-info-btn" aria-label="Beschreibung anzeigen" title="Beschreibung anzeigen">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 5 5 13"></path><path d="M13 9 9 13"></path><path d="M13 1 1 13"></path></svg>
+                            </button>
+                        @endif
                     </div>
                 </label>
                 @endforeach
 
-                {{-- Optional add-ons: selectable surcharge (rose when selected). --}}
+                {{-- Optional add-ons: selectable surcharge. --}}
                 @foreach($optionalAddons as $addon)
                 <label class="addon-item addon-optional">
                     <div class="addon-row">
-                        <span class="addon-checkbox-box" aria-hidden="true">✓</span>
                         <input type="checkbox" class="addon-checkbox" name="addon" value="{{ $addon->id }}"
                                data-plan="{{ $plan->id }}" hidden>
                         <div class="addon-text">
                             <div class="addon-name-line">
                                 <span class="addon-name">{{ $addon->name }}</span>
-                                <span class="addon-badge addon-badge-optional">optional</span>
                             </div>
+                            @if($addon->description)
+                                <p class="addon-description">{{ $addon->description }}</p>
+                            @endif
                             <div class="addon-price-line">
                                 @if($addon->showsWeeklyPrice())
                                     {{--
@@ -125,42 +125,51 @@
                                         comparison, the monthly amount that is actually billed
                                         stays visible right below it.
                                     --}}
-                                    <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->weekly_price, 'EUR') }}</span>
-                                    <span class="addon-price-note">/ Woche (rechnerisch)</span>
-                                    <span class="addon-price-billing">{{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }} · Abrechnung monatlich</span>
+                                    <span class="addon-price">{{ $priceFormatter->formatCurrency($addon->weekly_price, 'EUR') }}</span>
+                                    <span class="addon-price-note">wöchentlich</span>
+                                    <span class="addon-price-sub">{{ $priceFormatter->formatCurrency($addon->price, 'EUR') }}/Monat · monatl. kündbar</span>
                                 @else
-                                    <span class="addon-price">+ {{ $currencyFormatter->formatCurrency($addon->price, 'EUR') }}</span>
+                                    <span class="addon-price">{{ $priceFormatter->formatCurrency($addon->price, 'EUR') }}</span>
                                     <span class="addon-price-note">{{ $addon->isRecurring() ? 'monatlich' : 'einmalig' }}</span>
+                                    <span class="addon-price-sub">{{ $addon->isRecurring() ? 'Monatlich kündbar' : 'Einmalig bei Vertragsabschluss' }}</span>
                                 @endif
                             </div>
                         </div>
+                        <span class="addon-checkbox-box" aria-hidden="true">✓</span>
+                        @if($addon->description)
+                            <button type="button" class="addon-info-btn" aria-label="Beschreibung anzeigen" title="Beschreibung anzeigen">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 5 5 13"></path><path d="M13 9 9 13"></path><path d="M13 1 1 13"></path></svg>
+                            </button>
+                        @endif
                     </div>
                 </label>
                 @endforeach
+                @endif
             </div>
-            @endif
 
-            <div class="plan-pricing">
-                <div class="price-section">
-                    {{-- UVP / discount: only when an original price above the actual price is set. --}}
-                    @if($plan->original_price && $plan->original_price > $plan->price)
-                        @php
-                            $priceFormatter = new NumberFormatter('de_DE', NumberFormatter::CURRENCY);
-                            $discountPercent = (int) round((1 - $plan->price / $plan->original_price) * 100);
-                        @endphp
-                        <div class="price-discount">
-                            <span class="price-original">{{ $priceFormatter->formatCurrency($plan->original_price, 'EUR') }}</span>
-                            <span class="price-discount-badge">&minus;{{ $discountPercent }}%</span>
-                        </div>
-                    @endif
-                    <div class="price-main">
-                        <span class="price-amount">{{ (new NumberFormatter('de_DE', NumberFormatter::CURRENCY))->formatCurrency($plan->price, 'EUR') }}</span>
-                    </div>
-                    <div class="price-details">
-                        <span class="price-frequency">{{ $billingCycles[$plan->billing_cycle] ?? $plan->billing_cycle }}</span>
-                        {{-- <span class="price-after">danach {{ number_format($plan->price, 2) }} € wöchentlich</span> --}}
-                    </div>
-                </div>
+            @php
+                $entryPrice = $discountService->entryPriceFor($plan);
+                $segments = $discountService->segmentsFor($plan);
+            @endphp
+
+            {{-- Own row, so the price stays aligned whether or not a plan is discounted. --}}
+            <div class="price-discount">
+                @if($entryPrice['has_discount'])
+                    <span class="price-original">{{ $priceFormatter->formatCurrency($entryPrice['original_price'], 'EUR') }}</span>
+                    <span class="price-discount-badge">&minus;{{ $entryPrice['discount_percent'] }}%</span>
+                @endif
+            </div>
+
+            <div class="price-main">
+                <span class="price-amount">{{ $priceFormatter->formatCurrency($entryPrice['price'], 'EUR') }}</span>
+            </div>
+
+            <div class="price-details">
+                <span class="price-frequency">{{ $billingCycles[$plan->billing_cycle] ?? $plan->billing_cycle }}</span>
+                {{-- Every follow-up phase, so the customer sees what happens after the promo. --}}
+                @foreach(array_slice($segments, 1) as $segment)
+                    <span class="price-after">ab dem {{ $segment['from'] }}. Monat: {{ $priceFormatter->formatCurrency($segment['price'], 'EUR') }}</span>
+                @endforeach
             </div>
         </label>
         @endforeach

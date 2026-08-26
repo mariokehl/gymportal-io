@@ -51,6 +51,10 @@ class MemberAccessLog extends Model
 
     const ACTION_DEVICE_REMOVED = 'device_removed';
 
+    const ACTION_STATIC_CODE_SET = 'static_code_set';
+
+    const ACTION_STATIC_CODE_REMOVED = 'static_code_removed';
+
     /**
      * Service types
      */
@@ -110,6 +114,8 @@ class MemberAccessLog extends Model
             self::ACTION_NFC_REGISTERED => 'NFC-Tag registriert',
             self::ACTION_NFC_REMOVED => 'NFC-Tag entfernt',
             self::ACTION_DEVICE_REMOVED => 'Gerät entfernt',
+            self::ACTION_STATIC_CODE_SET => 'Statischer Login-Code gesetzt',
+            self::ACTION_STATIC_CODE_REMOVED => 'Statischer Login-Code entfernt',
         ];
 
         return $actions[$this->action] ?? $this->action;
@@ -159,6 +165,33 @@ class MemberAccessLog extends Model
         $timestamp = $this->accessed_at ?? $this->created_at;
 
         return $timestamp->format('d.m.Y H:i:s');
+    }
+
+    /**
+     * Frontend shape of one history row for the member's "Zugänge" tab.
+     * service_name and method_name are accessors and have to be resolved here,
+     * otherwise the display falls back to the raw slugs.
+     */
+    public function toHistoryEntry(): array
+    {
+        $isAccessAttempt = $this->action === self::ACTION_ACCESS_ATTEMPT;
+
+        return [
+            'id' => $this->id,
+            'action' => $this->action,
+            'action_name' => $this->action_name,
+            // Only access attempts carry a service, device or outcome —
+            // for a config change those columns stay empty.
+            'is_access_attempt' => $isAccessAttempt,
+            'service' => $this->service,
+            'service_name' => $this->service ? $this->service_name : null,
+            'method' => $this->method ? $this->method_name : null,
+            'success' => $isAccessAttempt ? $this->success : null,
+            'accessed_at' => ($this->accessed_at ?? $this->created_at)->toISOString(),
+            'device_name' => $this->metadata['device_name'] ?? null,
+            'reason' => $this->metadata['reason'] ?? null,
+            'performed_by_name' => $this->performedBy?->fullName(),
+        ];
     }
 
     /**

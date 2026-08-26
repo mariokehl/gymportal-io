@@ -117,7 +117,11 @@ class PaymentMethod extends Model
     protected function iban(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => strtoupper(str_replace(' ', '', $value))
+            // Clearing the IBAN has to stay null instead of becoming an empty
+            // string: Mollie-managed methods are told apart by an empty field.
+            set: fn ($value) => $value === null
+                ? null
+                : strtoupper(str_replace(' ', '', $value))
         );
     }
 

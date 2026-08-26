@@ -157,13 +157,15 @@
                                 <button
                                     type="submit"
                                     :disabled="isSubmittingGym"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50">
+                                    class="inline-flex justify-center items-center py-2 px-4 border border-transparent bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
                                     Speichern
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
+
+                <OrganizationSymbolCard :current-gym="currentGym" />
 
                 <div class="bg-white shadow-sm rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
@@ -182,7 +184,7 @@
                                 <button
                                     type="submit"
                                     :disabled="isSubmittingGym"
-                                    class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50">
+                                    class="inline-flex justify-center items-center py-2 px-4 border border-transparent bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
                                     Organisation löschen
                                 </button>
                             </div>
@@ -484,6 +486,7 @@ import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
 import PwaSettingsWidget from '@/Components/PwaSettingsWidget.vue'
 import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
 import PaymentExecutionSettingsWidget from '@/Components/PaymentExecutionSettingsWidget.vue'
+import OrganizationSymbolCard from '@/Components/OrganizationSymbolCard.vue'
 import InkassoSettingsWidget from '@/Components/InkassoSettingsWidget.vue'
 import { useToast } from '@/composables/useToast'
 

@@ -474,6 +474,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import {
     Settings, Palette, FileText, Image, Clock, Share2,
     Smartphone, Code, Save, ExternalLink, Globe,
@@ -565,8 +566,10 @@ const savePwaSettings = async () => {
     }
 }
 
+const page = usePage()
+
 const openPwaPreview = () => {
-    const previewUrl = `https://members.gymportal.io/${props.currentGym.slug}`
+    const previewUrl = `${page.props.pwaUrl}/${props.currentGym.slug}`
     window.open(previewUrl, '_blank', 'width=400,height=800,scrollbars=yes,resizable=yes')
 }
 

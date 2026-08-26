@@ -13,9 +13,10 @@
             $g = hexdec(substr($hex, 2, 2));
             $b = hexdec(substr($hex, 4, 2));
 
-            $r = max(0, min(255, $r + ($r * $percent / 100)));
-            $g = max(0, min(255, $g + ($g * $percent / 100)));
-            $b = max(0, min(255, $b + ($b * $percent / 100)));
+            // dechex() expects an int; the scaling above yields a float.
+            $r = (int) round(max(0, min(255, $r + ($r * $percent / 100))));
+            $g = (int) round(max(0, min(255, $g + ($g * $percent / 100))));
+            $b = (int) round(max(0, min(255, $b + ($b * $percent / 100))));
 
             return '#' . str_pad(dechex($r), 2, '0', STR_PAD_LEFT) . str_pad(dechex($g), 2, '0', STR_PAD_LEFT) . str_pad(dechex($b), 2, '0', STR_PAD_LEFT);
         }

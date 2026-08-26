@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\MembershipPlan;
 use App\Services\GymDataExportService;
 use App\Services\GymDataImportService;
+use App\Services\MemberArchiveImportService;
+use App\Services\MemberArchiveParser;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,7 +19,9 @@ class DataTransferController extends Controller
 {
     public function __construct(
         private GymDataExportService $exportService,
-        private GymDataImportService $importService
+        private GymDataImportService $importService,
+        private MemberArchiveParser $archiveParser,
+        private MemberArchiveImportService $archiveImportService
     ) {}
 
     /**
@@ -28,7 +33,7 @@ class DataTransferController extends Controller
         $gym = $user->currentGym;
 
         // Check authorization (owner or admin only)
-        if (!$this->canAccessDataTransfer($user, $gym)) {
+        if (! $this->canAccessDataTransfer($user, $gym)) {
             abort(403, 'Sie haben keine Berechtigung für den Datenimport/-export.');
         }
 
@@ -61,7 +66,7 @@ class DataTransferController extends Controller
         $gym = $user->currentGym;
 
         // Check authorization
-        if (!$this->canAccessDataTransfer($user, $gym)) {
+        if (! $this->canAccessDataTransfer($user, $gym)) {
             abort(403, 'Sie haben keine Berechtigung für den Datenexport.');
         }
 
@@ -89,7 +94,7 @@ class DataTransferController extends Controller
         $gym = $user->currentGym;
 
         // Check authorization
-        if (!$this->canAccessDataTransfer($user, $gym)) {
+        if (! $this->canAccessDataTransfer($user, $gym)) {
             return response()->json([
                 'valid' => false,
                 'error' => 'Sie haben keine Berechtigung für den Datenimport.',
@@ -116,7 +121,7 @@ class DataTransferController extends Controller
         if (json_last_error() !== JSON_ERROR_NONE) {
             return response()->json([
                 'valid' => false,
-                'error' => 'Ungültige JSON-Datei: ' . json_last_error_msg(),
+                'error' => 'Ungültige JSON-Datei: '.json_last_error_msg(),
             ], 422);
         }
 
@@ -134,7 +139,7 @@ class DataTransferController extends Controller
         $gym = $user->currentGym;
 
         // Check authorization
-        if (!$this->canAccessDataTransfer($user, $gym)) {
+        if (! $this->canAccessDataTransfer($user, $gym)) {
             return response()->json([
                 'success' => false,
                 'error' => 'Sie haben keine Berechtigung für den Datenimport.',
@@ -176,16 +181,16 @@ class DataTransferController extends Controller
         if (json_last_error() !== JSON_ERROR_NONE) {
             return response()->json([
                 'success' => false,
-                'error' => 'Ungültige JSON-Datei: ' . json_last_error_msg(),
+                'error' => 'Ungültige JSON-Datei: '.json_last_error_msg(),
             ], 422);
         }
 
         // Validate before import
         $validation = $this->importService->validateImportData($data);
-        if (!$validation['valid']) {
+        if (! $validation['valid']) {
             return response()->json([
                 'success' => false,
-                'error' => 'Validierungsfehler: ' . implode(', ', $validation['errors']),
+                'error' => 'Validierungsfehler: '.implode(', ', $validation['errors']),
             ], 422);
         }
 
@@ -204,7 +209,7 @@ class DataTransferController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Import fehlgeschlagen: ' . $e->getMessage(),
+                'error' => 'Import fehlgeschlagen: '.$e->getMessage(),
             ], 422);
         }
     }
@@ -217,7 +222,7 @@ class DataTransferController extends Controller
         $user = Auth::user();
         $gym = $user->currentGym;
 
-        if (!$this->canAccessDataTransfer($user, $gym)) {
+        if (! $this->canAccessDataTransfer($user, $gym)) {
             return response()->json([
                 'valid' => false,
                 'error' => 'Sie haben keine Berechtigung für den Datenimport.',
@@ -230,7 +235,7 @@ class DataTransferController extends Controller
 
         $file = $request->file('file');
 
-        if (!in_array($file->getClientOriginalExtension(), ['csv', 'CSV'])) {
+        if (! in_array($file->getClientOriginalExtension(), ['csv', 'CSV'])) {
             return response()->json([
                 'valid' => false,
                 'error' => 'Bitte wählen Sie eine CSV-Datei aus.',
@@ -259,7 +264,7 @@ class DataTransferController extends Controller
         $user = Auth::user();
         $gym = $user->currentGym;
 
-        if (!$this->canAccessDataTransfer($user, $gym)) {
+        if (! $this->canAccessDataTransfer($user, $gym)) {
             return response()->json([
                 'success' => false,
                 'error' => 'Sie haben keine Berechtigung für den Datenimport.',
@@ -278,7 +283,7 @@ class DataTransferController extends Controller
 
         $file = $request->file('file');
 
-        if (!in_array($file->getClientOriginalExtension(), ['csv', 'CSV'])) {
+        if (! in_array($file->getClientOriginalExtension(), ['csv', 'CSV'])) {
             return response()->json([
                 'success' => false,
                 'error' => 'Bitte wählen Sie eine CSV-Datei aus.',
@@ -311,9 +316,312 @@ class DataTransferController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Import fehlgeschlagen: ' . $e->getMessage(),
+                'error' => 'Import fehlgeschlagen: '.$e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Receive one chunk of a member archive upload.
+     *
+     * A directory upload can hold far more files than PHP accepts in a single
+     * request (max_file_uploads), so the client sends the files in chunks that
+     * are collected in one staging directory identified by a token.
+     */
+    public function uploadArchiveChunk(Request $request)
+    {
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (! $this->canAccessDataTransfer($user, $gym)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Sie haben keine Berechtigung für den Datenimport.',
+            ], 403);
+        }
+
+        $request->validate([
+            'files' => 'required|array|min:1',
+            'files.*' => 'file|max:51200', // 50 MB per file
+            'token' => 'nullable|string',
+        ], [
+            'files.required' => 'Bitte wählen Sie ein Archiv oder einen Ordner aus.',
+            'files.*.max' => 'Einzelne Dateien dürfen maximal 50 MB groß sein.',
+        ]);
+
+        // The first chunk creates the staging directory, later chunks reuse it.
+        $token = $request->input('token');
+        $root = $token ? $this->resolveStagedArchive($token) : null;
+
+        if ($token && $root === null) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Der Upload ist abgelaufen. Bitte wählen Sie den Ordner erneut aus.',
+            ], 422);
+        }
+
+        try {
+            $root ??= $this->createStagingDirectory();
+            $stored = $this->storeUploadedFiles($request->file('files'), $root);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'token' => basename($root),
+            'stored' => $stored,
+        ]);
+    }
+
+    /**
+     * Analyse a staged member archive without writing any data.
+     */
+    public function validateArchiveImport(Request $request)
+    {
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (! $this->canAccessDataTransfer($user, $gym)) {
+            return response()->json([
+                'valid' => false,
+                'error' => 'Sie haben keine Berechtigung für den Datenimport.',
+            ], 403);
+        }
+
+        $request->validate([
+            'token' => 'required|string',
+        ], [
+            'token.required' => 'Bitte wählen Sie zuerst ein Archiv oder einen Ordner aus.',
+        ]);
+
+        $root = $this->resolveStagedArchive($request->input('token'));
+
+        if ($root === null) {
+            return response()->json([
+                'valid' => false,
+                'errors' => ['Der Upload ist abgelaufen. Bitte wählen Sie den Ordner erneut aus.'],
+            ], 422);
+        }
+
+        try {
+            $root = $this->unwrapUploadedZip($root);
+        } catch (\RuntimeException $e) {
+            $this->deleteDirectory($root);
+
+            return response()->json([
+                'valid' => false,
+                'errors' => [$e->getMessage()],
+            ], 422);
+        }
+
+        $folders = $this->archiveParser->findMemberFolders($root);
+
+        if ($folders === []) {
+            $this->deleteDirectory($root);
+
+            return response()->json([
+                'valid' => false,
+                'errors' => ['Im Upload wurde keine gültige Mitgliedsakte gefunden. Erwartet wird je Mitglied ein Ordner mit einer master_data.xlsx.'],
+            ], 422);
+        }
+
+        $result = $this->archiveImportService->analyse($gym->id, $folders);
+        $result['token'] = basename($root);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Import a previously analysed member archive.
+     */
+    public function importArchive(Request $request)
+    {
+        $user = Auth::user();
+        $gym = $user->currentGym;
+
+        if (! $this->canAccessDataTransfer($user, $gym)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Sie haben keine Berechtigung für den Datenimport.',
+            ], 403);
+        }
+
+        $request->validate([
+            'token' => 'required|string',
+            'fallback_start_date' => 'nullable|date',
+            'create_missing_plans' => 'boolean',
+        ], [
+            'token.required' => 'Bitte prüfen Sie das Archiv zuerst.',
+        ]);
+
+        $root = $this->resolveStagedArchive($request->input('token'));
+
+        if ($root === null) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Der geprüfte Upload ist nicht mehr verfügbar. Bitte laden Sie das Archiv erneut hoch.',
+            ], 422);
+        }
+
+        try {
+            $folders = $this->archiveParser->findMemberFolders($root);
+
+            if ($folders === []) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Im Upload wurde keine gültige Mitgliedsakte gefunden.',
+                ], 422);
+            }
+
+            $stats = $this->archiveImportService->import(
+                $gym->id,
+                $folders,
+                $request->input('fallback_start_date'),
+                $request->boolean('create_missing_plans', true)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Import erfolgreich',
+                'stats' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Import fehlgeschlagen: '.$e->getMessage(),
+            ], 422);
+        } finally {
+            $this->deleteDirectory($root);
+        }
+    }
+
+    /**
+     * Move uploaded files into the staging directory, keeping their relative
+     * path so one folder per member can be reconstructed.
+     *
+     * @param  array<int, UploadedFile>  $files
+     */
+    private function storeUploadedFiles(array $files, string $root): int
+    {
+        $stored = 0;
+
+        foreach ($files as $file) {
+            // The directory picker sends the relative path in webkitRelativePath;
+            // it is the only way to reconstruct the folder per member.
+            $relative = $this->sanitizeUploadPath(
+                $file->getClientOriginalPath() ?: $file->getClientOriginalName()
+            );
+
+            if ($relative === null) {
+                continue;
+            }
+
+            $destination = $root.'/'.$relative;
+            $directory = dirname($destination);
+
+            if (! is_dir($directory) && ! mkdir($directory, 0700, true) && ! is_dir($directory)) {
+                continue;
+            }
+
+            $file->move($directory, basename($destination));
+            $stored++;
+        }
+
+        return $stored;
+    }
+
+    /**
+     * If the upload was a single ZIP archive, extract it and continue with the
+     * extracted directory instead.
+     */
+    private function unwrapUploadedZip(string $root): string
+    {
+        $entries = glob($root.'/*') ?: [];
+
+        if (count($entries) !== 1 || ! is_file($entries[0]) || strtolower(pathinfo($entries[0], PATHINFO_EXTENSION)) !== 'zip') {
+            return $root;
+        }
+
+        $extracted = $this->archiveParser->extractZip($entries[0]);
+        $this->deleteDirectory($root);
+
+        return $extracted;
+    }
+
+    /**
+     * Reduce an uploaded relative path to a safe path inside the staging directory.
+     */
+    private function sanitizeUploadPath(string $path): ?string
+    {
+        $path = str_replace('\\', '/', $path);
+        $segments = [];
+
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '__MACOSX') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                return null;
+            }
+
+            $segments[] = $segment;
+        }
+
+        return $segments === [] ? null : implode('/', $segments);
+    }
+
+    /**
+     * Create a staging directory for an uploaded archive.
+     */
+    private function createStagingDirectory(): string
+    {
+        $root = storage_path('app/tmp/member-archive-'.bin2hex(random_bytes(8)));
+
+        if (! mkdir($root, 0700, true) && ! is_dir($root)) {
+            throw new \RuntimeException('Temporäres Verzeichnis konnte nicht angelegt werden.');
+        }
+
+        return $root;
+    }
+
+    /**
+     * Resolve a staging token back to its directory, rejecting any traversal.
+     */
+    private function resolveStagedArchive(string $token): ?string
+    {
+        if (! preg_match('/^member-archive-[0-9a-f]{16}$/', $token)) {
+            return null;
+        }
+
+        $root = storage_path('app/tmp/'.$token);
+
+        return is_dir($root) ? $root : null;
+    }
+
+    /**
+     * Remove a staging directory and everything below it.
+     */
+    private function deleteDirectory(string $path): void
+    {
+        if (! is_dir($path) || ! str_starts_with($path, storage_path('app/tmp/'))) {
+            return;
+        }
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($items as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+
+        @rmdir($path);
     }
 
     /**
@@ -330,13 +638,14 @@ class DataTransferController extends Controller
         }
 
         $handle = fopen($path, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return [];
         }
 
         $header = fgetcsv($handle, 0, ';');
-        if (!$header) {
+        if (! $header) {
             fclose($handle);
+
             return [];
         }
         $header = array_map('trim', $header);
@@ -362,7 +671,7 @@ class DataTransferController extends Controller
      */
     private function canAccessDataTransfer($user, $gym): bool
     {
-        if (!$gym) {
+        if (! $gym) {
             return false;
         }
 

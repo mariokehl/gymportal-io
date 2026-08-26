@@ -9,7 +9,7 @@
   >
     <div
       v-if="show"
-      class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5"
+      class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
     >
       <div class="p-4">
         <div class="flex items-start">

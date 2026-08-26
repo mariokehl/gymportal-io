@@ -130,6 +130,17 @@ Schedule::command('google-sheets:sync-checkins')
     ->appendOutputTo(storage_path('logs/scheduler-google-sheets.log'));
 
 // ===================================
+// DATA TRANSFER CLEANUP
+// ===================================
+
+// Remove abandoned member archive uploads - runs daily at 3 AM
+Schedule::command('archive-uploads:cleanup')
+    ->dailyAt('03:00')
+    ->timezone('Europe/Berlin')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// ===================================
 // DUNNING & DEBT COLLECTION
 // ===================================
 

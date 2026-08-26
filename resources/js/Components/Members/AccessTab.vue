@@ -316,6 +316,146 @@
       </div>
     </div>
 
+    <!-- Advanced: static login code override -->
+    <div class="flex flex-col gap-3">
+      <div class="flex justify-between items-center gap-2.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <h3 class="text-lg font-bold text-gray-900">Erweiterte Optionen</h3>
+          <span
+            v-if="hasStaticLoginCode"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold"
+          >
+            <ShieldAlert class="w-3.5 h-3.5 flex-none" />
+            Abweichende Konfiguration
+          </span>
+        </div>
+        <button
+          @click="advancedOpen = !advancedOpen"
+          type="button"
+          class="flex-none text-gray-500 hover:text-gray-700 flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+        >
+          <span>{{ advancedOpen ? 'Ausblenden' : 'Einblenden' }}</span>
+          <ChevronDown v-if="!advancedOpen" class="w-4 h-4" />
+          <ChevronUp v-else class="w-4 h-4" />
+        </button>
+      </div>
+
+      <div v-if="advancedOpen" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="flex items-center gap-3 p-4">
+          <div
+            class="w-11 h-11 rounded-xl flex items-center justify-center flex-none"
+            :class="hasStaticLoginCode ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'"
+          >
+            <KeyRound class="w-[22px] h-[22px]" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-semibold text-gray-900">Statischer Login-Code</h4>
+            <p class="text-sm text-gray-500 mt-0.5">
+              Ersetzt den per E-Mail versendeten Login-Code der Mitglieder-App
+            </p>
+          </div>
+        </div>
+
+        <!-- Status footer strip -->
+        <div
+          class="px-4 py-2.5 border-t text-sm flex items-start gap-2"
+          :class="hasStaticLoginCode ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-gray-50 border-gray-100 text-gray-500'"
+        >
+          <ShieldAlert v-if="hasStaticLoginCode" class="w-4 h-4 flex-none mt-0.5" />
+          <CheckCircle v-else class="w-4 h-4 flex-none mt-0.5" />
+          <span v-if="hasStaticLoginCode">
+            Ein statischer Login-Code ist hinterlegt. Das Mitglied meldet sich damit ohne E-Mail-Versand an.
+            Aus Sicherheitsgründen kann der Code nicht mehr angezeigt, sondern nur neu gesetzt oder entfernt werden.
+          </span>
+          <span v-else>Standardkonfiguration — der Login-Code wird bei jeder Anmeldung per E-Mail versendet.</span>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
+          <div class="bg-blue-50 p-3 rounded-lg">
+            <div class="flex items-start gap-2">
+              <Info class="w-5 h-5 text-blue-600 mt-0.5 flex-none" />
+              <p class="text-sm text-blue-800">
+                Nutzen Sie diese Option nur in Einzelfällen — etwa wenn die Login-E-Mails beim Mitglied nicht
+                ankommen oder Sie sich für einen Supportauftrag vorübergehend in die Mitglieder-App einloggen
+                müssen. Der Code gilt unbegrenzt, bis Sie ihn wieder entfernen.
+              </p>
+            </div>
+          </div>
+
+          <div v-if="!editingStaticCode" class="flex flex-wrap gap-x-4 gap-y-2">
+            <button
+              @click="startStaticCodeEdit"
+              type="button"
+              class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
+            >
+              <KeyRound class="w-4 h-4" />
+              {{ hasStaticLoginCode ? 'Code neu setzen' : 'Code festlegen' }}
+            </button>
+            <button
+              v-if="hasStaticLoginCode"
+              @click="removeStaticCode"
+              type="button"
+              class="text-sm font-semibold text-red-600 hover:text-red-800 flex items-center gap-1.5"
+            >
+              <XCircle class="w-4 h-4" />
+              Code entfernen
+            </button>
+          </div>
+
+          <div v-else class="flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+              <!-- Six single-digit boxes, mirroring the code entry in the member app -->
+              <div class="flex gap-2">
+                <input
+                  v-for="(digit, index) in codeDigits"
+                  :key="index"
+                  :ref="el => setCodeInputRef(el, index)"
+                  :value="digit"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  maxlength="6"
+                  :aria-label="`Stelle ${index + 1} von 6`"
+                  class="w-11 h-12 text-center text-lg font-mono font-semibold rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  :class="digit ? 'border-indigo-400 text-gray-900' : 'border-gray-300 text-gray-900'"
+                  @input="onCodeInput($event, index)"
+                  @keydown.backspace="onCodeBackspace($event, index)"
+                  @keydown.left.prevent="focusCodeInput(index - 1)"
+                  @keydown.right.prevent="focusCodeInput(index + 1)"
+                  @keyup.enter="saveStaticCode"
+                  @focus="$event.target.select()"
+                >
+              </div>
+              <div class="flex gap-2">
+                <button
+                  @click="saveStaticCode"
+                  type="button"
+                  :disabled="!isStaticCodeValid || staticCodeForm.processing"
+                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <Loader2 v-if="staticCodeForm.processing" class="w-4 h-4 animate-spin" />
+                  Speichern
+                </button>
+                <button
+                  @click="cancelStaticCodeEdit"
+                  type="button"
+                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+            <p v-if="staticCodeForm.errors.static_login_code" class="text-sm text-red-600">
+              {{ staticCodeForm.errors.static_login_code }}
+            </p>
+            <p v-else class="text-xs text-gray-500">
+              Der Code besteht aus genau 6 Ziffern. Notieren Sie ihn — er lässt sich später nicht mehr auslesen.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Linked Devices (only visible when PWA login is disabled, i.e. branded app only) -->
     <div v-if="member.gym?.pwa_settings?.pwa_login_disabled" class="flex flex-col gap-3">
       <h3 class="text-lg font-bold text-gray-900">Verknüpfte Geräte</h3>
@@ -375,7 +515,7 @@
     <div class="flex flex-col gap-3">
       <h3 class="text-lg font-bold text-gray-900">Zugangshistorie</h3>
 
-      <div v-if="accessLogs && accessLogs.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div v-if="visibleAccessLogs.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-[820px] w-full border-collapse">
             <thead>
@@ -389,7 +529,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="log in accessLogs" :key="log.id" class="hover:bg-gray-50">
+              <tr v-for="log in visibleAccessLogs" :key="log.id" class="hover:bg-gray-50">
                 <td class="px-4 py-3 text-sm whitespace-nowrap">{{ formatDateTime(log.accessed_at) }}</td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
                   {{ log.action_name }}
@@ -425,6 +565,18 @@
           <MoveHorizontal class="w-3.5 h-3.5" />
           Zum Scrollen wischen
         </div>
+
+        <div v-if="hasMoreAccessLogs" class="px-4 py-4 text-center border-t border-gray-100">
+          <button
+            type="button"
+            :disabled="loadingMoreAccessLogs"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            @click="loadMoreAccessLogs"
+          >
+            <Loader2 v-if="loadingMoreAccessLogs" class="w-4 h-4 mr-2 animate-spin" />
+            {{ loadingMoreAccessLogs ? 'Laden...' : 'Weitere laden' }}
+          </button>
+        </div>
       </div>
       <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
         <Key class="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -435,11 +587,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import {
   QrCode, Nfc, Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio,
-  Smartphone, X, XCircle, CheckCircle, Key, MoveHorizontal,
+  Smartphone, X, XCircle, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 
@@ -452,6 +604,12 @@ const props = defineProps({
     type: Number,
     default: 2,
   },
+  // Total number of access log entries. Only the first page is delivered with
+  // the page; the rest is fetched on demand.
+  accessLogsTotal: {
+    type: Number,
+    default: 0,
+  },
 })
 
 // Access Control state
@@ -462,8 +620,117 @@ const isNfcValid = ref(false)
 // Computed rather than copied on mount, so the list follows Inertia reloads.
 const accessLogs = computed(() => props.member?.access_logs ?? [])
 
+// Pages loaded on top of the initial one. Reset whenever Inertia delivers a
+// fresh first page, so a reload never shows stale rows below the new ones.
+const additionalAccessLogs = ref([])
+const accessLogsPage = ref(1)
+const accessLogsHasMore = ref(null)
+const loadingMoreAccessLogs = ref(false)
+
+watch(accessLogs, () => {
+  additionalAccessLogs.value = []
+  accessLogsPage.value = 1
+  accessLogsHasMore.value = null
+})
+
+const visibleAccessLogs = computed(() => [...accessLogs.value, ...additionalAccessLogs.value])
+
+// Before the first fetch the server-provided total decides; afterwards the
+// endpoint's own has_more flag is authoritative.
+const hasMoreAccessLogs = computed(() => accessLogsHasMore.value !== null
+  ? accessLogsHasMore.value
+  : visibleAccessLogs.value.length < props.accessLogsTotal)
+
+const loadMoreAccessLogs = async () => {
+  if (loadingMoreAccessLogs.value || !hasMoreAccessLogs.value) return
+
+  loadingMoreAccessLogs.value = true
+  try {
+    const response = await axios.get(route('members.access.logs', props.member.id), {
+      params: { page: accessLogsPage.value + 1 },
+    })
+
+    additionalAccessLogs.value.push(...(response.data.data ?? []))
+    accessLogsPage.value = response.data.current_page ?? accessLogsPage.value + 1
+    accessLogsHasMore.value = response.data.has_more ?? false
+  } catch (error) {
+    console.error('Failed to load more access logs:', error)
+  } finally {
+    loadingMoreAccessLogs.value = false
+  }
+}
+
 // Device management
 const removingDeviceId = ref(null)
+
+// Advanced options: static login code (overrides the emailed TOTP code).
+// The code itself is never sent to the frontend — only a boolean flag.
+const advancedOpen = ref(false)
+const editingStaticCode = ref(false)
+const staticCodeForm = useForm({ static_login_code: '' })
+const hasStaticLoginCode = computed(() => props.member.access_config?.has_static_login_code ?? false)
+const isStaticCodeValid = computed(() => /^\d{6}$/.test(staticCodeForm.static_login_code))
+
+// Six single-digit boxes; the joined value is what gets submitted.
+const codeDigits = ref(['', '', '', '', '', ''])
+const codeInputRefs = ref([])
+
+const setCodeInputRef = (el, index) => {
+  codeInputRefs.value[index] = el
+}
+
+const focusCodeInput = (index) => {
+  if (index < 0 || index > 5) return
+  const input = codeInputRefs.value[index]
+  input?.focus()
+  input?.select()
+}
+
+const syncStaticCodeFromDigits = () => {
+  staticCodeForm.static_login_code = codeDigits.value.join('')
+}
+
+const resetCodeDigits = () => {
+  codeDigits.value = ['', '', '', '', '', '']
+  syncStaticCodeFromDigits()
+}
+
+const onCodeInput = (event, index) => {
+  const typed = event.target.value.replace(/\D/g, '')
+
+  if (typed.length > 1) {
+    // A full code was pasted (or typed fast) — spread it across the boxes.
+    const chars = typed.split('').slice(0, 6 - index)
+    chars.forEach((char, offset) => {
+      codeDigits.value[index + offset] = char
+    })
+    syncStaticCodeFromDigits()
+    focusCodeInput(Math.min(index + chars.length, 5))
+  } else {
+    codeDigits.value[index] = typed
+    syncStaticCodeFromDigits()
+    if (typed && index < 5) {
+      focusCodeInput(index + 1)
+    }
+  }
+
+  // Keep the DOM in sync when the input was rejected (e.g. a letter).
+  event.target.value = codeDigits.value[index]
+}
+
+const onCodeBackspace = (event, index) => {
+  if (codeDigits.value[index]) {
+    return
+  }
+
+  // Empty box: step back and clear the previous digit.
+  event.preventDefault()
+  if (index > 0) {
+    codeDigits.value[index - 1] = ''
+    syncStaticCodeFromDigits()
+    focusCodeInput(index - 1)
+  }
+}
 
 // NFC Scanning state
 const isNfcScanning = ref(false)
@@ -515,6 +782,44 @@ const removeDevice = (device) => {
     onFinish: () => {
       removingDeviceId.value = null
     },
+  })
+}
+
+const startStaticCodeEdit = () => {
+  staticCodeForm.reset()
+  staticCodeForm.clearErrors()
+  resetCodeDigits()
+  editingStaticCode.value = true
+  nextTick(() => focusCodeInput(0))
+}
+
+const cancelStaticCodeEdit = () => {
+  staticCodeForm.reset()
+  staticCodeForm.clearErrors()
+  resetCodeDigits()
+  editingStaticCode.value = false
+}
+
+const saveStaticCode = () => {
+  if (!isStaticCodeValid.value) return
+
+  staticCodeForm.post(route('members.access.static-login-code.store', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      staticCodeForm.reset()
+      resetCodeDigits()
+      editingStaticCode.value = false
+    },
+  })
+}
+
+const removeStaticCode = () => {
+  if (!confirm('Möchten Sie den statischen Login-Code wirklich entfernen? Das Mitglied erhält seinen Login-Code danach wieder per E-Mail.')) {
+    return
+  }
+
+  router.delete(route('members.access.static-login-code.destroy', props.member.id), {
+    preserveScroll: true,
   })
 }
 

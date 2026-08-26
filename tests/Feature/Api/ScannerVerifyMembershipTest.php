@@ -475,7 +475,7 @@ class ScannerVerifyMembershipTest extends TestCase
 
         $this->assertNotNull($log);
         $this->assertFalse((bool) $log->access_granted);
-        $this->assertSame('Unbekannte NFC-Karte', $log->denial_reason);
+        $this->assertSame('NFC-ID nicht erkannt', $log->denial_reason);
         $this->assertSame('DEADBEEF', $log->metadata['nfc_card_id']);
     }
 

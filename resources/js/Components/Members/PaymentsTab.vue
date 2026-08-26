@@ -60,27 +60,77 @@
           <div v-show="expandedMethodId === paymentMethod.id" class="px-4 pb-4 -mt-1">
             <div class="border-t border-gray-100 pt-3 space-y-3">
               <!-- SEPA Details -->
-              <div v-if="isSepaType(paymentMethod.type)" class="space-y-1.5 text-sm">
-                <div class="flex gap-1.5">
-                  <span class="text-gray-500">IBAN:</span>
-                  <span class="font-mono text-gray-900">{{ paymentMethod.masked_iban || '****' }}</span>
+              <div v-if="isSepaType(paymentMethod.type)" class="grid gap-x-10 gap-y-1.5 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
+                <div class="space-y-1.5 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-gray-500">IBAN:</span>
+                    <span class="font-mono text-gray-900">{{ paymentMethod.masked_iban || '****' }}</span>
+                    <Tooltip
+                      v-if="isMollieManaged(paymentMethod)"
+                      position="top"
+                      text="IBAN wird von Mollie verwaltet"
+                    >
+                      <Link2
+                        class="w-4 h-4 text-indigo-600"
+                        aria-label="IBAN wird von Mollie verwaltet"
+                      />
+                    </Tooltip>
+                    <Tooltip
+                      v-else-if="isMollieLinkBroken(paymentMethod)"
+                      position="top"
+                      text="Keine Verknüpfung zu Mollie"
+                    >
+                      <Unlink
+                        class="w-4 h-4 text-red-600"
+                        aria-label="Keine Verknüpfung zu Mollie"
+                      />
+                    </Tooltip>
+                  </div>
+                  <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
+                    <span class="text-gray-500 flex-none">Mandatsreferenz:</span>
+                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.sepa_mandate_reference }}</span>
+                  </div>
+                  <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2 flex-wrap">
+                    <span class="text-gray-500">SEPA-Mandat:</span>
+                    <span
+                      :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
+                      class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
+                    >
+                      {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
+                    </span>
+                    <!-- Mollie holds the account data, so a locally corrected IBAN
+                         only reaches it once the mandate is re-issued. -->
+                    <button
+                      v-if="canSyncMollieMandate(paymentMethod)"
+                      type="button"
+                      @click="syncMollieMandate(paymentMethod)"
+                      :disabled="syncingMandate === paymentMethod.id"
+                      class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                    >
+                      <RefreshCw
+                        class="w-3.5 h-3.5"
+                        :class="syncingMandate === paymentMethod.id ? 'animate-spin' : ''"
+                      />
+                      {{ syncingMandate === paymentMethod.id ? 'Wird übertragen …' : 'IBAN zu Mollie übertragen' }}
+                    </button>
+                  </div>
+                  <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
+                    <span class="text-gray-500">Unterschrieben am:</span>
+                    <span class="text-gray-900">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
+                  </div>
                 </div>
-                <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
-                  <span class="text-gray-500">Mandatsreferenz:</span>
-                  <span class="text-gray-900">{{ paymentMethod.sepa_mandate_reference }}</span>
-                </div>
-                <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2">
-                  <span class="text-gray-500">SEPA-Mandat:</span>
-                  <span
-                    :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
-                    class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
-                  >
-                    {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
-                  </span>
-                </div>
-                <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
-                  <span class="text-gray-500">Unterschrieben am:</span>
-                  <span class="text-gray-900">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
+
+                <!-- Mollie's own identifiers, kept in a second column so they do
+                     not push the account data apart. Wraps below it on mobile. -->
+                <div v-if="hasMollieIds(paymentMethod)" class="space-y-1.5 min-w-0">
+                  <div v-if="paymentMethod.mollie_customer_id" class="flex gap-1.5">
+                    <span class="text-gray-500 flex-none">Mollie-Kunde:</span>
+                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.mollie_customer_id }}</span>
+                  </div>
+                  <div v-if="paymentMethod.mollie_mandate_id" class="flex gap-1.5">
+                    <span class="text-gray-500 flex-none">Mollie-Mandat:</span>
+                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.mollie_mandate_id }}</span>
+                  </div>
                 </div>
               </div>
 
@@ -170,6 +220,15 @@
                   :disabled="deactivating === paymentMethod.id"
                 >
                   {{ deactivating === paymentMethod.id ? 'Deaktivieren...' : 'Deaktivieren' }}
+                </button>
+                <button
+                  v-if="paymentMethod.status === 'expired'"
+                  @click="deletePaymentMethod(paymentMethod)"
+                  type="button"
+                  class="text-sm font-semibold text-red-600 hover:text-red-800"
+                  :disabled="deleting === paymentMethod.id"
+                >
+                  {{ deleting === paymentMethod.id ? 'Löschen...' : 'Löschen' }}
                 </button>
               </div>
             </div>
@@ -442,8 +501,7 @@
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
-                :disabled="paymentMethodForm.processing ||
-                          (isSepaType(paymentMethodForm.type) && !ibanValidation.editPaymentMethod.isValid)"
+                :disabled="paymentMethodForm.processing || !canSubmitEditedPaymentMethod"
                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
               >
                 {{ paymentMethodForm.processing ? 'Speichern...' : 'Speichern' }}
@@ -900,8 +958,9 @@ import IbanInput from '@/Components/IbanInput.vue'
 import {
   CreditCard, Plus, Wallet, AlertCircle, CheckCircle, XCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
-  FileText, AlertTriangle, ChevronDown, Send, Check, Info
+  FileText, AlertTriangle, ChevronDown, Send, Check, Info, Link2, Unlink, RefreshCw
 } from 'lucide-vue-next'
+import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 import { sortByScheduledDate } from '@/utils/payments'
 
@@ -964,6 +1023,8 @@ const deactivating = ref(null)
 const markingAsSigned = ref(null)
 const sendingMandate = ref(null)
 const activatingMandate = ref(null)
+const syncingMandate = ref(null)
+const deleting = ref(null)
 
 // Computed properties
 const availablePaymentMethodTypes = computed(() => {
@@ -1050,6 +1111,24 @@ const isBankTransferType = (type) => {
          type?.includes('banktransfer')
 }
 
+// Both ids together mean Mollie holds the account data and the mandate: the
+// IBAN shown here is only a local copy that must not be edited on our side.
+const isMollieManaged = paymentMethod =>
+  Boolean(paymentMethod.mollie_customer_id && paymentMethod.mollie_mandate_id)
+
+// A Mollie direct debit is supposed to carry both ids. Missing either one means
+// the method cannot be collected through Mollie, which the operator has to fix.
+const isMollieLinkBroken = paymentMethod =>
+  paymentMethod.type === 'mollie_directdebit' && !isMollieManaged(paymentMethod)
+
+// Mollie stores the account data itself and the local iban is cleared once a
+// mandate is in place. A value sitting here again means the operator corrected
+// the IBAN afterwards, so it still has to be pushed over to Mollie.
+const canSyncMollieMandate = paymentMethod =>
+  paymentMethod.type === 'mollie_directdebit' &&
+  paymentMethod.sepa_mandate_status === 'active' &&
+  Boolean(paymentMethod.iban)
+
 // Forms für Zahlungsmethoden
 const paymentMethodForm = useForm({
   id: null,
@@ -1121,6 +1200,26 @@ const ibanValidation = ref({
 const handleIbanValidation = (validation, context) => {
   ibanValidation.value[context] = validation
 }
+
+// Mollie stores its own identifiers for a direct debit; they are shown next to
+// the account data whenever Mollie knows this payment method at all.
+const hasMollieIds = paymentMethod =>
+  Boolean(paymentMethod.mollie_customer_id || paymentMethod.mollie_mandate_id)
+
+// A SEPA method normally needs a valid IBAN to be saved. Expiring it is the one
+// case where an empty field is the point: the operator retires the method and
+// clears the account data with it, so the IBAN is not demanded any more.
+const canSubmitEditedPaymentMethod = computed(() => {
+  if (!isSepaType(paymentMethodForm.type)) {
+    return true
+  }
+
+  if (paymentMethodForm.status === 'expired' && !paymentMethodForm.iban) {
+    return true
+  }
+
+  return ibanValidation.value.editPaymentMethod.isValid
+})
 
 // Payment history
 const openAddPayment = () => {
@@ -1251,6 +1350,28 @@ const deactivatePaymentMethod = (paymentMethod) => {
     },
     onError: () => {
       deactivating.value = null
+    }
+  })
+}
+
+const deletePaymentMethod = (paymentMethod) => {
+  if (!confirm('Möchten Sie diese Zahlungsmethode wirklich löschen?\n\nSie verschwindet aus der Kundenakte; bereits gebuchte Zahlungen bleiben erhalten.')) {
+    return
+  }
+
+  deleting.value = paymentMethod.id
+
+  router.delete(route('members.payment-methods.destroy', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      deleting.value = null
+    },
+    onError: () => {
+      deleting.value = null
+      alert('Die Zahlungsmethode konnte nicht gelöscht werden.')
     }
   })
 }
@@ -1396,6 +1517,29 @@ const activateSepaMandate = (paymentMethod) => {
       activatingMandate.value = null
       console.error('Fehler:', errors)
       alert('Das SEPA-Mandat konnte nicht aktiviert werden.')
+    }
+  })
+}
+
+const syncMollieMandate = (paymentMethod) => {
+  if (!confirm('Möchten Sie die geänderte IBAN an Mollie übertragen?\n\nDas bestehende SEPA-Mandat wird dabei widerrufen und mit den neuen Kontodaten neu erteilt.')) {
+    return
+  }
+
+  syncingMandate.value = paymentMethod.id
+
+  router.put(route('members.payment-methods.sync-mollie-mandate', {
+    member: props.member.id,
+    paymentMethod: paymentMethod.id
+  }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      syncingMandate.value = null
+    },
+    onError: (errors) => {
+      syncingMandate.value = null
+      console.error('Fehler:', errors)
+      alert('Die IBAN konnte nicht an Mollie übertragen werden.')
     }
   })
 }

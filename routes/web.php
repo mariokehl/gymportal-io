@@ -97,6 +97,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::post('/members/{member}/toggle-age-verification', [MemberController::class, 'toggleAgeVerification'])->name('members.toggle-age-verification');
     Route::post('/members/{member}/toggle-guest-access', [MemberController::class, 'toggleGuestAccess'])->name('members.toggle-guest-access');
+    Route::post('/members/{member}/toggle-checkin', [MemberController::class, 'toggleCheckin'])->name('members.toggle-checkin');
     Route::post('/members/{member}/memberships', [MemberController::class, 'storeMembership'])->name('members.memberships.store');
     Route::post('/members/{member}/memberships/free-period', [MembershipController::class, 'storeFreePeriod'])->name('members.memberships.store-free-period');
     Route::prefix('members/{member}/memberships/{membership}')->group(function () {
@@ -120,6 +121,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         // Neue SEPA-Mandat Routen
         Route::put('/{paymentMethod}/mark-signed', [PaymentMethodController::class, 'markSepaMandateAsSigned'])->name('mark-signed');
         Route::put('/{paymentMethod}/activate-mandate', [PaymentMethodController::class, 'activateSepaMandate'])->name('activate-mandate');
+        Route::put('/{paymentMethod}/sync-mollie-mandate', [PaymentMethodController::class, 'syncMollieMandate'])->name('sync-mollie-mandate');
+        Route::delete('/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->name('destroy');
     });
     Route::prefix('members/{member}/payments')->name('members.payments.')->group(function () {
         Route::post('/', [MemberPaymentController::class, 'store'])->name('store');
@@ -136,6 +139,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/', [MemberAccessController::class, 'update'])->name('update');
         Route::post('/invalidate-qr', [MemberAccessController::class, 'invalidateQr'])->name('invalidate-qr');
         Route::post('/send-app-link', [MemberAccessController::class, 'sendAppLink'])->name('send-app-link');
+        Route::post('/static-login-code', [MemberAccessController::class, 'setStaticLoginCode'])->name('static-login-code.store');
+        Route::delete('/static-login-code', [MemberAccessController::class, 'removeStaticLoginCode'])->name('static-login-code.destroy');
         Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');
         Route::post('/consume-credit', [MemberAccessController::class, 'consumeCredit'])->name('consume-credit');
         Route::delete('/devices/{device}', [MemberAccessController::class, 'removeDevice'])->name('remove-device');
@@ -219,6 +224,10 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         // Standortübergreifender Check-in
         Route::put('/cross-location', [AccessControlController::class, 'updateCrossLocation'])->name('cross-location.update');
 
+        // Check-in-Aufsteller (gedruckter QR-Code, Scan per Mitglieder-Smartphone)
+        Route::put('/checkin-station', [AccessControlController::class, 'updateCheckinStation'])->name('checkin-station.update');
+        Route::post('/checkin-station/regenerate', [AccessControlController::class, 'regenerateCheckinStationToken'])->name('checkin-station.regenerate');
+
         // Google Sheet Integration
         Route::post('/google-sheet-settings', [AccessControlController::class, 'updateGoogleSheetSettings'])->name('google-sheet-settings.update');
         Route::delete('/google-sheet-settings', [AccessControlController::class, 'removeGoogleSheetSettings'])->name('google-sheet-settings.destroy');
@@ -241,11 +250,15 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/import', [DataTransferController::class, 'import'])->name('import');
         Route::post('/validate-csv', [DataTransferController::class, 'validateCsvImport'])->name('validate-csv');
         Route::post('/import-csv', [DataTransferController::class, 'importCsv'])->name('import-csv');
+        Route::post('/upload-archive-chunk', [DataTransferController::class, 'uploadArchiveChunk'])->name('upload-archive-chunk');
+        Route::post('/validate-archive', [DataTransferController::class, 'validateArchiveImport'])->name('validate-archive');
+        Route::post('/import-archive', [DataTransferController::class, 'importArchive'])->name('import-archive');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::put('/gym/{gym}', [SettingController::class, 'updateGym'])->name('gym.update');
+        Route::put('/gym/{gym}/symbol', [SettingController::class, 'updateGymSymbol'])->name('gym.symbol.update');
         Route::post('/gym/logo/upload', [SettingController::class, 'uploadLogo'])->name('gym.logo.upload');
         Route::delete('/gym/logo/delete', [SettingController::class, 'deleteLogo'])->name('gym.logo.delete');
         Route::put('/gym-users/{gymUser}', [SettingController::class, 'updateGymUser'])->name('gym-users.update');
