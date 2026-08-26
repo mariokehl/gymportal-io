@@ -21,7 +21,7 @@ class EmailTemplateService
             ->first();
 
         // If no default found, get any active template of this type
-        if (!$template) {
+        if (! $template) {
             $template = EmailTemplate::forGym($gym->id)
                 ->ofType($type)
                 ->active()
@@ -41,6 +41,7 @@ class EmailTemplateService
         array $additionalData = []
     ): array {
         $placeholderData = $this->buildPlaceholderData($gym, $member, $additionalData);
+
         return $template->replacePlaceholders($placeholderData);
     }
 
@@ -55,7 +56,7 @@ class EmailTemplateService
     ): ?array {
         $template = $this->getTemplate($gym, $type);
 
-        if (!$template) {
+        if (! $template) {
             return null;
         }
 
@@ -99,7 +100,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'confirmation' => [
                 'name' => 'Bestätigungs-E-Mail',
@@ -121,7 +122,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'reminder' => [
                 'name' => 'Erinnerungs-E-Mail',
@@ -139,7 +140,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'cancellation' => [
                 'name' => 'Kündigungs-Bestätigung',
@@ -157,7 +158,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'invoice' => [
                 'name' => 'Rechnungs-E-Mail',
@@ -176,7 +177,7 @@ class EmailTemplateService
 
                     <p>Telefon: [Telefon]<br>
                     E-Mail: Antworten Sie einfach auf diese E-Mail</p>
-                '
+                ',
             ],
             'general' => [
                 'name' => 'Allgemeine E-Mail',
@@ -196,7 +197,7 @@ class EmailTemplateService
                     <p>Kontakt:<br>
                     Telefon: [Telefon]<br>
                     Website: [Website]</p>
-                '
+                ',
             ],
             'payment_failed' => [
                 'name' => 'Zahlung fehlgeschlagen',
@@ -237,7 +238,83 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
+            ],
+            'dunning_level_1' => [
+                'name' => 'Zahlungserinnerung',
+                'subject' => 'Zahlungserinnerung - [Fitnessstudio-Name]',
+                'body' => '
+                    <p>Liebe/r [Vorname],</p>
+
+                    <p>sicher ist es Ihnen entgangen: Für Ihre Mitgliedschaft bei <strong>[Fitnessstudio-Name]</strong> ist noch ein Betrag offen.</p>
+
+                    <ul>
+                        <li><strong>Offener Betrag:</strong> [Offener-Betrag] EUR</li>
+                        <li><strong>Fällig seit:</strong> [Faelligkeitsdatum]</li>
+                    </ul>
+
+                    <p>Wir bitten Sie, den Betrag bis zum <strong>[Zahlungsfrist]</strong> auszugleichen. Falls sich die Zahlung bereits überschnitten hat, betrachten Sie diese E-Mail bitte als gegenstandslos.</p>
+
+                    <p>Ihre Zahlungsdaten können Sie jederzeit in Ihrem Mitgliederbereich prüfen:<br>
+                    <strong><a href="[Mitgliederbereich-Link]">→ Zum Mitgliederbereich</a></strong></p>
+
+                    <p>Bei Fragen erreichen Sie uns unter <strong>[Telefon]</strong>.</p>
+
+                    <p>Sportliche Grüße<br>
+                    Ihr [Fitnessstudio-Name] Team</p>
+                ',
+            ],
+            'dunning_level_2' => [
+                'name' => '1. Mahnung',
+                'subject' => '1. Mahnung - [Fitnessstudio-Name]',
+                'body' => '
+                    <p>Liebe/r [Vorname],</p>
+
+                    <p>trotz unserer Zahlungserinnerung konnten wir bisher keinen Zahlungseingang feststellen. Wir mahnen den offenen Betrag hiermit an.</p>
+
+                    <ul>
+                        <li><strong>Offener Betrag:</strong> [Offener-Betrag] EUR</li>
+                        <li><strong>Mahngebühr:</strong> [Mahngebuehr] EUR</li>
+                        <li><strong>Gesamtbetrag:</strong> [Gesamtbetrag] EUR</li>
+                        <li><strong>Fällig seit:</strong> [Faelligkeitsdatum]</li>
+                    </ul>
+
+                    <p>Bitte begleichen Sie den Gesamtbetrag bis zum <strong>[Zahlungsfrist]</strong>.</p>
+
+                    <p><strong><a href="[Mitgliederbereich-Link]">→ Zum Mitgliederbereich</a></strong></p>
+
+                    <p>Sollten Sie Fragen zu dieser Mahnung haben oder eine Ratenzahlung wünschen, sprechen Sie uns bitte an: <strong>[Telefon]</strong>.</p>
+
+                    <p>Sportliche Grüße<br>
+                    Ihr [Fitnessstudio-Name] Team</p>
+                ',
+            ],
+            'dunning_level_3' => [
+                'name' => '2. Mahnung',
+                'subject' => '2. Mahnung - letzte Aufforderung - [Fitnessstudio-Name]',
+                'body' => '
+                    <p>Liebe/r [Vorname],</p>
+
+                    <p>leider ist der offene Betrag trotz Erinnerung und Mahnung weiterhin nicht ausgeglichen. Wir fordern Sie hiermit letztmalig zur Zahlung auf.</p>
+
+                    <ul>
+                        <li><strong>Offener Betrag:</strong> [Offener-Betrag] EUR</li>
+                        <li><strong>Mahngebühr:</strong> [Mahngebuehr] EUR</li>
+                        <li><strong>Gesamtbetrag:</strong> [Gesamtbetrag] EUR</li>
+                        <li><strong>Fällig seit:</strong> [Faelligkeitsdatum]</li>
+                    </ul>
+
+                    <p><strong>Bitte zahlen Sie den Gesamtbetrag bis zum [Zahlungsfrist].</strong></p>
+
+                    <p>Geht bis dahin keine Zahlung ein, müssen wir die Forderung an unseren Inkassopartner übergeben. Dadurch entstehen weitere Kosten, die Sie zu tragen haben.</p>
+
+                    <p><strong><a href="[Mitgliederbereich-Link]">→ Zum Mitgliederbereich</a></strong></p>
+
+                    <p>Falls Sie die Forderung für unberechtigt halten oder eine Zahlungsvereinbarung treffen möchten, melden Sie sich bitte umgehend unter <strong>[Telefon]</strong>.</p>
+
+                    <p>Sportliche Grüße<br>
+                    Ihr [Fitnessstudio-Name] Team</p>
+                ',
             ],
             'login_code' => [
                 'name' => 'Anmeldecode',
@@ -291,7 +368,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'member_app_access' => [
                 'name' => 'App-Zugangslink',
@@ -355,8 +432,8 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
-            ]
+                ',
+            ],
         ];
 
         // Remove PHP source code indentation from body strings
@@ -378,7 +455,9 @@ class EmailTemplateService
         // Find minimum indentation (ignoring empty lines)
         $minIndent = PHP_INT_MAX;
         foreach ($lines as $line) {
-            if (trim($line) === '') continue;
+            if (trim($line) === '') {
+                continue;
+            }
             $indent = strlen($line) - strlen(ltrim($line));
             $minIndent = min($minIndent, $indent);
         }
@@ -450,7 +529,7 @@ class EmailTemplateService
             }
 
             $data = array_merge($data, [
-                '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months . ' Monate',
+                '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months.' Monate',
                 '[Monatsbeitrag]' => number_format($contract->membershipPlan->price, 2, ',', '.'),
                 '[Startdatum]' => $contract->start_date ? $contract->start_date->format('d.m.Y') : '',
                 '[Enddatum]' => $contract->end_date ? $contract->end_date->format('d.m.Y') : '',
@@ -469,7 +548,10 @@ class EmailTemplateService
 
     private function getAnrede(?Member $member): string
     {
-        if (!$member) return '';
+        if (! $member) {
+            return '';
+        }
+
         return $member->salutation ?? '';
     }
 
@@ -477,8 +559,9 @@ class EmailTemplateService
     {
         $parts = array_filter([
             $gym->address,
-            $gym->postal_code . ' ' . $gym->city
+            $gym->postal_code.' '.$gym->city,
         ]);
+
         return implode(', ', $parts);
     }
 

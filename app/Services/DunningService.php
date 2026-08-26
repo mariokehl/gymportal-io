@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Mail\Dispatching\MemberMailDispatcher;
+use App\Mail\DunningNoticeMail;
 use App\Models\CollectionCase;
 use App\Models\DunningNotice;
 use App\Models\Gym;
@@ -22,6 +24,13 @@ use Illuminate\Support\Facades\Log;
  */
 class DunningService
 {
+    /** Days the member is given to pay before the next level is considered. */
+    protected const PAYMENT_PERIOD_DAYS = 14;
+
+    public function __construct(
+        private readonly MemberMailDispatcher $mailDispatcher,
+    ) {}
+
     /** Levels this service escalates automatically. */
     public const AUTOMATIC_LEVELS = [
         DunningNotice::LEVEL_REMINDER,
@@ -112,7 +121,7 @@ class DunningService
             ]);
         }
 
-        return DB::transaction(function () use ($member, $gym, $nextLevel, $oldestOverdue) {
+        $notice = DB::transaction(function () use ($member, $gym, $nextLevel, $oldestOverdue) {
             $fee = $gym->getDunningFee($nextLevel);
 
             $notice = DunningNotice::create([
@@ -146,6 +155,59 @@ class DunningService
 
             return $notice;
         });
+
+        // Only notify once the level and the fee are committed: a mail failure
+        // must not roll back the escalation, and the member must never be
+        // asked to pay for a notice that was not persisted.
+        $this->sendNotice($member, $gym, $notice);
+
+        return $notice;
+    }
+
+    /**
+     * Mail the notice to the member. Delivery problems are logged by the
+     * dispatcher and never interrupt the dunning run.
+     */
+    protected function sendNotice(Member $member, Gym $gym, DunningNotice $notice): void
+    {
+        $this->mailDispatcher->sendToMember(
+            $member,
+            new DunningNoticeMail(
+                $member,
+                $gym,
+                $notice->level,
+                $this->placeholderData($member, $notice),
+            ),
+        );
+    }
+
+    /**
+     * Values behind the dunning placeholders of the mail template.
+     *
+     * The open amount is read after the fee was booked, so the fee is part of
+     * the total but is also shown separately.
+     *
+     * @return array<string, string>
+     */
+    protected function placeholderData(Member $member, DunningNotice $notice): array
+    {
+        $fee = (float) $notice->fee;
+        $total = round((float) $member->payments()->overdue()->sum('amount'), 2);
+        $open = round($total - $fee, 2);
+        $oldest = $this->oldestOverduePayment($member);
+
+        return [
+            '[Offener-Betrag]' => $this->money($open),
+            '[Mahngebuehr]' => $this->money($fee),
+            '[Gesamtbetrag]' => $this->money($total),
+            '[Faelligkeitsdatum]' => optional($oldest?->overdue_since)->format('d.m.Y') ?? '',
+            '[Zahlungsfrist]' => Carbon::today()->addDays(self::PAYMENT_PERIOD_DAYS)->format('d.m.Y'),
+        ];
+    }
+
+    protected function money(float $amount): string
+    {
+        return number_format($amount, 2, ',', '.');
     }
 
     /**

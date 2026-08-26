@@ -74,6 +74,9 @@
                             <option value="cancellation">Kündigung</option>
                             <!-- <option value="invoice">Rechnung</option> -->
                             <option value="payment_failed">Zahlung fehlgeschlagen</option>
+                            <option value="dunning_level_1">Zahlungserinnerung (Mahnstufe 1)</option>
+                            <option value="dunning_level_2">1. Mahnung (Mahnstufe 2)</option>
+                            <option value="dunning_level_3">2. Mahnung (Mahnstufe 3)</option>
                             <option value="login_code">Anmeldecode</option>
                             <option value="member_app_access">App-Zugangslink</option>
                             <!-- <option value="general">Allgemein</option> -->
@@ -368,6 +371,9 @@
                             <option value="cancellation">Kündigung</option>
                             <!-- <option value="invoice">Rechnung</option> -->
                             <option value="payment_failed">Zahlung fehlgeschlagen</option>
+                            <option value="dunning_level_1">Zahlungserinnerung (Mahnstufe 1)</option>
+                            <option value="dunning_level_2">1. Mahnung (Mahnstufe 2)</option>
+                            <option value="dunning_level_3">2. Mahnung (Mahnstufe 3)</option>
                             <option value="login_code">Anmeldecode</option>
                             <option value="member_app_access">App-Zugangslink</option>
                             <!-- <option value="general">Allgemein</option> -->
@@ -798,7 +804,10 @@ const getTypeLabel = (type) => {
         reminder: 'Erinnerung',
         cancellation: 'Kündigung',
         invoice: 'Rechnung',
-        payment_failed: 'Mahnung',
+        payment_failed: 'Zahlung fehlgeschlagen',
+        dunning_level_1: 'Zahlungserinnerung',
+        dunning_level_2: '1. Mahnung',
+        dunning_level_3: '2. Mahnung',
         login_code: 'Anmeldecode',
         member_app_access: 'App-Zugangslink',
         general: 'Allgemein'
@@ -814,6 +823,9 @@ const getTypeColor = (type) => {
         cancellation: 'bg-red-100 text-red-800',
         invoice: 'bg-purple-100 text-purple-800',
         payment_failed: 'bg-red-100 text-red-800',
+        dunning_level_1: 'bg-yellow-100 text-yellow-800',
+        dunning_level_2: 'bg-orange-100 text-orange-800',
+        dunning_level_3: 'bg-red-100 text-red-800',
         login_code: 'bg-cyan-100 text-cyan-800',
         member_app_access: 'bg-indigo-100 text-indigo-800',
         general: 'bg-gray-100 text-gray-800'

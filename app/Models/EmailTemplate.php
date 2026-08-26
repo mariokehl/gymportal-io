@@ -19,7 +19,7 @@ class EmailTemplate extends Model
         'body',
         'is_active',
         'is_default',
-        'variables'
+        'variables',
     ];
 
     protected $casts = [
@@ -35,6 +35,9 @@ class EmailTemplate extends Model
         'cancellation' => 'Kündigung',
         'invoice' => 'Rechnung',
         'payment_failed' => 'Zahlung fehlgeschlagen',
+        'dunning_level_1' => 'Zahlungserinnerung',
+        'dunning_level_2' => '1. Mahnung',
+        'dunning_level_3' => '2. Mahnung',
         'login_code' => 'Anmeldecode',
         'member_app_access' => 'App-Zugangslink',
         'general' => 'Allgemein',
@@ -161,7 +164,14 @@ class EmailTemplate extends Model
                 '[Datum]' => 'Aktuelles Datum',
                 '[Uhrzeit]' => 'Aktuelle Uhrzeit',
                 '[Anmeldecode]' => 'Einmaliger Anmeldecode',
-            ]
+            ],
+            'dunning' => [
+                '[Offener-Betrag]' => 'Summe der offenen Forderungen',
+                '[Mahngebuehr]' => 'Gebühr dieser Mahnstufe',
+                '[Gesamtbetrag]' => 'Offener Betrag inklusive Mahngebühr',
+                '[Faelligkeitsdatum]' => 'Fälligkeit der ältesten offenen Forderung',
+                '[Zahlungsfrist]' => 'Datum, bis zu dem gezahlt werden soll',
+            ],
         ];
     }
 
@@ -174,6 +184,7 @@ class EmailTemplate extends Model
         foreach (self::getAvailablePlaceholders() as $category => $items) {
             $placeholders = array_merge($placeholders, $items);
         }
+
         return $placeholders;
     }
 
@@ -182,7 +193,7 @@ class EmailTemplate extends Model
      */
     public function duplicate(?string $newName = null): self
     {
-        $newName = $newName ?: ($this->name . ' (Kopie)');
+        $newName = $newName ?: ($this->name.' (Kopie)');
 
         return self::create([
             'gym_id' => $this->gym_id,
