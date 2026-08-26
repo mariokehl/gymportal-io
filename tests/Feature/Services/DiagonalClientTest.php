@@ -56,11 +56,6 @@ class DiagonalClientTest extends TestCase
 
     public function test_sandbox_mode_targets_the_test_host(): void
     {
-        config([
-            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
-            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
-        ]);
-
         Http::fake([
             '*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200),
             '*/FileData/AddItem/*' => Http::response(['data' => ['guid' => 'guid-1']], 200),
@@ -68,16 +63,11 @@ class DiagonalClientTest extends TestCase
 
         $this->client->addFile($this->gym(['sandbox' => true]), ['foo' => 'bar']);
 
-        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.dev.diagonal-service.de'));
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), DiagonalClient::SANDBOX_BASE_URL));
     }
 
     public function test_production_mode_targets_the_live_host(): void
     {
-        config([
-            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
-            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
-        ]);
-
         Http::fake([
             '*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200),
             '*/FileData/AddItem/*' => Http::response(['data' => ['guid' => 'guid-1']], 200),
@@ -85,7 +75,7 @@ class DiagonalClientTest extends TestCase
 
         $this->client->addFile($this->gym(), ['foo' => 'bar']);
 
-        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.diagonal-service.de'));
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), DiagonalClient::BASE_URL));
     }
 
     public function test_tokens_are_cached_separately_per_environment(): void

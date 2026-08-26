@@ -5,6 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\Gym;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Diagonal\DiagonalClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -185,11 +186,6 @@ class InkassoSettingsTest extends TestCase
 
     public function test_the_connection_test_uses_the_sandbox_host_when_requested(): void
     {
-        config([
-            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
-            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
-        ]);
-
         Http::fake(['*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200)]);
 
         [$owner] = $this->ownerWithGym(['active' => true]);
@@ -204,16 +200,11 @@ class InkassoSettingsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.dev.diagonal-service.de'));
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), DiagonalClient::SANDBOX_BASE_URL));
     }
 
     public function test_the_connection_test_uses_the_production_host_by_default(): void
     {
-        config([
-            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
-            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
-        ]);
-
         Http::fake(['*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200)]);
 
         [$owner] = $this->ownerWithGym(['active' => true]);
@@ -227,7 +218,7 @@ class InkassoSettingsTest extends TestCase
             ])
             ->assertOk();
 
-        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.diagonal-service.de'));
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), DiagonalClient::BASE_URL));
     }
 
     public function test_the_sandbox_flag_is_persisted(): void

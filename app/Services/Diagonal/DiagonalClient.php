@@ -19,6 +19,15 @@ class DiagonalClient
 {
     protected const API_PREFIX = '/api/v1.2';
 
+    /** Live endpoint of the partner API. */
+    public const BASE_URL = 'https://api.diagonal-service.de';
+
+    /** Test endpoint, used by gyms with the `sandbox` flag enabled. */
+    public const SANDBOX_BASE_URL = 'https://api.dev.diagonal-service.de';
+
+    /** Request timeout in seconds. */
+    protected const TIMEOUT_SECONDS = 30;
+
     /** Token lifetime fallback when the API does not return an expiration. */
     protected const TOKEN_TTL_MINUTES = 30;
 
@@ -241,10 +250,8 @@ class DiagonalClient
 
     protected function http(?string $baseUrl = null): PendingRequest
     {
-        $baseUrl ??= (string) config('services.diagonal.base_url');
-
-        return Http::baseUrl(rtrim($baseUrl, '/'))
-            ->timeout((int) config('services.diagonal.timeout', 30))
+        return Http::baseUrl(rtrim($baseUrl ?? self::BASE_URL, '/'))
+            ->timeout(self::TIMEOUT_SECONDS)
             ->acceptJson()
             ->asJson();
     }
@@ -254,9 +261,7 @@ class DiagonalClient
      */
     protected function baseUrlFor(Gym $gym): string
     {
-        return (string) ($gym->usesInkassoSandbox()
-            ? config('services.diagonal.sandbox_base_url')
-            : config('services.diagonal.base_url'));
+        return $gym->usesInkassoSandbox() ? self::SANDBOX_BASE_URL : self::BASE_URL;
     }
 
     /**
