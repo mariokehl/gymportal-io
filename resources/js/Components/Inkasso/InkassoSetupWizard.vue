@@ -37,7 +37,7 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Mandanten-ID *</label>
                 <input v-model="form.tenant_id" type="text" class="input-field" >
-                <p class="text-xs text-gray-400 mt-1.5">z. B. 40218-BER</p>
+                <p class="text-xs text-gray-400 mt-1.5">z. B. mandnr:10000</p>
                 <p v-if="errors.tenant_id" class="mt-1 text-sm text-red-600">{{ errors.tenant_id }}</p>
               </div>
               <div>
@@ -58,6 +58,22 @@
                 <p class="text-xs text-gray-400 mt-1.5">wird verschlüsselt gespeichert</p>
                 <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
               </div>
+            </div>
+
+            <div>
+              <div class="flex gap-2.5 items-center cursor-pointer" @click="form.sandbox = !form.sandbox">
+                <span
+                  :class="form.sandbox ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-gray-300'"
+                  class="w-[18px] h-[18px] rounded border flex items-center justify-center flex-none"
+                >
+                  <Check v-if="form.sandbox" class="w-3 h-3" />
+                </span>
+                <span class="text-sm text-gray-700">Testumgebung nutzen</span>
+              </div>
+              <p class="text-xs text-gray-400 mt-1.5">
+                Alle Anfragen gehen an das DIAGONAL-Testsystem, es werden keine echten Akten angelegt.
+                Später jederzeit in den Einstellungen umschaltbar.
+              </p>
             </div>
           </template>
 
@@ -173,6 +189,7 @@ const form = reactive({
   client_number: '',
   username: '',
   password: '',
+  sandbox: false,
 })
 
 const step1Valid = computed(() =>
@@ -188,6 +205,7 @@ const summaryRows = computed(() => [
   ['Gläubigernummer', form.client_number],
   ['Benutzername', form.username],
   ['Passwort', '••••••••••'],
+  ['Umgebung', form.sandbox ? 'Testumgebung' : 'Produktion'],
 ])
 
 const testConnection = async () => {
@@ -199,6 +217,7 @@ const testConnection = async () => {
       tenant_id: form.tenant_id,
       username: form.username,
       password: form.password,
+      sandbox: form.sandbox,
     })
     testResult.value = data
   } catch (error) {

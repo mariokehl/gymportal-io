@@ -156,6 +156,41 @@ class InkassoSettingsTest extends TestCase
         $this->assertSame('geheimespasswort', $fresh->getInkassoPassword());
     }
 
+    public function test_activation_stores_the_sandbox_flag(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+
+        $this->actingAs($owner)
+            ->postJson(route('settings.inkasso.activate'), [
+                'tenant_id' => '40218-BER',
+                'client_number' => '40218',
+                'username' => 'fitzone-berlin@api',
+                'password' => 'geheimespasswort',
+                'sandbox' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('settings.sandbox', true);
+
+        $this->assertTrue($gym->fresh()->usesInkassoSandbox());
+    }
+
+    public function test_activation_defaults_to_the_production_environment(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+
+        $this->actingAs($owner)
+            ->postJson(route('settings.inkasso.activate'), [
+                'tenant_id' => '40218-BER',
+                'client_number' => '40218',
+                'username' => 'fitzone-berlin@api',
+                'password' => 'geheimespasswort',
+            ])
+            ->assertOk()
+            ->assertJsonPath('settings.sandbox', false);
+
+        $this->assertFalse($gym->fresh()->usesInkassoSandbox());
+    }
+
     public function test_deactivation_disables_the_partner(): void
     {
         [$owner, $gym] = $this->ownerWithGym(['active' => true]);
