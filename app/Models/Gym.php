@@ -1470,6 +1470,8 @@ class Gym extends Model
             'client_number' => null,
             'username' => null,
             'password' => null,
+            // Route the API calls to the DIAGONAL test host instead of production.
+            'sandbox' => false,
             'creditor_name' => null,
             'contact' => null,
             'min_amount' => 10.0,
@@ -1490,6 +1492,14 @@ class Gym extends Model
     public function isInkassoEnabled(): bool
     {
         return (bool) ($this->inkasso_settings['active'] ?? false);
+    }
+
+    /**
+     * Whether the partner API calls of this gym go to the test environment.
+     */
+    public function usesInkassoSandbox(): bool
+    {
+        return (bool) ($this->inkasso_settings['sandbox'] ?? false);
     }
 
     /**

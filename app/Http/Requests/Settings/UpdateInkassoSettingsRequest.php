@@ -27,6 +27,7 @@ class UpdateInkassoSettingsRequest extends FormRequest
             'username' => ['nullable', 'string', 'max:190'],
             // Only sent when it should be changed; an empty value keeps the stored one.
             'password' => ['nullable', 'string', 'max:190'],
+            'sandbox' => ['required', 'boolean'],
             'creditor_name' => ['nullable', 'string', 'max:190'],
             'contact' => ['nullable', 'string', 'max:190'],
             'min_amount' => ['required', 'numeric', 'min:0', 'max:99999.99'],

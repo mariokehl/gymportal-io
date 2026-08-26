@@ -44,11 +44,16 @@ class InkassoController extends Controller
         $password = $validated['password'] ?? null;
         unset($validated['password']);
 
+        $environmentChanged = (bool) $settings['sandbox'] !== (bool) $validated['sandbox'];
+
         $settings = array_merge($settings, $validated);
 
         if (filled($password)) {
             $settings['password'] = Crypt::encryptString($password);
-            // Force a fresh login with the new credentials.
+        }
+
+        if (filled($password) || $environmentChanged) {
+            // Force a fresh login with the new credentials or against the other host.
             $this->client->forgetToken($gym);
         }
 
@@ -74,6 +79,7 @@ class InkassoController extends Controller
             'client_number' => ['required', 'string', 'size:5'],
             'username' => ['required', 'string', 'max:190'],
             'password' => ['required', 'string', 'max:190'],
+            'sandbox' => ['sometimes', 'boolean'],
         ]);
 
         $settings = array_merge($gym->inkasso_settings, [
@@ -83,6 +89,7 @@ class InkassoController extends Controller
             'client_number' => $validated['client_number'],
             'username' => $validated['username'],
             'password' => Crypt::encryptString($validated['password']),
+            'sandbox' => (bool) ($validated['sandbox'] ?? $gym->usesInkassoSandbox()),
             'activated_at' => now()->toDateTimeString(),
         ]);
 
@@ -126,25 +133,28 @@ class InkassoController extends Controller
         $gym = $request->user()->currentGym;
         $this->authorize('update', $gym);
 
-        // Allow testing credentials that are not stored yet.
+        // Allow testing credentials and an environment that are not stored yet.
         $validated = $request->validate([
             'tenant_id' => ['nullable', 'string', 'max:64'],
             'username' => ['nullable', 'string', 'max:190'],
             'password' => ['nullable', 'string', 'max:190'],
+            'sandbox' => ['sometimes', 'boolean'],
         ]);
 
+        $overrides = ['sandbox' => (bool) ($validated['sandbox'] ?? $gym->usesInkassoSandbox())];
+
         if (filled($validated['username'] ?? null) && filled($validated['password'] ?? null)) {
-            $probe = clone $gym;
-            $probe->inkasso_settings = array_merge($gym->inkasso_settings, [
+            $overrides += [
                 'tenant_id' => $validated['tenant_id'] ?? $gym->inkasso_settings['tenant_id'],
                 'username' => $validated['username'],
                 'password' => Crypt::encryptString($validated['password']),
-            ]);
-
-            $result = $this->client->testConnection($probe);
-        } else {
-            $result = $this->client->testConnection($gym);
+            ];
         }
+
+        $probe = clone $gym;
+        $probe->inkasso_settings = array_merge($gym->inkasso_settings, $overrides);
+
+        $result = $this->client->testConnection($probe);
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }

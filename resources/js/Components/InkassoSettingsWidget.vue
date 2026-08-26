@@ -79,7 +79,12 @@
                 <div class="flex gap-3 items-center">
                     <CheckCircle2 class="w-5 h-5 text-green-500 flex-none" />
                     <div class="text-green-800 text-sm">
-                        <div class="font-semibold">DIAGONAL Inkasso aktiv</div>
+                        <div class="font-semibold flex items-center gap-2">
+                            DIAGONAL Inkasso aktiv
+                            <span v-if="settings.sandbox" class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
+                                Testumgebung
+                            </span>
+                        </div>
                         <div>
                             <template v-if="settings.activated_at">Aktiviert am {{ formatDate(settings.activated_at) }} · </template>
                             Mandanten-ID {{ settings.tenant_id }}
@@ -133,7 +138,7 @@
                         <input v-model="form.contact" type="text" class="input-field" >
                     </div>
                 </div>
-                <div class="mt-5 flex items-center gap-3">
+                <div class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
                     <button
                         type="button"
                         :disabled="testing"
@@ -142,10 +147,22 @@
                     >
                         {{ testing ? 'Prüfe Verbindung …' : 'Verbindung testen' }}
                     </button>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                            v-model="form.sandbox"
+                            type="checkbox"
+                            class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                        >
+                        Testumgebung verwenden
+                    </label>
                     <span v-if="testResult" :class="testResult.success ? 'text-green-700' : 'text-red-600'" class="text-sm">
                         {{ testResult.message }}
                     </span>
                 </div>
+                <p class="text-xs text-gray-400 mt-2">
+                    Ist die Option aktiv, gehen alle Anfragen an das DIAGONAL-Testsystem. Es werden keine
+                    echten Akten angelegt. Zum Übernehmen die Einstellungen speichern.
+                </p>
             </div>
 
             <!-- Handover rules -->
@@ -320,6 +337,7 @@ function buildForm(source) {
         username: source.username ?? '',
         // Empty means "keep the stored password".
         password: '',
+        sandbox: Boolean(source.sandbox),
         creditor_name: source.creditor_name ?? '',
         contact: source.contact ?? '',
         min_amount: Number(source.min_amount ?? 10),
@@ -375,6 +393,7 @@ const testConnection = async () => {
             tenant_id: form.tenant_id,
             username: form.username,
             password: form.password,
+            sandbox: form.sandbox,
         })
         testResult.value = data
     } catch (error) {

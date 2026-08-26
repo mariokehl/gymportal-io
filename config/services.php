@@ -35,17 +35,18 @@ return [
         ],
     ],
 
+    'diagonal' => [
+        // DIAGONAL Inkasso API (OpenAPI v1.2). Each gym decides through the
+        // `sandbox` flag in its Inkasso settings which host is used.
+        'base_url' => env('DIAGONAL_BASE_URL', 'https://api.diagonal-service.de'),
+        'sandbox_base_url' => env('DIAGONAL_SANDBOX_BASE_URL', 'https://api.dev.diagonal-service.de'),
+        'timeout' => env('DIAGONAL_TIMEOUT', 30),
+    ],
+
     'paddle' => [
         'token' => env('PADDLE_TOKEN'),
         'price_id' => env('PADDLE_PRICE_ID'),
         'environment' => env('PADDLE_ENVIRONMENT', 'sandbox'), // sandbox oder production
-    ],
-
-    'diagonal' => [
-        // DIAGONAL Inkasso API (OpenAPI v1.2). Defaults to the development host;
-        // set DIAGONAL_BASE_URL to the production endpoint when going live.
-        'base_url' => env('DIAGONAL_BASE_URL', 'https://api.dev.diagonal-service.de'),
-        'timeout' => env('DIAGONAL_TIMEOUT', 30),
     ],
 
 ];

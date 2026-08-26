@@ -54,6 +54,64 @@ class DiagonalClientTest extends TestCase
             && $request['password'] === 'pass');
     }
 
+    public function test_sandbox_mode_targets_the_test_host(): void
+    {
+        config([
+            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
+            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
+        ]);
+
+        Http::fake([
+            '*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200),
+            '*/FileData/AddItem/*' => Http::response(['data' => ['guid' => 'guid-1']], 200),
+        ]);
+
+        $this->client->addFile($this->gym(['sandbox' => true]), ['foo' => 'bar']);
+
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.dev.diagonal-service.de'));
+    }
+
+    public function test_production_mode_targets_the_live_host(): void
+    {
+        config([
+            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
+            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
+        ]);
+
+        Http::fake([
+            '*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200),
+            '*/FileData/AddItem/*' => Http::response(['data' => ['guid' => 'guid-1']], 200),
+        ]);
+
+        $this->client->addFile($this->gym(), ['foo' => 'bar']);
+
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.diagonal-service.de'));
+    }
+
+    public function test_tokens_are_cached_separately_per_environment(): void
+    {
+        Http::fake(['*/Authenticate/login' => Http::response(['token' => 'sandbox-token'], 200)]);
+
+        $gym = $this->gym(['sandbox' => true]);
+
+        $this->assertSame('sandbox-token', $this->client->tokenFor($gym));
+        $this->assertSame('sandbox-token', Cache::get("diagonal.token.{$gym->id}.sandbox"));
+        $this->assertNull(Cache::get("diagonal.token.{$gym->id}"));
+    }
+
+    public function test_forgetting_the_token_clears_both_environments(): void
+    {
+        $gym = $this->gym();
+
+        Cache::put("diagonal.token.{$gym->id}", 'live', now()->addMinutes(30));
+        Cache::put("diagonal.token.{$gym->id}.sandbox", 'sandbox', now()->addMinutes(30));
+
+        $this->client->forgetToken($gym);
+
+        $this->assertNull(Cache::get("diagonal.token.{$gym->id}"));
+        $this->assertNull(Cache::get("diagonal.token.{$gym->id}.sandbox"));
+    }
+
     public function test_login_failure_raises_a_domain_exception(): void
     {
         Http::fake(['*/Authenticate/login' => Http::response(['message' => 'invalid'], 401)]);

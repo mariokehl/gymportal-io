@@ -6,6 +6,7 @@ use App\Models\Gym;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -48,6 +49,7 @@ class InkassoSettingsTest extends TestCase
             'tenant_id' => '40218-BER',
             'client_number' => '40218',
             'username' => 'fitzone-berlin@api',
+            'sandbox' => false,
             'creditor_name' => 'FitZone Berlin GmbH',
             'contact' => 'Max Mustermann',
             'min_amount' => 10,
@@ -179,6 +181,78 @@ class InkassoSettingsTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('success', true);
+    }
+
+    public function test_the_connection_test_uses_the_sandbox_host_when_requested(): void
+    {
+        config([
+            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
+            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
+        ]);
+
+        Http::fake(['*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200)]);
+
+        [$owner] = $this->ownerWithGym(['active' => true]);
+
+        $this->actingAs($owner)
+            ->postJson(route('settings.inkasso.test-connection'), [
+                'tenant_id' => '40218-BER',
+                'username' => 'fitzone-berlin@api',
+                'password' => 'geheimespasswort',
+                'sandbox' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.dev.diagonal-service.de'));
+    }
+
+    public function test_the_connection_test_uses_the_production_host_by_default(): void
+    {
+        config([
+            'services.diagonal.base_url' => 'https://api.diagonal-service.de',
+            'services.diagonal.sandbox_base_url' => 'https://api.dev.diagonal-service.de',
+        ]);
+
+        Http::fake(['*/Authenticate/login' => Http::response(['token' => 'jwt-token'], 200)]);
+
+        [$owner] = $this->ownerWithGym(['active' => true]);
+
+        $this->actingAs($owner)
+            ->postJson(route('settings.inkasso.test-connection'), [
+                'tenant_id' => '40218-BER',
+                'username' => 'fitzone-berlin@api',
+                'password' => 'geheimespasswort',
+                'sandbox' => false,
+            ])
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.diagonal-service.de'));
+    }
+
+    public function test_the_sandbox_flag_is_persisted(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym(['active' => true]);
+
+        $this->actingAs($owner)
+            ->putJson(route('settings.inkasso.update'), $this->validPayload(['sandbox' => true]))
+            ->assertOk()
+            ->assertJsonPath('settings.sandbox', true);
+
+        $this->assertTrue($gym->fresh()->usesInkassoSandbox());
+    }
+
+    public function test_switching_the_environment_drops_the_cached_token(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym(['active' => true]);
+
+        Cache::put("diagonal.token.{$gym->id}", 'production-token', now()->addMinutes(30));
+
+        $this->actingAs($owner)
+            ->putJson(route('settings.inkasso.update'), $this->validPayload(['sandbox' => true]))
+            ->assertOk();
+
+        $this->assertNull(Cache::get("diagonal.token.{$gym->id}"));
     }
 
     public function test_a_staff_member_may_not_change_the_settings(): void

@@ -23,13 +23,14 @@ class DiagonalClient
     protected const TOKEN_TTL_MINUTES = 30;
 
     /**
-     * Authenticate and return a bearer token.
+     * Authenticate and return a bearer token. Without an explicit base URL the
+     * production host is used.
      *
      * @throws DiagonalApiException
      */
-    public function login(string $username, string $password): string
+    public function login(string $username, string $password, ?string $baseUrl = null): string
     {
-        $response = $this->http()->post(self::API_PREFIX.'/Authenticate/login', [
+        $response = $this->http($baseUrl)->post(self::API_PREFIX.'/Authenticate/login', [
             'username' => $username,
             'password' => $password,
         ]);
@@ -60,10 +61,12 @@ class DiagonalClient
             throw new DiagonalApiException('Es sind keine DIAGONAL-Zugangsdaten hinterlegt.');
         }
 
+        $baseUrl = $this->baseUrlFor($gym);
+
         return Cache::remember(
-            "diagonal.token.{$gym->id}",
+            $this->tokenCacheKey($gym),
             now()->addMinutes(self::TOKEN_TTL_MINUTES),
-            fn () => $this->login($username, $password)
+            fn () => $this->login($username, $password, $baseUrl)
         );
     }
 
@@ -86,9 +89,13 @@ class DiagonalClient
                 throw new DiagonalApiException('Es sind keine DIAGONAL-Zugangsdaten hinterlegt.');
             }
 
-            $this->login($username, $password);
+            $this->login($username, $password, $this->baseUrlFor($gym));
 
-            return ['success' => true, 'message' => 'Verbindung zu DIAGONAL erfolgreich hergestellt.'];
+            $message = $gym->usesInkassoSandbox()
+                ? 'Verbindung zur DIAGONAL-Testumgebung erfolgreich hergestellt.'
+                : 'Verbindung zu DIAGONAL erfolgreich hergestellt.';
+
+            return ['success' => true, 'message' => $message];
         } catch (DiagonalApiException $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -217,22 +224,47 @@ class DiagonalClient
         return $response->json() ?? [];
     }
 
+    /**
+     * Drop the cached tokens of both environments, so a switch between them
+     * cannot reuse a token issued by the other host.
+     */
     public function forgetToken(Gym $gym): void
     {
         Cache::forget("diagonal.token.{$gym->id}");
+        Cache::forget("diagonal.token.{$gym->id}.sandbox");
     }
 
     protected function authenticated(Gym $gym): PendingRequest
     {
-        return $this->http()->withToken($this->tokenFor($gym));
+        return $this->http($this->baseUrlFor($gym))->withToken($this->tokenFor($gym));
     }
 
-    protected function http(): PendingRequest
+    protected function http(?string $baseUrl = null): PendingRequest
     {
-        return Http::baseUrl(rtrim((string) config('services.diagonal.base_url'), '/'))
+        $baseUrl ??= (string) config('services.diagonal.base_url');
+
+        return Http::baseUrl(rtrim($baseUrl, '/'))
             ->timeout((int) config('services.diagonal.timeout', 30))
             ->acceptJson()
             ->asJson();
+    }
+
+    /**
+     * The API host of the gym: the test environment when sandbox mode is on.
+     */
+    protected function baseUrlFor(Gym $gym): string
+    {
+        return (string) ($gym->usesInkassoSandbox()
+            ? config('services.diagonal.sandbox_base_url')
+            : config('services.diagonal.base_url'));
+    }
+
+    /**
+     * Tokens are cached per environment; they are not interchangeable.
+     */
+    protected function tokenCacheKey(Gym $gym): string
+    {
+        return "diagonal.token.{$gym->id}".($gym->usesInkassoSandbox() ? '.sandbox' : '');
     }
 
     /**
