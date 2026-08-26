@@ -281,6 +281,33 @@ class InkassoSettingsTest extends TestCase
         $this->assertNull(Cache::get("diagonal.token.{$gym->id}"));
     }
 
+    public function test_the_payment_period_per_level_is_persisted(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym(['active' => true]);
+
+        $levels = Gym::DEFAULT_DUNNING_LEVELS;
+        $levels[0]['payment_period_days'] = 21;
+
+        $this->actingAs($owner)
+            ->putJson(route('settings.inkasso.update'), $this->validPayload(['levels' => $levels]))
+            ->assertOk();
+
+        $this->assertSame(21, $gym->fresh()->getDunningPaymentPeriodDays(1));
+    }
+
+    public function test_the_payment_period_must_be_a_sane_number_of_days(): void
+    {
+        [$owner] = $this->ownerWithGym(['active' => true]);
+
+        $levels = Gym::DEFAULT_DUNNING_LEVELS;
+        $levels[0]['payment_period_days'] = 0;
+
+        $this->actingAs($owner)
+            ->putJson(route('settings.inkasso.update'), $this->validPayload(['levels' => $levels]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('levels.0.payment_period_days');
+    }
+
     public function test_a_staff_member_may_not_change_the_settings(): void
     {
         [, $gym] = $this->ownerWithGym(['active' => true]);

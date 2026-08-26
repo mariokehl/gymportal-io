@@ -219,6 +219,7 @@
                 <div class="text-lg font-semibold text-gray-900 mb-1">Mahnstufen &amp; Gebühren</div>
                 <div class="text-sm text-gray-500 mb-4">
                     Stufe 4 ist die Inkassoübergabe. Solange ein Mitglied im Inkasso ist, bleibt die Mahnstufe unverändert.
+                    Die Zahlungsfrist erscheint als Datum in der E-Mail der jeweiligen Stufe.
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full border border-gray-200 rounded-lg overflow-hidden">
@@ -227,6 +228,7 @@
                                 <th class="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-gray-500">Stufe</th>
                                 <th class="text-left px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-gray-500">Auslöser</th>
                                 <th class="text-left px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-gray-500">Gebühr</th>
+                                <th class="text-left px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-gray-500">Zahlungsfrist</th>
                                 <th class="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-gray-500">Wirkung</th>
                             </tr>
                         </thead>
@@ -257,6 +259,19 @@
                                         min="0"
                                         class="w-28 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm"
                                     >
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div v-if="level.level === 4" class="text-sm text-gray-600">–</div>
+                                    <div v-else class="flex items-center gap-2">
+                                        <input
+                                            v-model.number="form.levels[index].payment_period_days"
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            class="w-20 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm"
+                                        >
+                                        <span class="text-sm text-gray-600">Tage</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-500">{{ level.effect }}</td>
                             </tr>
@@ -314,6 +329,8 @@ import ToggleRow from '@/Components/Inkasso/ToggleRow.vue'
 import RadioCard from '@/Components/Inkasso/RadioCard.vue'
 import { formatDate } from '@/utils/formatters'
 
+const DEFAULT_PAYMENT_PERIOD_DAYS = 14
+
 const props = defineProps({
     currentGym: { type: Object, required: true },
 })
@@ -346,7 +363,14 @@ function buildForm(source) {
         auto_resubmit: Boolean(source.auto_resubmit ?? true),
         handover_flat_fee: Number(source.handover_flat_fee ?? 58.5),
         default_interest_rate: Number(source.default_interest_rate ?? 5),
-        levels: (source.levels ?? []).map(level => ({ ...level })),
+        // Settings saved before the payment period existed carry no value;
+        // show the default so the field is never blank.
+        levels: (source.levels ?? []).map(level => ({
+            ...level,
+            payment_period_days: level.level === 4
+                ? null
+                : (level.payment_period_days ?? DEFAULT_PAYMENT_PERIOD_DAYS),
+        })),
     }
 }
 

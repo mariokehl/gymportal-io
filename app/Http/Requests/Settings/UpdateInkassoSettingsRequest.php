@@ -42,6 +42,8 @@ class UpdateInkassoSettingsRequest extends FormRequest
             'levels' => ['required', 'array', 'size:4'],
             'levels.*.level' => ['required', 'integer', 'between:1,4'],
             'levels.*.trigger_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            // Level 4 sends no notice, so it carries no payment period.
+            'levels.*.payment_period_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'levels.*.fee' => ['required', 'numeric', 'min:0', 'max:99999.99'],
             'levels.*.effect' => ['nullable', 'string', 'max:255'],
         ];

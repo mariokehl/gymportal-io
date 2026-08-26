@@ -102,7 +102,7 @@ class DunningNoticeMailTest extends TestCase
 
             return str_contains($mail->envelope()->subject, "Eigener Betreff für {$member->first_name}")
                 && str_contains($rendered, '49,99')
-                && str_contains($rendered, Carbon::today()->addDays(14)->format('d.m.Y'));
+                && str_contains($rendered, Carbon::today()->addDays(Gym::DEFAULT_PAYMENT_PERIOD_DAYS)->format('d.m.Y'));
         });
     }
 
@@ -156,6 +156,68 @@ class DunningNoticeMailTest extends TestCase
         $this->service->escalate($member, $gym);
 
         Mail::assertSent(DunningNoticeMail::class, fn (DunningNoticeMail $mail) => $mail->envelope()->subject === "Zahlungserinnerung - {$gym->name}");
+    }
+
+    public function test_the_payment_period_of_the_level_is_used(): void
+    {
+        $gym = Gym::factory()->create();
+        $levels = $gym->inkasso_settings['levels'];
+        $levels[0]['payment_period_days'] = 5;
+        $gym->update(['inkasso_settings' => array_merge($gym->inkasso_settings, ['levels' => $levels])]);
+        $gym = $gym->fresh();
+
+        $member = $this->memberWithOverduePayment($gym);
+
+        $this->service->escalate($member, $gym);
+
+        Mail::assertSent(DunningNoticeMail::class, fn (DunningNoticeMail $mail) => $mail->dunningData['[Zahlungsfrist]'] === Carbon::today()->addDays(5)->format('d.m.Y'));
+    }
+
+    public function test_settings_without_a_payment_period_fall_back_to_the_default(): void
+    {
+        $gym = Gym::factory()->create();
+
+        // Mimic settings stored before the option existed.
+        $levels = array_map(function (array $level) {
+            unset($level['payment_period_days']);
+
+            return $level;
+        }, $gym->inkasso_settings['levels']);
+
+        $gym->update(['inkasso_settings' => array_merge($gym->inkasso_settings, ['levels' => $levels])]);
+        $gym = $gym->fresh();
+
+        $member = $this->memberWithOverduePayment($gym);
+
+        $this->service->escalate($member, $gym);
+
+        Mail::assertSent(DunningNoticeMail::class, fn (DunningNoticeMail $mail) => $mail->dunningData['[Zahlungsfrist]'] === Carbon::today()->addDays(Gym::DEFAULT_PAYMENT_PERIOD_DAYS)->format('d.m.Y'));
+    }
+
+    public function test_each_level_can_carry_its_own_period(): void
+    {
+        $gym = Gym::factory()->create();
+        $levels = $gym->inkasso_settings['levels'];
+        $levels[0]['payment_period_days'] = 21;
+        $levels[1]['payment_period_days'] = 7;
+        $gym->update(['inkasso_settings' => array_merge($gym->inkasso_settings, ['levels' => $levels])]);
+        $gym = $gym->fresh();
+
+        $member = $this->memberWithOverduePayment($gym);
+
+        $this->service->escalate($member, $gym);
+        $firstDeadline = Carbon::today()->addDays(21)->format('d.m.Y');
+
+        Carbon::setTestNow(Carbon::now()->addDays(30));
+        $this->service->escalate($member->fresh(), $gym);
+        $secondDeadline = Carbon::today()->addDays(7)->format('d.m.Y');
+        Carbon::setTestNow();
+
+        Mail::assertSent(DunningNoticeMail::class, fn (DunningNoticeMail $mail) => $mail->level === DunningNotice::LEVEL_REMINDER
+            && $mail->dunningData['[Zahlungsfrist]'] === $firstDeadline);
+
+        Mail::assertSent(DunningNoticeMail::class, fn (DunningNoticeMail $mail) => $mail->level === DunningNotice::LEVEL_FIRST_NOTICE
+            && $mail->dunningData['[Zahlungsfrist]'] === $secondDeadline);
     }
 
     public function test_the_second_level_reports_the_fee_separately(): void

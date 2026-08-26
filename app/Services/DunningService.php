@@ -24,9 +24,6 @@ use Illuminate\Support\Facades\Log;
  */
 class DunningService
 {
-    /** Days the member is given to pay before the next level is considered. */
-    protected const PAYMENT_PERIOD_DAYS = 14;
-
     public function __construct(
         private readonly MemberMailDispatcher $mailDispatcher,
     ) {}
@@ -176,7 +173,7 @@ class DunningService
                 $member,
                 $gym,
                 $notice->level,
-                $this->placeholderData($member, $notice),
+                $this->placeholderData($member, $gym, $notice),
             ),
         );
     }
@@ -185,23 +182,25 @@ class DunningService
      * Values behind the dunning placeholders of the mail template.
      *
      * The open amount is read after the fee was booked, so the fee is part of
-     * the total but is also shown separately.
+     * the total but is also shown separately. The payment deadline follows the
+     * period configured for this level.
      *
      * @return array<string, string>
      */
-    protected function placeholderData(Member $member, DunningNotice $notice): array
+    protected function placeholderData(Member $member, Gym $gym, DunningNotice $notice): array
     {
         $fee = (float) $notice->fee;
         $total = round((float) $member->payments()->overdue()->sum('amount'), 2);
         $open = round($total - $fee, 2);
         $oldest = $this->oldestOverduePayment($member);
+        $period = $gym->getDunningPaymentPeriodDays($notice->level);
 
         return [
             '[Offener-Betrag]' => $this->money($open),
             '[Mahngebuehr]' => $this->money($fee),
             '[Gesamtbetrag]' => $this->money($total),
             '[Faelligkeitsdatum]' => optional($oldest?->overdue_since)->format('d.m.Y') ?? '',
-            '[Zahlungsfrist]' => Carbon::today()->addDays(self::PAYMENT_PERIOD_DAYS)->format('d.m.Y'),
+            '[Zahlungsfrist]' => Carbon::today()->addDays($period)->format('d.m.Y'),
         ];
     }
 

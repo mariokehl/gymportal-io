@@ -1450,14 +1450,22 @@ class Gym extends Model
     public const RESIDUAL_PARTNER_DECISION = 'partner_decision';
 
     /**
+     * Days a member is given to pay, used when a level carries no own value.
+     */
+    public const DEFAULT_PAYMENT_PERIOD_DAYS = 14;
+
+    /**
      * Default dunning levels. Level 4 is the handover to the collection partner
      * and is never triggered automatically.
+     *
+     * `trigger_days` is the waiting time until the level is reached,
+     * `payment_period_days` the deadline printed in the notice sent for it.
      */
     public const DEFAULT_DUNNING_LEVELS = [
-        ['level' => 1, 'trigger_days' => 7, 'fee' => 0.0, 'effect' => 'Zahlungserinnerung per E-Mail'],
-        ['level' => 2, 'trigger_days' => 14, 'fee' => 5.0, 'effect' => '1. Mahnung, Gebühr wird als Forderung gebucht'],
-        ['level' => 3, 'trigger_days' => 14, 'fee' => 10.0, 'effect' => '2. Mahnung, Mitglied wird „Bereit für Inkasso“'],
-        ['level' => 4, 'trigger_days' => null, 'fee' => 58.5, 'effect' => 'Übergabe an den Inkassopartner, Zugangssperre'],
+        ['level' => 1, 'trigger_days' => 7, 'payment_period_days' => 14, 'fee' => 0.0, 'effect' => 'Zahlungserinnerung per E-Mail'],
+        ['level' => 2, 'trigger_days' => 14, 'payment_period_days' => 14, 'fee' => 5.0, 'effect' => '1. Mahnung, Gebühr wird als Forderung gebucht'],
+        ['level' => 3, 'trigger_days' => 14, 'payment_period_days' => 10, 'fee' => 10.0, 'effect' => '2. Mahnung, Mitglied wird „Bereit für Inkasso“'],
+        ['level' => 4, 'trigger_days' => null, 'payment_period_days' => null, 'fee' => 58.5, 'effect' => 'Übergabe an den Inkassopartner, Zugangssperre'],
     ];
 
     public function getInkassoSettingsAttribute($value): array
@@ -1554,5 +1562,24 @@ class Gym extends Model
         }
 
         return 0.0;
+    }
+
+    /**
+     * Days the member is given to pay after a notice of this level was sent.
+     *
+     * Settings saved before this option existed carry no value, so the default
+     * period applies until the gym configures one.
+     */
+    public function getDunningPaymentPeriodDays(int $level): int
+    {
+        foreach ($this->inkasso_settings['levels'] ?? [] as $config) {
+            if ((int) ($config['level'] ?? 0) === $level) {
+                $days = $config['payment_period_days'] ?? null;
+
+                return $days === null ? self::DEFAULT_PAYMENT_PERIOD_DAYS : (int) $days;
+            }
+        }
+
+        return self::DEFAULT_PAYMENT_PERIOD_DAYS;
     }
 }
