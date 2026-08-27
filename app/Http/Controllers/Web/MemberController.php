@@ -230,6 +230,7 @@ class MemberController extends Controller
         $user = Auth::user();
 
         $membershipPlans = MembershipPlan::where('gym_id', $user->current_gym_id)
+            ->where('is_free_trial_plan', 0)
             ->withCount(['memberships' => function ($query) {
                 $query->where('status', 'active');
             }])
@@ -308,6 +309,14 @@ class MemberController extends Controller
             $rules['billing_anchor_date'] = ['nullable', 'date', 'after_or_equal:joined_date'];
             $rules['payment_method'] = ['required', Rule::in($enabledPaymentMethods)];
             $rules['start_immediately'] = ['nullable', 'boolean'];
+            // Only plans of the current gym are selectable, and free trial plans are
+            // created implicitly by the free period logic - never chosen by hand.
+            $rules['membership_plan_id'] = [
+                'required',
+                Rule::exists('membership_plans', 'id')
+                    ->where('gym_id', $gym->id)
+                    ->where('is_free_trial_plan', 0),
+            ];
         } else {
             // Optionale Felder für Gäste
             $rules['joined_date'] = ['nullable', 'date'];
@@ -365,7 +374,9 @@ class MemberController extends Controller
             // Für Gäste: Keine Mitgliedschaft und keine Zahlungsmethode anlegen
             if (! $createAsGuest) {
                 // Get membership plan to calculate end date
-                $membershipPlan = MembershipPlan::findOrFail($request->membership_plan_id);
+                $membershipPlan = MembershipPlan::where('id', $validated['membership_plan_id'])
+                    ->where('gym_id', $gym->id)
+                    ->firstOrFail();
 
                 // Create membership (with optional free period for first-of-month start)
                 $memberService = app(MemberService::class);
@@ -563,6 +574,7 @@ class MemberController extends Controller
 
         // Get available membership plans for adding new memberships
         $membershipPlans = MembershipPlan::where('gym_id', $member->gym_id)
+            ->where('is_free_trial_plan', 0)
             ->orderBy('name')
             ->get();
 
@@ -1091,7 +1103,14 @@ class MemberController extends Controller
         $gym = $member->gym;
 
         $validated = $request->validate([
-            'membership_plan_id' => ['required', 'exists:membership_plans,id'],
+            // Only plans of this member's gym are selectable, and free trial plans are
+            // created implicitly by the free period logic - never chosen by hand.
+            'membership_plan_id' => [
+                'required',
+                Rule::exists('membership_plans', 'id')
+                    ->where('gym_id', $gym->id)
+                    ->where('is_free_trial_plan', 0),
+            ],
             'start_date' => ['required', 'date'],
             'allow_past_start_date' => ['nullable', 'boolean'],
             'billing_anchor_date' => ['nullable', 'date', 'after_or_equal:start_date'],
@@ -1108,7 +1127,6 @@ class MemberController extends Controller
             ]);
         }
 
-        // Verify membership plan belongs to the same gym
         $membershipPlan = MembershipPlan::where('id', $validated['membership_plan_id'])
             ->where('gym_id', $gym->id)
             ->firstOrFail();
