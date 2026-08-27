@@ -308,6 +308,39 @@ class InkassoSettingsTest extends TestCase
             ->assertJsonValidationErrors('levels.0.payment_period_days');
     }
 
+    public function test_the_reminder_fee_is_forced_to_zero(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym(['active' => true]);
+
+        $levels = Gym::DEFAULT_DUNNING_LEVELS;
+        // The field is not editable, so a value can only arrive from an old
+        // configuration or a handcrafted request.
+        $levels[0]['fee'] = 7.5;
+
+        $this->actingAs($owner)
+            ->putJson(route('settings.inkasso.update'), $this->validPayload(['levels' => $levels]))
+            ->assertOk();
+
+        $this->assertEquals(0.0, $gym->fresh()->getDunningFee(1));
+    }
+
+    public function test_the_other_levels_keep_their_fee(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym(['active' => true]);
+
+        $levels = Gym::DEFAULT_DUNNING_LEVELS;
+        $levels[1]['fee'] = 7.5;
+        $levels[2]['fee'] = 15.0;
+
+        $this->actingAs($owner)
+            ->putJson(route('settings.inkasso.update'), $this->validPayload(['levels' => $levels]))
+            ->assertOk();
+
+        $fresh = $gym->fresh();
+        $this->assertEquals(7.5, $fresh->getDunningFee(2));
+        $this->assertEquals(15.0, $fresh->getDunningFee(3));
+    }
+
     public function test_a_staff_member_may_not_change_the_settings(): void
     {
         [, $gym] = $this->ownerWithGym(['active' => true]);

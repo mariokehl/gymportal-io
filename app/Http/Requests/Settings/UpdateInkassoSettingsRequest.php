@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Models\DunningNotice;
 use App\Models\Gym;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,6 +14,28 @@ class UpdateInkassoSettingsRequest extends FormRequest
         $gym = $this->user()?->currentGym;
 
         return $gym !== null && $this->user()->can('update', $gym);
+    }
+
+    /**
+     * The reminder is a courtesy notice and never carries a fee, so its value
+     * is forced to zero instead of being rejected: the field is not editable,
+     * and a stored fee from an earlier configuration must not block the save.
+     */
+    protected function prepareForValidation(): void
+    {
+        $levels = $this->input('levels');
+
+        if (! is_array($levels)) {
+            return;
+        }
+
+        foreach ($levels as $index => $level) {
+            if ((int) ($level['level'] ?? 0) === DunningNotice::LEVEL_REMINDER) {
+                $levels[$index]['fee'] = 0;
+            }
+        }
+
+        $this->merge(['levels' => $levels]);
     }
 
     /**

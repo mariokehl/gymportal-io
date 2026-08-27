@@ -253,6 +253,7 @@
                                 </td>
                                 <td class="px-3 py-3">
                                     <div v-if="level.level === 4" class="text-sm text-gray-600">durch DIAGONAL</div>
+                                    <div v-else-if="level.level === 1" class="text-sm text-gray-600">keine</div>
                                     <input
                                         v-else
                                         v-model.number="form.levels[index].fee"
@@ -379,6 +380,8 @@ function buildForm(source) {
         // show the default so the field is never blank.
         levels: (source.levels ?? []).map(level => ({
             ...level,
+            // The reminder is a courtesy notice and never carries a fee.
+            fee: level.level === 1 ? 0 : level.fee,
             payment_period_days: level.level === 4
                 ? null
                 : (level.payment_period_days ?? DEFAULT_PAYMENT_PERIOD_DAYS),

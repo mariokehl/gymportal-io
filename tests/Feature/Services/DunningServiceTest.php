@@ -67,6 +67,11 @@ class DunningServiceTest extends TestCase
         $this->assertSame(DunningNotice::LEVEL_REMINDER, $notice->level);
         $this->assertEquals(0.0, (float) $notice->fee);
         $this->assertSame('overdue', $member->fresh()->status);
+
+        // The reminder is a courtesy notice: no fee is booked against the member.
+        $this->assertSame(0, Payment::where('member_id', $member->id)
+            ->where('payment_method', 'dunning_fee')
+            ->count());
     }
 
     public function test_an_execution_date_after_the_due_date_delays_the_first_level(): void
