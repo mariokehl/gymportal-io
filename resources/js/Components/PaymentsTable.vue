@@ -794,6 +794,7 @@ const paymentMethodIcons = {
   mollie_paymentlink: Link2,
   mollie_paypal: WalletCards,
   credit: Wallet,
+  dunning_fee: AlertTriangle,
 }
 
 const getPaymentMethodIcon = (payment) => paymentMethodIcons[payment?.payment_method] || null

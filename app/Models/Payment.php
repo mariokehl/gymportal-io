@@ -154,6 +154,7 @@ class Payment extends Model
             'mollie_banktransfer' => 'Mollie: SEPA-Überweisung',
             'mollie_paymentlink' => 'Mollie: Zahlungslink',
             'credit' => 'Guthaben',
+            'dunning_fee' => 'Mahngebühr',
         ][$this->payment_method] ?? $this->payment_method;
     }
 

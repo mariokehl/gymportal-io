@@ -171,6 +171,8 @@ class DunningServiceTest extends TestCase
         $this->assertNotNull($feePayment);
         $this->assertEquals(5.0, (float) $feePayment->amount);
         $this->assertSame('pending', $feePayment->status);
+        // The claim is labelled in the payment tables instead of showing the raw key.
+        $this->assertSame('Mahngebühr', $feePayment->payment_method_text);
     }
 
     public function test_it_never_escalates_beyond_level_three(): void
