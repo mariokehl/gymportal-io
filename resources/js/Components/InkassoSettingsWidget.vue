@@ -312,10 +312,7 @@
                             disabled
                             class="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
                         >
-                        <p class="text-xs text-gray-400 mt-1.5">
-                            Die Pauschale rechnet DIAGONAL direkt mit dem Mitglied ab. Sie wird daher nicht
-                            als eigene Forderung gebucht.
-                        </p>
+                        <p class="text-xs text-gray-400 mt-1.5">Abrechnung direkt mit dem Mitglied und nicht als eigene Forderung.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Verzugszinsen p. a. (%)</label>
