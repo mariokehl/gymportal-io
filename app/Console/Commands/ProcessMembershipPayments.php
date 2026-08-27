@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Log;
 
 class ProcessMembershipPayments extends Command
 {
+    /** Payment method of the claims booked by the dunning process. */
+    private const DUNNING_FEE_METHOD = 'dunning_fee';
+
     /**
      * The name and signature of the console command.
      *
@@ -150,6 +153,15 @@ class ProcessMembershipPayments extends Command
         ];
 
         $query = Payment::where('status', 'pending')
+            // Dunning fees are never collected: the member is in arrears by
+            // definition, so another direct debit would most likely bounce and
+            // it would ignore the payment period granted in the dunning mail.
+            // The fee stays an open claim and travels with the next level or
+            // the handover to the collection partner.
+            ->where(function ($q) {
+                $q->whereNull('payment_method')
+                    ->orWhere('payment_method', '!=', self::DUNNING_FEE_METHOD);
+            })
             ->where(function ($q) {
                 // Zahlung wird verarbeitet wenn:
                 // - execution_date ist NULL und due_date ist heute oder in der Vergangenheit ODER
