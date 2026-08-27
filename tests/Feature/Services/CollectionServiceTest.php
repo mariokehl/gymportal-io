@@ -3,6 +3,7 @@
 namespace Tests\Feature\Services;
 
 use App\Models\CollectionCase;
+use App\Models\CollectionClaim;
 use App\Models\CollectionPayment;
 use App\Models\CollectionRun;
 use App\Models\DunningNotice;
@@ -85,11 +86,11 @@ class CollectionServiceTest extends TestCase
         $case = $this->service->handOverMember($member, $gym);
 
         $this->assertSame(CollectionCase::STATUS_IN_PROGRESS, $case->status);
-        // Two overdue payments plus the handover flat fee.
-        $this->assertSame(3, $case->claims()->count());
+        // The two overdue payments; the flat fee is charged by DIAGONAL itself.
+        $this->assertSame(2, $case->claims()->count());
         $this->assertEquals(99.98, (float) $case->principal_amount);
-        $this->assertEquals(58.5, (float) $case->flat_amount);
-        $this->assertEquals(158.48, (float) $case->total_amount);
+        $this->assertEquals(0.0, (float) $case->flat_amount);
+        $this->assertEquals(99.98, (float) $case->total_amount);
 
         $this->assertSame('blocked', $member->fresh()->status);
         $this->assertSame(DunningNotice::LEVEL_COLLECTION, $member->fresh()->current_dunning_level);
@@ -140,8 +141,8 @@ class CollectionServiceTest extends TestCase
 
         $this->assertSame(2, $run->member_count);
         $this->assertEquals(249.95, (float) $run->principal_amount);
-        $this->assertEquals(117.0, (float) $run->flat_amount);
-        $this->assertEquals(366.95, (float) $run->total_amount);
+        $this->assertEquals(0.0, (float) $run->flat_amount);
+        $this->assertEquals(249.95, (float) $run->total_amount);
         $this->assertSame(CollectionRun::STATUS_HANDED_OVER, $run->status);
     }
 
@@ -320,6 +321,22 @@ class CollectionServiceTest extends TestCase
         $stats = $this->service->statistics($gym);
 
         $this->assertSame(1, $stats['in_collection_count']);
-        $this->assertEquals(158.48, $stats['in_collection_amount']);
+        $this->assertEquals(99.98, $stats['in_collection_amount']);
+    }
+
+    public function test_the_handover_books_no_flat_fee_claim(): void
+    {
+        // DIAGONAL charges the handover flat fee itself, so the studio must not
+        // book one on top - that would bill the member twice.
+        $gym = $this->activeGym();
+        $member = $this->readyMember($gym);
+
+        $case = $this->service->handOverMember($member, $gym);
+
+        $this->assertFalse(
+            CollectionClaim::where('collection_case_id', $case->id)
+                ->where('kind', CollectionClaim::KIND_FLAT)
+                ->exists(),
+        );
     }
 }

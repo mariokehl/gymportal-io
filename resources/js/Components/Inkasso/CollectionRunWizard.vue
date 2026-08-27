@@ -101,7 +101,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+            <div class="grid grid-cols-2 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
               <div class="bg-gray-50 p-3.5">
                 <div class="text-xs uppercase tracking-wider text-gray-500">Mitglieder</div>
                 <div class="text-lg font-bold text-gray-900 mt-1">{{ selected.length }}</div>
@@ -110,17 +110,13 @@
                 <div class="text-xs uppercase tracking-wider text-gray-500">Hauptforderung</div>
                 <div class="text-lg font-bold text-gray-900 mt-1">{{ formatCurrency(principal) }}</div>
               </div>
-              <div class="bg-gray-50 p-3.5">
-                <div class="text-xs uppercase tracking-wider text-gray-500">Übergabepauschalen</div>
-                <div class="text-lg font-bold text-gray-900 mt-1">{{ formatCurrency(flatTotal) }}</div>
-              </div>
             </div>
           </template>
 
           <!-- Step 3: confirmation -->
           <template v-else>
             <div class="border border-gray-200 rounded-lg p-4">
-              <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(principal + flatTotal) }}</div>
+              <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(principal) }}</div>
               <div class="text-sm text-gray-500 mt-1">
                 {{ selected.length }} Mitglieder · DIAGONAL Inkasso
               </div>
@@ -131,7 +127,7 @@
               <div class="space-y-1 text-sm">
                 <div>· Die betroffenen Mitglieder erhalten Mahnstufe 4 (Inkasso) und eine Zugangssperre.</div>
                 <div>· Offene Forderungen werden als „Inkasso“ markiert und im Mitgliederkonto storniert.</div>
-                <div>· Je Mitglied wird eine Übergabepauschale von {{ formatCurrency(settings.handover_flat_fee) }} gebucht.</div>
+                <div>· Die Übergabepauschale erhebt DIAGONAL direkt beim Mitglied.</div>
                 <div>· Die Mahnstufe kann während des Inkassos nicht verändert werden.</div>
               </div>
             </div>
@@ -203,10 +199,6 @@ const selected = computed(() => props.members.filter(member => !excluded[member.
 
 const principal = computed(() =>
   selected.value.reduce((total, member) => total + Number(member.open_amount || 0), 0)
-)
-
-const flatTotal = computed(() =>
-  selected.value.length * Number(props.settings.handover_flat_fee || 0)
 )
 
 const submit = () => {

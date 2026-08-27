@@ -252,7 +252,9 @@
                                     </div>
                                 </td>
                                 <td class="px-3 py-3">
+                                    <div v-if="level.level === 4" class="text-sm text-gray-600">durch DIAGONAL</div>
                                     <input
+                                        v-else
                                         v-model.number="form.levels[index].fee"
                                         type="number"
                                         step="0.01"
@@ -281,9 +283,17 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Übergabepauschale Inkasso</label>
-                        <input v-model="form.handover_flat_fee" type="number" step="0.01" min="0" class="input-field" >
-                        <p class="text-xs text-gray-400 mt-1.5">Wird dem Mitglied bei der Übergabe als Forderung hinzugefügt.</p>
+                        <label class="block text-sm font-medium text-gray-500 mb-1.5">Übergabepauschale Inkasso</label>
+                        <input
+                            value="Wird automatisch von DIAGONAL erhoben"
+                            type="text"
+                            disabled
+                            class="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
+                        >
+                        <p class="text-xs text-gray-400 mt-1.5">
+                            Die Pauschale rechnet DIAGONAL direkt mit dem Mitglied ab. Sie wird daher nicht
+                            als eigene Forderung gebucht.
+                        </p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Verzugszinsen p. a. (%)</label>
@@ -361,7 +371,9 @@ function buildForm(source) {
         include_minors: Boolean(source.include_minors),
         residual_handling: source.residual_handling ?? 'always_write_off',
         auto_resubmit: Boolean(source.auto_resubmit ?? true),
-        handover_flat_fee: Number(source.handover_flat_fee ?? 58.5),
+        // DIAGONAL charges the handover flat fee itself, so the studio never
+        // books one. Kept in the payload because the API still expects it.
+        handover_flat_fee: 0,
         default_interest_rate: Number(source.default_interest_rate ?? 5),
         // Settings saved before the payment period existed carry no value;
         // show the default so the field is never blank.

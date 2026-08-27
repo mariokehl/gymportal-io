@@ -36,7 +36,7 @@
             <div class="space-y-1 text-sm">
               <div>· Mitglied erhält Mahnstufe 4 (Inkasso) und eine Zugangssperre.</div>
               <div>· Die Mahnstufe kann während des Inkassos nicht verändert werden.</div>
-              <div>· Je Mitglied wird eine Übergabepauschale von {{ formatCurrency(settings.handover_flat_fee) }} gebucht.</div>
+              <div>· Die Übergabepauschale erhebt DIAGONAL direkt beim Mitglied.</div>
             </div>
           </div>
 

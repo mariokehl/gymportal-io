@@ -1465,7 +1465,7 @@ class Gym extends Model
         ['level' => 1, 'trigger_days' => 7, 'payment_period_days' => 14, 'fee' => 0.0, 'effect' => 'Zahlungserinnerung per E-Mail'],
         ['level' => 2, 'trigger_days' => 14, 'payment_period_days' => 14, 'fee' => 5.0, 'effect' => '1. Mahnung, Gebühr wird als Forderung gebucht'],
         ['level' => 3, 'trigger_days' => 14, 'payment_period_days' => 10, 'fee' => 10.0, 'effect' => '2. Mahnung, Mitglied wird „Bereit für Inkasso“'],
-        ['level' => 4, 'trigger_days' => null, 'payment_period_days' => null, 'fee' => 58.5, 'effect' => 'Übergabe an den Inkassopartner, Zugangssperre'],
+        ['level' => 4, 'trigger_days' => null, 'payment_period_days' => null, 'fee' => 0.0, 'effect' => 'Übergabe an den Inkassopartner, Zugangssperre'],
     ];
 
     public function getInkassoSettingsAttribute($value): array
@@ -1486,7 +1486,7 @@ class Gym extends Model
             'include_minors' => false,
             'residual_handling' => self::RESIDUAL_ALWAYS_WRITE_OFF,
             'auto_resubmit' => true,
-            'handover_flat_fee' => 58.5,
+            'handover_flat_fee' => 0,
             'default_interest_rate' => 5.0,
             'activated_at' => null,
             'levels' => self::DEFAULT_DUNNING_LEVELS,
