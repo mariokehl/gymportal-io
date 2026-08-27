@@ -238,22 +238,35 @@
                                     {{ level.level === 4 ? 'Stufe 4 · Inkasso' : `Stufe ${level.level}` }}
                                 </td>
                                 <td class="px-3 py-3">
-                                    <div v-if="level.level === 4" class="text-sm text-gray-600">manuell über Inkassolauf</div>
-                                    <div v-else class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2">
                                         <input
-                                            v-model.number="form.levels[index].trigger_days"
-                                            type="number"
-                                            min="0"
-                                            class="w-20 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm"
+                                            v-if="level.level === 4"
+                                            value="manuell über Inkassolauf"
+                                            type="text"
+                                            readonly
+                                            class="w-48 px-2.5 py-1.5 border border-gray-200 bg-gray-50 text-gray-500 rounded-md text-sm"
                                         >
-                                        <span class="text-sm text-gray-600">
-                                            {{ level.level === 1 ? 'Tage nach Fälligkeit' : `Tage nach Stufe ${level.level - 1}` }}
-                                        </span>
+                                        <template v-else>
+                                            <input
+                                                v-model.number="form.levels[index].trigger_days"
+                                                type="number"
+                                                min="0"
+                                                class="w-20 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm"
+                                            >
+                                            <span class="text-sm text-gray-600">
+                                                {{ level.level === 1 ? 'Tage nach Fälligkeit' : `Tage nach Stufe ${level.level - 1}` }}
+                                            </span>
+                                        </template>
                                     </div>
                                 </td>
                                 <td class="px-3 py-3">
-                                    <div v-if="level.level === 4" class="text-sm text-gray-600">durch DIAGONAL</div>
-                                    <div v-else-if="level.level === 1" class="text-sm text-gray-600">keine</div>
+                                    <input
+                                        v-if="level.level === 4 || level.level === 1"
+                                        :value="level.level === 4 ? '–' : 'keine'"
+                                        type="text"
+                                        readonly
+                                        class="w-28 px-2.5 py-1.5 border border-gray-200 bg-gray-50 text-gray-500 rounded-md text-sm"
+                                    >
                                     <input
                                         v-else
                                         v-model.number="form.levels[index].fee"
@@ -264,16 +277,24 @@
                                     >
                                 </td>
                                 <td class="px-3 py-3">
-                                    <div v-if="level.level === 4" class="text-sm text-gray-600">–</div>
-                                    <div v-else class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2">
                                         <input
-                                            v-model.number="form.levels[index].payment_period_days"
-                                            type="number"
-                                            min="1"
-                                            max="365"
-                                            class="w-20 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm"
+                                            v-if="level.level === 4"
+                                            value="–"
+                                            type="text"
+                                            readonly
+                                            class="w-20 px-2.5 py-1.5 border border-gray-200 bg-gray-50 text-gray-500 rounded-md text-sm"
                                         >
-                                        <span class="text-sm text-gray-600">Tage</span>
+                                        <template v-else>
+                                            <input
+                                                v-model.number="form.levels[index].payment_period_days"
+                                                type="number"
+                                                min="1"
+                                                max="365"
+                                                class="w-20 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm"
+                                            >
+                                            <span class="text-sm text-gray-600">Tage</span>
+                                        </template>
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-500">{{ level.effect }}</td>
