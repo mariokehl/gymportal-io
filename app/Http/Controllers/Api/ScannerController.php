@@ -359,6 +359,58 @@ class ScannerController extends Controller
     }
 
     /**
+     * Scanner asks whether a scanned code is genuine.
+     *
+     * Route: GET /api/scanner/verify-member
+     *
+     * The device holds only its own SECRET_KEY and therefore cannot verify a
+     * code signed by a sibling location. This endpoint does it centrally: the
+     * member is looked up across the scanner's organisation and the hash is
+     * checked against the key of the member's own location.
+     *
+     * Answers with a bare {"valid": true|false}. Authenticity is not access —
+     * whether the member may enter is still decided by verify-membership.
+     * Every failure reads the same on the wire, so a caller cannot tell an
+     * unknown member from a forged hash.
+     */
+    public function verifyMember(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'member_id' => 'required|string',
+            'hash' => 'required|string',
+            'timestamp' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['valid' => false]);
+        }
+
+        /** @var GymScanner $scanner */
+        $scanner = $request->get('scanner');
+
+        try {
+            $valid = $this->validationService->verifyMemberHash(
+                $request->input('member_id'),
+                $this->organizationGymIds($scanner->gym_id),
+                $request->input('hash'),
+                // A rolling code carries no timestamp. An empty parameter is
+                // the same thing as an absent one on a query string.
+                $request->filled('timestamp') ? $request->input('timestamp') : null
+            );
+        } catch (Exception $e) {
+            // A failure here must never read as a valid code.
+            Log::error('Member verification error', [
+                'error' => $e->getMessage(),
+                'scanner_id' => $scanner->id,
+            ]);
+
+            $valid = false;
+        }
+
+        return response()->json(['valid' => $valid]);
+    }
+
+    /**
      * IDs of every location in the scanner's organisation, itself included.
      *
      * The organisation is implied by the owner. Cached briefly: this runs on

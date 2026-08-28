@@ -97,6 +97,7 @@ Route::prefix('scanner')->group(function () {
     Route::middleware(['scanner.auth'])->group(function () {
         Route::get('ping', [ScannerController::class, 'ping']);
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
+        Route::get('verify-member', [ScannerController::class, 'verifyMember']);
 
         // @deprecated No scanner client calls these; the scan is validated
         // on the device itself (qr-scanner-server.py).
