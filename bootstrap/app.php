@@ -12,6 +12,8 @@ use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
@@ -54,5 +56,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // PHP discards $_POST and $_FILES once post_max_size is exceeded, so the
+        // request reaches validation with no files at all. Without this the user
+        // would see "please select an archive" instead of a size error.
+        $exceptions->render(function (PostTooLargeException $e, Request $request) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'valid' => false,
+                'error' => 'Der Upload ist zu groß. Pro Upload sind maximal 100 MB möglich.',
+                'errors' => ['Der Upload ist zu groß. Pro Upload sind maximal 100 MB möglich.'],
+            ], 413);
+        });
     })->create();

@@ -72,6 +72,7 @@
             </label>
           </div>
           <p class="text-xs text-gray-500 mt-1">ZIP-Archiv per Drag &amp; Drop oder Ordner mit den Mitgliedsakten</p>
+          <p class="text-xs text-gray-500 mt-1">Maximal 100 MB pro Upload</p>
         </div>
       </div>
 
@@ -443,6 +444,10 @@ const ARCHIVE_RELEVANT_FILES = [
   'liable_person.json',
 ]
 
+// Server-side limit for one staged upload; mirrors
+// DataTransferController::ARCHIVE_MAX_TOTAL_SIZE_KB.
+const ARCHIVE_MAX_TOTAL_SIZE = 100 * 1024 * 1024
+
 // PHP caps the number of files per request (max_file_uploads, commonly 20),
 // so a folder upload is sent in chunks that stay below that limit.
 const ARCHIVE_CHUNK_SIZE = 15
@@ -464,6 +469,17 @@ const selectArchive = (files, isZip) => {
       valid: false,
       errors: ['Im ausgewählten Ordner wurde keine master_data.xlsx gefunden. Bitte wählen Sie den Ordner mit den Mitgliedsakten aus.'],
     }
+    return
+  }
+
+  if (archiveTotalSize.value > ARCHIVE_MAX_TOTAL_SIZE) {
+    archiveValidationResult.value = {
+      valid: false,
+      errors: [
+        `Die Auswahl ist ${formatFileSize(archiveTotalSize.value)} groß. Pro Upload sind maximal 100 MB möglich. Bitte teilen Sie die Mitgliedsakten auf mehrere Uploads auf.`,
+      ],
+    }
+    archiveFiles.value = []
     return
   }
 
@@ -513,9 +529,13 @@ const validateArchive = async () => {
     archiveValidationResult.value = response.data
     archiveToken.value = response.data.token ?? null
   } catch (error) {
-    archiveValidationResult.value = error.response?.data ?? {
+    const data = error.response?.data
+
+    // The chunk upload reports failures as a single "error" string, the
+    // validation endpoint as an "errors" array — normalise both for display.
+    archiveValidationResult.value = {
       valid: false,
-      errors: ['Das Archiv konnte nicht geprüft werden.'],
+      errors: data?.errors ?? (data?.error ? [data.error] : ['Das Archiv konnte nicht geprüft werden.']),
     }
   } finally {
     archiveIsValidating.value = false

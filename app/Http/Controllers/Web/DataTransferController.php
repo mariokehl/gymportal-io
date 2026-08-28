@@ -17,6 +17,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DataTransferController extends Controller
 {
+    /**
+     * Maximum total size of one staged member archive upload in kilobytes.
+     */
+    private const ARCHIVE_MAX_TOTAL_SIZE_KB = 102400;
+
     public function __construct(
         private GymDataExportService $exportService,
         private GymDataImportService $importService,
@@ -342,11 +347,11 @@ class DataTransferController extends Controller
 
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'file|max:51200', // 50 MB per file
+            'files.*' => 'file|max:'.self::ARCHIVE_MAX_TOTAL_SIZE_KB,
             'token' => 'nullable|string',
         ], [
             'files.required' => 'Bitte wählen Sie ein Archiv oder einen Ordner aus.',
-            'files.*.max' => 'Einzelne Dateien dürfen maximal 50 MB groß sein.',
+            'files.*.max' => 'Der Upload darf maximal 100 MB groß sein.',
         ]);
 
         // The first chunk creates the staging directory, later chunks reuse it.
@@ -357,6 +362,25 @@ class DataTransferController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Der Upload ist abgelaufen. Bitte wählen Sie den Ordner erneut aus.',
+            ], 422);
+        }
+
+        // Chunked folder uploads are only complete once every chunk arrived, so
+        // the limit is enforced against the staged total, not a single request.
+        $maxBytes = self::ARCHIVE_MAX_TOTAL_SIZE_KB * 1024;
+        $chunkBytes = array_sum(array_map(
+            fn (UploadedFile $file): int => $file->getSize() ?: 0,
+            $request->file('files')
+        ));
+
+        if (($root ? $this->directorySize($root) : 0) + $chunkBytes > $maxBytes) {
+            if ($root) {
+                $this->deleteDirectory($root);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Der Upload darf maximal 100 MB groß sein. Bitte teilen Sie die Mitgliedsakten auf mehrere Uploads auf.',
             ], 422);
         }
 
@@ -497,6 +521,26 @@ class DataTransferController extends Controller
         } finally {
             $this->deleteDirectory($root);
         }
+    }
+
+    /**
+     * Total size in bytes of everything already staged below the given path.
+     */
+    private function directorySize(string $path): int
+    {
+        $size = 0;
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($items as $item) {
+            if ($item->isFile()) {
+                $size += $item->getSize();
+            }
+        }
+
+        return $size;
     }
 
     /**
