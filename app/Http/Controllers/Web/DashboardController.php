@@ -10,7 +10,6 @@ use App\Services\MemberService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -36,8 +35,8 @@ class DashboardController extends Controller
             ->when(request('search'), function ($query, $search) {
                 $search = mb_strtolower($search);
                 $query->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
-                      ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
-                      ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
             })
             ->when(request('status'), function ($query, $status) {
                 $query->where('status', $status);
@@ -51,36 +50,7 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(10) // Limit for dashboard view
             ->get()
-            ->map(function ($member) {
-                $firstMembership = $member->activeMembership();
-
-                if (!$firstMembership) {
-                    return [
-                        'id' => $member->id,
-                        'initials' => $member->initials,
-                        'name' => $member->full_name,
-                        'email' => $member->email,
-                        'membership' => '❌',
-                        'status' => $member->status,
-                        'age_verified' => $member->age_verified,
-                        'age_verified_at' => $member->age_verified_at?->toISOString(),
-                        'guest_access' => $member->guest_access,
-                    ];
-                }
-
-                return [
-                    'id' => $member->id,
-                    'initials' => $member->initials,
-                    'name' => $member->full_name,
-                    'email' => $member->email,
-                    'membership' => $firstMembership->toArray()['membership_plan']['name'] ?? 'Gelöschter Vertrag',
-                    'status' => $member->status,
-                    'last_check_in' => $member->last_check_in,
-                    'age_verified' => $member->age_verified,
-                    'age_verified_at' => $member->age_verified_at?->toISOString(),
-                    'guest_access' => $member->guest_access,
-                ];
-            });
+            ->map(fn (Member $member) => $member->toDashboardArray());
 
         // Calculate statistics
         $stats = $this->memberService->getDashboardStats($user->current_gym_id);
@@ -91,6 +61,7 @@ class DashboardController extends Controller
             ->get()
             ->map(function (DatabaseNotification $notification) {
                 $data = $notification->data;
+
                 return [
                     'id' => $notification->id,
                     'title' => $data['title'] ?? 'Benachrichtigung',
@@ -131,8 +102,8 @@ class DashboardController extends Controller
             'filters' => [
                 'search' => request('search'),
                 'status' => request('status'),
-                'membership' => request('membership')
-            ]
+                'membership' => request('membership'),
+            ],
         ]);
     }
 }

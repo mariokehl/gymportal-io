@@ -600,7 +600,45 @@ class Member extends Authenticatable
 
     public function getLastCheckInAttribute()
     {
+        // Serve from the eager-loaded relation when available to avoid an N+1 query.
+        if ($this->relationLoaded('checkIns')) {
+            return $this->checkIns->sortByDesc('check_in_time')->first();
+        }
+
         return $this->checkIns()->latest('check_in_time')->first();
+    }
+
+    /**
+     * Build the member payload used by the dashboard member list.
+     */
+    public function toDashboardArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'initials' => $this->initials,
+            'name' => $this->full_name,
+            'email' => $this->email,
+            'membership' => $this->activeMembershipPlanName(),
+            'status' => $this->status,
+            'last_check_in' => $this->last_check_in,
+            'age_verified' => $this->age_verified,
+            'age_verified_at' => $this->age_verified_at?->toISOString(),
+            'guest_access' => $this->guest_access,
+        ];
+    }
+
+    /**
+     * Name of the plan behind the active membership, or a marker when there is none.
+     */
+    public function activeMembershipPlanName(): string
+    {
+        $membership = $this->activeMembership();
+
+        if (! $membership) {
+            return '❌';
+        }
+
+        return $membership->membershipPlan?->name ?? 'Gelöschter Vertrag';
     }
 
     /**
