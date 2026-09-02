@@ -7,7 +7,9 @@
         <table class="min-w-[640px] w-full border-collapse">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Datum</th>
+              <!-- Location marker; the icon and its tooltip carry the meaning -->
+              <th class="w-px pl-3.5 pr-1 py-3"><span class="sr-only">Standort</span></th>
+              <th class="pl-1 pr-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Datum</th>
               <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Check-In</th>
               <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Check-Out</th>
               <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Dauer</th>
@@ -16,7 +18,17 @@
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="checkin in member.check_ins" :key="checkin.id" class="hover:bg-gray-50">
-              <td class="px-3.5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{{ formatDate(checkin.check_in_time) }}</td>
+              <td class="w-px pl-3.5 pr-1 py-3.5 align-middle leading-none">
+                <!-- Visit at the member's home location -->
+                <Tooltip v-if="isHomeGym(checkin)" position="top" teleport text="Check-In am Heimatstandort">
+                  <House class="w-4 h-4 text-gray-400" aria-label="Check-In am Heimatstandort" />
+                </Tooltip>
+                <!-- Visit at another location of the organisation -->
+                <Tooltip v-else position="top" teleport :text="`Fremd-Check-In: ${gymName(checkin)}`">
+                  <MapPin class="w-4 h-4 text-amber-600" :aria-label="`Fremd-Check-In: ${gymName(checkin)}`" />
+                </Tooltip>
+              </td>
+              <td class="pl-1 pr-3.5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{{ formatDate(checkin.check_in_time) }}</td>
               <td class="px-3.5 py-3.5 text-sm text-gray-700 whitespace-nowrap">{{ formatTime(checkin.check_in_time) }}</td>
               <td class="px-3.5 py-3.5 text-sm text-gray-700 whitespace-nowrap">
                 {{ checkin.check_out_time ? formatTime(checkin.check_out_time) : '-' }}
@@ -62,15 +74,22 @@
 </template>
 
 <script setup>
-import { Clock, CreditCard, Edit, QrCode, MoveHorizontal } from 'lucide-vue-next'
+import { Clock, CreditCard, Edit, House, MapPin, QrCode, MoveHorizontal } from 'lucide-vue-next'
 import { formatDate, formatTime } from '@/utils/formatters'
+import Tooltip from '@/Components/Tooltip.vue'
 
-defineProps({
+const props = defineProps({
   member: {
     type: Object,
     required: true,
   },
 })
+
+// A check-in is booked against the visited location, so anything other than the
+// member's home gym is a cross-location visit.
+const isHomeGym = (checkin) => !checkin.gym_id || checkin.gym_id === props.member.gym_id
+
+const gymName = (checkin) => checkin.gym?.display_name || checkin.gym?.name || 'Unbekannter Standort'
 
 const calculateDuration = (checkIn, checkOut) => {
   if (!checkIn || !checkOut) return '-'

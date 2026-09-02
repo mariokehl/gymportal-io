@@ -468,8 +468,10 @@ class MemberController extends Controller
             'paymentMethods',
             'payments.chargebacks',
             'payments.refunds',
+            // The visited location is loaded alongside, so the check-ins tab can
+            // mark visits at another location of the organisation as such.
             'checkIns' => function ($query) {
-                $query->latest()->take(10);
+                $query->with('gym:id,name,display_name')->latest()->take(10);
             },
             'accessConfig',
             'devices',
