@@ -31,6 +31,33 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
     () => (memberValue.value.memberships || []).filter(m => m.status === 'pending').length
   )
 
+  const activeMembershipCount = computed(
+    () => (memberValue.value.memberships || []).filter(m => m.status === 'active').length
+  )
+
+  // One badge carries both counts, so the tab keeps a single pill: pending
+  // memberships need the operator and therefore outrank the plain active
+  // count, which only falls back in once nothing is waiting.
+  const membershipBadge = computed(() => {
+    if (pendingMembershipCount.value > 0) {
+      return {
+        count: pendingMembershipCount.value,
+        colorClass: 'bg-orange-100 text-orange-700',
+        hint: `${pendingMembershipCount.value} ausstehende Mitgliedschaft(en)`,
+      }
+    }
+
+    if (activeMembershipCount.value > 0) {
+      return {
+        count: activeMembershipCount.value,
+        colorClass: 'bg-green-100 text-green-600',
+        hint: `${activeMembershipCount.value} aktive Mitgliedschaft(en)`,
+      }
+    }
+
+    return null
+  })
+
   // Payment methods that cannot be billed yet, mirroring the backend activation
   // guard: a method is usable when it is active and, if it requires a SEPA
   // mandate, that mandate is active too. Expired methods are left out: they are
@@ -117,6 +144,8 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
 
   return {
     pendingMembershipCount,
+    activeMembershipCount,
+    membershipBadge,
     unusablePaymentMethodCount,
     hasNoUsablePaymentMethod,
     paymentsAttentionSignal,

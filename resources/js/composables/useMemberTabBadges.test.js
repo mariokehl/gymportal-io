@@ -71,6 +71,30 @@ describe('unusablePaymentMethodCount', () => {
   })
 })
 
+describe('membershipBadge', () => {
+  it('shows the pending count when memberships wait for activation', () => {
+    const { membershipBadge } = badges({
+      memberships: [{ status: 'pending' }, { status: 'active' }, { status: 'active' }],
+    })
+
+    expect(membershipBadge.value).toMatchObject({ count: 1, colorClass: 'bg-orange-100 text-orange-700' })
+  })
+
+  it('falls back to the active count once nothing is pending', () => {
+    const { membershipBadge } = badges({
+      memberships: [{ status: 'active' }, { status: 'active' }, { status: 'cancelled' }],
+    })
+
+    expect(membershipBadge.value).toMatchObject({ count: 2, colorClass: 'bg-green-100 text-green-600' })
+  })
+
+  it('stays empty without active or pending memberships', () => {
+    const { membershipBadge } = badges({ memberships: [{ status: 'cancelled' }] })
+
+    expect(membershipBadge.value).toBeNull()
+  })
+})
+
 describe('member sources', () => {
   it('tracks a getter when the record is replaced', () => {
     // Inertia hands the page a brand new member object on every visit, so the

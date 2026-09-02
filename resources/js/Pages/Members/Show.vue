@@ -149,11 +149,11 @@
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ member.status_history.length }}</span>
           <span
-            v-if="tab.id === 'membership' && pendingMembershipCount > 0"
+            v-if="tab.id === 'membership' && membershipBadge"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
-            :title="`${pendingMembershipCount} ausstehende Mitgliedschaft(en)`"
-          >{{ pendingMembershipCount }}</span>
+            :class="active ? 'bg-white/25 text-white' : membershipBadge.colorClass"
+            :title="membershipBadge.hint"
+          >{{ membershipBadge.count }}</span>
           <span
             v-if="tab.id === 'payments' && paymentsAttentionSignal"
             class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
@@ -388,7 +388,7 @@ const outstandingBalance = computed(() => {
 
 // Tab badges: pending memberships and payment issues that need the operator.
 const {
-  pendingMembershipCount,
+  membershipBadge,
   paymentsAttentionSignal,
   paymentsAttentionHint,
 } = useMemberTabBadges(() => props.member, outstandingBalance)
