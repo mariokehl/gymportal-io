@@ -178,6 +178,11 @@
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ documentCount }}</span>
           <span
+            v-if="tab.id === 'checkins' && checkInsTotal > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+          >{{ checkInsTotal }}</span>
+          <span
             v-if="tab.id === 'access' && activeAccessCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
             :class="active ? 'bg-white/25 text-white' : 'bg-green-100 text-green-600'"
@@ -352,6 +357,11 @@ const props = defineProps({
   },
   // Total number of access log entries; the tab lazy-loads beyond the first page.
   accessLogsTotal: {
+    type: Number,
+    default: 0
+  },
+  // Total number of check-ins; the tab itself only lists the newest ones.
+  checkInsTotal: {
     type: Number,
     default: 0
   },

@@ -57,6 +57,26 @@ class MemberShowCheckInLocationTest extends TestCase
     }
 
     #[Test]
+    public function it_counts_every_check_in_for_the_tab_badge(): void
+    {
+        // More than the detail page lists, so the badge cannot simply count the
+        // check-ins it received.
+        CheckIn::factory()->count(12)->create([
+            'member_id' => $this->member->id,
+            'gym_id' => $this->gym->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->get(route('members.show', $this->member))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Members/Show')
+                ->has('member.check_ins', 10)
+                ->where('checkInsTotal', 12)
+            );
+    }
+
+    #[Test]
     public function it_names_the_other_location_for_a_cross_location_check_in(): void
     {
         $otherGym = Gym::factory()->create([

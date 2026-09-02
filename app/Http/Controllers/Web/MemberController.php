@@ -503,6 +503,10 @@ class MemberController extends Controller
         // Zugangshistorie für das Frontend aufbereiten.
         $totalAccessLogs = MemberAccessLog::where('member_id', $member->id)->count();
 
+        // Only the newest check-ins are loaded, so the tab badge needs the full
+        // count separately.
+        $totalCheckIns = $member->checkIns()->count();
+
         $member->setRelation('access_logs',
             $member->accessLogs->map(fn ($log) => $log->toHistoryEntry())
         );
@@ -607,6 +611,8 @@ class MemberController extends Controller
             'fraudCheck' => $fraudCheck,
             // Drives the "Weitere laden" button of the access history.
             'accessLogsTotal' => $totalAccessLogs,
+            // Drives the badge on the check-ins tab.
+            'checkInsTotal' => $totalCheckIns,
         ]);
     }
 
