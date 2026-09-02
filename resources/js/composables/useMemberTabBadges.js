@@ -18,8 +18,11 @@ import { CircleAlert, TriangleAlert } from 'lucide-vue-next'
  * @param {import('vue').Ref<Number|null>} outstandingBalance  Unsettled chargeback total.
  * @param {Object} [options]
  * @param {Number} [options.alternateAfter]  Milliseconds between icon swaps.
+ * @param {(function(): Number)|import('vue').Ref<Number>} [options.paymentCount]  Total payments,
+ *   shown on the payments tab as long as no signal needs the operator. Defaults to the
+ *   payments embedded in the member record.
  */
-export function useMemberTabBadges(member, outstandingBalance, { alternateAfter = 3000 } = {}) {
+export function useMemberTabBadges(member, outstandingBalance, { alternateAfter = 3000, paymentCount = null } = {}) {
   const memberValue = computed(() => {
     const value = typeof member === 'function' ? member() : (member?.value ?? member)
 
@@ -112,6 +115,18 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
     return signals
   })
 
+  // The payments tab falls back to a plain count once nothing needs the
+  // operator, mirroring the membership tab: a signal always outranks it.
+  const paymentsCount = computed(() => {
+    if (paymentCount !== null) {
+      const value = typeof paymentCount === 'function' ? paymentCount() : (paymentCount?.value ?? paymentCount)
+
+      return value || 0
+    }
+
+    return (memberValue.value.payments || []).length
+  })
+
   const paymentsSignalIndex = ref(0)
   let paymentsSignalTimer = null
 
@@ -150,5 +165,6 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
     hasNoUsablePaymentMethod,
     paymentsAttentionSignal,
     paymentsAttentionHint,
+    paymentsCount,
   }
 }

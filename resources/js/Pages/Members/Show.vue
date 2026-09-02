@@ -173,6 +173,12 @@
             </Transition>
           </span>
           <span
+            v-else-if="tab.id === 'payments' && paymentsCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'"
+            :title="`${paymentsCount} Zahlung(en)`"
+          >{{ paymentsCount }}</span>
+          <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
@@ -391,7 +397,10 @@ const {
   membershipBadge,
   paymentsAttentionSignal,
   paymentsAttentionHint,
-} = useMemberTabBadges(() => props.member, outstandingBalance)
+  paymentsCount,
+} = useMemberTabBadges(() => props.member, outstandingBalance, {
+  paymentCount: () => (payments.value || props.member.payments || []).length,
+})
 
 const editMode = ref(false)
 

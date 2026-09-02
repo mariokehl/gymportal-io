@@ -95,6 +95,32 @@ describe('membershipBadge', () => {
   })
 })
 
+describe('paymentsCount', () => {
+  it('counts the payments embedded in the member record', () => {
+    const { paymentsCount } = badges({ payments: [{ id: 1 }, { id: 2 }] })
+
+    expect(paymentsCount.value).toBe(2)
+  })
+
+  it('prefers an explicitly supplied count getter', () => {
+    const scope = effectScope()
+    scopes.push(scope)
+    const { paymentsCount } = scope.run(() => useMemberTabBadges(
+      { payments: [{ id: 1 }] },
+      ref(null),
+      { paymentCount: () => 7 },
+    ))
+
+    expect(paymentsCount.value).toBe(7)
+  })
+
+  it('reports zero for a member without payments', () => {
+    const { paymentsCount } = badges({})
+
+    expect(paymentsCount.value).toBe(0)
+  })
+})
+
 describe('member sources', () => {
   it('tracks a getter when the record is replaced', () => {
     // Inertia hands the page a brand new member object on every visit, so the
