@@ -790,6 +790,59 @@ class MemberArchiveImportTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_an_upload_that_exceeds_the_total_size_limit(): void
+    {
+        $owner = User::find($this->gym->owner_id);
+        $oversized = $this->makeSparseFile('oversized.zip', 101 * 1024 * 1024);
+
+        $this->actingAs($owner)
+            ->postJson(route('data-transfer.upload-archive-chunk'), [
+                'files' => [new UploadedFile($oversized, 'oversized.zip', 'application/zip', null, true)],
+            ])
+            ->assertStatus(422);
+    }
+
+    #[Test]
+    public function it_rejects_chunks_that_only_exceed_the_size_limit_in_sum(): void
+    {
+        $owner = User::find($this->gym->owner_id);
+
+        // Each chunk on its own stays below the limit; only their sum exceeds it.
+        $first = $this->actingAs($owner)->postJson(route('data-transfer.upload-archive-chunk'), [
+            'files' => [
+                new UploadedFile(
+                    $this->makeSparseFile('part-1.bin', 60 * 1024 * 1024),
+                    'akten/part-1.bin',
+                    null,
+                    null,
+                    true
+                ),
+            ],
+        ]);
+
+        $first->assertOk();
+        $token = $first->json('token');
+
+        $this->actingAs($owner)
+            ->postJson(route('data-transfer.upload-archive-chunk'), [
+                'token' => $token,
+                'files' => [
+                    new UploadedFile(
+                        $this->makeSparseFile('part-2.bin', 60 * 1024 * 1024),
+                        'akten/part-2.bin',
+                        null,
+                        null,
+                        true
+                    ),
+                ],
+            ])
+            ->assertStatus(422);
+
+        // The staging directory is discarded so no partial upload is left behind.
+        $this->assertDirectoryDoesNotExist(storage_path('app/tmp/'.$token));
+    }
+
+    #[Test]
     public function it_rejects_an_archive_upload_from_a_user_without_permission(): void
     {
         $outsider = User::factory()->create();
@@ -797,6 +850,23 @@ class MemberArchiveImportTest extends TestCase
         $this->actingAs($outsider)
             ->postJson(route('data-transfer.upload-archive-chunk'), [])
             ->assertForbidden();
+    }
+
+    /**
+     * Create a sparse file of the given size: the bytes are reported by the
+     * filesystem but barely occupy any disk space, which keeps the size-limit
+     * tests fast.
+     */
+    private function makeSparseFile(string $name, int $bytes): string
+    {
+        $path = $this->root.'/'.$name;
+
+        $handle = fopen($path, 'w');
+        fseek($handle, $bytes - 1);
+        fwrite($handle, "\0");
+        fclose($handle);
+
+        return $path;
     }
 
     private function importService(): MemberArchiveImportService

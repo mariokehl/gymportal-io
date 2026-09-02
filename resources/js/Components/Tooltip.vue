@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, computed, useSlots, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, useSlots, onMounted, onBeforeUnmount } from 'vue'
 
 // Props
 const props = defineProps({
@@ -88,17 +88,14 @@ const triggerRef = ref(null)
 const triggerRect = ref(null)
 
 // Methods
-const showTooltip = async () => {
-  isVisible.value = true
-
-  if (!props.teleport) {
-    return
+const showTooltip = () => {
+  // Measure the trigger before showing, so the teleported panel is placed
+  // against the viewport on its very first frame instead of jumping there.
+  if (props.teleport) {
+    triggerRect.value = triggerRef.value?.getBoundingClientRect() ?? null
   }
 
-  // Measure the trigger so the teleported panel can be placed against the
-  // viewport. Read after paint, otherwise the rect is stale while scrolling.
-  await nextTick()
-  triggerRect.value = triggerRef.value?.getBoundingClientRect() ?? null
+  isVisible.value = true
 }
 
 const hideTooltip = () => {
@@ -197,33 +194,16 @@ const arrowClasses = computed(() => {
 
 <style scoped>
 /* Transition animations */
+/* Fade only. A directional slide would need a transform, and the teleported
+   variant already spends its transform on centring the panel — animating both
+   the same way in every variant keeps the tooltips consistent. */
 .tooltip-enter-active,
 .tooltip-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition: opacity 0.15s;
 }
 
 .tooltip-enter-from,
 .tooltip-leave-to {
   opacity: 0;
-}
-
-.tooltip-enter-from.tooltip-top,
-.tooltip-leave-to.tooltip-top {
-  transform: translateY(4px);
-}
-
-.tooltip-enter-from.tooltip-bottom,
-.tooltip-leave-to.tooltip-bottom {
-  transform: translateY(-4px);
-}
-
-.tooltip-enter-from.tooltip-left,
-.tooltip-leave-to.tooltip-left {
-  transform: translateX(4px);
-}
-
-.tooltip-enter-from.tooltip-right,
-.tooltip-leave-to.tooltip-right {
-  transform: translateX(-4px);
 }
 </style>

@@ -34,6 +34,12 @@ class MemberController extends Controller
     use AuthorizesRequests;
 
     /**
+     * Rows per page of the member's check-in history, both for the initial
+     * server-side render and for every "Weitere laden" request.
+     */
+    public const CHECKINS_PAGE_SIZE = 10;
+
+    /**
      * Display a listing of the members.
      */
     public function index(Request $request)
@@ -468,8 +474,12 @@ class MemberController extends Controller
             'paymentMethods',
             'payments.chargebacks',
             'payments.refunds',
+            // The visited location is loaded alongside, so the check-ins tab can
+            // mark visits at another location of the organisation as such.
             'checkIns' => function ($query) {
-                $query->latest()->take(10);
+                $query->with('gym:id,name,display_name')
+                    ->latest()
+                    ->take(self::CHECKINS_PAGE_SIZE);
             },
             'accessConfig',
             'devices',
@@ -500,6 +510,10 @@ class MemberController extends Controller
 
         // Zugangshistorie für das Frontend aufbereiten.
         $totalAccessLogs = MemberAccessLog::where('member_id', $member->id)->count();
+
+        // Only the newest check-ins are loaded, so the tab badge needs the full
+        // count separately.
+        $totalCheckIns = $member->checkIns()->count();
 
         $member->setRelation('access_logs',
             $member->accessLogs->map(fn ($log) => $log->toHistoryEntry())
@@ -605,6 +619,8 @@ class MemberController extends Controller
             'fraudCheck' => $fraudCheck,
             // Drives the "Weitere laden" button of the access history.
             'accessLogsTotal' => $totalAccessLogs,
+            // Drives the badge on the check-ins tab.
+            'checkInsTotal' => $totalCheckIns,
         ]);
     }
 
@@ -1054,6 +1070,30 @@ class MemberController extends Controller
         // HandleInertiaRequests shares as flash.message, which AppLayout turns
         // into a toast. A 'success' key never reaches the frontend.
         return back()->with('message', $result['message']);
+    }
+
+    /**
+     * One page of the member's check-in history, for the "Weitere laden" button
+     * of the check-ins tab.
+     */
+    public function checkIns(Member $member)
+    {
+        $this->authorize('view', $member);
+
+        $checkIns = $member->checkIns()
+            ->with('gym:id,name,display_name')
+            ->latest()
+            ->paginate(self::CHECKINS_PAGE_SIZE);
+
+        // The rows carry the same shape the member page renders initially, so
+        // the frontend can simply append them to its list.
+        return response()->json([
+            'data' => $checkIns->getCollection()->values(),
+            'current_page' => $checkIns->currentPage(),
+            'last_page' => $checkIns->lastPage(),
+            'total' => $checkIns->total(),
+            'has_more' => $checkIns->hasMorePages(),
+        ]);
     }
 
     /**

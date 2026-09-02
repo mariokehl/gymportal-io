@@ -18,8 +18,11 @@ import { CircleAlert, TriangleAlert } from 'lucide-vue-next'
  * @param {import('vue').Ref<Number|null>} outstandingBalance  Unsettled chargeback total.
  * @param {Object} [options]
  * @param {Number} [options.alternateAfter]  Milliseconds between icon swaps.
+ * @param {(function(): Number)|import('vue').Ref<Number>} [options.paymentCount]  Total payments,
+ *   shown on the payments tab as long as no signal needs the operator. Defaults to the
+ *   payments embedded in the member record.
  */
-export function useMemberTabBadges(member, outstandingBalance, { alternateAfter = 3000 } = {}) {
+export function useMemberTabBadges(member, outstandingBalance, { alternateAfter = 3000, paymentCount = null } = {}) {
   const memberValue = computed(() => {
     const value = typeof member === 'function' ? member() : (member?.value ?? member)
 
@@ -30,6 +33,33 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
   const pendingMembershipCount = computed(
     () => (memberValue.value.memberships || []).filter(m => m.status === 'pending').length
   )
+
+  const activeMembershipCount = computed(
+    () => (memberValue.value.memberships || []).filter(m => m.status === 'active').length
+  )
+
+  // One badge carries both counts, so the tab keeps a single pill: pending
+  // memberships need the operator and therefore outrank the plain active
+  // count, which only falls back in once nothing is waiting.
+  const membershipBadge = computed(() => {
+    if (pendingMembershipCount.value > 0) {
+      return {
+        count: pendingMembershipCount.value,
+        colorClass: 'bg-orange-100 text-orange-700',
+        hint: `${pendingMembershipCount.value} ausstehende Mitgliedschaft(en)`,
+      }
+    }
+
+    if (activeMembershipCount.value > 0) {
+      return {
+        count: activeMembershipCount.value,
+        colorClass: 'bg-green-100 text-green-600',
+        hint: `${activeMembershipCount.value} aktive Mitgliedschaft(en)`,
+      }
+    }
+
+    return null
+  })
 
   // Payment methods that cannot be billed yet, mirroring the backend activation
   // guard: a method is usable when it is active and, if it requires a SEPA
@@ -85,6 +115,18 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
     return signals
   })
 
+  // The payments tab falls back to a plain count once nothing needs the
+  // operator, mirroring the membership tab: a signal always outranks it.
+  const paymentsCount = computed(() => {
+    if (paymentCount !== null) {
+      const value = typeof paymentCount === 'function' ? paymentCount() : (paymentCount?.value ?? paymentCount)
+
+      return value || 0
+    }
+
+    return (memberValue.value.payments || []).length
+  })
+
   const paymentsSignalIndex = ref(0)
   let paymentsSignalTimer = null
 
@@ -117,9 +159,12 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
 
   return {
     pendingMembershipCount,
+    activeMembershipCount,
+    membershipBadge,
     unusablePaymentMethodCount,
     hasNoUsablePaymentMethod,
     paymentsAttentionSignal,
     paymentsAttentionHint,
+    paymentsCount,
   }
 }

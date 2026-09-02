@@ -71,6 +71,56 @@ describe('unusablePaymentMethodCount', () => {
   })
 })
 
+describe('membershipBadge', () => {
+  it('shows the pending count when memberships wait for activation', () => {
+    const { membershipBadge } = badges({
+      memberships: [{ status: 'pending' }, { status: 'active' }, { status: 'active' }],
+    })
+
+    expect(membershipBadge.value).toMatchObject({ count: 1, colorClass: 'bg-orange-100 text-orange-700' })
+  })
+
+  it('falls back to the active count once nothing is pending', () => {
+    const { membershipBadge } = badges({
+      memberships: [{ status: 'active' }, { status: 'active' }, { status: 'cancelled' }],
+    })
+
+    expect(membershipBadge.value).toMatchObject({ count: 2, colorClass: 'bg-green-100 text-green-600' })
+  })
+
+  it('stays empty without active or pending memberships', () => {
+    const { membershipBadge } = badges({ memberships: [{ status: 'cancelled' }] })
+
+    expect(membershipBadge.value).toBeNull()
+  })
+})
+
+describe('paymentsCount', () => {
+  it('counts the payments embedded in the member record', () => {
+    const { paymentsCount } = badges({ payments: [{ id: 1 }, { id: 2 }] })
+
+    expect(paymentsCount.value).toBe(2)
+  })
+
+  it('prefers an explicitly supplied count getter', () => {
+    const scope = effectScope()
+    scopes.push(scope)
+    const { paymentsCount } = scope.run(() => useMemberTabBadges(
+      { payments: [{ id: 1 }] },
+      ref(null),
+      { paymentCount: () => 7 },
+    ))
+
+    expect(paymentsCount.value).toBe(7)
+  })
+
+  it('reports zero for a member without payments', () => {
+    const { paymentsCount } = badges({})
+
+    expect(paymentsCount.value).toBe(0)
+  })
+})
+
 describe('member sources', () => {
   it('tracks a getter when the record is replaced', () => {
     // Inertia hands the page a brand new member object on every visit, so the

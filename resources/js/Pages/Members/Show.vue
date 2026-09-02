@@ -149,11 +149,11 @@
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ member.status_history.length }}</span>
           <span
-            v-if="tab.id === 'membership' && pendingMembershipCount > 0"
+            v-if="tab.id === 'membership' && membershipBadge"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'"
-            :title="`${pendingMembershipCount} ausstehende Mitgliedschaft(en)`"
-          >{{ pendingMembershipCount }}</span>
+            :class="active ? 'bg-white/25 text-white' : membershipBadge.colorClass"
+            :title="membershipBadge.hint"
+          >{{ membershipBadge.count }}</span>
           <span
             v-if="tab.id === 'payments' && paymentsAttentionSignal"
             class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
@@ -173,10 +173,21 @@
             </Transition>
           </span>
           <span
+            v-else-if="tab.id === 'payments' && paymentsCount > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'"
+            :title="`${paymentsCount} Zahlung(en)`"
+          >{{ paymentsCount }}</span>
+          <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
             :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
           >{{ documentCount }}</span>
+          <span
+            v-if="tab.id === 'checkins' && checkInsTotal > 0"
+            class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+          >{{ checkInsTotal }}</span>
           <span
             v-if="tab.id === 'access' && activeAccessCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
@@ -254,7 +265,7 @@
 
       <!-- Check-ins Tab (own component; rendered directly on the gray canvas) -->
       <div v-if="!editMode" v-show="activeTab === 'checkins'">
-        <CheckinsTab :member="member" />
+        <CheckinsTab :member="member" :check-ins-total="checkInsTotal" />
       </div>
 
       <!-- Status History Tab (rendered directly on the gray canvas; only the cards are white) -->
@@ -355,6 +366,11 @@ const props = defineProps({
     type: Number,
     default: 0
   },
+  // Total number of check-ins; the tab itself only lists the newest ones.
+  checkInsTotal: {
+    type: Number,
+    default: 0
+  },
   // The member's currently open visit, or null when they are not checked in.
   openCheckin: {
     type: Object,
@@ -378,10 +394,13 @@ const outstandingBalance = computed(() => {
 
 // Tab badges: pending memberships and payment issues that need the operator.
 const {
-  pendingMembershipCount,
+  membershipBadge,
   paymentsAttentionSignal,
   paymentsAttentionHint,
-} = useMemberTabBadges(() => props.member, outstandingBalance)
+  paymentsCount,
+} = useMemberTabBadges(() => props.member, outstandingBalance, {
+  paymentCount: () => (payments.value || props.member.payments || []).length,
+})
 
 const editMode = ref(false)
 
