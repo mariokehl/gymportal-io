@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-3.5">
     <!-- Check-ins list -->
-    <div v-if="member.check_ins && member.check_ins.length > 0" class="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div v-if="visibleCheckins.length > 0" class="rounded-lg border border-gray-200 bg-white overflow-hidden">
       <!-- Horizontally scrollable table on narrow viewports -->
       <div class="overflow-x-auto">
         <table class="min-w-[640px] w-full border-collapse">
@@ -17,7 +17,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr v-for="checkin in member.check_ins" :key="checkin.id" class="hover:bg-gray-50">
+            <tr v-for="checkin in visibleCheckins" :key="checkin.id" class="hover:bg-gray-50">
               <td class="w-px pl-3.5 pr-1 py-3.5 align-middle leading-none">
                 <!-- Visit at the member's home location -->
                 <Tooltip v-if="isHomeGym(checkin)" position="top" teleport text="Check-In am Heimatstandort">
@@ -63,6 +63,18 @@
         <MoveHorizontal class="w-3.5 h-3.5" />
         Zum Scrollen wischen
       </div>
+
+      <div v-if="hasMoreCheckins" class="px-4 py-4 text-center border-t border-gray-100">
+        <button
+          type="button"
+          :disabled="loadingMoreCheckins"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          @click="loadMoreCheckins"
+        >
+          <Loader2 v-if="loadingMoreCheckins" class="w-4 h-4 mr-2 animate-spin" />
+          {{ loadingMoreCheckins ? 'Laden...' : 'Weitere laden' }}
+        </button>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -74,7 +86,8 @@
 </template>
 
 <script setup>
-import { Clock, CreditCard, Edit, House, MapPin, QrCode, MoveHorizontal } from 'lucide-vue-next'
+import { ref, computed, watch } from 'vue'
+import { Clock, CreditCard, Edit, House, Loader2, MapPin, QrCode, MoveHorizontal } from 'lucide-vue-next'
 import { formatDate, formatTime } from '@/utils/formatters'
 import Tooltip from '@/Components/Tooltip.vue'
 
@@ -83,7 +96,56 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  // Total number of check-ins. Only the first page is delivered with the page;
+  // the rest is fetched on demand.
+  checkInsTotal: {
+    type: Number,
+    default: 0,
+  },
 })
+
+// Computed rather than copied on mount, so the list follows Inertia reloads.
+const initialCheckins = computed(() => props.member?.check_ins ?? [])
+
+// Pages loaded on top of the initial one. Reset whenever Inertia delivers a
+// fresh first page, so a reload never shows stale rows below the new ones.
+const additionalCheckins = ref([])
+const checkinsPage = ref(1)
+const checkinsHasMore = ref(null)
+const loadingMoreCheckins = ref(false)
+
+watch(initialCheckins, () => {
+  additionalCheckins.value = []
+  checkinsPage.value = 1
+  checkinsHasMore.value = null
+})
+
+const visibleCheckins = computed(() => [...initialCheckins.value, ...additionalCheckins.value])
+
+// Before the first fetch the server-provided total decides; afterwards the
+// endpoint's own has_more flag is authoritative.
+const hasMoreCheckins = computed(() => checkinsHasMore.value !== null
+  ? checkinsHasMore.value
+  : visibleCheckins.value.length < props.checkInsTotal)
+
+const loadMoreCheckins = async () => {
+  if (loadingMoreCheckins.value || !hasMoreCheckins.value) return
+
+  loadingMoreCheckins.value = true
+  try {
+    const response = await axios.get(route('members.check-ins', props.member.id), {
+      params: { page: checkinsPage.value + 1 },
+    })
+
+    additionalCheckins.value.push(...(response.data.data ?? []))
+    checkinsPage.value = response.data.current_page ?? checkinsPage.value + 1
+    checkinsHasMore.value = response.data.has_more ?? false
+  } catch (error) {
+    console.error('Failed to load more check-ins:', error)
+  } finally {
+    loadingMoreCheckins.value = false
+  }
+}
 
 // A check-in is booked against the visited location, so anything other than the
 // member's home gym is a cross-location visit.

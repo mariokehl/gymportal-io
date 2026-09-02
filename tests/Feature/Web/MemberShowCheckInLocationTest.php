@@ -77,6 +77,66 @@ class MemberShowCheckInLocationTest extends TestCase
     }
 
     #[Test]
+    public function it_paginates_the_check_in_history(): void
+    {
+        // Distinct times, so the pages are ordered deterministically.
+        foreach (range(1, 12) as $offset) {
+            CheckIn::factory()->create([
+                'member_id' => $this->member->id,
+                'gym_id' => $this->gym->id,
+                'check_in_time' => now()->subHours($offset),
+            ]);
+        }
+
+        $response = $this->actingAs($this->owner)
+            ->getJson(route('members.check-ins', ['member' => $this->member, 'page' => 2]))
+            ->assertOk();
+
+        // 12 check-ins, 10 per page: the second page holds the remaining two.
+        $response->assertJsonCount(2, 'data')
+            ->assertJsonPath('current_page', 2)
+            ->assertJsonPath('total', 12)
+            ->assertJsonPath('has_more', false);
+
+        // The rows carry the same shape the page renders initially.
+        $this->assertArrayHasKey('check_in_method_text', $response->json('data.0'));
+        $this->assertArrayHasKey('gym', $response->json('data.0'));
+    }
+
+    #[Test]
+    public function it_reports_more_pages_while_they_remain(): void
+    {
+        CheckIn::factory()->count(25)->create([
+            'member_id' => $this->member->id,
+            'gym_id' => $this->gym->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->getJson(route('members.check-ins', $this->member))
+            ->assertOk()
+            ->assertJsonCount(10, 'data')
+            ->assertJsonPath('has_more', true)
+            ->assertJsonPath('last_page', 3);
+    }
+
+    #[Test]
+    public function it_denies_the_check_in_history_of_a_member_of_another_gym(): void
+    {
+        $stranger = Member::factory()->create([
+            'gym_id' => Gym::factory()->create()->id,
+        ]);
+
+        CheckIn::factory()->create([
+            'member_id' => $stranger->id,
+            'gym_id' => $stranger->gym_id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->getJson(route('members.check-ins', $stranger))
+            ->assertForbidden();
+    }
+
+    #[Test]
     public function it_names_the_other_location_for_a_cross_location_check_in(): void
     {
         $otherGym = Gym::factory()->create([

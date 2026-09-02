@@ -259,7 +259,7 @@
 
       <!-- Check-ins Tab (own component; rendered directly on the gray canvas) -->
       <div v-if="!editMode" v-show="activeTab === 'checkins'">
-        <CheckinsTab :member="member" />
+        <CheckinsTab :member="member" :check-ins-total="checkInsTotal" />
       </div>
 
       <!-- Status History Tab (rendered directly on the gray canvas; only the cards are white) -->
