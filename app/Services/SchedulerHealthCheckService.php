@@ -39,8 +39,12 @@ class SchedulerHealthCheckService
                 $this->notifyAdministrators("High number of overdue payments: {$overduePayments}");
             }
 
-            // Check for memberships without payment methods
+            // Check for memberships without payment methods. Free trial
+            // memberships are exempt because no fee is ever charged for them.
             $membershipsWithoutPayment = Membership::where('status', 'active')
+                ->whereDoesntHave('membershipPlan', function ($q) {
+                    $q->where('is_free_trial_plan', true);
+                })
                 ->whereDoesntHave('member.paymentMethods', function ($q) {
                     $q->where('status', 'active');
                 })
