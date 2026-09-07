@@ -119,6 +119,19 @@
               <div>
                 <label class="flex items-center">
                   <input
+                    v-model="form.send_confirmation"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">
+                    Bestätigungsmail an das Mitglied senden
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label class="flex items-center">
+                  <input
                     v-model="form.immediate"
                     type="checkbox"
                     class="rounded border-gray-300 text-red-600 focus:ring-red-500"
@@ -205,6 +218,7 @@ const form = useForm({
   cancellation_date: ordinaryCancellationDate,
   cancellation_reason: '',
   cancellation_reason_note: '',
+  send_confirmation: true,
   immediate: false,
   min_cancellation_date: formatDateForInput(props.membership.min_cancellation_date),
 })
@@ -222,11 +236,16 @@ watch(() => form.immediate, (immediate) => {
 
 // Switching back to an ordinary cancellation restores the calculated date and
 // locks the field again; the immediate flag cannot survive that switch.
+// A confirmation mail is the norm for an ordinary cancellation, whereas an
+// extraordinary one is usually agreed on separately — so the default follows
+// the type and stays overridable afterwards.
 watch(() => form.cancellation_type, (type) => {
   if (type === 'ordinary') {
     form.immediate = false
     form.cancellation_date = ordinaryCancellationDate
   }
+
+  form.send_confirmation = type === 'ordinary'
 })
 
 // A note only belongs to "Sonstiges"; drop it when the reason changes.

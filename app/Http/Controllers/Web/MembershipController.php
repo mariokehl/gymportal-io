@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CancellationConfirmationMail;
 use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Addon;
@@ -287,6 +288,7 @@ class MembershipController extends Controller
             'cancellation_reason' => 'required|string|in:move,financial,health,dissatisfied,no_time,other',
             'cancellation_type' => 'nullable|in:ordinary,extraordinary',
             'cancellation_reason_note' => 'nullable|string|max:255',
+            'send_confirmation' => 'boolean',
             'immediate' => 'boolean',
         ], [
             'cancellation_date.required' => 'Das Kündigungsdatum ist erforderlich.',
@@ -408,10 +410,22 @@ class MembershipController extends Controller
                           ' - Grund: '.$reasonText,
             ]);
 
-            // Optional: E-Mail an Mitglied senden
-            // Mail::to($member->email)->send(new MembershipCancellationConfirmation($membership));
-
             DB::commit();
+
+            // Send the confirmation only after the commit, so a delivery failure
+            // cannot roll back a cancellation that is already stored. The
+            // dispatcher handles synthetic/missing address checks, logging and
+            // exception wrapping.
+            if ($request->boolean('send_confirmation')) {
+                $this->mailDispatcher->sendToMember(
+                    $member,
+                    new CancellationConfirmationMail(
+                        $member,
+                        $membership->fresh(),
+                        $member->gym,
+                    ),
+                );
+            }
 
             return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich gekündigt.');
         } catch (\Exception $e) {

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Mail\CancellationConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
@@ -10,6 +11,7 @@ use App\Models\Role;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -235,6 +237,87 @@ class MembershipCancellationTypeTest extends TestCase
         ])->assertSessionHasErrors('cancellation_reason_note');
 
         $this->assertNull($membership->fresh()->cancellation_date);
+    }
+
+    #[Test]
+    public function a_confirmation_mail_is_sent_when_requested(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'move',
+            'cancellation_type' => 'extraordinary',
+            'send_confirmation' => true,
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        Mail::assertSent(CancellationConfirmationMail::class);
+    }
+
+    #[Test]
+    public function no_confirmation_mail_is_sent_when_not_requested(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'move',
+            'cancellation_type' => 'extraordinary',
+            'send_confirmation' => false,
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        Mail::assertNothingSent();
+
+        // The cancellation itself is stored regardless of the mail.
+        $this->assertSame('2026-10-31', $membership->fresh()->cancellation_date->toDateString());
+    }
+
+    #[Test]
+    public function a_confirmation_mail_is_sent_for_an_immediate_cancellation_when_requested(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-09-15',
+            'cancellation_reason' => 'other',
+            'cancellation_type' => 'extraordinary',
+            'send_confirmation' => true,
+            'immediate' => true,
+        ])->assertSessionHasNoErrors();
+
+        Mail::assertSent(CancellationConfirmationMail::class);
+        $this->assertSame('cancelled', $membership->fresh()->status);
+    }
+
+    #[Test]
+    public function a_rejected_cancellation_never_sends_a_confirmation_mail(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        // Inside the commitment period an ordinary cancellation is rejected.
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'move',
+            'cancellation_type' => 'ordinary',
+            'send_confirmation' => true,
+            'immediate' => false,
+        ])->assertSessionHasErrors('cancellation_date');
+
+        Mail::assertNothingSent();
     }
 
     #[Test]
