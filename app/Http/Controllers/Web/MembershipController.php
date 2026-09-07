@@ -286,6 +286,7 @@ class MembershipController extends Controller
             'cancellation_date' => 'required|date|after_or_equal:today',
             'cancellation_reason' => 'required|string|in:move,financial,health,dissatisfied,no_time,other',
             'cancellation_type' => 'nullable|in:ordinary,extraordinary',
+            'cancellation_reason_note' => 'nullable|string|max:255',
             'immediate' => 'boolean',
         ], [
             'cancellation_date.required' => 'Das Kündigungsdatum ist erforderlich.',
@@ -370,20 +371,28 @@ class MembershipController extends Controller
                 'other' => 'Sonstiges',
             ][$validated['cancellation_reason']] ?? $validated['cancellation_reason'];
 
+            // A free-text note on "Sonstiges" replaces the generic parenthesis,
+            // so the stored reason names the actual cause instead of just the
+            // cancellation type.
+            $reasonNote = $validated['cancellation_reason'] === 'other'
+                ? trim($validated['cancellation_reason_note'] ?? '')
+                : '';
+            $qualifier = $reasonNote !== '' ? $reasonNote : 'Außerordentliche Kündigung';
+
             // Bei sofortiger Kündigung
             if ($request->input('immediate', false)) {
                 $membership->update([
                     'status' => 'cancelled',
                     'cancellation_date' => now(),
-                    'cancellation_reason' => $reasonText.' (Außerordentliche Kündigung)',
+                    'cancellation_reason' => $reasonText.' ('.$qualifier.')',
                     'end_date' => now(),
                 ]);
             } else {
                 // Reguläre Kündigung zum angegebenen Datum
                 $membership->update([
                     'cancellation_date' => $validated['cancellation_date'],
-                    'cancellation_reason' => $isExtraordinary
-                        ? $reasonText.' (Außerordentliche Kündigung)'
+                    'cancellation_reason' => $isExtraordinary || $reasonNote !== ''
+                        ? $reasonText.' ('.$qualifier.')'
                         : $reasonText,
                 ]);
 

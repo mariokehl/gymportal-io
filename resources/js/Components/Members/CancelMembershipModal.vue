@@ -101,6 +101,19 @@
                   <option value="no_time">Zeitmangel</option>
                   <option value="other">Sonstiges</option>
                 </select>
+
+                <div v-if="form.cancellation_reason === 'other'" class="mt-2">
+                  <input
+                    v-model="form.cancellation_reason_note"
+                    type="text"
+                    maxlength="255"
+                    placeholder="z. B. Kündigung wurde erst nach der Frist gelesen"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p class="mt-1 text-sm text-gray-500">
+                    Optional. Wird beim Kündigungsgrund in Klammern vermerkt.
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -191,6 +204,7 @@ const form = useForm({
   cancellation_type: 'ordinary',
   cancellation_date: ordinaryCancellationDate,
   cancellation_reason: '',
+  cancellation_reason_note: '',
   immediate: false,
   min_cancellation_date: formatDateForInput(props.membership.min_cancellation_date),
 })
@@ -212,6 +226,13 @@ watch(() => form.cancellation_type, (type) => {
   if (type === 'ordinary') {
     form.immediate = false
     form.cancellation_date = ordinaryCancellationDate
+  }
+})
+
+// A note only belongs to "Sonstiges"; drop it when the reason changes.
+watch(() => form.cancellation_reason, (reason) => {
+  if (reason !== 'other') {
+    form.cancellation_reason_note = ''
   }
 })
 

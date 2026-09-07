@@ -136,6 +136,108 @@ class MembershipCancellationTypeTest extends TestCase
     }
 
     #[Test]
+    public function a_reason_note_replaces_the_generic_qualifier(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'other',
+            'cancellation_reason_note' => 'Kündigung wurde erst nach der Frist gelesen',
+            'cancellation_type' => 'extraordinary',
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            'Sonstiges (Kündigung wurde erst nach der Frist gelesen)',
+            $membership->fresh()->cancellation_reason,
+        );
+    }
+
+    #[Test]
+    public function a_reason_note_also_replaces_the_qualifier_on_an_immediate_cancellation(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-09-15',
+            'cancellation_reason' => 'other',
+            'cancellation_reason_note' => 'Studio dauerhaft geschlossen',
+            'cancellation_type' => 'extraordinary',
+            'immediate' => true,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            'Sonstiges (Studio dauerhaft geschlossen)',
+            $membership->fresh()->cancellation_reason,
+        );
+    }
+
+    #[Test]
+    public function an_empty_reason_note_keeps_the_generic_qualifier(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'other',
+            'cancellation_reason_note' => '   ',
+            'cancellation_type' => 'extraordinary',
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            'Sonstiges (Außerordentliche Kündigung)',
+            $membership->fresh()->cancellation_reason,
+        );
+    }
+
+    #[Test]
+    public function a_reason_note_is_ignored_for_any_reason_other_than_sonstiges(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'health',
+            'cancellation_reason_note' => 'sollte nicht erscheinen',
+            'cancellation_type' => 'extraordinary',
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            'Gesundheitliche Gründe (Außerordentliche Kündigung)',
+            $membership->fresh()->cancellation_reason,
+        );
+    }
+
+    #[Test]
+    public function a_reason_note_is_rejected_when_it_exceeds_the_limit(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-15'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'other',
+            'cancellation_reason_note' => str_repeat('a', 256),
+            'cancellation_type' => 'extraordinary',
+            'immediate' => false,
+        ])->assertSessionHasErrors('cancellation_reason_note');
+
+        $this->assertNull($membership->fresh()->cancellation_date);
+    }
+
+    #[Test]
     public function an_ordinary_cancellation_to_the_next_possible_date_is_accepted(): void
     {
         Carbon::setTestNow(Carbon::parse('2027-06-01'));
