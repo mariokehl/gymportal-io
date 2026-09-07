@@ -210,22 +210,10 @@ class MemberController extends Controller
             ], 422);
         }
 
-        // Enforce the cancellation deadline server-side. The last valid day to
-        // cancel is the day before cancellation_deadline: from that date onwards
-        // the daily renewal cron binds the contract to the next period, so a
-        // cancellation would race the cron. Rejecting here removes that race.
-        $cancellationDeadline = $membership->cancellation_deadline;
-        if ($cancellationDeadline !== null
-            && Carbon::today()->gte(Carbon::parse($cancellationDeadline))
-        ) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Die Kündigungsfrist für die aktuelle Laufzeit ist bereits abgelaufen.',
-            ], 422);
-        }
-
+        // A cancellation is always accepted; it simply takes effect at the next
+        // reachable date instead of being rejected when a deadline has passed.
         $membership->update([
-            'cancellation_date' => $membership->default_cancellation_date,
+            'cancellation_date' => $membership->nextPossibleCancellationDate(),
             'cancellation_reason' => 'Sonstiges (Ordentliche Kündigung über PWA)',
             'notes' => 'Gekündigt am '.now()->format('d.m.Y H:i'),
         ]);

@@ -569,6 +569,47 @@ class Membership extends Model
         return $this->end_date->copy()->addDay()->addMonths(1)->subDay()->format('Y-m-d');
     }
 
+    /**
+     * Earliest date a cancellation issued today can take effect.
+     *
+     * A cancellation is never rejected — it simply lands on the next reachable
+     * date. Two cases exist:
+     *
+     * 1. A term end is still ahead (projected_end_date). That includes a renewal
+     *    that is already due but not yet written by the cron, so the date is the
+     *    end of the term the member is actually bound to.
+     * 2. No term end applies: either the contract is already open-ended, or it
+     *    rolls over indefinitely and the cron is about to clear end_date. Then
+     *    only the plan's cancellation period counts, measured from today.
+     */
+    public function nextPossibleCancellationDate(): ?string
+    {
+        $projectedEndDate = $this->projected_end_date;
+
+        if ($projectedEndDate !== null) {
+            return $projectedEndDate;
+        }
+
+        if (! $this->membershipPlan) {
+            return $this->default_cancellation_date;
+        }
+
+        $period = $this->membershipPlan->cancellation_period ?? 1;
+        $unit = $this->membershipPlan->cancellation_period_unit ?? 'months';
+
+        $noticeEnd = $unit === 'months'
+            ? now()->addMonths($period)
+            : now()->addDays($period);
+
+        // Inside the initial term the contract cannot end before that term does.
+        $minimumDate = $this->min_cancellation_date;
+        if ($minimumDate !== null && $noticeEnd->lt(Carbon::parse($minimumDate))) {
+            return $minimumDate;
+        }
+
+        return $noticeEnd->format('Y-m-d');
+    }
+
     public function getCanCancelAttribute(): bool
     {
         return $this->canBeCancelled();
