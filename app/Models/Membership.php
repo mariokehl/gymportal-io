@@ -69,6 +69,7 @@ class Membership extends Model
         'default_cancellation_date',
         'cancellation_deadline',
         'projected_end_date',
+        'next_possible_cancellation_date',
         'can_cancel',
         'is_free_trial',
         // Widerrufs-Attribute (§ 356a BGB)
@@ -567,6 +568,11 @@ class Membership extends Model
 
         // Monthly rollover: extend by one month.
         return $this->end_date->copy()->addDay()->addMonths(1)->subDay()->format('Y-m-d');
+    }
+
+    public function getNextPossibleCancellationDateAttribute(): ?string
+    {
+        return $this->nextPossibleCancellationDate();
     }
 
     /**

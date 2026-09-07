@@ -285,6 +285,7 @@ class MembershipController extends Controller
         $validated = $request->validate([
             'cancellation_date' => 'required|date|after_or_equal:today',
             'cancellation_reason' => 'required|string|in:move,financial,health,dissatisfied,no_time,other',
+            'cancellation_type' => 'nullable|in:ordinary,extraordinary',
             'immediate' => 'boolean',
         ], [
             'cancellation_date.required' => 'Das Kündigungsdatum ist erforderlich.',
@@ -311,12 +312,21 @@ class MembershipController extends Controller
             ]);
         }
 
-        // Mindestlaufzeit prüfen (außer bei sofortiger Kündigung aus wichtigem Grund)
-        if (! $request->input('immediate', false)) {
-            // Mindestlaufzeit prüfen
+        // An extraordinary cancellation is issued for cause and therefore ignores
+        // both the commitment period and the notice period. Immediate
+        // cancellations are always extraordinary.
+        $isExtraordinary = $request->input('cancellation_type') === 'extraordinary'
+            || $request->boolean('immediate');
+
+        // Check the commitment period (skipped for an extraordinary cancellation)
+        if (! $isExtraordinary) {
+            // The cancellation date is the last day of the membership, whereas the
+            // commitment boundary is exclusive — so the day before it already
+            // completes the commitment period in full.
             if ($membership->membershipPlan->commitment_months) {
                 $minEndDate = Carbon::parse($membership->start_date)
-                    ->addMonths($membership->membershipPlan->commitment_months);
+                    ->addMonths($membership->membershipPlan->commitment_months)
+                    ->subDay();
 
                 if (Carbon::parse($validated['cancellation_date'])->lt($minEndDate)) {
                     return back()->withErrors([
@@ -372,7 +382,9 @@ class MembershipController extends Controller
                 // Reguläre Kündigung zum angegebenen Datum
                 $membership->update([
                     'cancellation_date' => $validated['cancellation_date'],
-                    'cancellation_reason' => $reasonText,
+                    'cancellation_reason' => $isExtraordinary
+                        ? $reasonText.' (Außerordentliche Kündigung)'
+                        : $reasonText,
                 ]);
 
                 // Status wird erst am Kündigungsdatum auf 'cancelled' gesetzt
