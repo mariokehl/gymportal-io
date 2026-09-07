@@ -16,17 +16,63 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Art der Kündigung <span class="text-red-500">*</span>
+                </label>
+                <div class="space-y-2">
+                  <label class="flex items-start">
+                    <input
+                      v-model="form.cancellation_type"
+                      type="radio"
+                      value="ordinary"
+                      class="mt-0.5 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">
+                      Ordentliche Kündigung
+                      <span class="text-gray-500">(Standard)</span>
+                      <span class="block text-xs text-gray-500">
+                        Zum nächstmöglichen Termin unter Einhaltung der Kündigungsfrist.
+                      </span>
+                    </span>
+                  </label>
+                  <label class="flex items-start">
+                    <input
+                      v-model="form.cancellation_type"
+                      type="radio"
+                      value="extraordinary"
+                      class="mt-0.5 border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">
+                      Außerordentliche Kündigung
+                      <span class="block text-xs text-gray-500">
+                        Freies Kündigungsdatum, umgeht Mindestlaufzeit und Kündigungsfrist.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
                   Kündigungsdatum <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.cancellation_date"
                   type="date"
-                  :min="form.min_cancellation_date || today"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  :min="isExtraordinary ? today : (form.min_cancellation_date || today)"
+                  :readonly="!isExtraordinary"
+                  :class="[
+                    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500',
+                    !isExtraordinary ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : '',
+                  ]"
                   required
                 />
                 <p class="mt-1 text-sm text-gray-500">
-                  Die Mitgliedschaft endet zu diesem Datum.
+                  <template v-if="isExtraordinary">
+                    Die Mitgliedschaft endet zu diesem Datum.
+                  </template>
+                  <template v-else>
+                    Nächstmöglicher Termin. Für ein abweichendes Datum die außerordentliche Kündigung wählen.
+                  </template>
                 </p>
                 <p v-if="membership?.membership_plan?.commitment_months" class="mt-1 text-sm text-yellow-600">
                   <AlertCircle class="w-3 h-3 inline mr-1" />
@@ -36,6 +82,22 @@
                   <Clock class="w-3 h-3 inline mr-1" />
                   Kündigungsfrist: {{ membership.membership_plan?.formatted_cancellation_period }}
                 </p>
+              </div>
+
+              <div>
+                <label class="flex items-center">
+                  <input
+                    v-model="form.immediate"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">
+                    Sofort kündigen (zum heutigen Tag)
+                    <span v-if="membership?.membership_plan?.commitment_months" class="text-gray-500">
+                      - umgeht die Mindestlaufzeit
+                    </span>
+                  </span>
+                </label>
               </div>
 
               <div>
@@ -55,20 +117,30 @@
                   <option value="no_time">Zeitmangel</option>
                   <option value="other">Sonstiges</option>
                 </select>
+
+                <div v-if="form.cancellation_reason === 'other'" class="mt-2">
+                  <input
+                    v-model="form.cancellation_reason_note"
+                    type="text"
+                    maxlength="255"
+                    placeholder="z. B. Kündigung wurde erst nach der Frist gelesen"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p class="mt-1 text-sm text-gray-500">
+                    Optional. Wird beim Kündigungsgrund in Klammern vermerkt.
+                  </p>
+                </div>
               </div>
 
               <div>
                 <label class="flex items-center">
                   <input
-                    v-model="form.immediate"
+                    v-model="form.send_confirmation"
                     type="checkbox"
-                    class="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
                   <span class="ml-2 text-sm text-gray-700">
-                    Sofort kündigen (außerordentliche Kündigung)
-                    <span v-if="membership?.membership_plan?.commitment_months" class="text-gray-500">
-                      - umgeht die Mindestlaufzeit
-                    </span>
+                    Bestätigungsmail an das Mitglied senden
                   </span>
                 </label>
               </div>
@@ -118,6 +190,7 @@
 </template>
 
 <script setup>
+import { computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { AlertCircle, Clock } from 'lucide-vue-next'
 import { formatDate, formatDateForInput } from '@/utils/formatters'
@@ -131,11 +204,55 @@ const emit = defineEmits(['close'])
 
 const today = new Date().toISOString().split('T')[0]
 
+// Date an ordinary cancellation takes effect: the end of the term the member is
+// still bound to. The backend resolves it and falls back to the notice period
+// when the contract has no term end left.
+const ordinaryCancellationDate = formatDateForInput(
+  props.membership.next_possible_cancellation_date
+    ?? props.membership.projected_end_date
+    ?? props.membership.default_cancellation_date
+)
+
 const form = useForm({
-  cancellation_date: formatDateForInput(props.membership.default_cancellation_date),
+  cancellation_type: 'ordinary',
+  cancellation_date: ordinaryCancellationDate,
   cancellation_reason: '',
+  cancellation_reason_note: '',
+  send_confirmation: true,
   immediate: false,
   min_cancellation_date: formatDateForInput(props.membership.min_cancellation_date),
+})
+
+const isExtraordinary = computed(() => form.cancellation_type === 'extraordinary')
+
+// The immediate-cancellation checkbox implies an extraordinary cancellation
+// that takes effect today.
+watch(() => form.immediate, (immediate) => {
+  if (immediate) {
+    form.cancellation_type = 'extraordinary'
+    form.cancellation_date = today
+  }
+})
+
+// Switching back to an ordinary cancellation restores the calculated date and
+// locks the field again; the immediate flag cannot survive that switch.
+// A confirmation mail is the norm for an ordinary cancellation, whereas an
+// extraordinary one is usually agreed on separately — so the default follows
+// the type and stays overridable afterwards.
+watch(() => form.cancellation_type, (type) => {
+  if (type === 'ordinary') {
+    form.immediate = false
+    form.cancellation_date = ordinaryCancellationDate
+  }
+
+  form.send_confirmation = type === 'ordinary'
+})
+
+// A note only belongs to "Sonstiges"; drop it when the reason changes.
+watch(() => form.cancellation_reason, (reason) => {
+  if (reason !== 'other') {
+    form.cancellation_reason_note = ''
+  }
 })
 
 const submit = () => {

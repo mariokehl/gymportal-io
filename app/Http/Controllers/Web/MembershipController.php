@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CancellationConfirmationMail;
 use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Addon;
@@ -26,7 +27,7 @@ class MembershipController extends Controller
     ) {}
 
     /**
-     * Erstellt einen kostenlosen Zeitraum (z.B. Probetraining)
+     * Creates a free period (e.g. a trial session).
      */
     public function storeFreePeriod(Request $request, Member $member)
     {
@@ -42,12 +43,12 @@ class MembershipController extends Controller
             'end_date.after_or_equal' => 'Das Enddatum muss nach dem Startdatum liegen.',
         ]);
 
-        // Gym des aktuellen Benutzers
+        // Gym of the current user
         $gym = auth()->user()->gym;
 
         DB::beginTransaction();
         try {
-            // Verknüpfte Mitgliedschaft prüfen (falls angegeben)
+            // Check the linked membership (if one was given)
             $linkedMembership = null;
             if ($validated['linked_membership_id']) {
                 $linkedMembership = Membership::where('id', $validated['linked_membership_id'])
@@ -61,7 +62,7 @@ class MembershipController extends Controller
                 }
             }
 
-            // Gratis-Mitgliedschaft erstellen
+            // Create the free membership
             $freeMembership = $this->memberService->createFreePeriodMembership(
                 $member,
                 Carbon::parse($validated['start_date']),
@@ -69,7 +70,7 @@ class MembershipController extends Controller
                 $linkedMembership
             );
 
-            // Verknüpfung in der anderen Richtung speichern
+            // Store the link in the opposite direction as well
             if ($linkedMembership) {
                 $linkedMembership->update([
                     'linked_free_membership_id' => $freeMembership->id,
@@ -89,25 +90,25 @@ class MembershipController extends Controller
     }
 
     /**
-     * Aktiviert eine pending Mitgliedschaft
+     * Activates a pending membership.
      */
     public function activate(Request $request, Member $member, Membership $membership)
     {
         $this->authorize('update', $membership);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Überprüfen ob die Mitgliedschaft aktiviert werden kann
+        // Check that the membership can be activated
         if ($membership->status !== 'pending') {
             return back()->withErrors([
                 'status' => 'Nur ausstehende Mitgliedschaften können aktiviert werden.',
             ]);
         }
 
-        // Eine kostenpflichtige Mitgliedschaft braucht eine nutzbare Zahlungsart
+        // A paid membership needs a usable payment method
         $blockReason = $membership->getActivationBlockReason();
 
         if ($blockReason !== null) {
@@ -118,15 +119,15 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Mitgliedschaft aktivieren (dispatched MembershipActivated Event für Vertragserstellung)
+            // Activate the membership (dispatches MembershipActivated, which creates the contract)
             $membership->activateMembership();
 
-            // Mitglied auch aktivieren, falls noch pending
+            // Activate the member too, in case it is still pending
             if ($member->status === 'pending') {
                 $member->update(['status' => 'active']);
             }
 
-            // Notiz hinzufügen
+            // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
                           'Manuell aktiviert am '.now()->format('d.m.Y H:i'),
@@ -145,13 +146,13 @@ class MembershipController extends Controller
     }
 
     /**
-     * Pausiert eine Mitgliedschaft
+     * Pauses a membership.
      */
     public function pause(Request $request, Member $member, Membership $membership)
     {
         $this->authorize('update', $membership);
 
-        // Validierung
+        // Validation
         $validated = $request->validate([
             'pause_start_date' => 'required|date|after_or_equal:today',
             'pause_end_date' => 'required|date|after:pause_start_date',
@@ -163,12 +164,12 @@ class MembershipController extends Controller
             'pause_end_date.after' => 'Das Enddatum muss nach dem Startdatum liegen.',
         ]);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Überprüfen ob die Mitgliedschaft pausiert werden kann
+        // Check that the membership can be paused
         if (! in_array($membership->status, ['active'])) {
             return back()->withErrors([
                 'status' => 'Nur aktive Mitgliedschaften können pausiert werden.',
@@ -177,14 +178,14 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Mitgliedschaft pausieren
+            // Pause the membership
             $membership->update([
                 'status' => 'paused',
                 'pause_start_date' => $validated['pause_start_date'],
                 'pause_end_date' => $validated['pause_end_date'],
             ]);
 
-            // Optional: Pausierungsgrund in widget_data oder notes speichern
+            // Optional: store the pause reason in widget_data or notes
             if ($validated['reason']) {
                 $membership->update([
                     'notes' => ($membership->notes ? $membership->notes."\n" : '').
@@ -192,7 +193,7 @@ class MembershipController extends Controller
                 ]);
             }
 
-            // Verlängere das End-Datum der Mitgliedschaft um die Pausierungsdauer
+            // Extend the membership end date by the pause duration
             if ($membership->end_date) {
                 $pauseDays = Carbon::parse($validated['pause_start_date'])
                     ->diffInDays(Carbon::parse($validated['pause_end_date']));
@@ -214,18 +215,18 @@ class MembershipController extends Controller
     }
 
     /**
-     * Nimmt eine pausierte Mitgliedschaft wieder auf
+     * Resumes a paused membership.
      */
     public function resume(Request $request, Member $member, Membership $membership)
     {
         $this->authorize('update', $membership);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Überprüfen ob die Mitgliedschaft wieder aufgenommen werden kann
+        // Check that the membership can be resumed
         if ($membership->status !== 'paused') {
             return back()->withErrors([
                 'status' => 'Nur pausierte Mitgliedschaften können wieder aufgenommen werden.',
@@ -234,12 +235,12 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Berechne die tatsächliche Pausierungsdauer, falls früher wieder aufgenommen
+            // Determine the actual pause duration in case it is resumed early
             $actualPauseEnd = now()->format('Y-m-d');
             $originalPauseEnd = $membership->pause_end_date;
 
             if ($actualPauseEnd < $originalPauseEnd) {
-                // Anpassung des End-Datums, wenn früher wieder aufgenommen
+                // Adjust the end date when resumed early
                 $unusedPauseDays = Carbon::parse($actualPauseEnd)
                     ->diffInDays(Carbon::parse($originalPauseEnd));
 
@@ -250,13 +251,13 @@ class MembershipController extends Controller
                 }
             }
 
-            // Mitgliedschaft wieder aktivieren
+            // Reactivate the membership
             $membership->update([
                 'status' => 'active',
                 'pause_end_date' => $actualPauseEnd,
             ]);
 
-            // Notiz hinzufügen
+            // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
                           'Wieder aufgenommen am '.now()->format('d.m.Y'),
@@ -275,16 +276,19 @@ class MembershipController extends Controller
     }
 
     /**
-     * Kündigt eine Mitgliedschaft
+     * Cancels a membership.
      */
     public function cancel(Request $request, Member $member, Membership $membership)
     {
         $this->authorize('update', $membership);
 
-        // Validierung
+        // Validation
         $validated = $request->validate([
             'cancellation_date' => 'required|date|after_or_equal:today',
             'cancellation_reason' => 'required|string|in:move,financial,health,dissatisfied,no_time,other',
+            'cancellation_type' => 'nullable|in:ordinary,extraordinary',
+            'cancellation_reason_note' => 'nullable|string|max:255',
+            'send_confirmation' => 'boolean',
             'immediate' => 'boolean',
         ], [
             'cancellation_date.required' => 'Das Kündigungsdatum ist erforderlich.',
@@ -292,31 +296,40 @@ class MembershipController extends Controller
             'cancellation_reason.required' => 'Der Kündigungsgrund ist erforderlich.',
         ]);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Überprüfen ob die Mitgliedschaft gekündigt werden kann
+        // Check that the membership can be cancelled
         if (! in_array($membership->status, ['active', 'paused'])) {
             return back()->withErrors([
                 'status' => 'Diese Mitgliedschaft kann nicht gekündigt werden.',
             ]);
         }
 
-        // Überprüfen ob bereits eine Kündigung vorliegt
+        // Check that no cancellation exists yet
         if ($membership->cancellation_date) {
             return back()->withErrors([
                 'cancellation' => 'Diese Mitgliedschaft wurde bereits gekündigt.',
             ]);
         }
 
-        // Mindestlaufzeit prüfen (außer bei sofortiger Kündigung aus wichtigem Grund)
-        if (! $request->input('immediate', false)) {
-            // Mindestlaufzeit prüfen
+        // An extraordinary cancellation is issued for cause and therefore ignores
+        // both the commitment period and the notice period. Immediate
+        // cancellations are always extraordinary.
+        $isExtraordinary = $request->input('cancellation_type') === 'extraordinary'
+            || $request->boolean('immediate');
+
+        // Check the commitment period (skipped for an extraordinary cancellation)
+        if (! $isExtraordinary) {
+            // The cancellation date is the last day of the membership, whereas the
+            // commitment boundary is exclusive — so the day before it already
+            // completes the commitment period in full.
             if ($membership->membershipPlan->commitment_months) {
                 $minEndDate = Carbon::parse($membership->start_date)
-                    ->addMonths($membership->membershipPlan->commitment_months);
+                    ->addMonths($membership->membershipPlan->commitment_months)
+                    ->subDay();
 
                 if (Carbon::parse($validated['cancellation_date'])->lt($minEndDate)) {
                     return back()->withErrors([
@@ -326,7 +339,7 @@ class MembershipController extends Controller
                 }
             }
 
-            // Kündigungsfrist prüfen
+            // Check the notice period
             if ($membership->membershipPlan->cancellation_period) {
                 $cancellationPeriod = $membership->membershipPlan->cancellation_period;
                 $cancellationUnit = $membership->membershipPlan->cancellation_period_unit ?? 'days';
@@ -350,7 +363,7 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Kündigungsgrund in lesbares Format konvertieren
+            // Convert the cancellation reason into a readable label
             $reasonText = [
                 'move' => 'Umzug',
                 'financial' => 'Finanzielle Gründe',
@@ -360,26 +373,36 @@ class MembershipController extends Controller
                 'other' => 'Sonstiges',
             ][$validated['cancellation_reason']] ?? $validated['cancellation_reason'];
 
-            // Bei sofortiger Kündigung
+            // A free-text note on "Sonstiges" replaces the generic parenthesis,
+            // so the stored reason names the actual cause instead of just the
+            // cancellation type.
+            $reasonNote = $validated['cancellation_reason'] === 'other'
+                ? trim($validated['cancellation_reason_note'] ?? '')
+                : '';
+            $qualifier = $reasonNote !== '' ? $reasonNote : 'Außerordentliche Kündigung';
+
+            // Immediate cancellation
             if ($request->input('immediate', false)) {
                 $membership->update([
                     'status' => 'cancelled',
                     'cancellation_date' => now(),
-                    'cancellation_reason' => $reasonText.' (Außerordentliche Kündigung)',
+                    'cancellation_reason' => $reasonText.' ('.$qualifier.')',
                     'end_date' => now(),
                 ]);
             } else {
-                // Reguläre Kündigung zum angegebenen Datum
+                // Regular cancellation, effective on the given date
                 $membership->update([
                     'cancellation_date' => $validated['cancellation_date'],
-                    'cancellation_reason' => $reasonText,
+                    'cancellation_reason' => $isExtraordinary || $reasonNote !== ''
+                        ? $reasonText.' ('.$qualifier.')'
+                        : $reasonText,
                 ]);
 
-                // Status wird erst am Kündigungsdatum auf 'cancelled' gesetzt
-                // Dies könnte durch einen Cronjob oder Task Scheduler erfolgen
+                // The status only turns 'cancelled' on the cancellation date;
+                // a cron job or task scheduler could take care of that.
             }
 
-            // Notiz hinzufügen
+            // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
                           'Gekündigt am '.now()->format('d.m.Y').
@@ -387,10 +410,22 @@ class MembershipController extends Controller
                           ' - Grund: '.$reasonText,
             ]);
 
-            // Optional: E-Mail an Mitglied senden
-            // Mail::to($member->email)->send(new MembershipCancellationConfirmation($membership));
-
             DB::commit();
+
+            // Send the confirmation only after the commit, so a delivery failure
+            // cannot roll back a cancellation that is already stored. The
+            // dispatcher handles synthetic/missing address checks, logging and
+            // exception wrapping.
+            if ($request->boolean('send_confirmation')) {
+                $this->mailDispatcher->sendToMember(
+                    $member,
+                    new CancellationConfirmationMail(
+                        $member,
+                        $membership->fresh(),
+                        $member->gym,
+                    ),
+                );
+            }
 
             return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich gekündigt.');
         } catch (\Exception $e) {
@@ -403,25 +438,25 @@ class MembershipController extends Controller
     }
 
     /**
-     * Nimmt eine Kündigung zurück
+     * Revokes a cancellation.
      */
     public function revokeCancellation(Request $request, Member $member, Membership $membership)
     {
         $this->authorize('update', $membership);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Überprüfen ob eine Kündigung vorliegt
+        // Check that a cancellation exists
         if (! $membership->cancellation_date) {
             return back()->withErrors([
                 'cancellation' => 'Diese Mitgliedschaft wurde nicht gekündigt.',
             ]);
         }
 
-        // Überprüfen ob die Kündigung noch nicht wirksam ist
+        // Check that the cancellation has not taken effect yet
         if ($membership->status === 'cancelled' &&
             Carbon::parse($membership->cancellation_date)->isPast()) {
             return back()->withErrors([
@@ -431,7 +466,7 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Kündigung zurücknehmen
+            // Revoke the cancellation
             $previousStatus = $membership->pause_start_date &&
                              Carbon::parse($membership->pause_start_date)->isPast() &&
                              Carbon::parse($membership->pause_end_date)->isFuture()
@@ -443,7 +478,7 @@ class MembershipController extends Controller
                 'cancellation_reason' => null,
             ]);
 
-            // Notiz hinzufügen
+            // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
                           'Kündigung zurückgenommen am '.now()->format('d.m.Y'),
@@ -462,25 +497,25 @@ class MembershipController extends Controller
     }
 
     /**
-     * Bricht einen Gratis-Testzeitraum sofort ab
+     * Ends a free trial period immediately.
      */
     public function abort(Request $request, Member $member, Membership $membership)
     {
         $this->authorize('update', $membership);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Überprüfen ob es sich um einen Gratis-Testzeitraum handelt
+        // Check that this really is a free trial period
         if (! $membership->is_free_trial) {
             return back()->withErrors([
                 'error' => 'Nur Gratis-Testzeiträume können abgebrochen werden.',
             ]);
         }
 
-        // Überprüfen ob die Mitgliedschaft aktiv ist
+        // Check that the membership is active
         if ($membership->status !== 'active') {
             return back()->withErrors([
                 'status' => 'Nur aktive Gratis-Testzeiträume können abgebrochen werden.',
@@ -489,13 +524,13 @@ class MembershipController extends Controller
 
         DB::beginTransaction();
         try {
-            // Enddatum auf heute setzen und Status auf expired
+            // Set the end date to today and the status to expired
             $membership->update([
                 'status' => 'expired',
                 'end_date' => now()->format('Y-m-d'),
             ]);
 
-            // Notiz hinzufügen
+            // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
                           'Gratis-Testzeitraum abgebrochen am '.now()->format('d.m.Y H:i'),
@@ -514,7 +549,7 @@ class MembershipController extends Controller
     }
 
     /**
-     * Forciert einen Statuswechsel ohne weitere Prüfungen
+     * Forces a status change without any further checks.
      */
     public function forceStatus(Request $request, Member $member, Membership $membership)
     {
@@ -577,21 +612,21 @@ class MembershipController extends Controller
     }
 
     /**
-     * Widerruft eine Mitgliedschaft gemäß § 356a BGB
+     * Withdraws a membership under § 356a BGB.
      *
-     * Der manuelle Widerruf aus dem Admin-Bereich löst ebenfalls
-     * die E-Mail-Bestätigung aus.
+     * A manual withdrawal from the admin area triggers the confirmation
+     * mail as well.
      */
     public function withdraw(Request $request, Member $member, Membership $membership, PaymentService $paymentService)
     {
         $this->authorize('update', $membership);
 
-        // Überprüfen ob die Mitgliedschaft zum Mitglied gehört
+        // Check that the membership belongs to this member
         if ($membership->member_id !== $member->id) {
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Validierung
+        // Validation
         $validated = $request->validate([
             'confirmation_email' => 'nullable|email|max:255',
             'force' => 'nullable|boolean',
@@ -599,9 +634,9 @@ class MembershipController extends Controller
 
         $force = $request->boolean('force');
 
-        // Prüfungen überspringen wenn forciert
+        // Skip the checks when forced
         if (! $force) {
-            // Prüfen ob Widerruf möglich ist
+            // Check whether a withdrawal is possible
             if ($membership->is_free_trial) {
                 return back()->withErrors([
                     'error' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.',
@@ -626,7 +661,7 @@ class MembershipController extends Controller
                 ]);
             }
 
-            // Widerrufsfrist prüfen (14 Tage)
+            // Check the withdrawal period (14 days)
             $contractStartDate = $membership->contract_start_date;
             if (! $contractStartDate) {
                 return back()->withErrors([
@@ -645,12 +680,12 @@ class MembershipController extends Controller
             }
         }
 
-        // E-Mail aus Request oder Member-Profil
+        // Address from the request, falling back to the member profile
         $confirmationEmail = $validated['confirmation_email'] ?? $member->email;
 
         DB::beginTransaction();
         try {
-            // Widerruf durchführen: Ausstehende Zahlungen stornieren und ggf. Erstattung initiieren
+            // Perform the withdrawal: void pending payments and start a refund if needed
             $refundAmount = $paymentService->handleWithdrawalPayments($membership);
 
             $membership->update([
@@ -660,7 +695,7 @@ class MembershipController extends Controller
                 'withdrawal_refund_amount' => $refundAmount,
             ]);
 
-            // Notiz hinzufügen
+            // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
                           'Widerrufen am '.now()->format('d.m.Y H:i').
@@ -668,9 +703,9 @@ class MembershipController extends Controller
                           ($refundAmount > 0 ? ' - Erstattung: '.number_format($refundAmount, 2, ',', '.').' €' : ''),
             ]);
 
-            // Eingangsbestätigung per E-Mail senden (§ 356a BGB)
-            // Dispatcher übernimmt: Synthetic-/Missing-Adresse-Checks, Logging, Exception-Kapselung.
-            // Ein Fehler beim Mailversand darf den Widerruf nicht zurückrollen.
+            // Send the acknowledgement of receipt by mail (§ 356a BGB).
+            // The dispatcher handles synthetic/missing address checks, logging and
+            // exception wrapping. A delivery failure must not roll back the withdrawal.
             $this->mailDispatcher->sendToAddress(
                 $member,
                 new WithdrawalConfirmationMail(

@@ -240,11 +240,13 @@ class MemberControllerTest extends TestCase
     }
 
     #[Test]
-    public function cancel_contract_is_rejected_once_the_deadline_is_reached(): void
+    public function cancel_contract_past_the_deadline_targets_the_renewed_term_end(): void
     {
         Mail::fake();
 
-        // Same term, but now it is the deadline day itself (01.07): too late.
+        // Same term, but now it is the deadline day itself (01.07). Cancelling is
+        // still allowed — it just takes effect at the end of the renewed term
+        // (31.08) instead of the missed one.
         Carbon::setTestNow(Carbon::parse('2026-07-01'));
 
         [$gym, $member, $token] = $this->fullMember();
@@ -252,6 +254,7 @@ class MemberControllerTest extends TestCase
             'gym_id' => $gym->id,
             'cancellation_period' => 1,
             'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'monthly',
         ]);
         $membership = Membership::factory()->create([
             'member_id' => $member->id,
@@ -263,11 +266,160 @@ class MemberControllerTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->deleteJson('/api/pwa/member/contract')
-            ->assertStatus(422)
-            ->assertJsonPath('success', false);
+            ->assertOk()
+            ->assertJsonPath('success', true);
 
-        $this->assertNull($membership->fresh()->cancellation_date);
-        Mail::assertNothingSent();
+        $this->assertSame('2026-08-31', $membership->fresh()->cancellation_date->toDateString());
+        Mail::assertSent(CancellationConfirmationMail::class);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function cancel_contract_past_the_deadline_of_an_indefinite_plan_applies_the_notice_period(): void
+    {
+        Mail::fake();
+
+        // Deadline day (01.07) of a term that rolls over indefinitely: the cron is
+        // about to clear end_date, so the passed term end (31.07) is no longer
+        // reachable. Only the plan's notice period from today counts.
+        Carbon::setTestNow(Carbon::parse('2026-07-01'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'commitment_months' => 1,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'indefinite',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-07-31',
+        ]);
+
+        $this->assertNull($membership->projected_end_date);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame('2026-08-01', $membership->fresh()->cancellation_date->toDateString());
+        Mail::assertSent(CancellationConfirmationMail::class);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function cancel_contract_on_the_start_date_of_a_one_month_term_lands_on_the_renewed_term_end(): void
+    {
+        Mail::fake();
+
+        // One-month term starting 01.09 with a 30-day notice period: the deadline
+        // is 01.09 itself, so an immediate cancellation cannot reach 30.09 and
+        // takes effect at the end of the renewed term instead.
+        Carbon::setTestNow(Carbon::parse('2026-09-01'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'commitment_months' => 1,
+            'cancellation_period' => 30,
+            'cancellation_period_unit' => 'days',
+            'auto_renew_type' => 'monthly',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-09-01',
+            'end_date' => '2026-09-30',
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame('2026-10-31', $membership->fresh()->cancellation_date->toDateString());
+        Mail::assertSent(CancellationConfirmationMail::class);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function cancel_contract_on_the_start_date_of_an_indefinite_one_month_term_applies_the_notice_period(): void
+    {
+        Mail::fake();
+
+        // Same one-month term, but rolling over indefinitely: end_date is cleared
+        // by the cron, so the 30-day notice period from today applies (01.10).
+        Carbon::setTestNow(Carbon::parse('2026-09-01'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'commitment_months' => 1,
+            'cancellation_period' => 30,
+            'cancellation_period_unit' => 'days',
+            'auto_renew_type' => 'indefinite',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-09-01',
+            'end_date' => '2026-09-30',
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame('2026-10-01', $membership->fresh()->cancellation_date->toDateString());
+        Mail::assertSent(CancellationConfirmationMail::class);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function cancel_contract_of_an_open_ended_membership_uses_the_plan_cancellation_period(): void
+    {
+        Mail::fake();
+
+        // Open-ended membership past its initial term: no end_date at all, so the
+        // cancellation takes effect one month (the plan's period) from today.
+        Carbon::setTestNow(Carbon::parse('2026-07-01'));
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create([
+            'gym_id' => $gym->id,
+            'commitment_months' => 1,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+        ]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => '2026-01-01',
+            'end_date' => null,
+        ]);
+
+        $this->assertNull($membership->projected_end_date);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame('2026-08-01', $membership->fresh()->cancellation_date->toDateString());
+        Mail::assertSent(CancellationConfirmationMail::class);
 
         Carbon::setTestNow();
     }

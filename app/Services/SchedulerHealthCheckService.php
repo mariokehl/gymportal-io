@@ -39,9 +39,13 @@ class SchedulerHealthCheckService
                 $this->notifyAdministrators("High number of overdue payments: {$overduePayments}");
             }
 
-            // Check for memberships without payment methods
+            // Check for memberships without payment methods. Free trial
+            // memberships are exempt because no fee is ever charged for them.
             $membershipsWithoutPayment = Membership::where('status', 'active')
-                ->whereDoesntHave('member.paymentMethods', function($q) {
+                ->whereDoesntHave('membershipPlan', function ($q) {
+                    $q->where('is_free_trial_plan', true);
+                })
+                ->whereDoesntHave('member.paymentMethods', function ($q) {
                     $q->where('status', 'active');
                 })
                 ->count();
@@ -51,7 +55,7 @@ class SchedulerHealthCheckService
             }
 
         } catch (Exception $e) {
-            Log::error('Health check failed: ' . $e->getMessage());
+            Log::error('Health check failed: '.$e->getMessage());
         }
     }
 
@@ -67,10 +71,10 @@ class SchedulerHealthCheckService
             // Example: Send to admin email
             Mail::raw($message, function ($mail) use ($message) {
                 $mail->to(config('scheduler.notifications.admin_email'))
-                     ->subject('[gymportal.io] Scheduler Alert: ' . $message);
+                    ->subject('[gymportal.io] Scheduler Alert: '.$message);
             });
         } catch (Exception $e) {
-            Log::error('Failed to send admin notification: ' . $e->getMessage());
+            Log::error('Failed to send admin notification: '.$e->getMessage());
         }
     }
 }
