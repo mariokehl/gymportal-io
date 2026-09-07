@@ -85,6 +85,22 @@
               </div>
 
               <div>
+                <label class="flex items-center">
+                  <input
+                    v-model="form.immediate"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">
+                    Sofort kündigen (zum heutigen Tag)
+                    <span v-if="membership?.membership_plan?.commitment_months" class="text-gray-500">
+                      - umgeht die Mindestlaufzeit
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                   Kündigungsgrund <span class="text-red-500">*</span>
                 </label>
@@ -125,22 +141,6 @@
                   />
                   <span class="ml-2 text-sm text-gray-700">
                     Bestätigungsmail an das Mitglied senden
-                  </span>
-                </label>
-              </div>
-
-              <div>
-                <label class="flex items-center">
-                  <input
-                    v-model="form.immediate"
-                    type="checkbox"
-                    class="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  <span class="ml-2 text-sm text-gray-700">
-                    Sofort kündigen (zum heutigen Tag)
-                    <span v-if="membership?.membership_plan?.commitment_months" class="text-gray-500">
-                      - umgeht die Mindestlaufzeit
-                    </span>
                   </span>
                 </label>
               </div>
