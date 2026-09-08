@@ -276,45 +276,27 @@ class MembershipService
     /**
      * Resumes a paused membership as of today.
      *
-     * When the membership is resumed before the scheduled pause end, the
-     * contract end date is recalculated from the pause months actually used, so
-     * the member gives back the months they no longer need. Eligibility is
-     * expected to have been checked by the caller.
+     * The pause period is cleared, so a membership resumed early keeps the
+     * months that were credited to its end date when the pause started.
+     * Eligibility is expected to have been checked by the caller.
      */
     public function resume(Membership $membership): Membership
     {
         return DB::transaction(function () use ($membership): Membership {
-            $resumeDate = now()->startOfDay();
-
-            $attributes = [
+            $membership->update([
                 'status' => 'active',
-                'pause_end_date' => $resumeDate,
+                'pause_start_date' => null,
+                'pause_end_date' => null,
                 'notes' => $this->appendNote(
                     $membership->notes,
                     'Wieder aufgenommen am '.now()->format('d.m.Y'),
                 ),
-            ];
-
-            // Give back the end date extension for the unused pause months
-            $pauseStart = $membership->pause_start_date;
-            $originalPauseEnd = $membership->pause_end_date;
-
-            if ($pauseStart && $originalPauseEnd && $membership->end_date && $resumeDate->isBefore($originalPauseEnd)) {
-                $unusedMonths = $this->pauseMonths($pauseStart, $originalPauseEnd)
-                    - $this->pauseMonths($pauseStart, $resumeDate);
-
-                if ($unusedMonths > 0) {
-                    $attributes['end_date'] = Carbon::parse($membership->end_date)
-                        ->subMonthsNoOverflow($unusedMonths);
-                }
-            }
-
-            $membership->update($attributes);
+            ]);
 
             Log::info('Membership resumed', [
                 'member_id' => $membership->member_id,
                 'membership_id' => $membership->id,
-                'resumed_at' => $resumeDate->toDateString(),
+                'resumed_at' => now()->toDateString(),
             ]);
 
             return $membership;
