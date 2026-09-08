@@ -116,6 +116,24 @@ class MembershipWithdrawalFreeTrialTest extends TestCase
     }
 
     #[Test]
+    public function a_trial_that_already_ended_keeps_its_end_date(): void
+    {
+        [$owner, $member, $membership, $freeTrial] = $this->makeWithdrawableContract();
+
+        // The trial ran out before the withdrawal
+        $freeTrial->update(['end_date' => '2026-09-01']);
+
+        $this->withdraw($owner, $member, $membership)->assertSessionHasNoErrors();
+
+        $freeTrial->refresh();
+
+        $this->assertSame('expired', $freeTrial->status);
+
+        // The withdrawal must not push the end date forward
+        $this->assertSame('2026-09-01', $freeTrial->end_date->format('Y-m-d'));
+    }
+
+    #[Test]
     public function withdrawing_a_contract_without_a_linked_free_trial_still_works(): void
     {
         [$owner, $member, $membership] = $this->makeWithdrawableContract();

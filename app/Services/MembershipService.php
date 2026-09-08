@@ -333,12 +333,22 @@ class MembershipService
             return;
         }
 
-        $freeTrial->update([
+        $attributes = [
             'notes' => $this->appendNote(
                 $freeTrial->notes,
                 'Gratis-Testzeitraum beendet durch Widerruf am '.now()->format('d.m.Y H:i'),
             ),
-        ]);
+        ];
+
+        // The trial ends on the withdrawal date. A trial that already ended
+        // earlier keeps its date — the withdrawal must not extend it.
+        $today = now()->startOfDay();
+
+        if (! $freeTrial->end_date || $freeTrial->end_date->gt($today)) {
+            $attributes['end_date'] = $today;
+        }
+
+        $freeTrial->update($attributes);
 
         $freeTrial->markAsExpired($source);
     }
