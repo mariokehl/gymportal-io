@@ -91,7 +91,7 @@
             <template v-for="payment in payments.data" :key="payment.id">
             <tr
               :class="[
-                isScheduledInFuture(payment) ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50',
+                rowBackgroundClass(payment),
                 { 'opacity-60': executingPaymentId === payment.id }
               ]"
             >
@@ -264,7 +264,7 @@
               <td
                 :colspan="visibleColumns.length + (showCheckboxes ? 1 : 0) + (showActions ? 1 : 0)"
                 class="px-6 py-4"
-                :class="isScheduledInFuture(payment) ? 'bg-amber-50' : 'bg-gray-50'"
+                :class="expandedBackgroundClass(payment)"
               >
                 <div class="space-y-4">
                   <!-- Credit redemption -->
@@ -439,7 +439,8 @@ import {
   hasCreditRedemption,
   isCreditTopup,
   creditTopupSource,
-  isScheduledInFuture
+  isScheduledInFuture,
+  isWithinPause
 } from '@/utils/payments'
 
 // Props
@@ -574,6 +575,28 @@ const selectedSepaPayments = computed(() => {
 })
 
 // Methods
+/**
+ * Background of a payment row. A payment inside its membership's pause period
+ * is blue, which takes precedence over the amber of a future-dated one: the
+ * pause is the more specific reason the charge is not collected as usual.
+ */
+const rowBackgroundClass = (payment) => {
+  if (isWithinPause(payment)) return 'bg-blue-50 hover:bg-blue-100'
+  if (isScheduledInFuture(payment)) return 'bg-amber-50 hover:bg-amber-100'
+
+  return 'hover:bg-gray-50'
+}
+
+/**
+ * Matching background for the expanded chargeback/refund/credit sub-row.
+ */
+const expandedBackgroundClass = (payment) => {
+  if (isWithinPause(payment)) return 'bg-blue-50'
+  if (isScheduledInFuture(payment)) return 'bg-amber-50'
+
+  return 'bg-gray-50'
+}
+
 const toggleSelectAll = () => {
   if (isAllSelected.value) {
     selectedPayments.value = []

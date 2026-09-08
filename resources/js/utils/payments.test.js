@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   getCreditRedemption, hasCreditRedemption, isCreditTopup, creditTopupSource, getMemberInitials,
-  isScheduledInFuture, scheduledDate, sortByScheduledDate, executionOffsetText, shiftExecutionDate
+  isScheduledInFuture, isWithinPause, scheduledDate, sortByScheduledDate, executionOffsetText,
+  shiftExecutionDate
 } from '@/utils/payments'
 
 describe('getCreditRedemption', () => {
@@ -106,6 +107,27 @@ describe('isScheduledInFuture', () => {
   it('does not highlight a payment without any dates', () => {
     expect(isScheduledInFuture({}, today)).toBe(false)
     expect(isScheduledInFuture(null, today)).toBe(false)
+  })
+})
+
+describe('isWithinPause', () => {
+  it('marks a payment the backend flagged as paused', () => {
+    expect(isWithinPause({ is_within_pause: true })).toBe(true)
+  })
+
+  it('does not mark a payment outside the pause', () => {
+    expect(isWithinPause({ is_within_pause: false })).toBe(false)
+  })
+
+  it('does not mark a payment without the flag', () => {
+    expect(isWithinPause({})).toBe(false)
+    expect(isWithinPause(null)).toBe(false)
+    expect(isWithinPause(undefined)).toBe(false)
+  })
+
+  it('requires a real boolean, not a truthy value', () => {
+    expect(isWithinPause({ is_within_pause: 1 })).toBe(false)
+    expect(isWithinPause({ is_within_pause: 'true' })).toBe(false)
   })
 })
 

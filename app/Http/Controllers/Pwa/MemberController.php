@@ -3,22 +3,19 @@
 namespace App\Http\Controllers\Pwa;
 
 use App\Events\ContractCancelled;
-use App\Events\ContractWithdrawn;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\WithdrawContractRequest;
 use App\Mail\CancellationConfirmationMail;
 use App\Mail\Dispatching\MemberMailDispatcher;
-use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
-use App\Services\PaymentService;
+use App\Services\MembershipService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MemberController extends Controller
@@ -250,8 +247,7 @@ class MemberController extends Controller
      */
     public function withdrawContract(
         WithdrawContractRequest $request,
-        PaymentService $paymentService,
-        MemberMailDispatcher $mailDispatcher,
+        MembershipService $membershipService,
     ): JsonResponse {
         /** @var Member $member */
         $member = request()->user();
@@ -268,12 +264,12 @@ class MemberController extends Controller
         }
 
         // Prüfen ob Widerruf möglich ist
-        $withdrawalCheck = $this->checkWithdrawalEligibility($membership);
+        $eligibility = $membershipService->checkWithdrawalEligibility($membership);
 
-        if (! $withdrawalCheck['eligible']) {
+        if (! $eligibility['eligible']) {
             return response()->json([
                 'success' => false,
-                'message' => $withdrawalCheck['reason'],
+                'message' => $eligibility['reason'],
             ], 422);
         }
 
@@ -281,63 +277,13 @@ class MemberController extends Controller
         $confirmationEmail = $request->confirmation_email ?: $member->email;
 
         try {
-            DB::beginTransaction();
-
-            // Widerruf durchführen: Ausstehende Zahlungen stornieren und ggf. Erstattung initiieren
-            $refundAmount = $paymentService->handleWithdrawalPayments($membership);
-
-            $membership->update([
-                'status' => 'withdrawn',
-                'withdrawn_at' => now(),
-                'withdrawal_confirmation_sent_to' => $confirmationEmail,
-                'withdrawal_refund_amount' => $refundAmount,
-            ]);
-
-            // Eingangsbestätigung senden (gemäß § 356a BGB auf dauerhaftem Datenträger)
-            // WICHTIG: Die Bestätigung darf nur den Eingang bestätigen,
-            // NICHT dass der Widerruf "wirksam" ist
-            $mailDispatcher->sendToAddress(
-                $member,
-                new WithdrawalConfirmationMail(
-                    $member,
-                    $membership->fresh(),
-                    $member->gym,
-                    [
-                        'withdrawal_date' => now()->format('d.m.Y'),
-                        'withdrawal_time' => now()->format('H:i'),
-                        'refund_amount' => $refundAmount,
-                    ]
-                ),
+            $refundAmount = $membershipService->withdraw(
+                $membership,
                 $confirmationEmail,
+                source: 'pwa_withdrawal',
+                dispatchEvent: true,
             );
-
-            DB::commit();
-
-            // Notification an Gym-Mitarbeiter senden (außerhalb der Transaktion)
-            ContractWithdrawn::dispatch($member, $membership->fresh(), $member->gym, $refundAmount);
-
-            Log::info('Contract withdrawn successfully', [
-                'member_id' => $member->id,
-                'membership_id' => $membership->id,
-                'refund_amount' => $refundAmount,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Dein Widerruf wurde erfolgreich registriert.',
-                'data' => [
-                    'withdrawal_date' => now()->toIso8601String(),
-                    'confirmation_sent_to' => $confirmationEmail,
-                    'refund_amount' => $refundAmount,
-                    'refund_expected_date' => $refundAmount > 0
-                        ? now()->addDays(14)->toIso8601String()
-                        : null,
-                ],
-            ]);
-
         } catch (Exception $e) {
-            DB::rollBack();
-
             Log::error('Contract withdrawal failed', [
                 'member_id' => $member->id,
                 'membership_id' => $membership->id,
@@ -349,68 +295,19 @@ class MemberController extends Controller
                 'message' => 'Der Widerruf konnte nicht verarbeitet werden. Bitte versuche es erneut.',
             ], 500);
         }
-    }
 
-    /**
-     * Prüft ob ein Widerruf möglich ist (§ 356a BGB)
-     */
-    private function checkWithdrawalEligibility(Membership $membership): array
-    {
-        // Nur bezahlte Mitgliedschaften können widerrufen werden
-        if ($membership->is_free_trial) {
-            return [
-                'eligible' => false,
-                'reason' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.',
-            ];
-        }
-
-        // Bereits widerrufen?
-        if ($membership->withdrawn_at) {
-            return [
-                'eligible' => false,
-                'reason' => 'Diese Mitgliedschaft wurde bereits widerrufen.',
-            ];
-        }
-
-        // Bereits gekündigt?
-        if ($membership->status === 'cancelled') {
-            return [
-                'eligible' => false,
-                'reason' => 'Gekündigte Verträge können nicht widerrufen werden.',
-            ];
-        }
-
-        // Nur aktive oder pending Mitgliedschaften
-        if (! in_array($membership->status, ['active', 'pending'])) {
-            return [
-                'eligible' => false,
-                'reason' => 'Diese Mitgliedschaft kann nicht widerrufen werden.',
-            ];
-        }
-
-        // Widerrufsfrist prüfen (14 Tage)
-        $contractStartDate = $membership->contract_start_date;
-        if (! $contractStartDate) {
-            return [
-                'eligible' => false,
-                'reason' => 'Vertragsstartdatum konnte nicht ermittelt werden.',
-            ];
-        }
-
-        $startDate = Carbon::parse($contractStartDate);
-        $withdrawalDeadline = $startDate->copy()->addDays(14)->endOfDay();
-
-        if (now()->isAfter($withdrawalDeadline)) {
-            return [
-                'eligible' => false,
-                'reason' => 'Die 14-tägige Widerrufsfrist ist bereits abgelaufen.',
-            ];
-        }
-
-        return [
-            'eligible' => true,
-            'reason' => null,
-        ];
+        return response()->json([
+            'success' => true,
+            'message' => 'Dein Widerruf wurde erfolgreich registriert.',
+            'data' => [
+                'withdrawal_date' => now()->toIso8601String(),
+                'confirmation_sent_to' => $confirmationEmail,
+                'refund_amount' => $refundAmount,
+                'refund_expected_date' => $refundAmount > 0
+                    ? now()->addDays(14)->toIso8601String()
+                    : null,
+            ],
+        ]);
     }
 
     /**

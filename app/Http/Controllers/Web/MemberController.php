@@ -474,6 +474,8 @@ class MemberController extends Controller
             'paymentMethods',
             'payments.chargebacks',
             'payments.refunds',
+            // Needed for the is_within_pause flag on each payment
+            'payments.membership',
             // The visited location is loaded alongside, so the check-ins tab can
             // mark visits at another location of the organisation as such.
             'checkIns' => function ($query) {
