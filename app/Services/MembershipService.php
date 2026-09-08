@@ -208,7 +208,11 @@ class MembershipService
     }
 
     /**
-     * Pauses a membership for the given period.
+     * Schedules a pause period for a membership.
+     *
+     * The status only switches to 'paused' when the pause starts today. A pause
+     * scheduled for a later date leaves the membership active until
+     * memberships:update-statuses picks it up on the start date.
      *
      * The contract end date is pushed back by the pause duration so the member
      * keeps the full contract term. Eligibility is expected to have been checked
@@ -226,16 +230,25 @@ class MembershipService
         $pauseEnd = Carbon::parse($pauseEndDate)->startOfDay();
 
         return DB::transaction(function () use ($membership, $pauseStart, $pauseEnd, $reason): Membership {
+            $startsToday = $pauseStart->isToday();
+
             $attributes = [
-                'status' => 'paused',
                 'pause_start_date' => $pauseStart,
                 'pause_end_date' => $pauseEnd,
             ];
 
+            // A pause that starts later leaves the membership active for now
+            if ($startsToday) {
+                $attributes['status'] = 'paused';
+            }
+
             if ($reason) {
                 $attributes['notes'] = $this->appendNote(
                     $membership->notes,
-                    'Pausiert am '.now()->format('d.m.Y').': '.$reason,
+                    ($startsToday
+                        ? 'Pausiert am '.now()->format('d.m.Y')
+                        : 'Pausierung ab '.$pauseStart->format('d.m.Y').' eingeplant am '.now()->format('d.m.Y')
+                    ).': '.$reason,
                 );
             }
 
@@ -248,7 +261,7 @@ class MembershipService
 
             $membership->update($attributes);
 
-            Log::info('Membership paused', [
+            Log::info($startsToday ? 'Membership paused' : 'Membership pause scheduled', [
                 'member_id' => $membership->member_id,
                 'membership_id' => $membership->id,
                 'pause_start_date' => $pauseStart->toDateString(),

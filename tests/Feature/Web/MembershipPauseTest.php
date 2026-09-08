@@ -72,8 +72,8 @@ class MembershipPauseTest extends TestCase
                 'membership' => $membership->id,
             ]),
             array_merge([
-                'pause_start_date' => '2026-10-01',
-                'pause_end_date' => '2026-10-31',
+                'pause_start_date' => '2026-09-08',
+                'pause_end_date' => '2026-10-08',
             ], $payload),
         );
     }
@@ -90,7 +90,7 @@ class MembershipPauseTest extends TestCase
     }
 
     #[Test]
-    public function pausing_a_membership_extends_the_end_date_by_the_pause_duration(): void
+    public function pausing_a_membership_from_today_extends_the_end_date(): void
     {
         [$owner, $member, $membership] = $this->makeMembership();
 
@@ -101,12 +101,56 @@ class MembershipPauseTest extends TestCase
         $membership->refresh();
 
         $this->assertSame('paused', $membership->status);
-        $this->assertSame('2026-10-01', $membership->pause_start_date->format('Y-m-d'));
-        $this->assertSame('2026-10-31', $membership->pause_end_date->format('Y-m-d'));
+        $this->assertSame('2026-09-08', $membership->pause_start_date->format('Y-m-d'));
+        $this->assertSame('2026-10-08', $membership->pause_end_date->format('Y-m-d'));
 
         // 30 days between the two dates, so the contract runs 30 days longer
         $this->assertSame('2027-01-30', $membership->end_date->format('Y-m-d'));
         $this->assertStringContainsString('Auslandsaufenthalt', (string) $membership->notes);
+    }
+
+    #[Test]
+    public function a_pause_starting_in_the_future_leaves_the_membership_active(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership();
+
+        $response = $this->pause($owner, $member, $membership, [
+            'pause_start_date' => '2026-10-01',
+            'pause_end_date' => '2026-10-31',
+            'reason' => 'Auslandsaufenthalt',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $membership->refresh();
+
+        // The scheduler switches the status on the start date
+        $this->assertSame('active', $membership->status);
+        $this->assertSame('2026-10-01', $membership->pause_start_date->format('Y-m-d'));
+        $this->assertSame('2026-10-31', $membership->pause_end_date->format('Y-m-d'));
+
+        // The end date is extended right away
+        $this->assertSame('2027-01-30', $membership->end_date->format('Y-m-d'));
+        $this->assertStringContainsString('Pausierung ab 01.10.2026 eingeplant', (string) $membership->notes);
+    }
+
+    #[Test]
+    public function the_status_updater_pauses_a_scheduled_membership_on_the_start_date(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership();
+
+        $this->pause($owner, $member, $membership, [
+            'pause_start_date' => '2026-10-01',
+            'pause_end_date' => '2026-10-31',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('active', $membership->refresh()->status);
+
+        Carbon::setTestNow('2026-10-01 03:00:00');
+
+        $this->artisan('memberships:update-statuses')->assertExitCode(0);
+
+        $this->assertSame('paused', $membership->refresh()->status);
     }
 
     #[Test]

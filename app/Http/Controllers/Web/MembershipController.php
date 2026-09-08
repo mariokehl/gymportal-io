@@ -145,7 +145,7 @@ class MembershipController extends Controller
     }
 
     /**
-     * Pauses a membership.
+     * Pauses a membership, or schedules the pause for a later start date.
      */
     public function pause(
         Request $request,
@@ -181,7 +181,7 @@ class MembershipController extends Controller
         }
 
         try {
-            $membershipService->pause(
+            $membership = $membershipService->pause(
                 $membership,
                 $validated['pause_start_date'],
                 $validated['pause_end_date'],
@@ -199,7 +199,13 @@ class MembershipController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich pausiert.');
+        $successMessage = $membership->status === 'paused'
+            ? 'Die Mitgliedschaft wurde erfolgreich pausiert.'
+            : 'Die Pausierung wurde für den '.
+              $membership->pause_start_date->format('d.m.Y').
+              ' eingeplant. Die Mitgliedschaft bleibt bis dahin aktiv.';
+
+        return back()->with('success', $successMessage);
     }
 
     /**
