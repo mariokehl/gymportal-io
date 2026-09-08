@@ -166,6 +166,19 @@
                 @force-status="(m, s) => $emit('force-status', m, s)"
               />
             </div>
+
+            <!-- Action links -->
+            <div class="flex flex-wrap items-center justify-center gap-4 border-t border-gray-200 px-4 py-3">
+              <button
+                @click="$emit('ignore', membership.linkedMembership)"
+                type="button"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800"
+                :disabled="ignoringMembership === membership.linkedMembership.id"
+              >
+                <EyeOff class="w-4 h-4" />
+                <span>{{ ignoringMembership === membership.linkedMembership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- Standalone past membership (no link) -->
@@ -176,6 +189,19 @@
               :forcingMembershipStatus="forcingMembershipStatus"
               @force-status="(m, s) => $emit('force-status', m, s)"
             />
+
+            <!-- Action links -->
+            <div class="flex flex-wrap items-center justify-center gap-4 border-t border-gray-200 px-4 py-3">
+              <button
+                @click="$emit('ignore', membership)"
+                type="button"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800"
+                :disabled="ignoringMembership === membership.id"
+              >
+                <EyeOff class="w-4 h-4" />
+                <span>{{ ignoringMembership === membership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
+              </button>
+            </div>
           </div>
         </template>
       </div>
@@ -270,6 +296,9 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Guest access warning -->
+                <GuestAccessRevokeWarning v-if="showGuestAccessWarning" />
               </div>
             </div>
 
@@ -319,6 +348,9 @@
                 :membership-plans="membershipPlans"
                 :errors="addMembershipForm.errors"
               />
+
+              <!-- Guest access warning -->
+              <GuestAccessRevokeWarning v-if="showGuestAccessWarning" class="mt-4" />
             </div>
 
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
@@ -348,11 +380,12 @@
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
-  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift, Link
+  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift, Link, EyeOff
 } from 'lucide-vue-next'
 import { formatDate, getDisplayTimezone } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
+import GuestAccessRevokeWarning from '@/Components/Members/GuestAccessRevokeWarning.vue'
 
 const props = defineProps({
   member: {
@@ -386,10 +419,14 @@ const props = defineProps({
   withdrawingMembership: {
     type: [Number, null],
     default: null
+  },
+  ignoringMembership: {
+    type: [Number, null],
+    default: null
   }
 })
 
-const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw', 'force-status'])
+const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw', 'force-status', 'ignore'])
 
 // Local state
 const showPastMemberships = ref(false)
@@ -433,6 +470,12 @@ const pastMemberships = computed(() => {
     m.status === 'cancelled' || m.status === 'expired' || m.status === 'withdrawn'
   )
 })
+
+// A standing guest access grants unlimited entry, so adding any membership limits
+// the access to that period and revokes the guest access on the server.
+const showGuestAccessWarning = computed(() =>
+  Boolean(props.member.guest_access) && activeMemberships.value.length === 0
+)
 
 // Memberships that can be linked to a free period
 const linkableMemberships = computed(() => {

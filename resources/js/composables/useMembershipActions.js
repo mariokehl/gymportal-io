@@ -20,6 +20,7 @@ export function useMembershipActions(memberId, { onActivated } = {}) {
   const abortingMembership = ref(null)
   const withdrawingMembership = ref(null)
   const forcingMembershipStatus = ref(null)
+  const ignoringMembership = ref(null)
 
   /**
    * Runs one membership action: sets `busyRef` for the duration of the request
@@ -104,6 +105,29 @@ export function useMembershipActions(memberId, { onActivated } = {}) {
     }
   )
 
+  /**
+   * Hides a finished membership from the history. Uses DELETE instead of the
+   * PUT-based runAction, so it keeps its own small request block.
+   */
+  const ignoreMembership = (membership) => {
+    if (!confirm('Möchten Sie diese Mitgliedschaft wirklich ignorieren? Sie wird dauerhaft aus der Übersicht ausgeblendet.')) {
+      return
+    }
+
+    ignoringMembership.value = membership.id
+
+    router.delete(route('members.memberships.destroy', { member: memberId, membership: membership.id }), {
+      preserveScroll: true,
+      onSuccess: () => {
+        ignoringMembership.value = null
+      },
+      onError: (errors) => {
+        ignoringMembership.value = null
+        alert(Object.values(errors || {})[0] || 'Die Mitgliedschaft konnte nicht ausgeblendet werden.')
+      },
+    })
+  }
+
   return {
     resumingMembership,
     revokingCancellation,
@@ -111,11 +135,13 @@ export function useMembershipActions(memberId, { onActivated } = {}) {
     abortingMembership,
     withdrawingMembership,
     forcingMembershipStatus,
+    ignoringMembership,
     activateMembership,
     resumeMembership,
     abortMembership,
     revokeCancellation,
     withdrawMembership,
     forceMembershipStatus,
+    ignoreMembership,
   }
 }

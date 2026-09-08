@@ -218,6 +218,7 @@
           :aborting-membership="abortingMembership"
           :withdrawing-membership="withdrawingMembership"
           :forcing-membership-status="forcingMembershipStatus"
+          :ignoring-membership="ignoringMembership"
           @activate="activateMembership"
           @pause="openPauseMembership"
           @resume="resumeMembership"
@@ -226,6 +227,7 @@
           @abort="abortMembership"
           @withdraw="openWithdrawMembership"
           @force-status="handleForceStatus"
+          @ignore="ignoreMembership"
         />
 
         <!-- Booked add-ons (addon_membership) -->
@@ -525,12 +527,14 @@ const {
   abortingMembership,
   withdrawingMembership,
   forcingMembershipStatus,
+  ignoringMembership,
   activateMembership,
   resumeMembership,
   abortMembership,
   revokeCancellation,
   withdrawMembership,
   forceMembershipStatus,
+  ignoreMembership,
 } = useMembershipActions(props.member.id, {
   onActivated: () => memberDocumentsTab.value?.fetchDocuments(),
 })

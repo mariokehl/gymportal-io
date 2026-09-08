@@ -76,9 +76,18 @@ class MembershipController extends Controller
                 ]);
             }
 
+            // The free period now governs the access period, so a standing guest access
+            // would silently keep granting unlimited entry beyond it.
+            $guestAccessRevoked = $member->hasGuestAccess();
+            if ($guestAccessRevoked) {
+                $member->revokeGuestAccess();
+            }
+
             DB::commit();
 
-            return back()->with('success', 'Der kostenlose Zeitraum wurde erfolgreich erstellt.');
+            return back()->with('success', $guestAccessRevoked
+                ? 'Der kostenlose Zeitraum wurde erfolgreich erstellt. Der Gastzugang wurde entzogen.'
+                : 'Der kostenlose Zeitraum wurde erfolgreich erstellt.');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -581,6 +590,65 @@ class MembershipController extends Controller
 
             return back()->withErrors([
                 'error' => 'Der Status konnte nicht geändert werden: '.$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Hides a finished membership from the member's history.
+     *
+     * The record is only soft deleted: payments and other history keep their
+     * reference, the membership simply disappears from the past memberships
+     * list. Running contracts stay untouched.
+     */
+    public function destroy(Request $request, Member $member, Membership $membership)
+    {
+        $this->authorize('delete', $membership);
+
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
+
+        if (! in_array($membership->status, ['cancelled', 'expired', 'withdrawn'], true)) {
+            return back()->withErrors([
+                'error' => 'Nur beendete Mitgliedschaften können ignoriert werden.',
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            $membership->update([
+                'notes' => ($membership->notes ? $membership->notes."\n" : '').
+                          'Mitgliedschaft ausgeblendet am '.now()->format('d.m.Y H:i').
+                          ' (durch '.auth()->user()->name.')',
+            ]);
+
+            // Linked free periods and their contract are shown as one block, so
+            // they have to disappear together instead of leaving a half pair.
+            Membership::where('member_id', $member->id)
+                ->whereIn('status', ['cancelled', 'expired', 'withdrawn'])
+                ->where(function ($query) use ($membership) {
+                    $query->where('id', $membership->linked_free_membership_id)
+                        ->orWhere('linked_free_membership_id', $membership->id);
+                })
+                ->delete();
+
+            $membership->delete();
+
+            Log::info('Membership hidden from history', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'admin_user_id' => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            return back()->with('success', 'Die Mitgliedschaft wurde ausgeblendet.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors([
+                'error' => 'Die Mitgliedschaft konnte nicht ausgeblendet werden: '.$e->getMessage(),
             ]);
         }
     }
