@@ -254,9 +254,10 @@ class MembershipService
 
             // Extend the contract end date by the pause duration
             if ($membership->end_date) {
-                $pauseDays = $pauseStart->diffInDays($pauseEnd);
-
-                $attributes['end_date'] = Carbon::parse($membership->end_date)->addDays($pauseDays);
+                // NoOverflow keeps a contract ending on the 31st at the end of
+                // the target month instead of spilling into the next one
+                $attributes['end_date'] = Carbon::parse($membership->end_date)
+                    ->addMonthsNoOverflow($this->pauseMonths($pauseStart, $pauseEnd));
             }
 
             $membership->update($attributes);
@@ -275,8 +276,9 @@ class MembershipService
     /**
      * Resumes a paused membership as of today.
      *
-     * When the membership is resumed before the scheduled pause end, the unused
-     * pause days are subtracted from the contract end date again. Eligibility is
+     * When the membership is resumed before the scheduled pause end, the
+     * contract end date is recalculated from the pause months actually used, so
+     * the member gives back the months they no longer need. Eligibility is
      * expected to have been checked by the caller.
      */
     public function resume(Membership $membership): Membership
@@ -293,13 +295,18 @@ class MembershipService
                 ),
             ];
 
-            // Give back the end date extension for the unused pause days
+            // Give back the end date extension for the unused pause months
+            $pauseStart = $membership->pause_start_date;
             $originalPauseEnd = $membership->pause_end_date;
 
-            if ($originalPauseEnd && $membership->end_date && $resumeDate->isBefore($originalPauseEnd)) {
-                $unusedPauseDays = $resumeDate->diffInDays($originalPauseEnd);
+            if ($pauseStart && $originalPauseEnd && $membership->end_date && $resumeDate->isBefore($originalPauseEnd)) {
+                $unusedMonths = $this->pauseMonths($pauseStart, $originalPauseEnd)
+                    - $this->pauseMonths($pauseStart, $resumeDate);
 
-                $attributes['end_date'] = Carbon::parse($membership->end_date)->subDays($unusedPauseDays);
+                if ($unusedMonths > 0) {
+                    $attributes['end_date'] = Carbon::parse($membership->end_date)
+                        ->subMonthsNoOverflow($unusedMonths);
+                }
             }
 
             $membership->update($attributes);
@@ -312,6 +319,24 @@ class MembershipService
 
             return $membership;
         });
+    }
+
+    /**
+     * Pause duration in full months, always rounded up.
+     *
+     * A contract term is measured in months, so any started month counts as a
+     * whole one: 4 weeks extend the contract by one month, 6 weeks by two.
+     */
+    private function pauseMonths(Carbon $pauseStart, Carbon $pauseEnd): int
+    {
+        $months = $pauseStart->diffInMonths($pauseEnd);
+
+        // Anything beyond the full months started another one
+        if ($pauseStart->copy()->addMonths($months)->lt($pauseEnd)) {
+            $months++;
+        }
+
+        return max($months, 1);
     }
 
     /**

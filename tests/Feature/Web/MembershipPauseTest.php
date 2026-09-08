@@ -104,8 +104,8 @@ class MembershipPauseTest extends TestCase
         $this->assertSame('2026-09-08', $membership->pause_start_date->format('Y-m-d'));
         $this->assertSame('2026-10-08', $membership->pause_end_date->format('Y-m-d'));
 
-        // 30 days between the two dates, so the contract runs 30 days longer
-        $this->assertSame('2027-01-30', $membership->end_date->format('Y-m-d'));
+        // Exactly one month of pause, so the contract runs one month longer
+        $this->assertSame('2027-01-31', $membership->end_date->format('Y-m-d'));
         $this->assertStringContainsString('Auslandsaufenthalt', (string) $membership->notes);
     }
 
@@ -129,8 +129,8 @@ class MembershipPauseTest extends TestCase
         $this->assertSame('2026-10-01', $membership->pause_start_date->format('Y-m-d'));
         $this->assertSame('2026-10-31', $membership->pause_end_date->format('Y-m-d'));
 
-        // The end date is extended right away
-        $this->assertSame('2027-01-30', $membership->end_date->format('Y-m-d'));
+        // The end date is extended right away, by one full month
+        $this->assertSame('2027-01-31', $membership->end_date->format('Y-m-d'));
         $this->assertStringContainsString('Pausierung ab 01.10.2026 eingeplant', (string) $membership->notes);
     }
 
@@ -180,14 +180,57 @@ class MembershipPauseTest extends TestCase
     }
 
     #[Test]
-    public function resuming_early_gives_the_unused_pause_days_back(): void
+    public function a_pause_shorter_than_a_month_still_extends_by_a_full_month(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership();
+
+        $this->pause($owner, $member, $membership, [
+            'pause_start_date' => '2026-09-08',
+            'pause_end_date' => '2026-09-18',
+        ])->assertSessionHasNoErrors();
+
+        // Ten days are a started month, so a full month is credited
+        $this->assertSame('2027-01-31', $membership->refresh()->end_date->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function six_weeks_of_pause_extend_the_contract_by_two_months(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership();
+
+        $this->pause($owner, $member, $membership, [
+            'pause_start_date' => '2026-09-08',
+            'pause_end_date' => '2026-10-20',
+        ])->assertSessionHasNoErrors();
+
+        // One full month plus a started second one
+        $this->assertSame('2027-02-28', $membership->refresh()->end_date->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function a_contract_ending_on_the_last_day_stays_on_a_month_end(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership(['end_date' => '2026-12-31']);
+
+        $this->pause($owner, $member, $membership, [
+            'pause_start_date' => '2026-09-08',
+            'pause_end_date' => '2026-10-20',
+        ])->assertSessionHasNoErrors();
+
+        // Two months on from 31.12. clamps to the end of February, it must not
+        // spill over into March
+        $this->assertSame('2027-02-28', $membership->refresh()->end_date->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function resuming_early_gives_the_unused_pause_months_back(): void
     {
         [$owner, $member, $membership] = $this->makeMembership([
             'status' => 'paused',
             'pause_start_date' => '2026-09-01',
-            'pause_end_date' => '2026-10-01',
-            // Already extended by the 30 pause days when the pause started
-            'end_date' => '2027-01-30',
+            'pause_end_date' => '2026-11-15',
+            // Already extended by the three credited pause months
+            'end_date' => '2027-03-31',
         ]);
 
         $response = $this->resume($owner, $member, $membership);
@@ -199,9 +242,25 @@ class MembershipPauseTest extends TestCase
         $this->assertSame('active', $membership->status);
         $this->assertSame('2026-09-08', $membership->pause_end_date->format('Y-m-d'));
 
-        // Resumed 23 days early, so those days are removed again
-        $this->assertSame('2027-01-07', $membership->end_date->format('Y-m-d'));
+        // Only one of the three credited months was used
+        $this->assertSame('2027-01-31', $membership->end_date->format('Y-m-d'));
         $this->assertStringContainsString('Wieder aufgenommen am 08.09.2026', (string) $membership->notes);
+    }
+
+    #[Test]
+    public function resuming_within_the_first_pause_month_keeps_the_end_date(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership([
+            'status' => 'paused',
+            'pause_start_date' => '2026-09-01',
+            'pause_end_date' => '2026-09-25',
+            'end_date' => '2027-01-31',
+        ]);
+
+        $this->resume($owner, $member, $membership)->assertSessionHasNoErrors();
+
+        // The started month was credited and stays credited
+        $this->assertSame('2027-01-31', $membership->refresh()->end_date->format('Y-m-d'));
     }
 
     #[Test]
@@ -211,7 +270,7 @@ class MembershipPauseTest extends TestCase
             'status' => 'paused',
             'pause_start_date' => '2026-08-01',
             'pause_end_date' => '2026-08-31',
-            'end_date' => '2027-01-30',
+            'end_date' => '2027-01-31',
         ]);
 
         $this->resume($owner, $member, $membership)->assertSessionHasNoErrors();
@@ -219,7 +278,7 @@ class MembershipPauseTest extends TestCase
         $membership->refresh();
 
         $this->assertSame('active', $membership->status);
-        $this->assertSame('2027-01-30', $membership->end_date->format('Y-m-d'));
+        $this->assertSame('2027-01-31', $membership->end_date->format('Y-m-d'));
     }
 
     #[Test]
