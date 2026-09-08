@@ -58,6 +58,13 @@ export const isScheduledInFuture = (payment, today = todayAsIsoDate()) => {
 }
 
 /**
+ * A payment falls into its membership's pause period. The flag is calculated in
+ * the backend via Membership::isDateWithinPause(), which checks both the due
+ * and the execution date, and reaches the frontend as is_within_pause.
+ */
+export const isWithinPause = (payment) => payment?.is_within_pause === true
+
+/**
  * The date a payment is scheduled for: the execution date, falling back to the
  * due date. Returns an empty string when neither is set.
  */

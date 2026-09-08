@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -48,7 +49,39 @@ class Payment extends Model
         'metadata' => 'array',
     ];
 
-    protected $appends = ['status_text', 'status_color', 'payment_method_text'];
+    protected $appends = ['status_text', 'status_color', 'payment_method_text', 'is_within_pause'];
+
+    /**
+     * Whether this payment falls into its membership's pause period.
+     *
+     * Both dates are checked, mirroring the frontend's isScheduledInFuture():
+     * the row is marked as soon as either of them lies inside the pause. Note
+     * that ProcessMembershipPayments deliberately decides on the due date
+     * alone — this is a display hint, not the rule for skipping a charge.
+     *
+     * Returns false unless the membership is already loaded, so serializing a
+     * list of payments never triggers a query per row.
+     */
+    public function getIsWithinPauseAttribute(): bool
+    {
+        if (! $this->relationLoaded('membership')) {
+            return false;
+        }
+
+        $membership = $this->membership;
+
+        if (! $membership) {
+            return false;
+        }
+
+        foreach ([$this->due_date, $this->execution_date] as $date) {
+            if ($date && $membership->isDateWithinPause(Carbon::parse($date))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function invoice()
     {
