@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 class UpdateMembershipStatuses extends Command
 {
     protected $signature = 'memberships:update-statuses';
+
     protected $description = 'Aktualisiert Mitgliedschaftsstatus basierend auf Kündigungs- und Pausierungsdaten';
 
     public function handle()
@@ -30,10 +31,16 @@ class UpdateMembershipStatuses extends Command
             $this->info("$cancelledCount Mitgliedschaft(en) wurden auf 'cancelled' gesetzt.");
         }
 
-        // 2. Pausierte Mitgliedschaften automatisch wieder aktivieren
+        // 2. Automatically reactivate paused memberships
+        // The pause period is cleared so the membership is not picked up again
+        // on every following run, matching the manual resume
         $resumedCount = Membership::where('status', 'paused')
             ->where('pause_end_date', '<=', $now)
-            ->update(['status' => 'active']);
+            ->update([
+                'status' => 'active',
+                'pause_start_date' => null,
+                'pause_end_date' => null,
+            ]);
 
         if ($resumedCount > 0) {
             $updated += $resumedCount;
@@ -73,7 +80,7 @@ class UpdateMembershipStatuses extends Command
         foreach ($pendingTimeout as $membership) {
             $membership->update([
                 'status' => 'expired',
-                'cancellation_reason' => 'Automatisch storniert - Aktivierung nicht abgeschlossen'
+                'cancellation_reason' => 'Automatisch storniert - Aktivierung nicht abgeschlossen',
             ]);
             $updated++;
 
@@ -93,7 +100,7 @@ class UpdateMembershipStatuses extends Command
                 ->where('status', 'active')
                 ->exists();
 
-            if (!$hasActiveMembership) {
+            if (! $hasActiveMembership) {
                 $member->logStatusChange(
                     'inactive',
                     'Automatisch deaktiviert - keine aktive Mitgliedschaft vorhanden',
