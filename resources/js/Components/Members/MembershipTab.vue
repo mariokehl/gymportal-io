@@ -166,6 +166,19 @@
                 @force-status="(m, s) => $emit('force-status', m, s)"
               />
             </div>
+
+            <!-- Action links -->
+            <div class="flex flex-wrap items-center justify-center gap-4 border-t border-gray-200 px-4 py-3">
+              <button
+                @click="$emit('ignore', membership.linkedMembership)"
+                type="button"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800"
+                :disabled="ignoringMembership === membership.linkedMembership.id"
+              >
+                <EyeOff class="w-4 h-4" />
+                <span>{{ ignoringMembership === membership.linkedMembership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- Standalone past membership (no link) -->
@@ -176,6 +189,19 @@
               :forcingMembershipStatus="forcingMembershipStatus"
               @force-status="(m, s) => $emit('force-status', m, s)"
             />
+
+            <!-- Action links -->
+            <div class="flex flex-wrap items-center justify-center gap-4 border-t border-gray-200 px-4 py-3">
+              <button
+                @click="$emit('ignore', membership)"
+                type="button"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800"
+                :disabled="ignoringMembership === membership.id"
+              >
+                <EyeOff class="w-4 h-4" />
+                <span>{{ ignoringMembership === membership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
+              </button>
+            </div>
           </div>
         </template>
       </div>
@@ -354,7 +380,7 @@
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
-  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift, Link
+  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift, Link, EyeOff
 } from 'lucide-vue-next'
 import { formatDate, getDisplayTimezone } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
@@ -393,10 +419,14 @@ const props = defineProps({
   withdrawingMembership: {
     type: [Number, null],
     default: null
+  },
+  ignoringMembership: {
+    type: [Number, null],
+    default: null
   }
 })
 
-const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw', 'force-status'])
+const emit = defineEmits(['activate', 'pause', 'resume', 'cancel', 'revoke-cancellation', 'abort', 'withdraw', 'force-status', 'ignore'])
 
 // Local state
 const showPastMemberships = ref(false)
