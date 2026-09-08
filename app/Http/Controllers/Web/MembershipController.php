@@ -147,9 +147,18 @@ class MembershipController extends Controller
     /**
      * Pauses a membership.
      */
-    public function pause(Request $request, Member $member, Membership $membership)
-    {
+    public function pause(
+        Request $request,
+        Member $member,
+        Membership $membership,
+        MembershipService $membershipService,
+    ) {
         $this->authorize('update', $membership);
+
+        // Check that the membership belongs to this member
+        if ($membership->member_id !== $member->id) {
+            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
+        }
 
         // Validation
         $validated = $request->validate([
@@ -163,61 +172,45 @@ class MembershipController extends Controller
             'pause_end_date.after' => 'Das Enddatum muss nach dem Startdatum liegen.',
         ]);
 
-        // Check that the membership belongs to this member
-        if ($membership->member_id !== $member->id) {
-            abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
-        }
+        $eligibility = $membershipService->checkPauseEligibility($membership);
 
-        // Check that the membership can be paused
-        if (! in_array($membership->status, ['active'])) {
+        if (! $eligibility['eligible']) {
             return back()->withErrors([
-                'status' => 'Nur aktive Mitgliedschaften können pausiert werden.',
+                'status' => $eligibility['reason'],
             ]);
         }
 
-        DB::beginTransaction();
         try {
-            // Pause the membership
-            $membership->update([
-                'status' => 'paused',
-                'pause_start_date' => $validated['pause_start_date'],
-                'pause_end_date' => $validated['pause_end_date'],
-            ]);
-
-            // Optional: store the pause reason in widget_data or notes
-            if ($validated['reason']) {
-                $membership->update([
-                    'notes' => ($membership->notes ? $membership->notes."\n" : '').
-                              'Pausiert am '.now()->format('d.m.Y').': '.$validated['reason'],
-                ]);
-            }
-
-            // Extend the membership end date by the pause duration
-            if ($membership->end_date) {
-                $pauseDays = Carbon::parse($validated['pause_start_date'])
-                    ->diffInDays(Carbon::parse($validated['pause_end_date']));
-
-                $newEndDate = Carbon::parse($membership->end_date)->addDays($pauseDays);
-                $membership->update(['end_date' => $newEndDate]);
-            }
-
-            DB::commit();
-
-            return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich pausiert.');
+            $membershipService->pause(
+                $membership,
+                $validated['pause_start_date'],
+                $validated['pause_end_date'],
+                $validated['reason'] ?? null,
+            );
         } catch (\Exception $e) {
-            DB::rollBack();
+            Log::error('Pausing the membership failed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
 
             return back()->withErrors([
                 'error' => 'Die Mitgliedschaft konnte nicht pausiert werden: '.$e->getMessage(),
             ]);
         }
+
+        return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich pausiert.');
     }
 
     /**
      * Resumes a paused membership.
      */
-    public function resume(Request $request, Member $member, Membership $membership)
-    {
+    public function resume(
+        Request $request,
+        Member $member,
+        Membership $membership,
+        MembershipService $membershipService,
+    ) {
         $this->authorize('update', $membership);
 
         // Check that the membership belongs to this member
@@ -225,53 +218,29 @@ class MembershipController extends Controller
             abort(403, 'Diese Mitgliedschaft gehört nicht zu diesem Mitglied.');
         }
 
-        // Check that the membership can be resumed
-        if ($membership->status !== 'paused') {
+        $eligibility = $membershipService->checkResumeEligibility($membership);
+
+        if (! $eligibility['eligible']) {
             return back()->withErrors([
-                'status' => 'Nur pausierte Mitgliedschaften können wieder aufgenommen werden.',
+                'status' => $eligibility['reason'],
             ]);
         }
 
-        DB::beginTransaction();
         try {
-            // Determine the actual pause duration in case it is resumed early
-            $actualPauseEnd = now()->format('Y-m-d');
-            $originalPauseEnd = $membership->pause_end_date;
-
-            if ($actualPauseEnd < $originalPauseEnd) {
-                // Adjust the end date when resumed early
-                $unusedPauseDays = Carbon::parse($actualPauseEnd)
-                    ->diffInDays(Carbon::parse($originalPauseEnd));
-
-                if ($membership->end_date) {
-                    $adjustedEndDate = Carbon::parse($membership->end_date)
-                        ->subDays($unusedPauseDays);
-                    $membership->end_date = $adjustedEndDate;
-                }
-            }
-
-            // Reactivate the membership
-            $membership->update([
-                'status' => 'active',
-                'pause_end_date' => $actualPauseEnd,
-            ]);
-
-            // Append a note
-            $membership->update([
-                'notes' => ($membership->notes ? $membership->notes."\n" : '').
-                          'Wieder aufgenommen am '.now()->format('d.m.Y'),
-            ]);
-
-            DB::commit();
-
-            return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich wieder aufgenommen.');
+            $membershipService->resume($membership);
         } catch (\Exception $e) {
-            DB::rollBack();
+            Log::error('Resuming the membership failed', [
+                'member_id' => $member->id,
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
 
             return back()->withErrors([
                 'error' => 'Die Mitgliedschaft konnte nicht wieder aufgenommen werden: '.$e->getMessage(),
             ]);
         }
+
+        return back()->with('success', 'Die Mitgliedschaft wurde erfolgreich wieder aufgenommen.');
     }
 
     /**

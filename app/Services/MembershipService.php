@@ -174,6 +174,134 @@ class MembershipService
     }
 
     /**
+     * Checks whether a membership can be paused.
+     *
+     * @return array{eligible: bool, reason: string|null}
+     */
+    public function checkPauseEligibility(Membership $membership): array
+    {
+        if ($membership->status !== 'active') {
+            return $this->ineligible('Nur aktive Mitgliedschaften können pausiert werden.');
+        }
+
+        return [
+            'eligible' => true,
+            'reason' => null,
+        ];
+    }
+
+    /**
+     * Checks whether a paused membership can be resumed.
+     *
+     * @return array{eligible: bool, reason: string|null}
+     */
+    public function checkResumeEligibility(Membership $membership): array
+    {
+        if ($membership->status !== 'paused') {
+            return $this->ineligible('Nur pausierte Mitgliedschaften können wieder aufgenommen werden.');
+        }
+
+        return [
+            'eligible' => true,
+            'reason' => null,
+        ];
+    }
+
+    /**
+     * Pauses a membership for the given period.
+     *
+     * The contract end date is pushed back by the pause duration so the member
+     * keeps the full contract term. Eligibility is expected to have been checked
+     * by the caller.
+     *
+     * @param  string|null  $reason  Optional reason appended to the notes.
+     */
+    public function pause(
+        Membership $membership,
+        Carbon|string $pauseStartDate,
+        Carbon|string $pauseEndDate,
+        ?string $reason = null,
+    ): Membership {
+        $pauseStart = Carbon::parse($pauseStartDate)->startOfDay();
+        $pauseEnd = Carbon::parse($pauseEndDate)->startOfDay();
+
+        return DB::transaction(function () use ($membership, $pauseStart, $pauseEnd, $reason): Membership {
+            $attributes = [
+                'status' => 'paused',
+                'pause_start_date' => $pauseStart,
+                'pause_end_date' => $pauseEnd,
+            ];
+
+            if ($reason) {
+                $attributes['notes'] = $this->appendNote(
+                    $membership->notes,
+                    'Pausiert am '.now()->format('d.m.Y').': '.$reason,
+                );
+            }
+
+            // Extend the contract end date by the pause duration
+            if ($membership->end_date) {
+                $pauseDays = $pauseStart->diffInDays($pauseEnd);
+
+                $attributes['end_date'] = Carbon::parse($membership->end_date)->addDays($pauseDays);
+            }
+
+            $membership->update($attributes);
+
+            Log::info('Membership paused', [
+                'member_id' => $membership->member_id,
+                'membership_id' => $membership->id,
+                'pause_start_date' => $pauseStart->toDateString(),
+                'pause_end_date' => $pauseEnd->toDateString(),
+            ]);
+
+            return $membership;
+        });
+    }
+
+    /**
+     * Resumes a paused membership as of today.
+     *
+     * When the membership is resumed before the scheduled pause end, the unused
+     * pause days are subtracted from the contract end date again. Eligibility is
+     * expected to have been checked by the caller.
+     */
+    public function resume(Membership $membership): Membership
+    {
+        return DB::transaction(function () use ($membership): Membership {
+            $resumeDate = now()->startOfDay();
+
+            $attributes = [
+                'status' => 'active',
+                'pause_end_date' => $resumeDate,
+                'notes' => $this->appendNote(
+                    $membership->notes,
+                    'Wieder aufgenommen am '.now()->format('d.m.Y'),
+                ),
+            ];
+
+            // Give back the end date extension for the unused pause days
+            $originalPauseEnd = $membership->pause_end_date;
+
+            if ($originalPauseEnd && $membership->end_date && $resumeDate->isBefore($originalPauseEnd)) {
+                $unusedPauseDays = $resumeDate->diffInDays($originalPauseEnd);
+
+                $attributes['end_date'] = Carbon::parse($membership->end_date)->subDays($unusedPauseDays);
+            }
+
+            $membership->update($attributes);
+
+            Log::info('Membership resumed', [
+                'member_id' => $membership->member_id,
+                'membership_id' => $membership->id,
+                'resumed_at' => $resumeDate->toDateString(),
+            ]);
+
+            return $membership;
+        });
+    }
+
+    /**
      * A linked free trial period belongs to the withdrawn contract and must end
      * as well, otherwise the member keeps access through it.
      */
