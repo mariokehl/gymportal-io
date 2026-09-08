@@ -5,12 +5,11 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Mail\CancellationConfirmationMail;
 use App\Mail\Dispatching\MemberMailDispatcher;
-use App\Mail\WithdrawalConfirmationMail;
 use App\Models\Addon;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Services\MemberService;
-use App\Services\PaymentService;
+use App\Services\MembershipService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -617,8 +616,12 @@ class MembershipController extends Controller
      * A manual withdrawal from the admin area triggers the confirmation
      * mail as well.
      */
-    public function withdraw(Request $request, Member $member, Membership $membership, PaymentService $paymentService)
-    {
+    public function withdraw(
+        Request $request,
+        Member $member,
+        Membership $membership,
+        MembershipService $membershipService,
+    ) {
         $this->authorize('update', $membership);
 
         // Check that the membership belongs to this member
@@ -632,50 +635,13 @@ class MembershipController extends Controller
             'force' => 'nullable|boolean',
         ]);
 
-        $force = $request->boolean('force');
-
         // Skip the checks when forced
-        if (! $force) {
-            // Check whether a withdrawal is possible
-            if ($membership->is_free_trial) {
-                return back()->withErrors([
-                    'error' => 'Kostenlose Mitgliedschaften können nicht widerrufen werden.',
-                ]);
-            }
+        if (! $request->boolean('force')) {
+            $eligibility = $membershipService->checkWithdrawalEligibility($membership);
 
-            if ($membership->withdrawn_at) {
+            if (! $eligibility['eligible']) {
                 return back()->withErrors([
-                    'error' => 'Diese Mitgliedschaft wurde bereits widerrufen.',
-                ]);
-            }
-
-            if ($membership->status === 'cancelled') {
-                return back()->withErrors([
-                    'error' => 'Gekündigte Verträge können nicht widerrufen werden.',
-                ]);
-            }
-
-            if (! in_array($membership->status, ['active', 'pending'])) {
-                return back()->withErrors([
-                    'error' => 'Diese Mitgliedschaft kann nicht widerrufen werden.',
-                ]);
-            }
-
-            // Check the withdrawal period (14 days)
-            $contractStartDate = $membership->contract_start_date;
-            if (! $contractStartDate) {
-                return back()->withErrors([
-                    'error' => 'Vertragsstartdatum konnte nicht ermittelt werden.',
-                ]);
-            }
-
-            $startDate = Carbon::parse($contractStartDate);
-            $withdrawalDeadline = $startDate->copy()->addDays(14)->endOfDay();
-
-            if (now()->isAfter($withdrawalDeadline)) {
-                return back()->withErrors([
-                    'error' => 'Die 14-tägige Widerrufsfrist ist bereits abgelaufen (Fristende: '.
-                              $withdrawalDeadline->format('d.m.Y H:i').').',
+                    'error' => $eligibility['reason'],
                 ]);
             }
         }
@@ -683,65 +649,18 @@ class MembershipController extends Controller
         // Address from the request, falling back to the member profile
         $confirmationEmail = $validated['confirmation_email'] ?? $member->email;
 
-        DB::beginTransaction();
         try {
-            // Perform the withdrawal: void pending payments and start a refund if needed
-            $refundAmount = $paymentService->handleWithdrawalPayments($membership);
-
-            $membership->update([
-                'status' => 'withdrawn',
-                'withdrawn_at' => now(),
-                'withdrawal_confirmation_sent_to' => $confirmationEmail,
-                'withdrawal_refund_amount' => $refundAmount,
-            ]);
-
-            // Append a note
-            $membership->update([
-                'notes' => ($membership->notes ? $membership->notes."\n" : '').
-                          'Widerrufen am '.now()->format('d.m.Y H:i').
-                          ' (manuell durch Admin)'.
-                          ($refundAmount > 0 ? ' - Erstattung: '.number_format($refundAmount, 2, ',', '.').' €' : ''),
-            ]);
-
-            // Send the acknowledgement of receipt by mail (§ 356a BGB).
-            // The dispatcher handles synthetic/missing address checks, logging and
-            // exception wrapping. A delivery failure must not roll back the withdrawal.
-            $this->mailDispatcher->sendToAddress(
-                $member,
-                new WithdrawalConfirmationMail(
-                    $member,
-                    $membership->fresh(),
-                    $member->gym,
-                    [
-                        'withdrawal_date' => now()->format('d.m.Y'),
-                        'withdrawal_time' => now()->format('H:i'),
-                        'refund_amount' => $refundAmount,
-                    ]
-                ),
+            $refundAmount = $membershipService->withdraw(
+                $membership,
                 $confirmationEmail,
+                source: 'admin_withdrawal',
+                note: 'Widerrufen am '.now()->format('d.m.Y H:i').' (manuell durch Admin)',
             );
-
-            DB::commit();
-
-            Log::info('Contract withdrawn manually by admin', [
-                'member_id' => $member->id,
-                'membership_id' => $membership->id,
-                'admin_user_id' => auth()->id(),
-                'refund_amount' => $refundAmount,
-            ]);
-
-            $successMessage = 'Die Mitgliedschaft wurde erfolgreich widerrufen.';
-            if ($refundAmount > 0) {
-                $successMessage .= ' Erstattung von '.number_format($refundAmount, 2, ',', '.').' € wurde initiiert.';
-            }
-
-            return back()->with('success', $successMessage);
         } catch (\Exception $e) {
-            DB::rollBack();
-
             Log::error('Manual contract withdrawal failed', [
                 'member_id' => $member->id,
                 'membership_id' => $membership->id,
+                'admin_user_id' => auth()->id(),
                 'error' => $e->getMessage(),
             ]);
 
@@ -749,6 +668,13 @@ class MembershipController extends Controller
                 'error' => 'Der Widerruf konnte nicht durchgeführt werden: '.$e->getMessage(),
             ]);
         }
+
+        $successMessage = 'Die Mitgliedschaft wurde erfolgreich widerrufen.';
+        if ($refundAmount > 0) {
+            $successMessage .= ' Erstattung von '.number_format($refundAmount, 2, ',', '.').' € wurde initiiert.';
+        }
+
+        return back()->with('success', $successMessage);
     }
 
     /**
