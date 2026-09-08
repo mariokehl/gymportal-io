@@ -270,6 +270,9 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Guest access warning -->
+                <GuestAccessRevokeWarning v-if="showGuestAccessWarning" />
               </div>
             </div>
 
@@ -319,6 +322,9 @@
                 :membership-plans="membershipPlans"
                 :errors="addMembershipForm.errors"
               />
+
+              <!-- Guest access warning -->
+              <GuestAccessRevokeWarning v-if="showGuestAccessWarning" class="mt-4" />
             </div>
 
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
@@ -353,6 +359,7 @@ import {
 import { formatDate, getDisplayTimezone } from '@/utils/formatters'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
+import GuestAccessRevokeWarning from '@/Components/Members/GuestAccessRevokeWarning.vue'
 
 const props = defineProps({
   member: {
@@ -433,6 +440,12 @@ const pastMemberships = computed(() => {
     m.status === 'cancelled' || m.status === 'expired' || m.status === 'withdrawn'
   )
 })
+
+// A standing guest access grants unlimited entry, so adding any membership limits
+// the access to that period and revokes the guest access on the server.
+const showGuestAccessWarning = computed(() =>
+  Boolean(props.member.guest_access) && activeMemberships.value.length === 0
+)
 
 // Memberships that can be linked to a free period
 const linkableMemberships = computed(() => {

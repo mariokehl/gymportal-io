@@ -1203,11 +1203,20 @@ class MemberController extends Controller
                 : null;
             $paymentService->createPendingPayment($member, $membership, $defaultPaymentMethod, $billingAnchorDate);
 
+            // The membership now governs the access period, so a standing guest access
+            // would silently keep granting unlimited entry beyond it.
+            $guestAccessRevoked = $member->hasGuestAccess();
+            if ($guestAccessRevoked) {
+                $member->revokeGuestAccess();
+            }
+
             DB::commit();
 
             // Vertrag wird erst bei Aktivierung der Mitgliedschaft generiert (MembershipActivated Event)
 
-            return back()->with('success', 'Mitgliedschaft wurde erfolgreich erstellt.');
+            return back()->with('success', $guestAccessRevoked
+                ? 'Mitgliedschaft wurde erfolgreich erstellt. Der Gastzugang wurde entzogen.'
+                : 'Mitgliedschaft wurde erfolgreich erstellt.');
 
         } catch (Exception $e) {
             DB::rollBack();

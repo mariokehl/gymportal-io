@@ -76,9 +76,18 @@ class MembershipController extends Controller
                 ]);
             }
 
+            // The free period now governs the access period, so a standing guest access
+            // would silently keep granting unlimited entry beyond it.
+            $guestAccessRevoked = $member->hasGuestAccess();
+            if ($guestAccessRevoked) {
+                $member->revokeGuestAccess();
+            }
+
             DB::commit();
 
-            return back()->with('success', 'Der kostenlose Zeitraum wurde erfolgreich erstellt.');
+            return back()->with('success', $guestAccessRevoked
+                ? 'Der kostenlose Zeitraum wurde erfolgreich erstellt. Der Gastzugang wurde entzogen.'
+                : 'Der kostenlose Zeitraum wurde erfolgreich erstellt.');
         } catch (\Exception $e) {
             DB::rollBack();
 
