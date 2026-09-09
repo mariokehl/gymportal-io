@@ -139,6 +139,102 @@ class MemberArchiveParserTest extends TestCase
     }
 
     #[Test]
+    public function it_parses_several_contracts_with_their_own_modules(): void
+    {
+        $folder = $this->makeMemberFolder('9-103_Multi Vertrag_x', [
+            'master' => [
+                'rows' => [
+                    [
+                        'Mitgliedsnummer' => '9-103',
+                        'Vorname' => 'Multi',
+                        'Nachname' => 'Vertrag',
+                        'Typ' => 'Vertrag',
+                        'Tarifname' => 'EGYM-Wellpass',
+                        'Preis' => "monatlich: 29,90\u{00A0}€",
+                        'Bezahlt bis' => '30.06.2026',
+                    ],
+                    [
+                        'Mitgliedsnummer' => '9-103',
+                        'Typ' => 'Modulvertrag',
+                        'Tarifname' => 'Getränke-Flatrate für Flex-Tarif (inkl. gratis Testmonat)',
+                        'Preis' => "monatlich: 8,62\u{00A0}€",
+                    ],
+                    [
+                        'Mitgliedsnummer' => '9-103',
+                        'Typ' => 'Vertrag',
+                        'Tarifname' => 'Home-Tarif',
+                        'Preis' => "monatlich: 39,95\u{00A0}€",
+                        'Bezahlt bis' => '31.07.2026',
+                    ],
+                    [
+                        'Mitgliedsnummer' => '9-103',
+                        'Typ' => 'Modulvertrag',
+                        'Tarifname' => 'Getränke-Flatrate für Home-Tarif (inkl. gratis Testmonat)',
+                        'Preis' => "monatlich: 9,90\u{00A0}€",
+                    ],
+                ],
+            ],
+        ]);
+
+        $data = (new MemberArchiveParser)->parseMemberFolder($folder);
+
+        $this->assertCount(2, $data['contracts']);
+
+        $this->assertSame('EGYM-Wellpass', $data['contracts'][0]['contract']['plan_name']);
+        $this->assertSame(29.90, $data['contracts'][0]['contract']['price']);
+        $this->assertSame('2026-06-30', $data['contracts'][0]['contract']['paid_until']);
+        $this->assertCount(1, $data['contracts'][0]['modules']);
+        $this->assertSame(
+            'Getränke-Flatrate für Flex-Tarif (inkl. gratis Testmonat)',
+            $data['contracts'][0]['modules'][0]['name']
+        );
+
+        $this->assertSame('Home-Tarif', $data['contracts'][1]['contract']['plan_name']);
+        $this->assertSame(39.95, $data['contracts'][1]['contract']['price']);
+        $this->assertSame('2026-07-31', $data['contracts'][1]['contract']['paid_until']);
+        $this->assertCount(1, $data['contracts'][1]['modules']);
+        $this->assertSame(
+            'Getränke-Flatrate für Home-Tarif (inkl. gratis Testmonat)',
+            $data['contracts'][1]['modules'][0]['name']
+        );
+
+        // The first contract stays available under the single-contract keys.
+        $this->assertSame('EGYM-Wellpass', $data['contract']['plan_name']);
+        $this->assertCount(1, $data['modules']);
+    }
+
+    #[Test]
+    public function it_drops_a_module_row_without_a_preceding_contract(): void
+    {
+        $folder = $this->makeMemberFolder('9-104_Nur Modul_x', [
+            'master' => [
+                'rows' => [
+                    [
+                        'Mitgliedsnummer' => '9-104',
+                        'Vorname' => 'Nur',
+                        'Nachname' => 'Modul',
+                        'Typ' => 'Modulvertrag',
+                        'Tarifname' => 'Verwaistes Modul',
+                        'Preis' => "monatlich: 5,00\u{00A0}€",
+                    ],
+                    [
+                        'Mitgliedsnummer' => '9-104',
+                        'Typ' => 'Vertrag',
+                        'Tarifname' => 'Home-Tarif',
+                        'Preis' => "monatlich: 39,95\u{00A0}€",
+                    ],
+                ],
+            ],
+        ]);
+
+        $data = (new MemberArchiveParser)->parseMemberFolder($folder);
+
+        $this->assertCount(1, $data['contracts']);
+        $this->assertSame('Home-Tarif', $data['contract']['plan_name']);
+        $this->assertSame([], $data['modules']);
+    }
+
+    #[Test]
     public function it_reads_the_sepa_mandate_and_credit_balance(): void
     {
         $folder = $this->makeMemberFolder('9-102_Guthaben Test_x', [
@@ -261,7 +357,12 @@ class MemberArchiveParserTest extends TestCase
 
         $rows = [$columns];
 
-        foreach (array_merge([$spec['master']['primary']], $spec['master']['modules'] ?? []) as $row) {
+        // A folder is described either by one contract plus its modules, or by
+        // an explicit list of rows for members holding several contracts.
+        $dataRows = $spec['master']['rows']
+            ?? array_merge([$spec['master']['primary']], $spec['master']['modules'] ?? []);
+
+        foreach ($dataRows as $row) {
             $rows[] = array_map(fn ($column) => (string) ($row[$column] ?? ''), $columns);
         }
 

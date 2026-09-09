@@ -142,6 +142,327 @@ class MemberArchiveImportTest extends TestCase
     }
 
     #[Test]
+    public function it_imports_every_contract_of_a_member_with_its_own_modules(): void
+    {
+        $this->makeMemberFolder('9-103_Multi Vertrag_x', [
+            'rows' => [
+                [
+                    'Mitgliedsnummer' => '9-103',
+                    'Vorname' => 'Multi',
+                    'Nachname' => 'Vertrag',
+                    'E-Mail' => 'multi.vertrag@example.test',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'EGYM-Wellpass',
+                    'Preis' => "monatlich: 29,90\u{00A0}€",
+                    'Vertragsbeginn' => '01.03.2024',
+                    'Bezahlt bis' => '31.12.2099',
+                ],
+                [
+                    'Mitgliedsnummer' => '9-103',
+                    'Typ' => 'Modulvertrag',
+                    'Tarifname' => 'Getränke-Flatrate für Flex-Tarif',
+                    'Preis' => "monatlich: 8,62\u{00A0}€",
+                ],
+                [
+                    'Mitgliedsnummer' => '9-103',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'Home-Tarif',
+                    'Preis' => "monatlich: 39,95\u{00A0}€",
+                    'Vertragsbeginn' => '01.01.2023',
+                    'Bezahlt bis' => '31.12.2099',
+                ],
+                [
+                    'Mitgliedsnummer' => '9-103',
+                    'Typ' => 'Modulvertrag',
+                    'Tarifname' => 'Getränke-Flatrate für Home-Tarif',
+                    'Preis' => "monatlich: 9,90\u{00A0}€",
+                ],
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['members_created']);
+        $this->assertSame(2, $stats['memberships_created']);
+        $this->assertSame(2, $stats['plans_created']);
+        $this->assertSame(2, $stats['addons_created']);
+        $this->assertSame(2, $stats['addons_booked']);
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+
+        // The member joined with their oldest contract, not with the one that
+        // happens to come first in the sheet.
+        $this->assertSame('2023-01-01', $member->joined_date->toDateString());
+
+        $memberships = Membership::where('member_id', $member->id)
+            ->with('membershipPlan')
+            ->get()
+            ->keyBy(fn ($membership) => $membership->membershipPlan->name);
+
+        $this->assertSame(
+            ['EGYM-Wellpass', 'Home-Tarif'],
+            $memberships->keys()->sort()->values()->all()
+        );
+
+        // Every module is booked on the contract it belongs to.
+        $wellpassAddons = $memberships['EGYM-Wellpass']->addons()->pluck('addons.name')->all();
+        $homeAddons = $memberships['Home-Tarif']->addons()->pluck('addons.name')->all();
+
+        $this->assertSame(['Getränke-Flatrate für Flex-Tarif'], $wellpassAddons);
+        $this->assertSame(['Getränke-Flatrate für Home-Tarif'], $homeAddons);
+    }
+
+    #[Test]
+    public function it_keeps_a_member_active_while_one_of_several_contracts_runs(): void
+    {
+        $this->makeMemberFolder('9-105_Teil Gekuendigt_x', [
+            'rows' => [
+                [
+                    'Mitgliedsnummer' => '9-105',
+                    'Vorname' => 'Teil',
+                    'Nachname' => 'Gekuendigt',
+                    'E-Mail' => 'teil.gekuendigt@example.test',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'EGYM-Wellpass',
+                    'Preis' => "monatlich: 29,90\u{00A0}€",
+                    'Vertragsbeginn' => '01.03.2024',
+                    'Gekündigt zum' => '31.01.2025',
+                    'Gekündigt am' => '30.11.2024',
+                ],
+                [
+                    'Mitgliedsnummer' => '9-105',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'Home-Tarif',
+                    'Preis' => "monatlich: 39,95\u{00A0}€",
+                    'Vertragsbeginn' => '01.01.2023',
+                    'Bezahlt bis' => '31.12.2099',
+                ],
+            ],
+            'bank_accounts' => [[
+                'accountHolder' => 'Teil Gekuendigt',
+                'iban' => 'DE02120300000000202051',
+                'bic' => 'BANKDEFFXXX',
+                'bankName' => 'Testbank',
+                'endDate' => null,
+                'sepaMandateDtos' => [[
+                    'sepaMandateStatus' => 'CONFIRMED',
+                    'referenceNumber' => 'REF-200005',
+                    'mandateGivenDate' => '2023-01-01',
+                    'mandateWithdrawnDate' => null,
+                ]],
+            ]],
+        ]);
+
+        $this->importService()->import($this->gym->id, $this->folders());
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+
+        // One cancelled contract does not end the membership as a whole.
+        $this->assertSame('active', $member->status);
+
+        $statuses = Membership::where('member_id', $member->id)
+            ->pluck('status')
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(['active', 'expired'], $statuses);
+
+        // The mandate stays collectable for the contract that keeps running.
+        $paymentMethod = PaymentMethod::where('member_id', $member->id)->firstOrFail();
+        $this->assertSame('active', $paymentMethod->status);
+        $this->assertSame('active', $paymentMethod->sepa_mandate_status);
+    }
+
+    #[Test]
+    public function it_archives_a_member_whose_contracts_have_all_ended(): void
+    {
+        $this->makeMemberFolder('9-106_Alle Beendet_x', [
+            'rows' => [
+                [
+                    'Mitgliedsnummer' => '9-106',
+                    'Vorname' => 'Alle',
+                    'Nachname' => 'Beendet',
+                    'E-Mail' => 'alle.beendet@example.test',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'EGYM-Wellpass',
+                    'Preis' => "monatlich: 29,90\u{00A0}€",
+                    'Vertragsbeginn' => '01.03.2024',
+                    'Gekündigt zum' => '31.01.2025',
+                ],
+                [
+                    'Mitgliedsnummer' => '9-106',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'Home-Tarif',
+                    'Preis' => "monatlich: 39,95\u{00A0}€",
+                    'Vertragsbeginn' => '01.01.2023',
+                    'Vertragsende' => '28.02.2025',
+                ],
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+
+        $this->assertSame('inactive', $member->status);
+        $this->assertSame(2, $stats['memberships_created']);
+        // Neither contract may be charged again after the migration.
+        $this->assertSame(0, $stats['payments_created']);
+    }
+
+    #[Test]
+    public function the_analysis_lists_every_contract_of_a_member(): void
+    {
+        $this->makeMemberFolder('9-107_Analyse Multi_x', [
+            'rows' => [
+                [
+                    'Mitgliedsnummer' => '9-107',
+                    'Vorname' => 'Analyse',
+                    'Nachname' => 'Multi',
+                    'E-Mail' => 'analyse.multi@example.test',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'EGYM-Wellpass',
+                    'Preis' => "monatlich: 29,90\u{00A0}€",
+                    'Gekündigt zum' => '31.01.2025',
+                ],
+                [
+                    'Mitgliedsnummer' => '9-107',
+                    'Typ' => 'Vertrag',
+                    'Tarifname' => 'Home-Tarif',
+                    'Preis' => "monatlich: 39,95\u{00A0}€",
+                    'Bezahlt bis' => '31.12.2099',
+                ],
+                [
+                    'Mitgliedsnummer' => '9-107',
+                    'Typ' => 'Modulvertrag',
+                    'Tarifname' => 'Getränke-Flatrate für Home-Tarif',
+                    'Preis' => "monatlich: 9,90\u{00A0}€",
+                ],
+            ],
+        ]);
+
+        $result = $this->importService()->analyse($this->gym->id, $this->folders());
+
+        $this->assertSame(2, $result['stats']['plans_new']);
+        $this->assertSame(1, $result['stats']['modules']);
+
+        $member = $result['members'][0];
+
+        $this->assertSame('EGYM-Wellpass, Home-Tarif', $member['plan_name']);
+        $this->assertSame(69.85, $member['price']);
+        $this->assertSame(['Getränke-Flatrate für Home-Tarif'], $member['modules']);
+
+        // One running contract keeps the membership from being reported as ended.
+        $this->assertFalse($member['membership_ended']);
+        $this->assertNotNull($member['next_charge']);
+    }
+
+    #[Test]
+    public function it_imports_a_free_contract_under_its_own_name(): void
+    {
+        // A free plan already exists, and matching by price alone would put the
+        // Wellpass contract onto it instead of keeping its own name.
+        MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'Gratis-Testzeitraum',
+            'price' => 0,
+        ]);
+
+        $this->makeMemberFolder('9-108_Gratis Wellpass_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-108',
+                'Vorname' => 'Gratis',
+                'Nachname' => 'Wellpass',
+                'E-Mail' => 'gratis.wellpass@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => "monatlich: 0,00\u{00A0}€",
+                'Vertragsbeginn' => '01.03.2024',
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['memberships_created']);
+        $this->assertSame(1, $stats['plans_created']);
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+        $membership = Membership::where('member_id', $member->id)->firstOrFail();
+
+        $this->assertSame('EGYM-Wellpass', $membership->membershipPlan->name);
+        $this->assertSame('0.00', (string) $membership->membershipPlan->price);
+
+        // Nothing is collected for a free membership.
+        $this->assertSame(0, $stats['payments_created']);
+        $this->assertSame('active', $member->status);
+    }
+
+    #[Test]
+    public function it_imports_a_contract_without_a_price_as_a_free_plan(): void
+    {
+        $this->makeMemberFolder('9-109_Ohne Preis_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-109',
+                'Vorname' => 'Ohne',
+                'Nachname' => 'Preis',
+                'E-Mail' => 'ohne.preis@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => '',
+                'Vertragsbeginn' => '01.03.2024',
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        // Previously this threw "Kein Tarif gefunden" and skipped the member.
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['members_created']);
+        $this->assertSame(1, $stats['memberships_created']);
+
+        $plan = MembershipPlan::where('gym_id', $this->gym->id)->firstOrFail();
+        $this->assertSame('EGYM-Wellpass', $plan->name);
+        $this->assertSame('0.00', (string) $plan->price);
+    }
+
+    #[Test]
+    public function it_still_reuses_an_existing_plan_of_the_same_name_when_free(): void
+    {
+        $existing = MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'EGYM-Wellpass',
+            'price' => 0,
+        ]);
+
+        $this->makeMemberFolder('9-110_Bekannt Gratis_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-110',
+                'Vorname' => 'Bekannt',
+                'Nachname' => 'Gratis',
+                'E-Mail' => 'bekannt.gratis@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => "monatlich: 0,00\u{00A0}€",
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame(0, $stats['plans_created']);
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+        $membership = Membership::where('member_id', $member->id)->firstOrFail();
+
+        $this->assertSame($existing->id, $membership->membership_plan_id);
+    }
+
+    #[Test]
     public function it_keeps_the_billing_day_of_a_lapsed_paid_period(): void
     {
         // Mirrors member M004260005: billed on the 1st since April 2022 and
@@ -898,7 +1219,11 @@ class MemberArchiveImportTest extends TestCase
 
         $rows = [$columns];
 
-        foreach (array_merge([$spec['primary']], $spec['modules'] ?? []) as $row) {
+        // A folder is described either by one contract plus its modules, or by
+        // an explicit list of rows for members holding several contracts.
+        $dataRows = $spec['rows'] ?? array_merge([$spec['primary']], $spec['modules'] ?? []);
+
+        foreach ($dataRows as $row) {
             $rows[] = array_map(fn ($column) => (string) ($row[$column] ?? ''), $columns);
         }
 
