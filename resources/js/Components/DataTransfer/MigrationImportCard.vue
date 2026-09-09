@@ -171,7 +171,7 @@
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-3 py-2 text-left font-medium text-gray-700">Mitglied</th>
-                <th class="px-3 py-2 text-left font-medium text-gray-700">Tarif</th>
+                <th class="px-3 py-2 text-left font-medium text-gray-700">Tarife</th>
                 <th class="px-3 py-2 text-left font-medium text-gray-700">Zusatzpakete</th>
                 <th class="px-3 py-2 text-left font-medium text-gray-700">SEPA</th>
                 <th class="px-3 py-2 text-left font-medium text-gray-700">Guthaben</th>

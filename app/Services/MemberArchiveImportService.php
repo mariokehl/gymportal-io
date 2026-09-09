@@ -17,10 +17,14 @@ use Illuminate\Support\Facades\Log;
 /**
  * Imports member archives exported from a third-party gym management system.
  *
- * The archive keeps the running contract of every member, so the goal is a
- * seamless handover: the tariff, the SEPA mandate and any credit balance are
+ * The archive keeps the running contracts of every member, so the goal is a
+ * seamless handover: the tariffs, the SEPA mandate and any credit balance are
  * taken over unchanged and the next charge is created for the day after the
  * period the previous system already collected ("Bezahlt bis").
+ *
+ * A member can hold several contracts at once, each of them with its own
+ * modules. Every contract becomes a membership of its own, and the member
+ * stays active as long as at least one of them is still running.
  */
 class MemberArchiveImportService
 {
@@ -83,23 +87,33 @@ class MemberArchiveImportService
                 $warnings[] = "{$label}: Mitglied existiert bereits und wird übersprungen.";
             }
 
-            $planName = $data['contract']['plan_name'];
-            $plan = $this->matchPlan($plans, $planName, $data['contract']['price']);
+            $planNames = [];
+            $moduleNames = [];
+            $price = 0.0;
+            $allPlansMatched = true;
 
-            if ($plan) {
-                $stats['plans_matched']++;
-            } else {
-                $stats['plans_new']++;
-                $newPlanNames[$planName] = true;
-            }
+            foreach ($data['contracts'] as $entry) {
+                $planName = $entry['contract']['plan_name'];
+                $planNames[] = $planName;
+                $price += (float) ($entry['contract']['price'] ?? 0);
 
-            foreach ($data['modules'] as $module) {
-                $stats['modules']++;
-
-                if ($this->matchAddon($addons, $module['name'])) {
-                    $stats['modules_matched']++;
+                if ($this->matchPlan($plans, $planName, $entry['contract']['price'])) {
+                    $stats['plans_matched']++;
                 } else {
-                    $newAddonNames[$module['name']] = true;
+                    $stats['plans_new']++;
+                    $newPlanNames[$planName] = true;
+                    $allPlansMatched = false;
+                }
+
+                foreach ($entry['modules'] as $module) {
+                    $stats['modules']++;
+                    $moduleNames[] = $module['name'];
+
+                    if ($this->matchAddon($addons, $module['name'])) {
+                        $stats['modules_matched']++;
+                    } else {
+                        $newAddonNames[$module['name']] = true;
+                    }
                 }
             }
 
@@ -121,28 +135,50 @@ class MemberArchiveImportService
                 $stats['legal_guardians']++;
             }
 
-            $contractEnd = $data['contract']['cancelled_to'] ?: $data['contract']['end_date'];
-            $hasEnded = $this->membershipStatus($contractEnd) === 'expired';
+            // The member stays active as long as a single contract is still
+            // running; only when every one of them has ended is the membership
+            // treated as finished.
+            $running = array_values(array_filter(
+                $data['contracts'],
+                fn ($entry) => ! $this->contractHasEnded($entry['contract'])
+            ));
+
+            $hasEnded = $running === [];
 
             if ($hasEnded) {
-                $warnings[] = "{$label}: Die Mitgliedschaft ist am ".Carbon::parse($contractEnd)->format('d.m.Y').' beendet, es wird keine Abrechnung angelegt.';
-            } elseif ($data['paid_until'] === null) {
+                $lastEnd = $this->latestContractEnd($data['contracts']);
+                $warnings[] = "{$label}: Die Mitgliedschaft ist am ".Carbon::parse($lastEnd)->format('d.m.Y').' beendet, es wird keine Abrechnung angelegt.';
+            } elseif ($this->earliestPaidUntil($running, $data) === null) {
                 $warnings[] = "{$label}: Kein \"Bezahlt bis\"-Datum vorhanden, die Abrechnung startet am gewählten Stichtag.";
+            }
+
+            $nextCharge = null;
+
+            foreach ($running as $entry) {
+                $date = $this->nextChargeDate(
+                    $entry['contract']['paid_until'] ?? $data['paid_until'],
+                    null,
+                    $this->contractEnd($entry['contract'])
+                );
+
+                if ($date && (! $nextCharge || $date->lt($nextCharge))) {
+                    $nextCharge = $date;
+                }
             }
 
             $members[] = [
                 'folder' => $data['source_folder'],
                 'name' => $label,
                 'member_number' => $data['member']['member_number'],
-                'plan_name' => $planName,
-                'plan_matched' => $plan !== null,
-                'price' => $data['contract']['price'],
-                'modules' => array_column($data['modules'], 'name'),
+                'plan_name' => implode(', ', array_filter($planNames)),
+                'plan_matched' => $allPlansMatched,
+                'price' => round($price, 2),
+                'modules' => $moduleNames,
                 'has_sepa' => $data['bank_account'] !== null,
                 'credit' => $this->totalCredit($data),
                 'paid_until' => $data['paid_until'],
                 'membership_ended' => $hasEnded,
-                'next_charge' => $hasEnded ? null : $this->nextChargeDate($data['paid_until'], null, $contractEnd)?->toDateString(),
+                'next_charge' => $nextCharge?->toDateString(),
             ];
         }
 
@@ -219,22 +255,12 @@ class MemberArchiveImportService
         $member = $this->createMember($gym, $data);
         $stats['members_created']++;
 
-        $plan = $this->resolvePlan($gym, $data['contract'], $createMissingPlans, $stats);
-
-        if (! $plan) {
-            throw new \RuntimeException("Kein Tarif für \"{$data['contract']['plan_name']}\" gefunden.");
-        }
-
-        $membership = $this->createMembership($member, $plan, $data);
-        $stats['memberships_created']++;
-
         $paymentMethod = $this->createPaymentMethod($member, $data);
 
         if ($paymentMethod) {
             $stats['payment_methods_created']++;
         }
 
-        $this->bookModules($gym, $membership, $data['modules'], $createMissingPlans, $stats);
         $this->importAccessConfig($member, $data);
 
         if ($data['access_tags']['nfc_uid']) {
@@ -243,39 +269,69 @@ class MemberArchiveImportService
 
         $this->importCredit($member, $data, $stats);
 
-        // The previous system has already collected up to "Bezahlt bis", so the
-        // charge in gymportal.io continues the day after that period. An ended
-        // membership is only archived and must never be charged again.
-        $anchor = $membership->status === 'active'
-            ? $this->nextChargeDate($data['paid_until'], $fallback, $membership->end_date)
-            : null;
-
-        if ($anchor) {
-            // The member has been paying all along, so this continues the
-            // running series instead of starting a new one: it keeps the
-            // recurring execution offset and a period-based description
-            // rather than announcing a "1. Mitgliedsbeitrag".
-            // createRecurringPayments() yields nothing once the anchor sits
-            // past the contract end, so take the array form rather than
-            // createNextRecurringPayment(), which would index into an empty
-            // result.
-            $payments = $this->paymentService->createRecurringPayments(
-                $member->fresh(),
-                $membership,
-                1,
-                $anchor
-            );
-
-            if ($payments !== []) {
-                $stats['payments_created']++;
-            }
+        // Every contract of the export becomes its own membership, together
+        // with the modules booked on top of it.
+        foreach ($data['contracts'] as $entry) {
+            $this->importContract($gym, $member, $data, $entry, $fallback, $createMissingPlans, $stats);
         }
 
         $this->syncMemberStatus($member);
     }
 
     /**
-     * A member without a single running membership is archived as inactive,
+     * Import one contract of a member as a membership including its modules
+     * and the follow-up charge.
+     *
+     * @param  array{contract: array<string, mixed>, modules: array<int, array<string, mixed>>}  $entry
+     */
+    private function importContract(Gym $gym, Member $member, array $data, array $entry, ?Carbon $fallback, bool $createMissingPlans, array &$stats): void
+    {
+        $contract = $entry['contract'];
+        $plan = $this->resolvePlan($gym, $contract, $createMissingPlans, $stats);
+
+        if (! $plan) {
+            throw new \RuntimeException("Kein Tarif für \"{$contract['plan_name']}\" gefunden.");
+        }
+
+        $membership = $this->createMembership($member, $plan, $data, $contract);
+        $stats['memberships_created']++;
+
+        $this->bookModules($gym, $membership, $entry['modules'], $createMissingPlans, $stats);
+
+        // The previous system has already collected up to "Bezahlt bis", so the
+        // charge in gymportal.io continues the day after that period. An ended
+        // membership is only archived and must never be charged again.
+        $anchor = $membership->status === 'active'
+            ? $this->nextChargeDate($contract['paid_until'] ?? $data['paid_until'], $fallback, $membership->end_date)
+            : null;
+
+        if (! $anchor) {
+            return;
+        }
+
+        // The member has been paying all along, so this continues the
+        // running series instead of starting a new one: it keeps the
+        // recurring execution offset and a period-based description
+        // rather than announcing a "1. Mitgliedsbeitrag".
+        // createRecurringPayments() yields nothing once the anchor sits
+        // past the contract end, so take the array form rather than
+        // createNextRecurringPayment(), which would index into an empty
+        // result.
+        $payments = $this->paymentService->createRecurringPayments(
+            $member->fresh(),
+            $membership,
+            1,
+            $anchor
+        );
+
+        if ($payments !== []) {
+            $stats['payments_created']++;
+        }
+    }
+
+    /**
+     * A member is active as soon as one of their memberships is still running.
+     * Only when every contract has ended is the member archived as inactive,
      * following the same rule Membership::markAsExpired() applies. The payment
      * details are retired along with it so no mandate stays collectable.
      */
@@ -323,7 +379,7 @@ class MemberArchiveImportService
             'city' => $source['city'],
             'country' => $source['country'] ?: 'DE',
             'status' => 'active',
-            'joined_date' => $data['contract']['start_date'] ?? now()->toDateString(),
+            'joined_date' => $this->earliestContractStart($data) ?? now()->toDateString(),
             'registration_source' => 'archive_import',
             'notes' => $this->buildImportNote($data, $source['notes']),
         ];
@@ -391,9 +447,8 @@ class MemberArchiveImportService
     /**
      * Create the membership, carrying over an existing cancellation.
      */
-    private function createMembership(Member $member, MembershipPlan $plan, array $data): Membership
+    private function createMembership(Member $member, MembershipPlan $plan, array $data, array $contract): Membership
     {
-        $contract = $data['contract'];
         $startDate = $contract['start_date'] ? Carbon::parse($contract['start_date']) : now();
 
         $membership = Membership::create([
@@ -406,7 +461,7 @@ class MemberArchiveImportService
                 'imported_from_archive' => true,
                 'source_member_number' => $data['member']['member_number'],
                 'source_plan_name' => $contract['plan_name'],
-                'source_paid_until' => $data['paid_until'],
+                'source_paid_until' => $contract['paid_until'] ?? $data['paid_until'],
                 'source_price' => $contract['price'],
             ],
         ]);
@@ -422,6 +477,83 @@ class MemberArchiveImportService
         }
 
         return $membership;
+    }
+
+    /**
+     * The day a contract actually stops: a cancellation takes precedence over
+     * the agreed end date.
+     */
+    private function contractEnd(array $contract): ?string
+    {
+        return $contract['cancelled_to'] ?: $contract['end_date'];
+    }
+
+    /**
+     * A contract counts as ended once its last day has passed. A member is
+     * only inactive when this holds for every one of their contracts.
+     */
+    private function contractHasEnded(array $contract): bool
+    {
+        return $this->membershipStatus($this->contractEnd($contract)) === 'expired';
+    }
+
+    /**
+     * The last day on which any contract of the member was still running.
+     *
+     * @param  array<int, array{contract: array<string, mixed>}>  $contracts
+     */
+    private function latestContractEnd(array $contracts): ?string
+    {
+        $latest = null;
+
+        foreach ($contracts as $entry) {
+            $end = $this->contractEnd($entry['contract']);
+
+            if ($end && (! $latest || Carbon::parse($end)->gt(Carbon::parse($latest)))) {
+                $latest = $end;
+            }
+        }
+
+        return $latest;
+    }
+
+    /**
+     * The first day the member joined, i.e. the start of their oldest contract.
+     */
+    private function earliestContractStart(array $data): ?string
+    {
+        $earliest = null;
+
+        foreach ($data['contracts'] as $entry) {
+            $start = $entry['contract']['start_date'] ?? null;
+
+            if ($start && (! $earliest || Carbon::parse($start)->lt(Carbon::parse($earliest)))) {
+                $earliest = $start;
+            }
+        }
+
+        return $earliest;
+    }
+
+    /**
+     * The earliest "Bezahlt bis" among the given contracts, or null when not a
+     * single one of them carries the date.
+     *
+     * @param  array<int, array{contract: array<string, mixed>}>  $contracts
+     */
+    private function earliestPaidUntil(array $contracts, array $data): ?string
+    {
+        $earliest = null;
+
+        foreach ($contracts as $entry) {
+            $paidUntil = $entry['contract']['paid_until'] ?? $data['paid_until'];
+
+            if ($paidUntil && (! $earliest || Carbon::parse($paidUntil)->lt(Carbon::parse($earliest)))) {
+                $earliest = $paidUntil;
+            }
+        }
+
+        return $earliest;
     }
 
     /**

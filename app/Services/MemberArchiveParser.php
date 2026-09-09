@@ -159,12 +159,17 @@ class MemberArchiveParser
 
     /**
      * Parse a single member folder into a normalised array.
+     *
+     * A member can hold more than one contract. All of them are returned under
+     * "contracts", each with the module contracts booked on top of it. The
+     * first contract is additionally exposed as "contract"/"modules" so the
+     * common single-contract case stays easy to read.
      */
     public function parseMemberFolder(string $folder): array
     {
-        $master = $this->readMasterData($folder.'/master_data.xlsx');
+        $groups = $this->readMasterData($folder.'/master_data.xlsx');
 
-        if ($master === null) {
+        if ($groups === null) {
             throw new RuntimeException('master_data.xlsx konnte nicht gelesen werden.');
         }
 
@@ -175,13 +180,25 @@ class MemberArchiveParser
         $bankAccounts = $this->readJson($folder.'/bank_accounts.json') ?? [];
         $liablePerson = $this->readJson($folder.'/liable_person.json');
 
-        $primary = $master['primary'];
+        // The member master data is repeated on every row, so the first one
+        // stands for the member as a whole.
+        $primary = $groups[0]['primary'];
+
+        $parsedContracts = [];
+
+        foreach ($groups as $index => $group) {
+            $parsedContracts[] = [
+                'contract' => $this->buildContract($group['primary'], $contracts, $index === 0),
+                'modules' => $this->buildModules($group['modules'], $contracts),
+            ];
+        }
 
         return [
             'source_folder' => basename($folder),
             'member' => $this->buildMember($primary, $customer, $extended, $contact),
-            'contract' => $this->buildContract($primary, $contracts),
-            'modules' => $this->buildModules($master['modules'], $contracts),
+            'contracts' => $parsedContracts,
+            'contract' => $parsedContracts[0]['contract'],
+            'modules' => $parsedContracts[0]['modules'],
             'bank_account' => $this->buildBankAccount($primary, $bankAccounts),
             'balance' => $this->readAccountBalance($folder.'/account_data.xlsx', $primary),
             'access_tags' => $this->readAccessIdentifications($folder.'/access_identifications.xlsx', $primary),
@@ -246,7 +263,7 @@ class MemberArchiveParser
      * Build the main contract from the primary sheet row, enriched by the JSON
      * export which carries the exact term and extension values.
      */
-    private function buildContract(array $primary, array $contracts): array
+    private function buildContract(array $primary, array $contracts, bool $withSetupFee = true): array
     {
         $json = $this->findContractByRate($contracts, $primary['Tarifname'] ?? '', ['CONTRACT']);
 
@@ -267,8 +284,11 @@ class MemberArchiveParser
             'cancelled_at' => $this->normaliseDate($json['cancelledAt'] ?? null)
                 ?? $this->parseGermanDate($primary['Gekündigt am'] ?? null),
             'cancellation_reason' => trim($json['cancellationReason'] ?? '') ?: null,
-            'setup_fee' => $this->findFlatFeeAmount($contracts),
+            // The joining fee is charged once per member, so it is only kept
+            // on the first contract and never repeated on further ones.
+            'setup_fee' => $withSetupFee ? $this->findFlatFeeAmount($contracts) : null,
             'payment_type' => trim($json['paymentType'] ?? $primary['Zahlungsmethode'] ?? ''),
+            'paid_until' => $this->parseGermanDate($primary['Bezahlt bis'] ?? null),
         ];
     }
 
@@ -428,10 +448,18 @@ class MemberArchiveParser
     }
 
     /**
-     * Read the master sheet: the first data row is the main contract, every
-     * further row is a module contract of the same member.
+     * Read the master sheet. A member can hold several contracts, each of them
+     * optionally followed by its own module contracts:
      *
-     * @return array{primary: array<string, string>, modules: array<int, array<string, string>>}|null
+     *     Vertrag       EGYM-Wellpass
+     *     Modulvertrag  Getränke-Flatrate für Flex-Tarif
+     *     Vertrag       Home-Tarif
+     *     Modulvertrag  Getränke-Flatrate für Home-Tarif
+     *
+     * Every "Vertrag" row opens a new group, and the "Modulvertrag" rows that
+     * follow belong to the group above them.
+     *
+     * @return array<int, array{primary: array<string, string>, modules: array<int, array<string, string>>}>|null
      */
     private function readMasterData(string $path): ?array
     {
@@ -442,8 +470,7 @@ class MemberArchiveParser
         }
 
         $header = $this->uniqueHeader(array_shift($rows));
-        $primary = null;
-        $modules = [];
+        $groups = [];
 
         foreach ($rows as $row) {
             $assoc = $this->combineRow($header, $row);
@@ -452,23 +479,22 @@ class MemberArchiveParser
                 continue;
             }
 
-            // "Vertrag" marks the main contract, "Modulvertrag" an add-on.
-            if ($primary === null && ($assoc['Typ'] ?? '') !== 'Modulvertrag') {
-                $primary = $assoc;
+            // "Vertrag" marks a contract, "Modulvertrag" an add-on to the
+            // contract it follows.
+            if (($assoc['Typ'] ?? '') === 'Modulvertrag') {
+                // A module without a preceding contract row cannot be assigned
+                // and is dropped rather than silently attached elsewhere.
+                if ($groups !== []) {
+                    $groups[array_key_last($groups)]['modules'][] = $assoc;
+                }
 
                 continue;
             }
 
-            if (($assoc['Typ'] ?? '') === 'Modulvertrag') {
-                $modules[] = $assoc;
-            }
+            $groups[] = ['primary' => $assoc, 'modules' => []];
         }
 
-        if ($primary === null) {
-            return null;
-        }
-
-        return ['primary' => $primary, 'modules' => $modules];
+        return $groups === [] ? null : $groups;
     }
 
     /**
