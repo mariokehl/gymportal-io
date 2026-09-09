@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('original_price', 8, 2)->nullable();
             $table->timestamps();
 
-            $table->index(['membership_plan_id', 'sort_order']);
+            $table->index(['membership_plan_id', 'sort_order'], 'mp_discount_phases_plan_sort_index');
         });
 
         Schema::table('membership_plans', function (Blueprint $table) {

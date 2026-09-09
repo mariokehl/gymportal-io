@@ -26,9 +26,22 @@ class SchedulerHealthCheckService
                 $this->notifyAdministrators("Found {$stuckPayments} stuck payments");
             }
 
-            // Check for overdue payments
+            // Check for overdue payments. The execution_date overrides the
+            // due_date when set, so a payment is only overdue once that later
+            // date has passed. Payment links are excluded because they are
+            // settled by the member and never charged by the scheduler.
+            $overdueCutoff = now()->subDays(7);
             $overduePayments = Payment::where('status', 'pending')
-                ->where('due_date', '<', now()->subDays(7))
+                ->where(function ($q) {
+                    $q->whereNull('payment_method')
+                        ->orWhere('payment_method', '!=', 'mollie_paymentlink');
+                })
+                ->where(function ($q) use ($overdueCutoff) {
+                    $q->where(function ($subQ) use ($overdueCutoff) {
+                        $subQ->whereNull('execution_date')
+                            ->where('due_date', '<', $overdueCutoff);
+                    })->orWhere('execution_date', '<', $overdueCutoff);
+                })
                 ->count();
 
             // Threshold is 1% of all paid payments, but at least 10
