@@ -309,6 +309,12 @@ class MemberArchiveImportService
             return;
         }
 
+        // A free membership has nothing to collect, so no charge is scheduled
+        // for it. The membership itself is still imported and stays active.
+        if ((float) $plan->price <= 0) {
+            return;
+        }
+
         // The member has been paying all along, so this continues the
         // running series instead of starting a new one: it keeps the
         // recurring execution offset and a period-based description
@@ -417,9 +423,13 @@ class MemberArchiveImportService
             return $plan;
         }
 
-        if (! $createMissing || $contract['plan_name'] === '' || $contract['price'] === null) {
+        if (! $createMissing || $contract['plan_name'] === '') {
             return null;
         }
+
+        // A contract the export lists without a price is a free membership and
+        // is carried over under its own name at 0 €.
+        $price = $contract['price'] ?? 0.0;
 
         $cancellation = $contract['cancellation_period'] ?? ['value' => 30, 'unit' => 'days'];
 
@@ -427,7 +437,7 @@ class MemberArchiveImportService
             'gym_id' => $gym->id,
             'name' => $contract['plan_name'],
             'description' => 'Aus einem Voranbieter-Export übernommen.',
-            'price' => $contract['price'],
+            'price' => $price,
             'setup_fee' => $contract['setup_fee'] ?? 0,
             'billing_cycle' => $contract['billing_cycle'],
             'commitment_months' => $contract['commitment_months'],
@@ -819,7 +829,10 @@ class MemberArchiveImportService
             }
         }
 
-        if ($price === null) {
+        // Matching by price alone would put every free contract onto the first
+        // plan that happens to cost nothing, so a named contract keeps its own
+        // name instead of being folded into an unrelated free plan.
+        if ($price === null || ($price <= 0 && $name !== '')) {
             return null;
         }
 

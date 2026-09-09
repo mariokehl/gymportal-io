@@ -360,6 +360,109 @@ class MemberArchiveImportTest extends TestCase
     }
 
     #[Test]
+    public function it_imports_a_free_contract_under_its_own_name(): void
+    {
+        // A free plan already exists, and matching by price alone would put the
+        // Wellpass contract onto it instead of keeping its own name.
+        MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'Gratis-Testzeitraum',
+            'price' => 0,
+        ]);
+
+        $this->makeMemberFolder('9-108_Gratis Wellpass_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-108',
+                'Vorname' => 'Gratis',
+                'Nachname' => 'Wellpass',
+                'E-Mail' => 'gratis.wellpass@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => "monatlich: 0,00\u{00A0}€",
+                'Vertragsbeginn' => '01.03.2024',
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['memberships_created']);
+        $this->assertSame(1, $stats['plans_created']);
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+        $membership = Membership::where('member_id', $member->id)->firstOrFail();
+
+        $this->assertSame('EGYM-Wellpass', $membership->membershipPlan->name);
+        $this->assertSame('0.00', (string) $membership->membershipPlan->price);
+
+        // Nothing is collected for a free membership.
+        $this->assertSame(0, $stats['payments_created']);
+        $this->assertSame('active', $member->status);
+    }
+
+    #[Test]
+    public function it_imports_a_contract_without_a_price_as_a_free_plan(): void
+    {
+        $this->makeMemberFolder('9-109_Ohne Preis_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-109',
+                'Vorname' => 'Ohne',
+                'Nachname' => 'Preis',
+                'E-Mail' => 'ohne.preis@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => '',
+                'Vertragsbeginn' => '01.03.2024',
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        // Previously this threw "Kein Tarif gefunden" and skipped the member.
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['members_created']);
+        $this->assertSame(1, $stats['memberships_created']);
+
+        $plan = MembershipPlan::where('gym_id', $this->gym->id)->firstOrFail();
+        $this->assertSame('EGYM-Wellpass', $plan->name);
+        $this->assertSame('0.00', (string) $plan->price);
+    }
+
+    #[Test]
+    public function it_still_reuses_an_existing_plan_of_the_same_name_when_free(): void
+    {
+        $existing = MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'EGYM-Wellpass',
+            'price' => 0,
+        ]);
+
+        $this->makeMemberFolder('9-110_Bekannt Gratis_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-110',
+                'Vorname' => 'Bekannt',
+                'Nachname' => 'Gratis',
+                'E-Mail' => 'bekannt.gratis@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => "monatlich: 0,00\u{00A0}€",
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame(0, $stats['plans_created']);
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+        $membership = Membership::where('member_id', $member->id)->firstOrFail();
+
+        $this->assertSame($existing->id, $membership->membership_plan_id);
+    }
+
+    #[Test]
     public function it_keeps_the_billing_day_of_a_lapsed_paid_period(): void
     {
         // Mirrors member M004260005: billed on the 1st since April 2022 and
