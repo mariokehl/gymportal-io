@@ -1,6 +1,6 @@
 # 🏋️ gymportal.io
 
-A modern gym management system built with Laravel and Vue.js, featuring member management, course bookings, payments, and comprehensive admin tools.
+A modern gym management system built with Laravel and Vue.js, featuring member management, payments, and comprehensive admin tools.
 
 ## 🚀 Tech Stack
 
