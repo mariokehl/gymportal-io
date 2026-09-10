@@ -165,6 +165,95 @@ class ScannerAddonUsageLogTest extends TestCase
     }
 
     #[Test]
+    public function a_repeated_scan_within_the_debounce_window_is_not_logged_twice(): void
+    {
+        $member = $this->member();
+        $membership = $this->membershipFor($member);
+        $membership->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+        $dispenser = $this->dispenser();
+
+        $this->scan($dispenser, $member)->assertOk();
+        $this->scan($dispenser, $member)
+            ->assertOk()
+            ->assertJsonPath('access_allowed', true)
+            ->assertJsonPath('message', 'Zugang bereits gewährt');
+
+        // The reader fired twice for one draw — that must stay a single use.
+        $this->assertSame(1, MemberAccessLog::where('member_id', $member->id)->count());
+    }
+
+    #[Test]
+    public function a_scan_after_the_debounce_window_is_booked_again(): void
+    {
+        $member = $this->member();
+        $membership = $this->membershipFor($member);
+        $membership->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+        $dispenser = $this->dispenser();
+
+        $this->scan($dispenser, $member)->assertOk();
+        $this->travel(61)->seconds();
+        $this->scan($dispenser, $member)->assertOk();
+
+        $this->assertSame(2, MemberAccessLog::where('member_id', $member->id)->count());
+    }
+
+    #[Test]
+    public function the_debounce_does_not_carry_over_to_another_addon(): void
+    {
+        $sauna = Addon::factory()->usageFlatRate()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'Sauna',
+            'settled_via_device' => true,
+        ]);
+
+        $member = $this->member();
+        $membership = $this->membershipFor($member);
+        $membership->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+        $membership->addons()->attach($sauna->id, ['mode' => 'optional']);
+
+        $this->scan($this->dispenser(), $member)->assertOk();
+        $this->scan($this->dispenser($sauna->id), $member)->assertOk();
+
+        // Drawing a drink says nothing about the sauna next door.
+        $this->assertSame(2, MemberAccessLog::where('member_id', $member->id)->count());
+    }
+
+    #[Test]
+    public function a_denied_scan_does_not_open_the_debounce_window(): void
+    {
+        $member = $this->member();
+        $membership = $this->membershipFor($member);
+        $dispenser = $this->dispenser();
+
+        // Not booked yet: denied, and the denial must not suppress the check
+        // once the add-on is actually there.
+        $this->scan($dispenser, $member)->assertStatus(403);
+        $membership->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+        $this->scan($dispenser, $member)->assertOk();
+
+        $this->assertSame(2, MemberAccessLog::where('member_id', $member->id)->count());
+    }
+
+    #[Test]
+    public function a_recent_door_checkin_does_not_open_the_dispenser(): void
+    {
+        $member = $this->member();
+        $this->membershipFor($member);
+
+        $door = GymScanner::create([
+            'gym_id' => $this->gym->id,
+            'device_name' => 'Haupteingang',
+            'device_task' => GymScanner::TASK_CHECKIN,
+        ]);
+
+        $this->scan($door, $member)->assertOk();
+
+        // Without the drink package the dispenser stays shut, however fresh
+        // the check-in is.
+        $this->scan($this->dispenser(), $member)->assertStatus(403);
+    }
+
+    #[Test]
     public function the_service_name_shows_the_booked_addon(): void
     {
         $log = MemberAccessLog::create([

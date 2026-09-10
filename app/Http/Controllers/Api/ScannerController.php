@@ -8,6 +8,7 @@ use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
+use App\Models\MemberAccessLog;
 use App\Models\Membership;
 use App\Models\ScannerAccessLog;
 use App\Services\CrossLocationAccessService;
@@ -23,6 +24,13 @@ use Illuminate\Support\Facades\Validator;
 
 class ScannerController extends Controller
 {
+    /**
+     * How long a granted add-on use suppresses another booking of the same
+     * add-on. Covers the burst of scans a reader emits while the member holds
+     * the code in front of it, without hiding a genuine second use.
+     */
+    private const ADDON_DEBOUNCE_SECONDS = 60;
+
     public function __construct(
         private ScannerValidationService $validationService,
         private DeviceAccessService $deviceAccessService,
@@ -149,25 +157,40 @@ class ScannerController extends Controller
                 return new Response(status: 403);
             }
 
-            // Already checked in within the last 30 seconds: grant access right
-            // away. This only applies to access devices — a dispenser must still
-            // check the booked service, otherwise a member without a drink
-            // package would get through right after checking in.
-            $recentCheckIn = $scanner->isAddonLinked()
-                ? null
-                : CheckIn::where('member_id', $member->id)
+            // Repeated scan within the debounce window: grant access right away
+            // without booking it a second time. Access devices look at the
+            // check-ins, add-on devices at their own usage log — a dispenser
+            // must never wave a member through on the strength of a door scan,
+            // otherwise someone without a drink package would get served right
+            // after checking in.
+            if ($scanner->isAddonLinked()) {
+                $recentAddonAccess = $this->recentAddonAccess($scanner, $member);
+
+                if ($recentAddonAccess) {
+                    return response()->json([
+                        'member_id' => $member->id,
+                        'active' => $member->isActive(),
+                        'membership_expires' => $recentAddonAccess->accessed_at,
+                        'access_allowed' => true,
+                        'scan_type' => $scanType,
+                        'message' => 'Zugang bereits gewährt',
+                    ]);
+                }
+            } else {
+                $recentCheckIn = CheckIn::where('member_id', $member->id)
                     ->where('check_in_time', '>=', now()->subSeconds(30))
                     ->first();
 
-            if ($recentCheckIn) {
-                return response()->json([
-                    'member_id' => $member->id,
-                    'active' => $member->isActive(),
-                    'membership_expires' => $recentCheckIn->check_in_time,
-                    'access_allowed' => true,
-                    'scan_type' => $scanType,
-                    'message' => 'Zugang bereits gewährt',
-                ]);
+                if ($recentCheckIn) {
+                    return response()->json([
+                        'member_id' => $member->id,
+                        'active' => $member->isActive(),
+                        'membership_expires' => $recentCheckIn->check_in_time,
+                        'access_allowed' => true,
+                        'scan_type' => $scanType,
+                        'message' => 'Zugang bereits gewährt',
+                    ]);
+                }
             }
 
             // Guest access: skip the membership check
@@ -435,6 +458,33 @@ class ScannerController extends Controller
                 return Gym::where('owner_id', $ownerId)->pluck('id')->all();
             }
         );
+    }
+
+    /**
+     * The member's last granted use of this device's add-on inside the
+     * debounce window, if there is one.
+     *
+     * A dispenser tends to fire several scans while the member holds the code
+     * in front of the reader. Only a grant for the *same* add-on counts —
+     * having drawn a drink says nothing about the sauna next door.
+     */
+    private function recentAddonAccess(GymScanner $scanner, Member $member): ?MemberAccessLog
+    {
+        // Without a linked add-on there is nothing to match against, and any
+        // scan would collapse onto the same window. check() denies these
+        // devices anyway.
+        if (! $scanner->addon_id) {
+            return null;
+        }
+
+        return MemberAccessLog::where('member_id', $member->id)
+            ->accessAttempts()
+            ->successful()
+            ->forService(MemberAccessLog::SERVICE_ADDON)
+            ->where('metadata->addon_id', $scanner->addon_id)
+            ->where('accessed_at', '>=', now()->subSeconds(self::ADDON_DEBOUNCE_SECONDS))
+            ->latest('accessed_at')
+            ->first();
     }
 
     /**
