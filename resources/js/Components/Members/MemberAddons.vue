@@ -163,6 +163,14 @@
       </button>
     </div>
 
+    <!-- Cancellation dialog -->
+    <CancelAddonModal
+      v-if="addonToCancel"
+      :member-id="member.id"
+      :addon="addonToCancel"
+      @close="addonToCancel = null"
+    />
+
     <!-- Booking dialog -->
     <div
       v-if="showBookingDialog"
@@ -275,6 +283,7 @@ import {
 } from 'lucide-vue-next'
 import { formatPrice, formatDate, formatDateTime } from '@/utils/formatters'
 import { cappedBillingDate, endOfBookingMonth, isTrialActive, nextMonthlyBillingDate } from '@/utils/addons'
+import CancelAddonModal from '@/Components/Members/CancelAddonModal.vue'
 
 const props = defineProps({
   member: {
@@ -289,6 +298,9 @@ const props = defineProps({
 })
 
 const togglingKey = ref(null)
+
+// The booked add-on the cancellation dialog is open for, if any.
+const addonToCancel = ref(null)
 
 const showBookingDialog = ref(false)
 const selectedMembershipId = ref(null)
@@ -427,10 +439,12 @@ const toggleCompletion = (addon) => {
 }
 
 const toggleCancellation = (addon) => {
-  // Cancelling ends an ongoing service, so confirm before doing it. Revoking a
-  // pending cancellation restores the previous state and needs no confirmation.
-  if (!addon.cancelledAt
-    && !window.confirm(`Soll „${addon.name}“ wirklich zum Monatsende gekündigt werden?`)) {
+  // Cancelling ends an ongoing service and needs an effective date, so it is
+  // handled in a dialog. Revoking a pending cancellation restores the previous
+  // state and needs no further input.
+  if (!addon.cancelledAt) {
+    addonToCancel.value = addon
+
     return
   }
 

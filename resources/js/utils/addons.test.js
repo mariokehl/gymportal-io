@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
-  cappedBillingDate, endOfBookingMonth, isTrialActive, nextMonthlyBillingDate, resolveSelectedAddonIds,
-  weeklyPriceOf
+  cappedBillingDate, endOfBookingMonth, endOfCurrentMonth, isTrialActive, nextMonthlyBillingDate,
+  resolveSelectedAddonIds, weeklyPriceOf
 } from '@/utils/addons'
 
 describe('nextMonthlyBillingDate', () => {
@@ -79,6 +79,38 @@ describe('endOfBookingMonth', () => {
   it('returns null for a missing or invalid date', () => {
     expect(endOfBookingMonth(null)).toBeNull()
     expect(endOfBookingMonth('not-a-date')).toBeNull()
+  })
+})
+
+describe('endOfCurrentMonth', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  const freeze = (iso) => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(iso))
+  }
+
+  it('returns the last day of a 31-day month', () => {
+    freeze('2026-07-15T12:00:00Z')
+    expect(endOfCurrentMonth()).toBe('2026-07-31')
+  })
+
+  it('returns the last day of a 30-day month', () => {
+    // The reported case: a trial running until the end of September.
+    freeze('2026-09-21T12:00:00Z')
+    expect(endOfCurrentMonth()).toBe('2026-09-30')
+  })
+
+  it('handles a leap year February', () => {
+    freeze('2028-02-10T12:00:00Z')
+    expect(endOfCurrentMonth()).toBe('2028-02-29')
+  })
+
+  it('stays in the month on its last day', () => {
+    freeze('2026-09-30T12:00:00Z')
+    expect(endOfCurrentMonth()).toBe('2026-09-30')
   })
 })
 

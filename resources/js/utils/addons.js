@@ -120,6 +120,18 @@ export function endOfBookingMonth(bookedAt) {
 }
 
 /**
+ * Last day of the month that is currently running, read in the display
+ * timezone — the default effective date offered when cancelling an add-on.
+ *
+ * @returns {string} YYYY-MM-DD
+ */
+export function endOfCurrentMonth() {
+  const [year, month] = todayInDisplayTimezone().split('-').map(Number)
+
+  return toIsoDate(year, month, daysInMonth(year, month))
+}
+
+/**
  * Whether a "rest of the month free" trial is still running.
  *
  * @param {string|null} trialEndsAt YYYY-MM-DD
