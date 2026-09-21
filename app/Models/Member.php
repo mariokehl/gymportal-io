@@ -245,6 +245,62 @@ class Member extends Authenticatable
     }
 
     /**
+     * Whether this member may currently use an add-on.
+     *
+     * Asked across all of the member's memberships at once, because a booked
+     * add-on hangs on the membership it was sold with, which is not
+     * necessarily the one granting access today. A free trial period bridging
+     * the gap until a paid contract starts on the 1st is its own membership
+     * record and carries no add-ons, while the add-on sits on the paid
+     * contract that has not started yet. Asking only the membership the
+     * scanner matched would deny the service for the whole trial period,
+     * although the member booked and — for included add-ons — already pays
+     * for it.
+     *
+     * What decides usability is therefore the booking, not the contract's
+     * start date:
+     *
+     * - trial_rest_of_month grants the remainder of the booking month for
+     *   free, so the service is usable from the day it was booked — the same
+     *   boundary ProcessMembershipPayments applies when it skips that first
+     *   period.
+     * - Without that trial, a booking on a contract that has not started yet
+     *   unlocks nothing before the contract runs. A tariff change booked for
+     *   1.12. must not open the dispenser in September.
+     * - A cancelled add-on stays usable until the end of the period it was
+     *   last billed for, and add-ons deactivated gym-wide never count.
+     */
+    public function hasActiveAddon(int $addonId): bool
+    {
+        $today = now()->startOfDay();
+
+        return DB::table('addon_membership')
+            ->join('addons', 'addons.id', '=', 'addon_membership.addon_id')
+            ->join('memberships', 'memberships.id', '=', 'addon_membership.membership_id')
+            ->where('memberships.member_id', $this->id)
+            ->whereNull('memberships.deleted_at')
+            ->where('addon_membership.addon_id', $addonId)
+            ->where('addons.is_active', true)
+            // Booked, and its free trial month or its contract has begun.
+            // booked_at carries the real booking date on imported contracts and
+            // is null for everything booked here, where created_at is it.
+            ->whereRaw(
+                'DATE(COALESCE(addon_membership.booked_at, addon_membership.created_at)) <= ?',
+                [$today->toDateString()]
+            )
+            ->where(function ($query) use ($today) {
+                $query->where('addons.trial_rest_of_month', true)
+                    ->orWhereDate('memberships.start_date', '<=', $today);
+            })
+            // Cancelled add-ons stay usable until the paid period runs out.
+            ->where(function ($query) use ($today) {
+                $query->whereNull('addon_membership.cancellation_effective_at')
+                    ->orWhereDate('addon_membership.cancellation_effective_at', '>=', $today);
+            })
+            ->exists();
+    }
+
+    /**
      * Findet die bezahlte pending Mitgliedschaft für die Aktivierung nach Zahlungseingang.
      * Funktioniert für beide Varianten:
      * 1. Nur bezahlte Mitgliedschaft (ohne Gratis-Testzeitraum)

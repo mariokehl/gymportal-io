@@ -51,7 +51,10 @@ class DeviceAccessService
             return [false, self::DENIAL_GUEST_WITHOUT_ADDON];
         }
 
-        if (! $membership->hasActiveAddon($scanner->addon_id)) {
+        // Asked on the member, not on the scanned membership: during a free
+        // trial period bridging the gap to a paid contract, the add-on hangs on
+        // the paid membership while the trial one is the active contract today.
+        if (! $member->hasActiveAddon($scanner->addon_id)) {
             return [false, self::DENIAL_ADDON_NOT_BOOKED];
         }
 

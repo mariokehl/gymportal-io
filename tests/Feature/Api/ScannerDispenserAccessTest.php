@@ -51,16 +51,41 @@ class ScannerDispenserAccessTest extends TestCase
         ], $attributes));
     }
 
-    private function membershipFor(Member $member): Membership
+    private function membershipFor(Member $member, array $attributes = []): Membership
     {
         $plan = MembershipPlan::factory()->create(['gym_id' => $this->gym->id]);
 
-        return Membership::factory()->create([
+        return Membership::factory()->create(array_merge([
             'member_id' => $member->id,
             'membership_plan_id' => $plan->id,
             'status' => 'active',
             'start_date' => now()->subMonth()->toDateString(),
+        ], $attributes));
+    }
+
+    /**
+     * Free trial period bridging the gap until the paid contract starts on the
+     * 1st, linked to it the way MemberService creates the pair.
+     */
+    private function freeTrialFor(Member $member, Membership $paid): Membership
+    {
+        $trialPlan = MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'is_free_trial_plan' => true,
+            'price' => 0,
         ]);
+
+        $trial = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $trialPlan->id,
+            'status' => 'active',
+            'start_date' => now()->subDays(2)->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
+        ]);
+
+        $paid->update(['linked_free_membership_id' => $trial->id]);
+
+        return $trial;
     }
 
     private function scan(GymScanner $scanner, Member $member)
@@ -179,6 +204,132 @@ class ScannerDispenserAccessTest extends TestCase
 
         $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
             ->assertStatus(403);
+    }
+
+    #[Test]
+    public function a_trial_addon_booked_during_a_free_period_is_usable_right_away(): void
+    {
+        $member = $this->member();
+
+        $this->drinkPackage->update([
+            'billing_type' => Addon::BILLING_TYPE_RECURRING,
+            'trial_rest_of_month' => true,
+        ]);
+
+        // Paid contract starts on the 1st of next month and carries the
+        // booking; the free period bridges the gap until then.
+        $paid = $this->membershipFor($member, [
+            'start_date' => now()->addMonth()->startOfMonth()->toDateString(),
+        ]);
+        $paid->addons()->attach($this->drinkPackage->id, ['mode' => 'included', 'price' => 0]);
+
+        $this->freeTrialFor($member, $paid);
+
+        $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
+            ->assertOk()
+            ->assertJsonPath('access_allowed', true);
+    }
+
+    #[Test]
+    public function a_trial_addon_counts_even_while_the_paid_contract_is_pending(): void
+    {
+        $member = $this->member();
+
+        $this->drinkPackage->update([
+            'billing_type' => Addon::BILLING_TYPE_RECURRING,
+            'trial_rest_of_month' => true,
+        ]);
+
+        $paid = $this->membershipFor($member, [
+            'status' => 'pending',
+            'start_date' => now()->addMonth()->startOfMonth()->toDateString(),
+        ]);
+        $paid->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+
+        $this->freeTrialFor($member, $paid);
+
+        $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
+            ->assertOk()
+            ->assertJsonPath('access_allowed', true);
+    }
+
+    #[Test]
+    public function an_addon_without_the_trial_stays_locked_until_the_contract_starts(): void
+    {
+        $member = $this->member();
+
+        // No rest-of-month trial: the package belongs to the contract starting
+        // on the 1st, so the free period grants entry but not the dispenser.
+        $paid = $this->membershipFor($member, [
+            'start_date' => now()->addMonth()->startOfMonth()->toDateString(),
+        ]);
+        $paid->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+
+        $this->freeTrialFor($member, $paid);
+
+        $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Leistung nicht gebucht');
+    }
+
+    #[Test]
+    public function a_free_trial_period_without_a_booked_addon_is_still_denied(): void
+    {
+        $member = $this->member();
+        $paid = $this->membershipFor($member, [
+            'start_date' => now()->addMonth()->startOfMonth()->toDateString(),
+        ]);
+
+        $this->freeTrialFor($member, $paid);
+
+        $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Leistung nicht gebucht');
+    }
+
+    #[Test]
+    public function a_future_contract_without_the_rest_of_month_trial_unlocks_nothing_yet(): void
+    {
+        $member = $this->member();
+
+        // A running contract without the package, plus an unrelated future one
+        // that has it — a tariff change booked for the 1st of next month must
+        // not open the dispenser today.
+        $this->membershipFor($member);
+        $future = $this->membershipFor($member, [
+            'start_date' => now()->addMonth()->startOfMonth()->toDateString(),
+        ]);
+        $future->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+
+        $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Leistung nicht gebucht');
+    }
+
+    #[Test]
+    public function a_rest_of_month_trial_unlocks_the_addon_before_the_contract_starts(): void
+    {
+        $member = $this->member();
+
+        // The trial grants the remainder of the booking month for free, so the
+        // package is usable straight away even though the contract it hangs on
+        // only starts on the 1st of next month.
+        $this->drinkPackage->update([
+            'billing_type' => Addon::BILLING_TYPE_RECURRING,
+            'trial_rest_of_month' => true,
+        ]);
+
+        $paid = $this->membershipFor($member, [
+            'start_date' => now()->addMonth()->startOfMonth()->toDateString(),
+        ]);
+        $paid->addons()->attach($this->drinkPackage->id, ['mode' => 'optional']);
+
+        // Access itself comes from the running free trial period.
+        $this->freeTrialFor($member, $paid);
+
+        $this->scan($this->scanner(GymScanner::TASK_DISPENSER, $this->drinkPackage->id), $member)
+            ->assertOk()
+            ->assertJsonPath('access_allowed', true);
     }
 
     #[Test]
