@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\Membership;
 use App\Services\MemberService;
 use App\Services\MembershipService;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -810,13 +811,13 @@ class MembershipController extends Controller
     /**
      * Cancel a booked recurring add-on, or revoke a pending cancellation.
      *
-     * Recurring add-ons are cancellable to the end of the current billing
-     * period, so the service stays usable until then and only the following
-     * period is no longer billed. Billing periods are anchored to the
-     * membership start date and only match calendar months when the contract
-     * itself started on the 1st.
+     * The owner picks the date the cancellation takes effect; it defaults to
+     * the end of the current calendar month in the UI. No notice period is
+     * enforced here — the operator decides — the date only has to be today or
+     * later. Charges already scheduled for periods starting after that date are
+     * cancelled, so an add-on that runs out during a trial is never billed.
      */
-    public function toggleAddonCancellation(Request $request, Member $member, Membership $membership, Addon $addon)
+    public function toggleAddonCancellation(Request $request, Member $member, Membership $membership, Addon $addon, PaymentService $paymentService)
     {
         $this->authorize('update', $membership);
 
@@ -841,19 +842,44 @@ class MembershipController extends Controller
         }
 
         $isCancelled = $pivot->cancelled_at !== null;
-        $effectiveAt = $membership->billingPeriodEnd();
 
-        $membership->addons()->updateExistingPivot($addon->id, [
-            'cancelled_at' => $isCancelled ? null : now(),
-            'cancellation_effective_at' => $isCancelled ? null : $effectiveAt?->toDateString(),
-            'cancelled_by' => $isCancelled ? null : $request->user()->id,
+        // Revoking restores the previous state and takes no date.
+        if ($isCancelled) {
+            $membership->addons()->updateExistingPivot($addon->id, [
+                'cancelled_at' => null,
+                'cancellation_effective_at' => null,
+                'cancelled_by' => null,
+            ]);
+
+            return back()->with('success', 'Die Kündigung des Add-ons wurde zurückgenommen.');
+        }
+
+        $validated = $request->validate([
+            'cancellation_effective_at' => 'required|date|after_or_equal:today',
+        ], [
+            'cancellation_effective_at.required' => 'Bitte geben Sie ein Kündigungsdatum an.',
+            'cancellation_effective_at.after_or_equal' => 'Das Kündigungsdatum darf nicht in der Vergangenheit liegen.',
         ]);
 
-        return back()->with(
-            'success',
-            $isCancelled
-                ? 'Die Kündigung des Add-ons wurde zurückgenommen.'
-                : 'Add-on wurde zum '.$effectiveAt?->format('d.m.Y').' gekündigt.'
-        );
+        $effectiveAt = Carbon::parse($validated['cancellation_effective_at'])->startOfDay();
+
+        $membership->addons()->updateExistingPivot($addon->id, [
+            'cancelled_at' => now(),
+            'cancellation_effective_at' => $effectiveAt->toDateString(),
+            'cancelled_by' => $request->user()->id,
+        ]);
+
+        // Payments are pre-created for the coming weeks, so the rows already
+        // written for periods after the cancellation have to be voided.
+        $canceledPayments = $paymentService->cancelScheduledAddonPayments($membership, $addon, $effectiveAt);
+
+        $message = 'Add-on wurde zum '.$effectiveAt->format('d.m.Y').' gekündigt.';
+
+        if ($canceledPayments > 0) {
+            $message .= ' '.$canceledPayments.' vorgemerkte '
+                .($canceledPayments === 1 ? 'Zahlung wurde' : 'Zahlungen wurden').' storniert.';
+        }
+
+        return back()->with('success', $message);
     }
 }

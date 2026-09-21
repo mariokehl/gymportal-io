@@ -858,6 +858,60 @@ class PaymentService
     }
 
     /**
+     * Cancel the scheduled charges of a cancelled add-on.
+     *
+     * Recurring add-on payments are pre-created for the days ahead the billing
+     * run looks at, so cancelling an add-on has to clear the rows that were
+     * already written for periods starting after the cancellation takes effect
+     * — the billing run's own check only stops future ones from being created.
+     *
+     * Only untouched charges are cancelled: a payment already handed to Mollie
+     * or booked through a transaction is left alone, since money may have moved
+     * for it already.
+     *
+     * @param  Carbon  $effectiveAt  Last day the add-on is still billable
+     * @return int Number of cancelled payments
+     */
+    public function cancelScheduledAddonPayments(
+        Membership $membership,
+        Addon $addon,
+        Carbon $effectiveAt
+    ): int {
+        $payments = $membership->payments()
+            ->where('metadata->addon_id', $addon->id)
+            ->where('status', 'pending')
+            ->whereNull('mollie_payment_id')
+            ->whereNull('transaction_id')
+            ->whereDate('due_date', '>', $effectiveAt->toDateString())
+            ->get();
+
+        $note = 'Storniert wegen Add-on-Kündigung zum '.$effectiveAt->format('d.m.Y');
+
+        foreach ($payments as $payment) {
+            // Updated row by row rather than in bulk: metadata is a JSON cast
+            // and has to be merged, not overwritten.
+            $payment->update([
+                'status' => 'canceled',
+                'canceled_at' => now(),
+                'notes' => trim(trim((string) $payment->notes).' | '.$note, ' |'),
+                'metadata' => array_merge($payment->metadata ?? [], [
+                    'canceled_reason' => 'addon_cancelled',
+                    'cancellation_effective_at' => $effectiveAt->toDateString(),
+                ]),
+            ]);
+        }
+
+        Log::info('Scheduled add-on payments cancelled', [
+            'membership_id' => $membership->id,
+            'addon_id' => $addon->id,
+            'effective_at' => $effectiveAt->toDateString(),
+            'canceled_count' => $payments->count(),
+        ]);
+
+        return $payments->count();
+    }
+
+    /**
      * Initiiert Erstattung für Widerruf gemäß § 356a BGB
      *
      * Bei einem Widerruf müssen alle geleisteten Zahlungen innerhalb von
