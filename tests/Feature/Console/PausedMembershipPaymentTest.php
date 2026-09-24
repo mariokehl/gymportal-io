@@ -232,6 +232,22 @@ class PausedMembershipPaymentTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_payment_links_because_they_are_settled_externally(): void
+    {
+        [$membership, $member, $gym] = $this->pausedMembership();
+        $payment = $this->createDuePayment($membership, $member, $gym, [
+            'payment_method' => 'mollie_paymentlink',
+        ]);
+
+        $this->runProcessing();
+
+        $payment->refresh();
+
+        $this->assertSame('pending', $payment->status);
+        $this->assertStringNotContainsString('Pausenzeit', (string) $payment->notes);
+    }
+
+    #[Test]
     public function it_leaves_the_payment_untouched_in_test_mode(): void
     {
         [$membership, $member, $gym] = $this->pausedMembership();
