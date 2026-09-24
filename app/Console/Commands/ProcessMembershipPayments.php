@@ -97,6 +97,8 @@ class ProcessMembershipPayments extends Command
             'errors' => [],
         ];
 
+        // Gyms whose trial has expired without an active subscription are
+        // skipped, every query below is limited to gyms with active access
         try {
             // 1. Process due payments
             $this->info('Step 1: Processing due payments...');
@@ -149,7 +151,8 @@ class ProcessMembershipPayments extends Command
             'errors' => [],
         ];
 
-        $query = Payment::where('status', 'pending')
+        $query = Payment::ofGymsWithActiveAccess()
+            ->where('status', 'pending')
             ->where(function ($q) {
                 // Zahlung wird verarbeitet wenn:
                 // - execution_date ist NULL und due_date ist heute oder in der Vergangenheit ODER
@@ -436,7 +439,8 @@ class ProcessMembershipPayments extends Command
 
         // Get active memberships that need upcoming payments
         // Exclude free trial memberships (no payments needed for those)
-        $query = Membership::where('status', 'active')
+        $query = Membership::ofGymsWithActiveAccess()
+            ->where('status', 'active')
             ->whereDate('start_date', '<=', Carbon::today())
             ->whereHas('membershipPlan', function ($q) {
                 $q->where('is_free_trial_plan', false)
@@ -716,7 +720,8 @@ class ProcessMembershipPayments extends Command
 
         // Get memberships expiring within the next month
         // Schließt bereits expired/cancelled und Gratis-Mitgliedschaften aus
-        $expiringMemberships = Membership::whereIn('status', ['active', 'paused'])
+        $expiringMemberships = Membership::ofGymsWithActiveAccess()
+            ->whereIn('status', ['active', 'paused'])
             ->whereNotNull('end_date')
             ->whereDate('end_date', '<=', Carbon::today()->addMonth())
             ->whereNull('cancellation_date') // Keine gekündigten
@@ -905,7 +910,8 @@ class ProcessMembershipPayments extends Command
         foreach ($notificationDays as $days) {
             $expiringDate = Carbon::today()->addDays($days);
 
-            $memberships = Membership::where('status', 'active')
+            $memberships = Membership::ofGymsWithActiveAccess()
+                ->where('status', 'active')
                 ->whereDate('end_date', $expiringDate)
                 ->whereNull('cancellation_date')
                 ->with(['member', 'membershipPlan'])

@@ -833,6 +833,15 @@ class Member extends Authenticatable
         );
     }
 
+    /**
+     * Limit the query to members of gyms that are in their trial or have an
+     * active subscription.
+     */
+    public function scopeOfGymsWithActiveAccess($query)
+    {
+        return $query->whereHas('gym', fn ($q) => $q->withActiveAccess());
+    }
+
     // Erweiterte Scopes
     public function scopeActive($query)
     {

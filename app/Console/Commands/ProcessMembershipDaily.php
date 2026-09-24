@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Gym;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -20,19 +21,21 @@ class ProcessMembershipDaily extends Command
     {
         $startTime = now();
 
-        $this->info("===========================================");
-        $this->info("Starting Daily Membership Processing");
-        $this->info("Time: " . $startTime->format('Y-m-d H:i:s'));
+        $this->info('===========================================');
+        $this->info('Starting Daily Membership Processing');
+        $this->info('Time: '.$startTime->format('Y-m-d H:i:s'));
         $this->info("===========================================\n");
 
         $exitCode = 0;
         $results = [];
 
+        $this->reportSkippedGyms();
+
         try {
             // Step 1: Update Membership Statuses
-            if (!$this->option('skip-status')) {
-                $this->info("Step 1: Updating membership statuses...");
-                $this->info("----------------------------------------");
+            if (! $this->option('skip-status')) {
+                $this->info('Step 1: Updating membership statuses...');
+                $this->info('----------------------------------------');
 
                 $statusCode = Artisan::call('memberships:update-statuses', [], $this->output);
                 $results['status_update'] = $statusCode === 0 ? 'success' : 'failed';
@@ -49,9 +52,9 @@ class ProcessMembershipDaily extends Command
             }
 
             // Step 2: Process Payments
-            if (!$this->option('skip-payments') && $exitCode === 0) {
-                $this->info("Step 2: Processing membership payments...");
-                $this->info("----------------------------------------");
+            if (! $this->option('skip-payments') && $exitCode === 0) {
+                $this->info('Step 2: Processing membership payments...');
+                $this->info('----------------------------------------');
 
                 $args = [];
                 if ($this->option('test')) {
@@ -74,8 +77,8 @@ class ProcessMembershipDaily extends Command
 
             // Step 3: Send Notifications (optional)
             if ($exitCode === 0) {
-                $this->info("Step 3: Sending notifications...");
-                $this->info("----------------------------------------");
+                $this->info('Step 3: Sending notifications...');
+                $this->info('----------------------------------------');
 
                 // Hier könnten Sie einen weiteren Command für Benachrichtigungen aufrufen
                 // z.B.: Artisan::call('memberships:send-notifications');
@@ -84,10 +87,10 @@ class ProcessMembershipDaily extends Command
             }
 
         } catch (\Exception $e) {
-            $this->error("Critical error during processing: " . $e->getMessage());
+            $this->error('Critical error during processing: '.$e->getMessage());
             Log::error('Daily membership processing failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             $exitCode = 1;
         }
@@ -95,15 +98,15 @@ class ProcessMembershipDaily extends Command
         // Summary
         $duration = $startTime->diffInSeconds(now());
 
-        $this->info("===========================================");
-        $this->info("Daily Processing Summary");
-        $this->info("===========================================");
+        $this->info('===========================================');
+        $this->info('Daily Processing Summary');
+        $this->info('===========================================');
         $this->info("Duration: {$duration} seconds");
-        $this->info("Results:");
+        $this->info('Results:');
         foreach ($results as $step => $result) {
             $icon = $result === 'success' ? '✓' : '✗';
             $color = $result === 'success' ? 'info' : 'error';
-            $this->$color("  {$icon} " . str_replace('_', ' ', ucfirst($step)) . ": {$result}");
+            $this->$color("  {$icon} ".str_replace('_', ' ', ucfirst($step)).": {$result}");
         }
         $this->info("===========================================\n");
 
@@ -111,9 +114,32 @@ class ProcessMembershipDaily extends Command
         Log::info('Daily membership processing completed', [
             'duration' => $duration,
             'results' => $results,
-            'exit_code' => $exitCode
+            'exit_code' => $exitCode,
         ]);
 
         return $exitCode;
+    }
+
+    /**
+     * Report the gyms the sub-commands skip because their trial has expired
+     * without an active subscription.
+     */
+    protected function reportSkippedGyms(): void
+    {
+        $skippedGyms = Gym::withoutActiveAccess()->get(['id', 'name']);
+
+        if ($skippedGyms->isEmpty()) {
+            return;
+        }
+
+        $this->warn("Skipping {$skippedGyms->count()} gym(s) without trial or active subscription:");
+        foreach ($skippedGyms as $gym) {
+            $this->warn("  - #{$gym->id} {$gym->name}");
+        }
+        $this->newLine();
+
+        Log::info('Daily membership processing skips gyms without active access', [
+            'gym_ids' => $skippedGyms->pluck('id')->all(),
+        ]);
     }
 }
