@@ -153,6 +153,12 @@ class ProcessMembershipPayments extends Command
 
         $query = Payment::ofGymsWithActiveAccess()
             ->where('status', 'pending')
+            // Payment links are settled externally by the member and must
+            // never be charged by the scheduler.
+            ->where(function ($q) {
+                $q->whereNull('payment_method')
+                    ->orWhere('payment_method', '!=', 'mollie_paymentlink');
+            })
             ->where(function ($q) {
                 // Zahlung wird verarbeitet wenn:
                 // - execution_date ist NULL und due_date ist heute oder in der Vergangenheit ODER
