@@ -18,11 +18,15 @@ class UpdateMembershipStatuses extends Command
     {
         $this->info('Starte Aktualisierung der Mitgliedschaftsstatus...');
 
+        // Gyms whose trial has expired without an active subscription are
+        // skipped, every query below is limited to gyms with active access
+
         $updated = 0;
         $now = Carbon::now();
 
         // 1. Gekündigte Mitgliedschaften auf 'cancelled' setzen
-        $cancelledCount = Membership::where('cancellation_date', '<', $now)
+        $cancelledCount = Membership::ofGymsWithActiveAccess()
+            ->where('cancellation_date', '<', $now)
             ->whereIn('status', ['active', 'paused'])
             ->update(['status' => 'cancelled']);
 
@@ -34,7 +38,8 @@ class UpdateMembershipStatuses extends Command
         // 2. Automatically reactivate paused memberships
         // The pause period is cleared so the membership is not picked up again
         // on every following run, matching the manual resume
-        $resumedCount = Membership::where('status', 'paused')
+        $resumedCount = Membership::ofGymsWithActiveAccess()
+            ->where('status', 'paused')
             ->where('pause_end_date', '<=', $now)
             ->update([
                 'status' => 'active',
@@ -48,7 +53,8 @@ class UpdateMembershipStatuses extends Command
         }
 
         // 3. Mitgliedschaften pausieren, deren Pausierungsdatum erreicht wurde
-        $pausedCount = Membership::where('status', 'active')
+        $pausedCount = Membership::ofGymsWithActiveAccess()
+            ->where('status', 'active')
             ->where('pause_start_date', '<=', $now)
             ->where('pause_end_date', '>', $now)
             ->update(['status' => 'paused']);
@@ -61,7 +67,7 @@ class UpdateMembershipStatuses extends Command
         // 4. Abgelaufene Mitgliedschaften auf 'expired' setzen
         // Erst expired wenn der komplette End-Tag vergangen ist (end_date < today)
         // Unbefristete Mitgliedschaften (end_date=null) werden nicht expired
-        $expiredMemberships = Membership::shouldBeExpired()->get();
+        $expiredMemberships = Membership::ofGymsWithActiveAccess()->shouldBeExpired()->get();
 
         foreach ($expiredMemberships as $membership) {
             $membership->markAsExpired('status_updater');
@@ -73,7 +79,8 @@ class UpdateMembershipStatuses extends Command
         }
 
         // 5. Ausstehende Mitgliedschaften prüfen (z.B. nach 30 Tagen automatisch stornieren)
-        $pendingTimeout = Membership::where('status', 'pending')
+        $pendingTimeout = Membership::ofGymsWithActiveAccess()
+            ->where('status', 'pending')
             ->where('created_at', '<=', $now->subDays(30))
             ->get();
 
@@ -89,7 +96,8 @@ class UpdateMembershipStatuses extends Command
 
         // 6. Mitglieder ohne aktive Mitgliedschaft auf 'inactive' setzen
         // Überspringe Mitglieder mit aktivem Gastzugang
-        $activeMembers = Member::where('status', 'active')
+        $activeMembers = Member::ofGymsWithActiveAccess()
+            ->where('status', 'active')
             ->where('guest_access', false)
             ->get();
         $deactivatedCount = 0;
@@ -116,7 +124,8 @@ class UpdateMembershipStatuses extends Command
         }
 
         // Mitglieder mit Gastzugang zählen (zur Information)
-        $guestAccessCount = Member::where('status', 'active')
+        $guestAccessCount = Member::ofGymsWithActiveAccess()
+            ->where('status', 'active')
             ->where('guest_access', true)
             ->doesntHave('memberships', 'and', function ($query) {
                 $query->where('status', 'active');

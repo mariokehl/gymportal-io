@@ -78,6 +78,12 @@ class Gym extends Model
         '🌲', '🍀', '🏙️', '🏢', '📍', '🧭', '🛡️', '🎽',
     ];
 
+    /**
+     * Hours an active subscription stays valid after subscription_ends_at,
+     * bridging the gap until the renewal webhook arrives.
+     */
+    public const SUBSCRIPTION_GRACE_HOURS = 2;
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -1089,12 +1095,39 @@ class Gym extends Model
     {
         return $this->subscription_status === 'active' &&
                $this->subscription_ends_at &&
-               $this->subscription_ends_at->gt(now()->subHours(2));
+               $this->subscription_ends_at->gt(now()->subHours(self::SUBSCRIPTION_GRACE_HOURS));
     }
 
     public function canAccessPremiumFeatures(): bool
     {
         return $this->isInTrial() || $this->hasActiveSubscription();
+    }
+
+    /**
+     * Limit the query to gyms that are still in their trial or have an active
+     * subscription. This is the query counterpart of canAccessPremiumFeatures()
+     * and decides which gyms the scheduled processes handle.
+     */
+    public function scopeWithActiveAccess($query)
+    {
+        $now = now();
+
+        return $query->where(function ($q) use ($now) {
+            $q->where('trial_ends_at', '>', $now)
+                ->orWhere(function ($subscription) use ($now) {
+                    $subscription->where('subscription_status', 'active')
+                        ->where('subscription_ends_at', '>', $now->copy()->subHours(self::SUBSCRIPTION_GRACE_HOURS));
+                });
+        });
+    }
+
+    /**
+     * Limit the query to gyms whose trial has expired without an active
+     * subscription following it.
+     */
+    public function scopeWithoutActiveAccess($query)
+    {
+        return $query->whereNotIn('id', static::withActiveAccess()->select('id'));
     }
 
     public function getSubscriptionStatusLabel(): string

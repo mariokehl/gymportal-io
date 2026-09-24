@@ -189,6 +189,15 @@ class Payment extends Model
         ][$this->payment_method] ?? $this->payment_method;
     }
 
+    /**
+     * Limit the query to payments of gyms that are in their trial or have an
+     * active subscription.
+     */
+    public function scopeOfGymsWithActiveAccess($query)
+    {
+        return $query->whereHas('gym', fn ($q) => $q->withActiveAccess());
+    }
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending');

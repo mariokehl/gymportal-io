@@ -332,6 +332,16 @@ class Membership extends Model
         return $this->payments()->where('status', 'pending')->orderBy('due_date')->first();
     }
 
+    /**
+     * Limit the query to memberships of gyms that are in their trial or have
+     * an active subscription. Soft-deleted members are included, so their
+     * memberships keep being processed like before.
+     */
+    public function scopeOfGymsWithActiveAccess($query)
+    {
+        return $query->whereHas('member', fn ($q) => $q->withTrashed()->ofGymsWithActiveAccess());
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
