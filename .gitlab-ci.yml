@@ -4,7 +4,7 @@ stages:
 unit-tests:
   stage: test
   image:
-    name: serversideup/php:8.2-cli
+    name: serversideup/php:8.4-cli
     # Runs as www-data by default, which may not install PHP extensions.
     docker:
       user: root

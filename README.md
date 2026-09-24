@@ -4,7 +4,7 @@ A modern gym management system built with Laravel and Vue.js, featuring member m
 
 ## 🚀 Tech Stack
 
--   **Backend**: Laravel 12 (PHP 8.2+)
+-   **Backend**: Laravel 12 (PHP 8.4)
 -   **Frontend**: Vue.js 3 with Inertia.js
 -   **Styling**: Tailwind CSS
 -   **Database**: MySQL (via DDEV)
