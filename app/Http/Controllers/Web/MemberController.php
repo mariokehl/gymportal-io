@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\Aggregator;
 use App\Http\Controllers\Controller;
 use App\Models\FraudCheck;
 use App\Models\Gym;
@@ -48,7 +49,7 @@ class MemberController extends Controller
         $user = Auth::user();
 
         $query = Member::query()
-            ->with(['user', 'gym'])
+            ->with(['user', 'gym', 'accessConfig'])
             ->where('gym_id', $user->current_gym_id)
             ->addSelect(['members.*'])
             ->selectSub(
@@ -76,6 +77,16 @@ class MemberController extends Controller
         // Filter: nur Mitglieder mit offenen Posten
         if ($request->boolean('outstandingBalance')) {
             $query->hasOutstandingBalance();
+        }
+
+        // Aggregator filter: any, none or a specific provider
+        $aggregatorFilter = $request->input('aggregator');
+        if ($aggregatorFilter === 'any') {
+            $query->whereHas('accessConfig', fn ($q) => $q->whereNotNull('aggregator'));
+        } elseif ($aggregatorFilter === 'none') {
+            $query->whereDoesntHave('accessConfig', fn ($q) => $q->whereNotNull('aggregator'));
+        } elseif ($aggregator = Aggregator::tryFrom((string) $aggregatorFilter)) {
+            $query->whereHas('accessConfig', fn ($q) => $q->withAggregator($aggregator));
         }
 
         // Sorting logic
@@ -212,6 +223,10 @@ class MemberController extends Controller
             $member->last_check_in = $member->last_check_in;
             $member->contract_end_date = $member->activeMembership()?->cancellation_date;
             $member->outstanding_balance = $member->outstanding_balance ? (float) $member->outstanding_balance : null;
+            // Only the aggregator badge is needed here; the rest of the access
+            // configuration (NFC UID, credits) stays out of the list payload.
+            $member->aggregator = $member->accessConfig?->aggregatorSummary();
+            $member->unsetRelation('accessConfig');
             $member->can_delete = $member->canBeDeleted();
             if (! $member->can_delete) {
                 $deleteBlockInfo = $member->getDeleteBlockReason();
@@ -224,7 +239,7 @@ class MemberController extends Controller
 
         return Inertia::render('Members/Index', [
             'members' => $members,
-            'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection', 'outstandingBalance']),
+            'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection', 'outstandingBalance', 'aggregator']),
         ]);
     }
 

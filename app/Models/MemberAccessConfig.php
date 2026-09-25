@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Aggregator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,8 @@ class MemberAccessConfig extends Model
         'coffee_flat_enabled' => 'boolean',
         'coffee_flat_expiry' => 'date:Y-m-d',
         'additional_services' => 'array',
+        'aggregator' => Aggregator::class,
+        'aggregator_linked_at' => 'datetime',
     ];
 
     /**
@@ -58,7 +61,12 @@ class MemberAccessConfig extends Model
         'has_active_services',
         'active_services_count',
         'has_static_login_code',
+        'aggregator_status',
     ];
+
+    public const AGGREGATOR_STATUS_PENDING = 'pending';
+
+    public const AGGREGATOR_STATUS_LINKED = 'linked';
 
     /**
      * Get the member that owns the access configuration
@@ -138,6 +146,41 @@ class MemberAccessConfig extends Model
     public function hasStaticLoginCode(): bool
     {
         return ! empty($this->static_login_code);
+    }
+
+    /**
+     * Link state of the aggregator account: pending until a check-in through
+     * the aggregator confirms it, null without an aggregator.
+     */
+    public function getAggregatorStatusAttribute(): ?string
+    {
+        if (! $this->aggregator) {
+            return null;
+        }
+
+        return $this->aggregator_linked_at
+            ? self::AGGREGATOR_STATUS_LINKED
+            : self::AGGREGATOR_STATUS_PENDING;
+    }
+
+    /**
+     * Badge data for list views and log entries. Leaves out the account id and
+     * the rest of the access configuration, the log also lists members of
+     * other locations.
+     *
+     * @return array{key: string, name: string, status: string}|null
+     */
+    public function aggregatorSummary(): ?array
+    {
+        if (! $this->aggregator) {
+            return null;
+        }
+
+        return [
+            'key' => $this->aggregator->value,
+            'name' => $this->aggregator->label(),
+            'status' => $this->aggregator_status,
+        ];
     }
 
     /**
@@ -279,6 +322,14 @@ class MemberAccessConfig extends Model
     public function scopeWithQrEnabled($query)
     {
         return $query->where('qr_code_enabled', true);
+    }
+
+    /**
+     * Scope: Configurations linked to the given aggregator
+     */
+    public function scopeWithAggregator($query, Aggregator $aggregator)
+    {
+        return $query->where('aggregator', $aggregator->value);
     }
 
     /**

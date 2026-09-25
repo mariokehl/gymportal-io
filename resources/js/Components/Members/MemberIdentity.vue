@@ -17,10 +17,11 @@
       <p
         class="text-sm font-medium text-gray-900 truncate"
         :class="memberLink ? 'group-hover:text-indigo-600 transition-colors' : null"
+        :title="displayName"
       >
         {{ displayName }}
       </p>
-      <p v-if="showEmail && member?.email" class="text-xs text-gray-500 truncate">
+      <p v-if="showEmail && member?.email" class="text-xs text-gray-500 truncate" :title="member.email">
         {{ member.email }}
       </p>
       <slot name="meta" />

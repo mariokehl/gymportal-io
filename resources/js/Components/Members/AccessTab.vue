@@ -209,6 +209,9 @@
       </div>
     </div>
 
+    <!-- Corporate fitness aggregator -->
+    <MemberAggregatorCard :member="member" />
+
     <!-- Additional Services -->
     <div class="flex flex-col gap-3">
       <h3 class="text-lg font-bold text-gray-900">Zusätzliche Services</h3>
@@ -594,6 +597,7 @@ import {
   Smartphone, X, XCircle, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
+import MemberAggregatorCard from '@/Components/Members/MemberAggregatorCard.vue'
 
 const props = defineProps({
   member: {

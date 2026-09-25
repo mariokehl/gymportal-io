@@ -70,6 +70,8 @@ class AccessControlController extends Controller
                 // Only used for cross-location contract denials, where the
                 // dialog names the plan it is about to open.
                 'memberships' => fn ($m) => $m->active()->with('membershipPlan:id,name,gym_id')->limit(1),
+                // Aggregator badge next to the member name.
+                'accessConfig',
             ])])
             ->latest()
             ->limit(50)
@@ -293,6 +295,8 @@ class AccessControlController extends Controller
                 // Only used for cross-location contract denials, where the
                 // dialog names the plan it is about to open.
                 'memberships' => fn ($m) => $m->active()->with('membershipPlan:id,name,gym_id')->limit(1),
+                // Aggregator badge next to the member name.
+                'accessConfig',
             ])])
             ->latest();
 
@@ -814,6 +818,7 @@ class AccessControlController extends Controller
             'member_id' => $log->member_id,
             'member_name' => $log->member ? trim($log->member->first_name.' '.$log->member->last_name) : null,
             'member_number' => $log->member?->member_number,
+            'member_aggregator' => $log->member?->accessConfig?->aggregatorSummary(),
             // Only linkable while the member belongs to the current gym —
             // MemberPolicy::view compares against current_gym_id, so a visiting
             // member's profile 403s. Those go through the switch dialog instead.

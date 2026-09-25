@@ -53,6 +53,13 @@
                 :show-icon="true"
               />
 
+              <!-- Corporate fitness aggregator -->
+              <AggregatorBadge
+                v-if="member.access_config?.aggregator"
+                :aggregator="member.access_config.aggregator"
+                :status="member.access_config.aggregator_status"
+              />
+
               <!-- Age -->
               <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
                 {{ memberAge }} Jahre
@@ -362,6 +369,7 @@ import { Link } from '@inertiajs/vue3'
 import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet, MoreVertical, LogIn, LogOut } from 'lucide-vue-next'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
+import AggregatorBadge from '@/Components/Aggregators/AggregatorBadge.vue'
 import MemberStatusEditor from '@/Components/MemberStatusEditor.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import { formatDate } from '@/utils/formatters'
