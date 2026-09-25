@@ -55,6 +55,10 @@ class MemberAccessLog extends Model
 
     const ACTION_STATIC_CODE_REMOVED = 'static_code_removed';
 
+    const ACTION_AGGREGATOR_SET = 'aggregator_set';
+
+    const ACTION_AGGREGATOR_REMOVED = 'aggregator_removed';
+
     /**
      * Service types
      */
@@ -116,6 +120,8 @@ class MemberAccessLog extends Model
             self::ACTION_DEVICE_REMOVED => 'Gerät entfernt',
             self::ACTION_STATIC_CODE_SET => 'Statischer Login-Code gesetzt',
             self::ACTION_STATIC_CODE_REMOVED => 'Statischer Login-Code entfernt',
+            self::ACTION_AGGREGATOR_SET => 'Aggregator-Verknüpfung gespeichert',
+            self::ACTION_AGGREGATOR_REMOVED => 'Aggregator-Verknüpfung entfernt',
         ];
 
         return $actions[$this->action] ?? $this->action;

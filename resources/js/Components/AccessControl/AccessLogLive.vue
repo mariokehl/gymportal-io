@@ -196,6 +196,11 @@
                         <span v-if="log.member_number" class="text-sm text-gray-400">
                             (#{{ log.member_number }})
                         </span>
+                        <AggregatorBadge
+                            v-if="log.member_aggregator"
+                            :aggregator="log.member_aggregator.key"
+                            :status="log.member_aggregator.status"
+                        />
                         <span
                             v-if="log.is_cross_location"
                             class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 rounded px-2 py-0.5 text-xs font-medium"
@@ -318,6 +323,11 @@
                                                 <span v-if="log.member_number" class="text-sm text-gray-400">
                                                     (#{{ log.member_number }})
                                                 </span>
+                                                <AggregatorBadge
+                                                    v-if="log.member_aggregator"
+                                                    :aggregator="log.member_aggregator.key"
+                                                    :status="log.member_aggregator.status"
+                                                />
 
                                                 <span
                                                     v-if="log.is_cross_location"
@@ -507,6 +517,7 @@ import {
     Loader2, MapPin, SlidersHorizontal, X, ChevronRight
 } from 'lucide-vue-next'
 import SwitchLocationModal from '@/Components/AccessControl/SwitchLocationModal.vue'
+import AggregatorBadge from '@/Components/Aggregators/AggregatorBadge.vue'
 import { useScannerAccessLogs } from '@/composables/useScannerAccessLogs'
 import { getDisplayTimezone } from '@/utils/formatters'
 import { DEVICE_TASKS, deviceTaskLabel } from '@/utils/deviceTasks'

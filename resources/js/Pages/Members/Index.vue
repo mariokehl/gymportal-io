@@ -21,9 +21,10 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
+          <!-- Filters stack on mobile and line up from sm upwards -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
             <!-- Offene Posten Filter -->
-            <label class="inline-flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none">
+            <label class="inline-flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none whitespace-nowrap">
               <input
                 v-model="filters.outstandingBalance"
                 type="checkbox"
@@ -36,7 +37,7 @@
             <!-- Status Filter -->
             <select
               v-model="filters.status"
-              class="p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full sm:w-auto p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               @change="handleFilter"
             >
               <option value="">Alle Status</option>
@@ -48,10 +49,22 @@
               <option value="blocked">Gesperrt</option>
             </select>
 
+            <!-- Aggregator Filter -->
+            <select
+              v-model="filters.aggregator"
+              aria-label="Nach Aggregator filtern"
+              class="w-full sm:w-auto p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              @change="handleFilter"
+            >
+              <option v-for="option in aggregatorOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+
             <!-- Neu anlegen Button -->
             <Link
               :href="route('members.create')"
-              class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+              class="inline-flex items-center justify-center whitespace-nowrap px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
             >
               <Plus class="w-4 h-4 mr-2" />
               Neues Mitglied
@@ -71,6 +84,9 @@
                     Name
                     <ArrowUpDown class="w-4 h-4 ml-1" />
                   </div>
+                </th>
+                <th class="px-2 py-3">
+                  <span class="sr-only">Aggregator</span>
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="handleSort('member_number')">
                   <div class="flex items-center">
@@ -104,6 +120,13 @@
                   <!-- Capped so long names/emails truncate instead of widening the
                        table: fits the viewport on mobile, 280px from there on. -->
                   <MemberIdentity :member="member" size="md" max-width="min(calc(100vw - 10rem), 280px)" />
+                </td>
+                <td class="px-2 py-4 whitespace-nowrap">
+                  <AggregatorBadge
+                    v-if="member.aggregator"
+                    :aggregator="member.aggregator.key"
+                    :status="member.aggregator.status"
+                  />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ member.member_number }}
@@ -197,7 +220,7 @@
         <Users class="mx-auto h-12 w-12 text-gray-400" />
         <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Mitglieder gefunden</h3>
         <p class="mt-1 text-sm text-gray-500">
-          {{ filters.search || filters.status ? 'Keine Mitglieder entsprechen den aktuellen Filtern.' : 'Beginnen Sie mit dem Hinzufügen Ihres ersten Mitglieds.' }}
+          {{ filters.search || filters.status || filters.aggregator ? 'Keine Mitglieder entsprechen den aktuellen Filtern.' : 'Beginnen Sie mit dem Hinzufügen Ihres ersten Mitglieds.' }}
         </p>
         <div class="mt-6">
           <Link
@@ -291,10 +314,12 @@ import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
+import AggregatorBadge from '@/Components/Aggregators/AggregatorBadge.vue'
 import {
   Users, Plus, Search, Edit, Trash2, Eye, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown
 } from 'lucide-vue-next'
 import { formatDate } from '@/utils/formatters'
+import { aggregatorFilterOptions } from '@/utils/aggregators'
 
 // Props
 const props = defineProps({
@@ -307,9 +332,12 @@ const filters = reactive({
   search: props.filters?.search || '',
   status: props.filters?.status || '',
   outstandingBalance: props.filters?.outstandingBalance === 'true' || props.filters?.outstandingBalance === true,
+  aggregator: props.filters?.aggregator || '',
   sortBy: props.filters?.sortBy || 'member_number',
   sortDirection: props.filters?.sortDirection || 'asc'
 })
+
+const aggregatorOptions = aggregatorFilterOptions()
 
 const showDeleteModal = ref(false)
 const memberToDelete = ref(null)

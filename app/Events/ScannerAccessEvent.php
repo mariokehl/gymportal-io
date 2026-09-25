@@ -47,7 +47,7 @@ class ScannerAccessEvent implements ShouldBroadcast
         $log->load([
             // Device numbers repeat across gyms, so scope the scanner by gym.
             'scanner' => fn ($q) => $q->where('gym_id', $log->gym_id),
-            'member',
+            'member.accessConfig',
         ]);
 
         return [
@@ -63,6 +63,7 @@ class ScannerAccessEvent implements ShouldBroadcast
             'member_id' => $log->member_id,
             'member_name' => $log->member ? trim($log->member->first_name.' '.$log->member->last_name) : null,
             'member_number' => $log->member?->member_number,
+            'member_aggregator' => $log->member?->accessConfig?->aggregatorSummary(),
             'nfc_card_id' => $log->metadata['nfc_card_id'] ?? null,
             'metadata' => $log->metadata,
             'created_at' => $log->created_at->toIso8601String(),

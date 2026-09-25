@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Members\UpdateMemberAggregatorRequest;
 use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\MemberAppAccessLink;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
 use App\Models\MemberDevice;
+use App\Services\MemberAggregatorService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +186,35 @@ class MemberAccessController extends Controller
         ]);
 
         return back()->with('success', 'Der statische Login-Code wurde entfernt.');
+    }
+
+    /**
+     * Set or replace the member's corporate fitness aggregator account.
+     */
+    public function updateAggregator(UpdateMemberAggregatorRequest $request, Member $member, MemberAggregatorService $aggregators)
+    {
+        $aggregators->assign(
+            $member,
+            $request->aggregator(),
+            $request->validated('aggregator_account_id'),
+            $request->user()
+        );
+
+        return back()->with('success', 'Die Aggregator-Verknüpfung wurde gespeichert.');
+    }
+
+    /**
+     * Remove the member's corporate fitness aggregator account.
+     */
+    public function removeAggregator(Request $request, Member $member, MemberAggregatorService $aggregators)
+    {
+        $this->authorize('update', $member);
+
+        if (! $aggregators->remove($member, $request->user())) {
+            return back()->with('error', 'Für dieses Mitglied ist kein Aggregator hinterlegt.');
+        }
+
+        return back()->with('success', 'Die Aggregator-Verknüpfung wurde entfernt.');
     }
 
     /**
