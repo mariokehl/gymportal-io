@@ -101,7 +101,9 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-for="member in members.data" :key="member.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <MemberIdentity :member="member" size="md" :max-width="null" />
+                  <!-- Capped so long names/emails truncate instead of widening the
+                       table: fits the viewport on mobile, 280px from there on. -->
+                  <MemberIdentity :member="member" size="md" max-width="min(calc(100vw - 10rem), 280px)" />
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ member.member_number }}
