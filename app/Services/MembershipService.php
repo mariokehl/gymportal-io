@@ -254,10 +254,10 @@ class MembershipService
 
             // Extend the contract end date by the pause duration
             if ($membership->end_date) {
-                // NoOverflow keeps a contract ending on the 31st at the end of
-                // the target month instead of spilling into the next one
-                $attributes['end_date'] = Carbon::parse($membership->end_date)
-                    ->addMonthsNoOverflow($this->pauseMonths($pauseStart, $pauseEnd));
+                $attributes['end_date'] = $this->extendEndDate(
+                    $membership,
+                    $this->pauseMonths($pauseStart, $pauseEnd),
+                );
             }
 
             $membership->update($attributes);
@@ -319,6 +319,25 @@ class MembershipService
         }
 
         return max($months, 1);
+    }
+
+    /**
+     * Contract end date moved back by the given number of months.
+     *
+     * Each month is counted from the day after the current end, like a
+     * renewal: a contract ending on 30.11. runs from 01.12. to 31.12. for one
+     * more month. The periods follow the billing periods of the membership,
+     * so short months clamp to their last day.
+     */
+    private function extendEndDate(Membership $membership, int $months): Carbon
+    {
+        $endDate = Carbon::parse($membership->end_date)->startOfDay();
+
+        for ($i = 0; $i < $months; $i++) {
+            $endDate = $membership->billingPeriodEnd($endDate->copy()->addDay());
+        }
+
+        return $endDate;
     }
 
     /**

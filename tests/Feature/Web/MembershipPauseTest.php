@@ -223,6 +223,23 @@ class MembershipPauseTest extends TestCase
     }
 
     #[Test]
+    public function a_pause_month_is_counted_from_the_day_after_the_end_date(): void
+    {
+        [$owner, $member, $membership] = $this->makeMembership([
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-11-30',
+        ]);
+
+        $this->pause($owner, $member, $membership, [
+            'pause_start_date' => '2026-10-01',
+            'pause_end_date' => '2026-10-31',
+        ])->assertSessionHasNoErrors();
+
+        // The extra month runs from 01.12. to 31.12., not up to 30.12.
+        $this->assertSame('2026-12-31', $membership->refresh()->end_date->format('Y-m-d'));
+    }
+
+    #[Test]
     public function resuming_clears_the_pause_period(): void
     {
         [$owner, $member, $membership] = $this->makeMembership([
