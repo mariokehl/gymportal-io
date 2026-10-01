@@ -402,6 +402,80 @@ class MemberArchiveImportTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_match_a_named_contract_to_a_plan_of_the_same_price(): void
+    {
+        // The gym already sells a different tariff at the same price, which
+        // must not swallow the contract just because the amounts are equal.
+        $other = MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'Studenten-Tarif',
+            'price' => 29.90,
+        ]);
+
+        $this->makeMemberFolder('9-111_Gleicher Preis_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-111',
+                'Vorname' => 'Gleicher',
+                'Nachname' => 'Preis',
+                'E-Mail' => 'gleicher.preis@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => "monatlich: 29,90\u{00A0}€",
+                'Vertragsbeginn' => '01.03.2024',
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $analysis = $this->importService()->analyse($this->gym->id, $this->folders());
+
+        $this->assertSame(0, $analysis['stats']['plans_matched']);
+        $this->assertSame(1, $analysis['stats']['plans_new']);
+        $this->assertFalse($analysis['members'][0]['plan_matched']);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['plans_created']);
+
+        $member = Member::where('gym_id', $this->gym->id)->firstOrFail();
+        $membership = Membership::where('member_id', $member->id)->firstOrFail();
+
+        $this->assertNotSame($other->id, $membership->membership_plan_id);
+        $this->assertSame('EGYM-Wellpass', $membership->membershipPlan->name);
+    }
+
+    #[Test]
+    public function it_reports_a_named_contract_without_matching_plan_when_plans_are_not_created(): void
+    {
+        MembershipPlan::factory()->create([
+            'gym_id' => $this->gym->id,
+            'name' => 'Studenten-Tarif',
+            'price' => 29.90,
+        ]);
+
+        $this->makeMemberFolder('9-112_Kein Tarif_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-112',
+                'Vorname' => 'Kein',
+                'Nachname' => 'Tarif',
+                'E-Mail' => 'kein.tarif@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'EGYM-Wellpass',
+                'Preis' => "monatlich: 29,90\u{00A0}€",
+                'Vertragsbeginn' => '01.03.2024',
+                'Bezahlt bis' => '31.12.2099',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders(), null, false);
+
+        $this->assertSame(0, $stats['memberships_created']);
+        $this->assertSame(0, $stats['plans_created']);
+        $this->assertCount(1, $stats['errors']);
+        $this->assertStringContainsString('EGYM-Wellpass', json_encode($stats['errors'], JSON_UNESCAPED_UNICODE));
+    }
+
+    #[Test]
     public function it_imports_a_contract_without_a_price_as_a_free_plan(): void
     {
         $this->makeMemberFolder('9-109_Ohne Preis_x', [

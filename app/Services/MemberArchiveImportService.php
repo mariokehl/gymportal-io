@@ -832,18 +832,15 @@ class MemberArchiveImportService
     {
         $name = trim($name);
 
+        // A named contract is only ever matched by its name. Matching it by
+        // price would fold it into an unrelated plan that merely costs the
+        // same, so an unknown name is created as a new plan or reported as
+        // unmatched instead.
         if ($name !== '') {
-            $match = $plans->first(fn ($plan) => mb_strtolower($plan->name) === mb_strtolower($name));
-
-            if ($match) {
-                return $match;
-            }
+            return $plans->first(fn ($plan) => mb_strtolower($plan->name) === mb_strtolower($name));
         }
 
-        // Matching by price alone would put every free contract onto the first
-        // plan that happens to cost nothing, so a named contract keeps its own
-        // name instead of being folded into an unrelated free plan.
-        if ($price === null || ($price <= 0 && $name !== '')) {
+        if ($price === null) {
             return null;
         }
 
