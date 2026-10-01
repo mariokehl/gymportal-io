@@ -329,9 +329,9 @@ class MembershipController extends Controller
                 $cancellationUnit = $membership->membershipPlan->cancellation_period_unit ?? 'days';
 
                 if ($cancellationUnit === 'months') {
-                    $minCancellationDate = now()->addMonths($cancellationPeriod);
+                    $minCancellationDate = today()->addMonths($cancellationPeriod);
                 } else {
-                    $minCancellationDate = now()->addDays($cancellationPeriod);
+                    $minCancellationDate = today()->addDays($cancellationPeriod);
                 }
 
                 if (Carbon::parse($validated['cancellation_date'])->lt($minCancellationDate)) {

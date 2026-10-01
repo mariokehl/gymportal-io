@@ -342,4 +342,34 @@ class MembershipCancellationTypeTest extends TestCase
         $this->assertSame('2027-08-31', $membership->cancellation_date->toDateString());
         $this->assertSame('Zeitmangel', $membership->cancellation_reason);
     }
+
+    #[Test]
+    public function the_notice_period_is_counted_from_the_start_of_today(): void
+    {
+        // Midday: the current time of day must not push the earliest date back.
+        Carbon::setTestNow(Carbon::parse('2026-10-01 12:00:00'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+        $membership->membershipPlan->update([
+            'commitment_months' => 0,
+            'cancellation_period' => 30,
+            'cancellation_period_unit' => 'days',
+        ]);
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-30',
+            'cancellation_reason' => 'move',
+            'cancellation_type' => 'ordinary',
+            'immediate' => false,
+        ])->assertSessionHasErrors('cancellation_date');
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2026-10-31',
+            'cancellation_reason' => 'move',
+            'cancellation_type' => 'ordinary',
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('2026-10-31', $membership->fresh()->cancellation_date->toDateString());
+    }
 }
