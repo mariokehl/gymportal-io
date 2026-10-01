@@ -838,7 +838,7 @@ class GymDataImportService
     /**
      * Delete all member-related data for a gym
      */
-    private function deleteAllGymMemberData(int $gymId): array
+    public function deleteAllGymMemberData(int $gymId): array
     {
         $gym = Gym::findOrFail($gymId);
         $memberIds = Member::withTrashed()->where('gym_id', $gymId)->pluck('id');

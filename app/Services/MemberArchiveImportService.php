@@ -33,6 +33,7 @@ class MemberArchiveImportService
         private PaymentService $paymentService,
         private CreditLedgerService $creditLedgerService,
         private MollieService $mollieService,
+        private GymDataImportService $gymDataImportService,
     ) {}
 
     /**
@@ -198,8 +199,9 @@ class MemberArchiveImportService
      *
      * @param  array<int, string>  $folders
      * @param  string|null  $fallbackStartDate  used when a record has no "Bezahlt bis" date
+     * @param  bool  $deleteExisting  remove all members of the gym before the import
      */
-    public function import(int $gymId, array $folders, ?string $fallbackStartDate = null, bool $createMissingPlans = true): array
+    public function import(int $gymId, array $folders, ?string $fallbackStartDate = null, bool $createMissingPlans = true, bool $deleteExisting = false): array
     {
         $gym = Gym::findOrFail($gymId);
         $fallback = $fallbackStartDate ? Carbon::parse($fallbackStartDate) : null;
@@ -215,8 +217,17 @@ class MemberArchiveImportService
             'credit_entries_created' => 0,
             'access_configs_created' => 0,
             'skipped' => 0,
+            'deleted' => [],
             'errors' => [],
         ];
+
+        // Same cleanup as the CSV import. It runs up front in a transaction of
+        // its own, since every member folder is imported separately below.
+        if ($deleteExisting) {
+            $stats['deleted'] = DB::transaction(
+                fn () => $this->gymDataImportService->deleteAllGymMemberData($gymId)
+            );
+        }
 
         foreach ($folders as $folder) {
             try {
@@ -443,15 +454,41 @@ class MemberArchiveImportService
             'commitment_months' => $contract['commitment_months'],
             'cancellation_period' => $cancellation['value'],
             'cancellation_period_unit' => $cancellation['unit'],
-            // A one-month extension renews monthly, any longer extension term
-            // is treated as an open-ended renewal.
-            'auto_renew_type' => $contract['renewal_months'] > 1 ? 'indefinite' : 'monthly',
+            ...$this->renewalTerms($contract),
             'is_active' => true,
         ]);
 
         $stats['plans_created']++;
 
         return $plan;
+    }
+
+    /**
+     * Renewal settings for a plan created from the contract terms.
+     *
+     * A one-month extension renews monthly. A longer extension term is kept as
+     * a fixed renewal for contracts concluded before the Gesetz für faire
+     * Verbraucherverträge; newer contracts renew open-ended instead.
+     */
+    private function renewalTerms(array $contract): array
+    {
+        $renewalMonths = (int) ($contract['renewal_months'] ?? 0);
+
+        if ($renewalMonths <= 1) {
+            return ['auto_renew_type' => MembershipPlan::RENEW_MONTHLY];
+        }
+
+        $isLegacy = $contract['start_date']
+            && Carbon::parse($contract['start_date'])->lt(MembershipPlan::FAIR_CONSUMER_CONTRACTS_CUTOFF);
+
+        if ($isLegacy && $renewalMonths <= 24) {
+            return [
+                'auto_renew_type' => MembershipPlan::RENEW_FIXED,
+                'renewal_months' => $renewalMonths,
+            ];
+        }
+
+        return ['auto_renew_type' => MembershipPlan::RENEW_INDEFINITE];
     }
 
     /**
@@ -821,18 +858,15 @@ class MemberArchiveImportService
     {
         $name = trim($name);
 
+        // A named contract is only ever matched by its name. Matching it by
+        // price would fold it into an unrelated plan that merely costs the
+        // same, so an unknown name is created as a new plan or reported as
+        // unmatched instead.
         if ($name !== '') {
-            $match = $plans->first(fn ($plan) => mb_strtolower($plan->name) === mb_strtolower($name));
-
-            if ($match) {
-                return $match;
-            }
+            return $plans->first(fn ($plan) => mb_strtolower($plan->name) === mb_strtolower($name));
         }
 
-        // Matching by price alone would put every free contract onto the first
-        // plan that happens to cost nothing, so a named contract keeps its own
-        // name instead of being folded into an unrelated free plan.
-        if ($price === null || ($price <= 0 && $name !== '')) {
+        if ($price === null) {
             return null;
         }
 

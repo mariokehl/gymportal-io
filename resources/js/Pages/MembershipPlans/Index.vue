@@ -25,7 +25,8 @@
       <div
         v-for="plan in membershipPlans"
         :key="plan.id"
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col"
+        :class="isLegacyPlan(plan) ? 'border-2 border-dashed border-amber-400' : 'border border-gray-200'"
+        class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex flex-col"
       >
         <!-- Plan Header -->
         <div class="flex justify-between items-start mb-4">
@@ -53,6 +54,12 @@
                 class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
               >
                 Start: {{ formatDate(plan.fixed_start_date) }}
+              </span>
+              <span
+                v-if="isLegacyPlan(plan)"
+                class="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+              >
+                Altvertrag
               </span>
             </div>
             <p v-if="plan.description" class="text-gray-600 text-sm mt-1">{{ plan.description }}</p>
@@ -82,12 +89,23 @@
               <span class="text-gray-600 text-sm">Kündigungsfrist:</span>
               <span class="font-medium">{{ plan.formatted_cancellation_period }}</span>
             </div>
+
+            <div v-if="isLegacyPlan(plan)" class="flex justify-between">
+              <span class="text-gray-600 text-sm">Verlängerung:</span>
+              <span class="font-medium">{{ plan.renewal_months }} Monate</span>
+            </div>
           </template>
 
           <div class="flex justify-between">
             <span class="text-gray-600 text-sm">Aktive Mitglieder:</span>
             <span class="font-medium text-indigo-600">{{ plan.member_count || 0 }}</span>
           </div>
+        </div>
+
+        <!-- Legacy plan notice -->
+        <div v-if="isLegacyPlan(plan)" class="mb-4 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
+          <History class="w-4 h-4 shrink-0" />
+          <span>Nicht mehr online abschließbar.</span>
         </div>
 
         <!-- Plan Actions -->
@@ -190,7 +208,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { Plus, FilePlus, AlertTriangle } from 'lucide-vue-next'
+import { Plus, FilePlus, AlertTriangle, History } from 'lucide-vue-next'
 import { formatPrice, formatBillingCycle, formatDate } from '@/utils/formatters'
 
 const page = usePage()
@@ -212,6 +230,9 @@ const planToDelete = ref(null)
 const deleteInfo = ref({ canDelete: true, activeMembersCount: 0, activeMembers: [] })
 
 // Methods
+// Fixed-term renewal plans only cover contracts concluded before 01.03.2022.
+const isLegacyPlan = (plan) => plan.auto_renew_type === 'fixed'
+
 const confirmDelete = async (plan) => {
   planToDelete.value = plan
 

@@ -250,7 +250,7 @@
               />
               <div>
                 <span class="text-sm font-medium text-gray-700">Unbefristet</span>
-                <p class="text-xs text-gray-500">Vertrag geht nach Erstlaufzeit in unbefristete Mitgliedschaft über</p>
+                <p class="text-xs text-gray-500">Vertrag geht gemäß Gesetz für faire Verbraucherverträge (ab 01.03.2022) nach Erstlaufzeit in unbefristete Mitgliedschaft über</p>
               </div>
             </label>
             <label class="flex items-start space-x-3 cursor-pointer">
@@ -265,8 +265,31 @@
                 <p class="text-xs text-gray-500">Vertrag verlängert sich monatlich um jeweils 1 Monat</p>
               </div>
             </label>
+            <label class="flex items-start space-x-3 cursor-pointer">
+              <input
+                v-model="form.auto_renew_type"
+                type="radio"
+                value="fixed"
+                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+              />
+              <div>
+                <span class="text-sm font-medium text-gray-700">Feste Verlängerung (Altverträge)</span>
+                <p class="text-xs text-gray-500">Nur für Verträge mit Beginn vor dem 01.03.2022. Neuere Verträge mit diesem Tarif verlängern sich monatlich. Der Tarif kann nicht online abgeschlossen werden.</p>
+              </div>
+            </label>
+            <div v-if="form.auto_renew_type === 'fixed'" class="ml-7 flex items-center gap-2">
+              <input
+                v-model.number="form.renewal_months"
+                type="number"
+                min="2"
+                max="24"
+                class="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                :class="{ 'border-red-500': errors.renewal_months }"
+              />
+              <span class="text-sm text-gray-700">Monate je Verlängerung</span>
+            </div>
+            <p v-if="errors.renewal_months" class="ml-7 text-sm text-red-600">{{ errors.renewal_months }}</p>
           </div>
-          <p class="mt-2 text-xs text-gray-400">Gemäß Gesetz für faire Verbraucherverträge (ab 01.03.2022)</p>
         </div>
 
         <!-- Vertragsstart - Hidden for free trial plans -->
@@ -459,6 +482,7 @@ const form = useForm({
   cancellation_period: props.membershipPlan.cancellation_period,
   cancellation_period_unit: props.membershipPlan.cancellation_period_unit || 'days',
   auto_renew_type: props.membershipPlan.auto_renew_type || 'indefinite',
+  renewal_months: props.membershipPlan.renewal_months || 12,
   start_date_mode: props.membershipPlan.start_date_mode || 'next_possible',
   fixed_start_date: props.membershipPlan.fixed_start_date
     ? String(props.membershipPlan.fixed_start_date).slice(0, 10)

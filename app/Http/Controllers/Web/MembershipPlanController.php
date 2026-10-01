@@ -80,7 +80,8 @@ class MembershipPlanController extends Controller
             'commitment_months' => 'nullable|integer|min:0|max:36',
             'cancellation_period' => 'required|integer|min:0',
             'cancellation_period_unit' => 'required|in:days,months',
-            'auto_renew_type' => 'nullable|in:indefinite,monthly',
+            'auto_renew_type' => 'nullable|in:'.implode(',', MembershipPlan::AUTO_RENEW_TYPES),
+            'renewal_months' => 'nullable|required_if:auto_renew_type,'.MembershipPlan::RENEW_FIXED.'|integer|min:2|max:24',
             'start_date_mode' => 'nullable|in:next_possible,fixed',
             'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
             ...MembershipPlanDiscountService::rules(),
@@ -101,7 +102,10 @@ class MembershipPlanController extends Controller
         $validated['is_active'] = $request->boolean('is_active');
         $validated['setup_fee'] = $request->setup_fee ?? 0;
         $validated['commitment_months'] = $request->commitment_months ?? 0;
-        $validated['auto_renew_type'] = $request->auto_renew_type ?? 'indefinite';
+        $validated['auto_renew_type'] = $request->auto_renew_type ?? MembershipPlan::RENEW_INDEFINITE;
+        $validated['renewal_months'] = $validated['auto_renew_type'] === MembershipPlan::RENEW_FIXED
+            ? ($validated['renewal_months'] ?? null)
+            : null;
         $validated['start_date_mode'] = $request->start_date_mode ?? 'next_possible';
         $validated['fixed_start_date'] = $validated['start_date_mode'] === 'fixed'
             ? ($validated['fixed_start_date'] ?? null)
@@ -260,7 +264,8 @@ class MembershipPlanController extends Controller
             'commitment_months' => 'nullable|integer|min:0|max:36',
             'cancellation_period' => 'required|integer|min:0',
             'cancellation_period_unit' => 'required|in:days,months',
-            'auto_renew_type' => 'nullable|in:indefinite,monthly',
+            'auto_renew_type' => 'nullable|in:'.implode(',', MembershipPlan::AUTO_RENEW_TYPES),
+            'renewal_months' => 'nullable|required_if:auto_renew_type,'.MembershipPlan::RENEW_FIXED.'|integer|min:2|max:24',
             'start_date_mode' => 'nullable|in:next_possible,fixed',
             'fixed_start_date' => 'nullable|required_if:start_date_mode,fixed|date',
             ...MembershipPlanDiscountService::rules(),
@@ -276,7 +281,10 @@ class MembershipPlanController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active');
         $validated['commitment_months'] = $request->commitment_months ?? 0;
-        $validated['auto_renew_type'] = $request->auto_renew_type ?? 'indefinite';
+        $validated['auto_renew_type'] = $request->auto_renew_type ?? MembershipPlan::RENEW_INDEFINITE;
+        $validated['renewal_months'] = $validated['auto_renew_type'] === MembershipPlan::RENEW_FIXED
+            ? ($validated['renewal_months'] ?? null)
+            : null;
         $validated['start_date_mode'] = $request->start_date_mode ?? 'next_possible';
         $validated['fixed_start_date'] = $validated['start_date_mode'] === 'fixed'
             ? ($validated['fixed_start_date'] ?? null)

@@ -251,10 +251,52 @@
           </span>
         </label>
 
+        <!-- Delete existing data toggle -->
+        <div>
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Bestehende Daten vorher löschen</label>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Alle Mitglieder, Mitgliedschaften, Zahlungen und Zahlungsarten werden unwiderruflich gelöscht.
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="archiveDeleteExisting = !archiveDeleteExisting; archiveConfirmDelete = false"
+              :class="archiveDeleteExisting ? 'bg-red-600' : 'bg-gray-200'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              <span
+                :class="archiveDeleteExisting ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              />
+            </button>
+          </div>
+
+          <!-- Delete confirmation -->
+          <div v-if="archiveDeleteExisting" class="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <label class="flex items-start">
+              <input
+                type="checkbox"
+                v-model="archiveConfirmDelete"
+                class="mt-1 mr-3 text-red-600 focus:ring-red-500 rounded"
+              >
+              <span class="text-sm text-red-800">
+                Ich verstehe, dass alle bestehenden Mitglieder ({{ exportStats?.members_count ?? 0 }}),
+                Verträge ({{ exportStats?.memberships_count ?? 0 }}), Zahlungen ({{ exportStats?.payments_count ?? 0 }})
+                und zugehörige Zahlungsarten unwiderruflich gelöscht werden.
+              </span>
+            </label>
+            <p v-if="archiveValidationResult.stats.existing_members > 0" class="mt-2 text-xs text-red-700">
+              Bereits vorhandene Mitglieder werden dadurch nicht übersprungen, sondern aus der Akte neu angelegt.
+            </p>
+          </div>
+        </div>
+
         <button
           @click="startArchiveImport"
-          :disabled="archiveIsImporting"
-          class="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 disabled:opacity-50 transition-colors"
+          :disabled="!canArchiveImport"
+          class="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Loader2 v-if="archiveIsImporting" class="w-4 h-4 mr-2 animate-spin" />
           <Upload v-else class="w-4 h-4 mr-2" />
@@ -271,6 +313,13 @@
           <CheckCircle class="w-4 h-4 mr-2" />
           Import abgeschlossen
         </h4>
+        <div v-if="archiveImportResult.stats.deleted && archiveImportResult.stats.deleted.members" class="mt-2 text-sm text-red-600">
+          Gelöscht: {{ archiveImportResult.stats.deleted.members }} Mitglieder,
+          {{ archiveImportResult.stats.deleted.memberships }} Mitgliedschaften,
+          {{ archiveImportResult.stats.deleted.payments }} Zahlungen,
+          {{ archiveImportResult.stats.deleted.payment_methods }} Zahlungsarten<template v-if="archiveImportResult.stats.deleted.mollie_customers">,
+          {{ archiveImportResult.stats.deleted.mollie_customers }} Mollie-Kunden</template>
+        </div>
         <dl class="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <div>
             <dt class="text-green-700">Mitglieder</dt>
@@ -347,6 +396,10 @@ import {
 } from 'lucide-vue-next'
 import axios from 'axios'
 
+defineProps({
+  exportStats: Object,
+})
+
 // Fallback for archive records without a "Bezahlt bis" date: 1st of next month.
 const nextMonth = new Date()
 nextMonth.setMonth(nextMonth.getMonth() + 1)
@@ -362,6 +415,8 @@ const archiveIsImporting = ref(false)
 const archiveImportResult = ref(null)
 const archiveToken = ref(null)
 const archiveCreateMissingPlans = ref(true)
+const archiveDeleteExisting = ref(false)
+const archiveConfirmDelete = ref(false)
 const archiveZipInput = ref(null)
 const archiveFolderInput = ref(null)
 const archiveSkippedFiles = ref(0)
@@ -370,6 +425,13 @@ const archiveUploadedCount = ref(0)
 const archiveTotalSize = computed(() =>
   archiveFiles.value.reduce((total, file) => total + file.size, 0)
 )
+
+const canArchiveImport = computed(() => {
+  if (archiveIsImporting.value) return false
+  if (!archiveToken.value) return false
+  if (archiveDeleteExisting.value && !archiveConfirmDelete.value) return false
+  return true
+})
 
 const archiveLabel = computed(() => {
   if (archiveFiles.value.length === 0) return ''
@@ -393,6 +455,8 @@ const clearArchiveSelection = () => {
   archiveToken.value = null
   archiveSkippedFiles.value = 0
   archiveUploadedCount.value = 0
+  archiveDeleteExisting.value = false
+  archiveConfirmDelete.value = false
 
   if (archiveZipInput.value) archiveZipInput.value.value = ''
   if (archiveFolderInput.value) archiveFolderInput.value.value = ''
@@ -551,6 +615,7 @@ const startArchiveImport = async () => {
       token: archiveToken.value,
       fallback_start_date: archiveFallbackStartDate.value,
       create_missing_plans: archiveCreateMissingPlans.value,
+      delete_existing: archiveDeleteExisting.value,
     })
 
     archiveImportResult.value = response.data

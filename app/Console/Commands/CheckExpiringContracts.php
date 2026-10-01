@@ -280,12 +280,14 @@ class CheckExpiringContracts extends Command
         $content = [];
 
         if ($willRenew) {
-            $autoRenewType = $plan->auto_renew_type ?? 'indefinite';
+            $renewalMonths = $membership->renewalMonths();
             if ($membership->isInitialTermCompleted()) {
-                if ($autoRenewType === 'indefinite') {
+                if ($renewalMonths === null) {
                     $content['main'] = "Ihre Mitgliedschaft '{$plan->name}' geht in {$days} Tagen in eine unbefristete Mitgliedschaft über (monatlich kündbar mit Kündigungsfrist).";
-                } else {
+                } elseif ($renewalMonths === 1) {
                     $content['main'] = "Ihre Mitgliedschaft '{$plan->name}' verlängert sich automatisch in {$days} Tagen um 1 Monat (monatlich kündbar mit Kündigungsfrist).";
+                } else {
+                    $content['main'] = "Ihre Mitgliedschaft '{$plan->name}' verlängert sich automatisch in {$days} Tagen um {$renewalMonths} Monate.";
                 }
             } else {
                 $content['main'] = "Ihre Mitgliedschaft '{$plan->name}' verlängert sich automatisch in {$days} Tagen um weitere {$plan->commitment_months} Monate.";

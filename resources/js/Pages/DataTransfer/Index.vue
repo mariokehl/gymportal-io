@@ -563,7 +563,7 @@
         </div>
 
         <!-- Migration Import Section -->
-        <MigrationImportCard />
+        <MigrationImportCard :export-stats="exportStats" />
       </div>
     </div>
   </AppLayout>
