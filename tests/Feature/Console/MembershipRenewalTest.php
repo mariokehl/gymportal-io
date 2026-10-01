@@ -295,6 +295,75 @@ class MembershipRenewalTest extends TestCase
     }
 
     /**
+     * A contract concluded before 01.03.2022 on a fixed-renewal plan extends by
+     * the full renewal term instead of one month.
+     */
+    #[Test]
+    public function legacy_contract_renews_by_the_fixed_term(): void
+    {
+        $plan = MembershipPlan::factory()->create([
+            'is_free_trial_plan' => false,
+            'commitment_months' => 24,
+            'cancellation_period' => 3,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'fixed',
+            'renewal_months' => 12,
+        ]);
+
+        $membership = Membership::factory()->create([
+            'member_id' => Member::factory()->create()->id,
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2021-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'active',
+        ]);
+
+        $command = $this->mockRenewWithoutPayments();
+
+        // Deadline 01.10.2026 renews to 31.12.2027; the next deadline (01.10.2027)
+        // lies outside the simulated window.
+        $this->simulateDailyCron($command, $membership, Carbon::parse('2026-09-25'), Carbon::parse('2027-09-30'));
+
+        Carbon::setTestNow();
+
+        $this->assertSame('2027-12-31', $membership->refresh()->end_date->toDateString());
+        $this->assertSame(1, $membership->metadata['renewal_count'] ?? 0);
+    }
+
+    /**
+     * A contract concluded from 01.03.2022 on must not be bound by a fixed term,
+     * even when it was assigned a legacy plan.
+     */
+    #[Test]
+    public function newer_contract_on_a_fixed_plan_renews_monthly(): void
+    {
+        $plan = MembershipPlan::factory()->create([
+            'is_free_trial_plan' => false,
+            'commitment_months' => 12,
+            'cancellation_period' => 1,
+            'cancellation_period_unit' => 'months',
+            'auto_renew_type' => 'fixed',
+            'renewal_months' => 12,
+        ]);
+
+        $membership = Membership::factory()->create([
+            'member_id' => Member::factory()->create()->id,
+            'membership_plan_id' => $plan->id,
+            'start_date' => '2022-03-01',
+            'end_date' => '2026-02-28',
+            'status' => 'active',
+        ]);
+
+        $command = $this->mockRenewWithoutPayments();
+
+        $this->simulateDailyCron($command, $membership, Carbon::parse('2026-02-01'), Carbon::parse('2026-02-01'));
+
+        Carbon::setTestNow();
+
+        $this->assertSame('2026-03-31', $membership->refresh()->end_date->toDateString());
+    }
+
+    /**
      * Build the command and neutralise payment creation so the test stays focused
      * on date arithmetic. createPaymentsForMembership() is protected and pulls in
      * Mollie; we stub it out via a partial mock.

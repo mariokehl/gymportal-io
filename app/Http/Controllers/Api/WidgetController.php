@@ -50,6 +50,7 @@ class WidgetController extends Controller
         // Query builder for the plans including their active add-ons (with pivot mode)
         $plansQuery = MembershipPlan::where('gym_id', $gymId)
             ->where('is_active', true)
+            ->sellable()
             ->with([
                 'addons' => fn ($query) => $query->where('is_active', true),
                 'discountPhases',
@@ -131,6 +132,7 @@ class WidgetController extends Controller
         if ($selectedPlan) {
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $selectedPlan)
+                ->sellable()
                 ->first();
         }
 
@@ -205,6 +207,7 @@ class WidgetController extends Controller
         if ($selectedPlan) {
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $selectedPlan)
+                ->sellable()
                 ->with([
                     'addons' => fn ($query) => $query->where('is_active', true),
                     'discountPhases',
@@ -351,6 +354,7 @@ class WidgetController extends Controller
             $plan = MembershipPlan::where('gym_id', $gymId)
                 ->where('id', $request->plan_id)
                 ->where('is_active', true)
+                ->sellable()
                 ->firstOrFail();
 
             // Doppelte E-Mail-Registrierung prüfen

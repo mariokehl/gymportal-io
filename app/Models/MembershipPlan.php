@@ -10,6 +10,34 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class MembershipPlan extends Model
 {
     /**
+     * After the initial term the contract converts to an open-ended membership.
+     */
+    public const RENEW_INDEFINITE = 'indefinite';
+
+    /**
+     * After the initial term the contract renews by one month at a time.
+     */
+    public const RENEW_MONTHLY = 'monthly';
+
+    /**
+     * After the initial term the contract renews by renewal_months. Only valid
+     * for legacy contracts concluded before FAIR_CONSUMER_CONTRACTS_CUTOFF.
+     */
+    public const RENEW_FIXED = 'fixed';
+
+    public const AUTO_RENEW_TYPES = [
+        self::RENEW_INDEFINITE,
+        self::RENEW_MONTHLY,
+        self::RENEW_FIXED,
+    ];
+
+    /**
+     * Gesetz für faire Verbraucherverträge: contracts concluded from this date
+     * on may only renew indefinitely or by one month.
+     */
+    public const FAIR_CONSUMER_CONTRACTS_CUTOFF = '2022-03-01';
+
+    /**
      * The plan is only valid at the member's home location.
      */
     public const SCOPE_OWN = 'own';
@@ -50,6 +78,7 @@ class MembershipPlan extends Model
         'cancellation_period',
         'cancellation_period_unit',
         'auto_renew_type',
+        'renewal_months',
         'start_date_mode',
         'fixed_start_date',
         'features',
@@ -66,6 +95,7 @@ class MembershipPlan extends Model
         'trial_price' => 'decimal:2',
         'is_active' => 'boolean',
         'is_free_trial_plan' => 'boolean',
+        'renewal_months' => 'integer',
         'discounts_enabled' => 'boolean',
         'highlight' => 'boolean',
         'fixed_start_date' => 'date:Y-m-d',
@@ -194,6 +224,15 @@ class MembershipPlan extends Model
             ->whereJsonContains('widget_display_options->show_in_widget', true)
             ->orderBy('sort_order')
             ->orderBy('price');
+    }
+
+    /**
+     * Plans that can be sold to new members. Fixed-term renewals are reserved
+     * for legacy contracts and must never be concluded online.
+     */
+    public function scopeSellable($query)
+    {
+        return $query->where('auto_renew_type', '!=', self::RENEW_FIXED);
     }
 
     public function scopeHighlighted($query)

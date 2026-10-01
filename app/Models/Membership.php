@@ -568,16 +568,43 @@ class Membership extends Model
         }
 
         // Renewal is due: project the new end date the same way the cron would.
-        // Renewal is always indefinite or monthly, regardless of the initial term.
-        $autoRenewType = $this->membershipPlan->auto_renew_type ?? 'indefinite';
+        $renewalMonths = $this->renewalMonths();
 
         // Indefinite rollover clears the end date entirely.
-        if ($autoRenewType === 'indefinite') {
+        if ($renewalMonths === null) {
             return null;
         }
 
-        // Monthly rollover: extend by one month.
-        return $this->end_date->copy()->addDay()->addMonths(1)->subDay()->format('Y-m-d');
+        return $this->end_date->copy()->addDay()->addMonths($renewalMonths)->subDay()->format('Y-m-d');
+    }
+
+    /**
+     * Number of months the term extends by on auto-renewal, or null when the
+     * contract converts to an open-ended membership instead.
+     *
+     * Gesetz für faire Verbraucherverträge (ab 01.03.2022): renewal is indefinite
+     * or monthly. Only legacy contracts concluded before the cutoff may keep a
+     * longer fixed renewal term; a newer contract on such a plan falls back to
+     * monthly so the member is never bound longer than the law allows.
+     */
+    public function renewalMonths(): ?int
+    {
+        $plan = $this->membershipPlan;
+
+        return match ($plan->auto_renew_type ?? MembershipPlan::RENEW_INDEFINITE) {
+            MembershipPlan::RENEW_MONTHLY => 1,
+            MembershipPlan::RENEW_FIXED => $this->isLegacyContract() ? max(1, (int) $plan->renewal_months) : 1,
+            default => null,
+        };
+    }
+
+    /**
+     * Whether the contract was concluded before the Gesetz für faire
+     * Verbraucherverträge took effect. The start date serves as the reference.
+     */
+    public function isLegacyContract(): bool
+    {
+        return $this->start_date?->lt(MembershipPlan::FAIR_CONSUMER_CONTRACTS_CUTOFF) ?? false;
     }
 
     public function getNextPossibleCancellationDateAttribute(): ?string
@@ -657,7 +684,7 @@ class Membership extends Model
         }
 
         // 3. We are after the minimum term → extension periods apply
-        $renewalMonths = $this->membershipPlan->renewal_months ?? 1;
+        $renewalMonths = $this->renewalMonths() ?? 1;
         $cancellationPeriod = $this->membershipPlan->cancellation_period ?? 0;
         $cancellationPeriodUnit = $this->membershipPlan->cancellation_period_unit ?? 'days';
 

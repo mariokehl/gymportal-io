@@ -819,16 +819,17 @@ class ProcessMembershipPayments extends Command
         $autoRenewType = $plan->auto_renew_type ?? 'indefinite';
 
         // German Fair Consumer Contracts Act (from 01.03.2022):
-        // Renewal is always indefinite or monthly, regardless of the initial term.
-        // Extending by another full initial term is not permitted.
-        if ($autoRenewType === 'indefinite') {
+        // Renewal is indefinite or monthly, regardless of the initial term. Only
+        // legacy contracts concluded before the cutoff keep a fixed renewal term.
+        $renewalMonths = $membership->renewalMonths();
+
+        if ($renewalMonths === null) {
             // Indefinite: end_date is set to null
             $newEndDate = null;
         } else {
-            // Monthly rollover: extend by one month
             $newEndDate = $membership->end_date->copy()
                 ->addDay()
-                ->addMonths(1)
+                ->addMonths($renewalMonths)
                 ->subDay();
         }
 

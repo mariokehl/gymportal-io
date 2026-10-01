@@ -454,15 +454,41 @@ class MemberArchiveImportService
             'commitment_months' => $contract['commitment_months'],
             'cancellation_period' => $cancellation['value'],
             'cancellation_period_unit' => $cancellation['unit'],
-            // A one-month extension renews monthly, any longer extension term
-            // is treated as an open-ended renewal.
-            'auto_renew_type' => $contract['renewal_months'] > 1 ? 'indefinite' : 'monthly',
+            ...$this->renewalTerms($contract),
             'is_active' => true,
         ]);
 
         $stats['plans_created']++;
 
         return $plan;
+    }
+
+    /**
+     * Renewal settings for a plan created from the contract terms.
+     *
+     * A one-month extension renews monthly. A longer extension term is kept as
+     * a fixed renewal for contracts concluded before the Gesetz für faire
+     * Verbraucherverträge; newer contracts renew open-ended instead.
+     */
+    private function renewalTerms(array $contract): array
+    {
+        $renewalMonths = (int) ($contract['renewal_months'] ?? 0);
+
+        if ($renewalMonths <= 1) {
+            return ['auto_renew_type' => MembershipPlan::RENEW_MONTHLY];
+        }
+
+        $isLegacy = $contract['start_date']
+            && Carbon::parse($contract['start_date'])->lt(MembershipPlan::FAIR_CONSUMER_CONTRACTS_CUTOFF);
+
+        if ($isLegacy && $renewalMonths <= 24) {
+            return [
+                'auto_renew_type' => MembershipPlan::RENEW_FIXED,
+                'renewal_months' => $renewalMonths,
+            ];
+        }
+
+        return ['auto_renew_type' => MembershipPlan::RENEW_INDEFINITE];
     }
 
     /**
