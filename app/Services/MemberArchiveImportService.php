@@ -33,6 +33,7 @@ class MemberArchiveImportService
         private PaymentService $paymentService,
         private CreditLedgerService $creditLedgerService,
         private MollieService $mollieService,
+        private GymDataImportService $gymDataImportService,
     ) {}
 
     /**
@@ -198,8 +199,9 @@ class MemberArchiveImportService
      *
      * @param  array<int, string>  $folders
      * @param  string|null  $fallbackStartDate  used when a record has no "Bezahlt bis" date
+     * @param  bool  $deleteExisting  remove all members of the gym before the import
      */
-    public function import(int $gymId, array $folders, ?string $fallbackStartDate = null, bool $createMissingPlans = true): array
+    public function import(int $gymId, array $folders, ?string $fallbackStartDate = null, bool $createMissingPlans = true, bool $deleteExisting = false): array
     {
         $gym = Gym::findOrFail($gymId);
         $fallback = $fallbackStartDate ? Carbon::parse($fallbackStartDate) : null;
@@ -215,8 +217,17 @@ class MemberArchiveImportService
             'credit_entries_created' => 0,
             'access_configs_created' => 0,
             'skipped' => 0,
+            'deleted' => [],
             'errors' => [],
         ];
+
+        // Same cleanup as the CSV import. It runs up front in a transaction of
+        // its own, since every member folder is imported separately below.
+        if ($deleteExisting) {
+            $stats['deleted'] = DB::transaction(
+                fn () => $this->gymDataImportService->deleteAllGymMemberData($gymId)
+            );
+        }
 
         foreach ($folders as $folder) {
             try {

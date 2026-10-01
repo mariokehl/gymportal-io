@@ -1101,6 +1101,72 @@ class MemberArchiveImportTest extends TestCase
     }
 
     #[Test]
+    public function it_deletes_the_existing_members_of_the_gym_before_the_import_when_requested(): void
+    {
+        $this->makeMemberFolder('2-1_New Member_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '2-1',
+                'Vorname' => 'New',
+                'Nachname' => 'Member',
+                'E-Mail' => 'new.member@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'Flex-Tarif',
+                'Preis' => "monatlich: 29,90\u{00A0}€",
+                'Vertragsbeginn' => '01.01.2025',
+                'Bezahlt bis' => '30.09.2026',
+            ],
+        ]);
+
+        $existing = Member::factory()->create(['gym_id' => $this->gym->id]);
+        $otherGym = Gym::factory()->create();
+        $foreign = Member::factory()->create(['gym_id' => $otherGym->id]);
+
+        $stats = $this->importService()->import(
+            $this->gym->id,
+            $this->folders(),
+            '2026-10-01',
+            true,
+            true
+        );
+
+        $this->assertSame([], $stats['errors']);
+        $this->assertSame(1, $stats['deleted']['members']);
+        $this->assertSame(1, $stats['members_created']);
+
+        $this->assertNull(Member::withTrashed()->find($existing->id));
+        $this->assertSame(['New'], Member::where('gym_id', $this->gym->id)->pluck('first_name')->all());
+
+        // Members of other gyms are never touched.
+        $this->assertNotNull(Member::find($foreign->id));
+    }
+
+    #[Test]
+    public function it_keeps_the_existing_members_by_default(): void
+    {
+        $this->makeMemberFolder('2-2_Another Member_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '2-2',
+                'Vorname' => 'Another',
+                'Nachname' => 'Member',
+                'E-Mail' => 'another.member@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'Flex-Tarif',
+                'Preis' => "monatlich: 29,90\u{00A0}€",
+                'Vertragsbeginn' => '01.01.2025',
+                'Bezahlt bis' => '30.09.2026',
+            ],
+        ]);
+
+        $existing = Member::factory()->create(['gym_id' => $this->gym->id]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders(), '2026-10-01');
+
+        $this->assertSame([], $stats['deleted']);
+        $this->assertNotNull(Member::find($existing->id));
+        $this->assertSame(2, Member::where('gym_id', $this->gym->id)->count());
+    }
+
+    #[Test]
     public function it_rejects_a_staging_token_that_tries_to_escape_the_upload_directory(): void
     {
         $owner = User::find($this->gym->owner_id);

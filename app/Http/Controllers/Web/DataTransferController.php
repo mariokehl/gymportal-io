@@ -478,6 +478,7 @@ class DataTransferController extends Controller
             'token' => 'required|string',
             'fallback_start_date' => 'nullable|date',
             'create_missing_plans' => 'boolean',
+            'delete_existing' => 'boolean',
         ], [
             'token.required' => 'Bitte prüfen Sie das Archiv zuerst.',
         ]);
@@ -505,7 +506,8 @@ class DataTransferController extends Controller
                 $gym->id,
                 $folders,
                 $request->input('fallback_start_date'),
-                $request->boolean('create_missing_plans', true)
+                $request->boolean('create_missing_plans', true),
+                $request->boolean('delete_existing')
             );
 
             return response()->json([
