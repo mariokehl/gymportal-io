@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Gym;
+use App\Models\FraudCheck;
 use App\Models\Member;
 use App\Models\MemberBlocklist;
-use App\Models\FraudCheck;
 use App\Services\Fraud\BlocklistService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class BlocklistController extends Controller
 {
@@ -23,10 +23,10 @@ class BlocklistController extends Controller
     /**
      * Sperrliste anzeigen.
      */
-    public function index(Request $request): \Inertia\Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
-        $gym  = $user->currentGym;
+        $gym = $user->currentGym;
 
         $this->authorize('manage', $gym);
 
@@ -42,7 +42,7 @@ class BlocklistController extends Controller
             ->get();
 
         return Inertia::render('Admin/Blocklist/Index', [
-            'entries'     => $entries,
+            'entries' => $entries,
             'fraudChecks' => $fraudChecks,
         ]);
     }
@@ -53,22 +53,22 @@ class BlocklistController extends Controller
     public function blockMember(Request $request, Member $member): RedirectResponse
     {
         $user = Auth::user();
-        $gym  = $user->currentGym;
+        $gym = $user->currentGym;
 
         $this->authorize('manage', $gym);
 
         $request->validate([
             'reason' => ['required', 'in:payment_failed,chargeback,fraud,manual'],
-            'notes'  => ['required', 'string', 'min:10', 'max:500'],
+            'notes' => ['required', 'string', 'min:10', 'max:500'],
         ]);
 
         abort_if($member->gym_id !== $gym->id, 403);
 
         $this->blocklist->addMember(
-            gymId:           $gym->id,
-            member:          $member,
-            reason:          $request->reason,
-            notes:           $request->notes,
+            gymId: $gym->id,
+            member: $member,
+            reason: $request->reason,
+            notes: $request->notes,
             blockedByUserId: $user->id,
         );
 
@@ -84,23 +84,23 @@ class BlocklistController extends Controller
     public function storeManual(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        $gym  = $user->currentGym;
+        $gym = $user->currentGym;
 
         $this->authorize('manage', $gym);
 
         $data = $request->validate([
-            'first_name'    => ['nullable', 'string'],
-            'last_name'     => ['required', 'string'],
-            'birth_date'    => ['nullable', 'date'],
-            'iban'          => ['nullable', 'string'],
-            'phone'         => ['nullable', 'string'],
-            'address'       => ['nullable', 'string'],
-            'postal_code'   => ['nullable', 'string'],
-            'city'          => ['nullable', 'string'],
-            'reason'        => ['required', 'in:payment_failed,chargeback,fraud,manual'],
-            'notes'         => ['required', 'string', 'min:10'],
+            'first_name' => ['nullable', 'string'],
+            'last_name' => ['required', 'string'],
+            'birth_date' => ['nullable', 'date'],
+            'iban' => ['nullable', 'string'],
+            'phone' => ['nullable', 'string'],
+            'address' => ['nullable', 'string'],
+            'postal_code' => ['nullable', 'string'],
+            'city' => ['nullable', 'string'],
+            'reason' => ['required', 'in:payment_failed,chargeback,fraud,manual'],
+            'notes' => ['required', 'string', 'min:10'],
             'blocked_until' => ['nullable', 'date', 'after:now'],
-            'member_id'     => ['nullable', 'integer', 'exists:members,id'],
+            'member_id' => ['nullable', 'integer', 'exists:members,id'],
         ]);
 
         $this->blocklist->addManual($gym->id, $data, $user->id, $data['reason'], $data['notes']);
@@ -114,7 +114,7 @@ class BlocklistController extends Controller
     public function unblock(Request $request, MemberBlocklist $entry): RedirectResponse
     {
         $user = Auth::user();
-        $gym  = $user->currentGym;
+        $gym = $user->currentGym;
 
         $this->authorize('manage', $gym);
 
