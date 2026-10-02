@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\GymInvitationController;
 use App\Http\Controllers\Web\MemberAccessController;
 use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MemberDocumentController;
+use App\Http\Controllers\Web\MemberNfcTagController;
 use App\Http\Controllers\Web\MemberPaymentController;
 use App\Http\Controllers\Web\MembershipController;
 use App\Http\Controllers\Web\MembershipPlanController;
@@ -145,6 +146,8 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');
         Route::post('/consume-credit', [MemberAccessController::class, 'consumeCredit'])->name('consume-credit');
         Route::delete('/devices/{device}', [MemberAccessController::class, 'removeDevice'])->name('remove-device');
+        Route::post('/nfc-tags', [MemberNfcTagController::class, 'store'])->name('nfc-tags.store');
+        Route::delete('/nfc-tags/{nfcTag}', [MemberNfcTagController::class, 'destroy'])->name('nfc-tags.destroy');
     });
     // Registered before the contracts group so "addons" is not captured by the
     // contracts "/{membershipPlan}" wildcard route.

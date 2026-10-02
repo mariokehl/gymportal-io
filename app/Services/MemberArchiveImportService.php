@@ -34,6 +34,7 @@ class MemberArchiveImportService
         private CreditLedgerService $creditLedgerService,
         private MollieService $mollieService,
         private GymDataImportService $gymDataImportService,
+        private NfcTagService $nfcTags,
     ) {}
 
     /**
@@ -788,7 +789,7 @@ class MemberArchiveImportService
 
         // A card identifier must stay unique across the installation; a
         // duplicate is skipped rather than silently reassigned.
-        if (MemberAccessConfig::where('nfc_uid', $nfcUid)->exists()) {
+        if ($this->nfcTags->isTaken($nfcUid)) {
             Log::warning('Skipping duplicate NFC identifier during archive import', [
                 'member_id' => $member->id,
                 'nfc_uid' => $nfcUid,

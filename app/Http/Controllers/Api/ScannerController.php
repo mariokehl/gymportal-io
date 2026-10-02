@@ -7,12 +7,12 @@ use App\Models\CheckIn;
 use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\Member;
-use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
 use App\Models\Membership;
 use App\Models\ScannerAccessLog;
 use App\Services\CrossLocationAccessService;
 use App\Services\DeviceAccessService;
+use App\Services\NfcTagService;
 use App\Services\ScannerValidationService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +34,8 @@ class ScannerController extends Controller
     public function __construct(
         private ScannerValidationService $validationService,
         private DeviceAccessService $deviceAccessService,
-        private CrossLocationAccessService $crossLocationService
+        private CrossLocationAccessService $crossLocationService,
+        private NfcTagService $nfcTags
     ) {}
 
     /**
@@ -107,9 +108,7 @@ class ScannerController extends Controller
                     ->whereKey($memberId)
                     ->first();
             } elseif ($scanType === 'nfc_card') {
-                $accessConfig = MemberAccessConfig::where('nfc_uid', $nfcCardId)
-                    ->whereHas('member', fn ($query) => $query->whereIn('gym_id', $organizationGymIds))
-                    ->first();
+                $accessConfig = $this->nfcTags->findConfigByUid($nfcCardId, $organizationGymIds);
 
                 if ($accessConfig && ! $accessConfig->nfc_enabled) {
                     $this->logAccessFromVerify(
@@ -561,7 +560,7 @@ class ScannerController extends Controller
             if ($this->isJsonQrCode($scanData)) {
                 $result = $this->handleQrCode($scanData, $gym);
             } else {
-                $result = $this->handleNfcCard($scanData);
+                $result = $this->handleNfcCard($scanData, $gym);
             }
 
             // Access Log
@@ -632,9 +631,9 @@ class ScannerController extends Controller
      *
      * @deprecated Only used by validateAccess().
      */
-    private function handleNfcCard(string $cardId): array
+    private function handleNfcCard(string $cardId, Gym $gym): array
     {
-        return $this->validationService->validateNfcCard($cardId);
+        return $this->validationService->validateNfcCard($cardId, $gym->id);
     }
 
     /**

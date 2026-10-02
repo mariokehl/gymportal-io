@@ -290,6 +290,53 @@ class ScannerVerifyMembershipTest extends TestCase
     }
 
     #[Test]
+    public function an_additional_nfc_tag_lets_the_member_in(): void
+    {
+        $member = $this->member();
+        $this->membershipFor($member);
+        MemberAccessConfig::create([
+            'member_id' => $member->id,
+            'nfc_enabled' => true,
+            'nfc_uid' => '04A1B2C3',
+        ])->additionalNfcTags()->create(['uid' => '04D4E5F6']);
+
+        $this->scanNfc('04D4E5F6')
+            ->assertOk()
+            ->assertJsonPath('access_allowed', true)
+            ->assertJsonPath('member_id', $member->id);
+    }
+
+    #[Test]
+    public function an_additional_nfc_tag_is_denied_while_nfc_is_disabled(): void
+    {
+        $member = $this->member();
+        $this->membershipFor($member);
+        MemberAccessConfig::create([
+            'member_id' => $member->id,
+            'nfc_enabled' => false,
+            'nfc_uid' => '04A1B2C3',
+        ])->additionalNfcTags()->create(['uid' => '04D4E5F6']);
+
+        $this->scanNfc('04D4E5F6')->assertStatus(403);
+    }
+
+    #[Test]
+    public function an_additional_nfc_tag_of_an_unrelated_gym_is_not_found(): void
+    {
+        $foreignMember = Member::factory()->create([
+            'gym_id' => Gym::factory()->create()->id,
+            'status' => 'active',
+        ]);
+        MemberAccessConfig::create([
+            'member_id' => $foreignMember->id,
+            'nfc_enabled' => true,
+            'nfc_uid' => '04A1B2C3',
+        ])->additionalNfcTags()->create(['uid' => '04D4E5F6']);
+
+        $this->scanNfc('04D4E5F6')->assertStatus(404);
+    }
+
+    #[Test]
     public function an_unknown_nfc_card_is_not_found(): void
     {
         $this->scanNfc('DEADBEEF')->assertStatus(404);

@@ -5,6 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\Addon;
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\MemberAccessConfig;
 use App\Models\MemberDevice;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
@@ -230,6 +231,9 @@ class MemberRouteTenantIsolationTest extends TestCase
             'paymentMethod' => $paymentMethod,
             'payment' => $payment,
             'device' => MemberDevice::factory()->create(['member_id' => $member->id]),
+            'nfcTag' => MemberAccessConfig::create(['member_id' => $member->id, 'nfc_enabled' => true])
+                ->additionalNfcTags()
+                ->create(['uid' => strtoupper(bin2hex(random_bytes(4)))]),
         ];
     }
 }

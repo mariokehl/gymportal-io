@@ -85,6 +85,14 @@ class MemberAccessConfig extends Model
     }
 
     /**
+     * Get the additional NFC tags next to the primary nfc_uid
+     */
+    public function additionalNfcTags(): HasMany
+    {
+        return $this->hasMany(MemberNfcTag::class)->orderBy('id');
+    }
+
+    /**
      * Get access logs for this configuration
      */
     public function accessLogs(): HasMany
