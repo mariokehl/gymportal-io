@@ -323,7 +323,7 @@ class MembershipPauseTest extends TestCase
                 'pause_start_date' => '2026-10-01',
                 'pause_end_date' => '2026-10-31',
             ],
-        )->assertForbidden();
+        )->assertNotFound();
 
         $this->assertSame('active', $membership->refresh()->status);
     }

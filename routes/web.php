@@ -89,7 +89,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::get('/members/search', [MemberController::class, 'search'])->name('members.search');
     Route::post('/members/check-email', [MemberController::class, 'checkEmail'])->name('members.check-email');
     Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
-    Route::resource('members', MemberController::class);
+    Route::resource('members', MemberController::class)->except('edit');
     Route::put('/members/{member}/update-status', [MemberController::class, 'updateStatus'])->name('members.update-status');
     Route::post('/members/{member}/send-welcome', [MemberController::class, 'sendWelcome'])->name('members.send-welcome');
     Route::post('/members/{member}/toggle-age-verification', [MemberController::class, 'toggleAgeVerification'])->name('members.toggle-age-verification');
@@ -98,7 +98,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::get('/members/{member}/check-ins', [MemberController::class, 'checkIns'])->name('members.check-ins');
     Route::post('/members/{member}/memberships', [MemberController::class, 'storeMembership'])->name('members.memberships.store');
     Route::post('/members/{member}/memberships/free-period', [MembershipController::class, 'storeFreePeriod'])->name('members.memberships.store-free-period');
-    Route::prefix('members/{member}/memberships/{membership}')->group(function () {
+    Route::prefix('members/{member}/memberships/{membership}')->scopeBindings()->group(function () {
         Route::put('/activate', [MembershipController::class, 'activate'])->name('members.memberships.activate');
         Route::put('/pause', [MembershipController::class, 'pause'])->name('members.memberships.pause');
         Route::put('/resume', [MembershipController::class, 'resume'])->name('members.memberships.resume');
@@ -112,7 +112,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/addons/{addon}/toggle-completion', [MembershipController::class, 'toggleAddonCompletion'])->name('members.memberships.addons.toggle-completion');
         Route::put('/addons/{addon}/toggle-cancellation', [MembershipController::class, 'toggleAddonCancellation'])->name('members.memberships.addons.toggle-cancellation');
     });
-    Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->group(function () {
+    Route::prefix('members/{member}/payment-methods')->name('members.payment-methods.')->scopeBindings()->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
         Route::put('/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
         Route::put('/{paymentMethod}/set-default', [PaymentMethodController::class, 'setAsDefault'])->name('set-default');
@@ -123,18 +123,18 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/{paymentMethod}/sync-mollie-mandate', [PaymentMethodController::class, 'syncMollieMandate'])->name('sync-mollie-mandate');
         Route::delete('/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->name('destroy');
     });
-    Route::prefix('members/{member}/payments')->name('members.payments.')->group(function () {
+    Route::prefix('members/{member}/payments')->name('members.payments.')->scopeBindings()->group(function () {
         Route::post('/', [MemberPaymentController::class, 'store'])->name('store');
         Route::post('/{payment}/execute', [MemberPaymentController::class, 'execute'])->name('execute');
         Route::post('/execute-batch', [MemberPaymentController::class, 'executeBatch'])->name('execute-batch');
         Route::get('/{payment}/invoice', [MemberPaymentController::class, 'invoice'])->name('invoice');
     });
-    Route::prefix('members/{member}/documents')->name('members.documents.')->group(function () {
+    Route::prefix('members/{member}/documents')->name('members.documents.')->scopeBindings()->group(function () {
         Route::get('/', [MemberDocumentController::class, 'index'])->name('index');
         Route::get('/{membership}/download', [MemberDocumentController::class, 'download'])->name('download');
         Route::post('/{membership}/generate', [MemberDocumentController::class, 'generateContract'])->name('generate');
     });
-    Route::prefix('members/{member}/access')->name('members.access.')->group(function () {
+    Route::prefix('members/{member}/access')->name('members.access.')->scopeBindings()->group(function () {
         Route::put('/', [MemberAccessController::class, 'update'])->name('update');
         Route::post('/invalidate-qr', [MemberAccessController::class, 'invalidateQr'])->name('invalidate-qr');
         Route::post('/send-app-link', [MemberAccessController::class, 'sendAppLink'])->name('send-app-link');

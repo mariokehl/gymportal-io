@@ -17,6 +17,7 @@ class PaymentMethodController extends Controller
     {
         // Ensure user can only access payment methods from their gym
         $this->authorize('create', PaymentMethod::class);
+        $this->authorize('update', $member);
 
         $validated = $request->validate([
             'type' => 'required|in:sepa_direct_debit,creditcard,banktransfer,cash,invoice,mollie_creditcard,mollie_directdebit,mollie_klarna,mollie_paypal',
@@ -159,7 +160,7 @@ class PaymentMethodController extends Controller
         $this->authorize('update', $paymentMethod);
 
         // Validierung: Nur SEPA-Zahlungsmethoden mit pending Mandat
-        if (!$paymentMethod->requiresSepaMandate()) {
+        if (! $paymentMethod->requiresSepaMandate()) {
             return back()->with('error', 'Diese Zahlungsmethode benötigt kein SEPA-Mandat.');
         }
 
@@ -185,7 +186,7 @@ class PaymentMethodController extends Controller
         // Ensure user can only modify payment methods from their gym
         $this->authorize('update', $paymentMethod);
 
-        if (!$paymentMethod->requiresSepaMandate()) {
+        if (! $paymentMethod->requiresSepaMandate()) {
             return back()->with('error', 'Diese Zahlungsmethode benötigt kein SEPA-Mandat.');
         }
 
