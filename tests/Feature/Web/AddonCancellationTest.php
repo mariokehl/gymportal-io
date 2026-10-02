@@ -274,8 +274,8 @@ class AddonCancellationTest extends TestCase
             'gym_id' => $membership->membershipPlan->gym_id,
         ]);
 
-        $this->cancel($owner, $member, $membership, $otherAddon)
-            ->assertSessionHasErrors('error');
+        // Scoped route bindings resolve {addon} through the membership's addons.
+        $this->cancel($owner, $member, $membership, $otherAddon)->assertNotFound();
     }
 
     #[Test]
@@ -285,7 +285,7 @@ class AddonCancellationTest extends TestCase
 
         $otherMember = Member::factory()->create(['gym_id' => $owner->current_gym_id]);
 
-        $this->cancel($owner, $otherMember, $membership, $addon)->assertForbidden();
+        $this->cancel($owner, $otherMember, $membership, $addon)->assertNotFound();
     }
 
     #[Test]

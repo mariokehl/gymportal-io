@@ -56,13 +56,12 @@ class BlocklistController extends Controller
         $gym = $user->currentGym;
 
         $this->authorize('manage', $gym);
+        abort_if($member->gym_id !== $gym->id, 403);
 
         $request->validate([
             'reason' => ['required', 'in:payment_failed,chargeback,fraud,manual'],
             'notes' => ['required', 'string', 'min:10', 'max:500'],
         ]);
-
-        abort_if($member->gym_id !== $gym->id, 403);
 
         $this->blocklist->addMember(
             gymId: $gym->id,

@@ -153,7 +153,7 @@ class MembershipAddonBookingTest extends TestCase
 
         $otherMember = Member::factory()->create(['gym_id' => $gym->id]);
 
-        $this->book($owner, $otherMember, $membership, $addon->id)->assertForbidden();
+        $this->book($owner, $otherMember, $membership, $addon->id)->assertNotFound();
     }
 
     #[Test]

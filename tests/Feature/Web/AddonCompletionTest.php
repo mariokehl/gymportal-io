@@ -105,6 +105,7 @@ class AddonCompletionTest extends TestCase
                 'membership' => $membership,
                 'addon' => $unbookedAddon,
             ]))
-            ->assertSessionHasErrors('error');
+            // Scoped route bindings resolve {addon} through the membership's addons.
+            ->assertNotFound();
     }
 }

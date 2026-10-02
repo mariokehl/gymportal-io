@@ -32,6 +32,7 @@ class MembershipController extends Controller
     public function storeFreePeriod(Request $request, Member $member)
     {
         $this->authorize('create', Membership::class);
+        $this->authorize('update', $member);
 
         $validated = $request->validate([
             'start_date' => 'required|date',
