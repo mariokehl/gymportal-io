@@ -157,6 +157,9 @@ class MemberPaymentController extends Controller
 
     public function execute(Request $request, Member $member, Payment $payment)
     {
+        $this->authorize('update', $member);
+        $this->authorize('update', $payment);
+
         // Validierung
         if ($payment->member_id !== $member->id) {
             return redirect()->back()->with('error', 'Zahlung gehört nicht zu diesem Mitglied.');
@@ -373,6 +376,8 @@ class MemberPaymentController extends Controller
 
     public function executeBatch(Request $request, Member $member)
     {
+        $this->authorize('update', $member);
+
         $validated = $request->validate([
             'payment_ids' => 'required|array',
             'payment_ids.*' => 'exists:payments,id',
@@ -549,6 +554,9 @@ class MemberPaymentController extends Controller
 
     public function invoice(Member $member, Payment $payment)
     {
+        $this->authorize('view', $member);
+        $this->authorize('view', $payment);
+
         // Validierung
         if ($payment->member_id !== $member->id) {
             abort(403, 'Zahlung gehört nicht zu diesem Mitglied.');

@@ -195,7 +195,7 @@
               />
               <div>
                 <span class="text-sm font-medium text-gray-700">Unbefristet</span>
-                <p class="text-xs text-gray-500">Vertrag geht gemäß Gesetz für faire Verbraucherverträge (ab 01.03.2022) nach Erstlaufzeit in unbefristete Mitgliedschaft über</p>
+                <p class="text-xs text-gray-500">Vertrag geht in unbefristete Mitgliedschaft über</p>
               </div>
             </label>
             <label class="flex items-start space-x-3 cursor-pointer">
