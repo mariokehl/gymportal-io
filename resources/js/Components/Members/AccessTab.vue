@@ -777,7 +777,7 @@ const activeAccessCount = computed(() => {
 
 // Device management
 const removeDevice = (device) => {
-  if (!confirm('Möchten Sie dieses Gerät wirklich entfernen? Das Mitglied kann sich dann mit einem neuen Gerät anmelden.')) {
+  if (!confirm('Möchten Sie dieses Gerät wirklich entfernen? Das Mitglied wird auf allen Geräten abgemeldet und kann sich anschließend mit einem neuen Gerät anmelden.')) {
     return
   }
   removingDeviceId.value = device.id

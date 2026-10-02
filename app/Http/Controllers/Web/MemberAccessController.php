@@ -532,6 +532,10 @@ class MemberAccessController extends Controller
         $deviceToken = $device->device_token;
         $device->delete();
 
+        // API tokens are not bound to a device, so revoke all of them to make
+        // sure the removed device loses access as well.
+        $revokedTokens = $member->tokens()->delete();
+
         MemberAccessLog::create([
             'member_id' => $member->id,
             'action' => 'device_removed',
@@ -540,10 +544,11 @@ class MemberAccessController extends Controller
             'user_agent' => request()->userAgent(),
             'metadata' => [
                 'device_token' => substr($deviceToken, 0, 8).'...',
+                'revoked_tokens' => $revokedTokens,
             ],
         ]);
 
-        return back()->with('success', 'Gerät wurde entfernt.');
+        return back()->with('success', 'Gerät wurde entfernt und das Mitglied auf allen Geräten abgemeldet.');
     }
 
     /**
