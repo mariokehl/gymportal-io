@@ -11,6 +11,7 @@ use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
 use App\Models\MemberDevice;
 use App\Services\MemberAggregatorService;
+use App\Services\NfcTagService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ class MemberAccessController extends Controller
     /**
      * Update member access configuration
      */
-    public function update(Request $request, Member $member)
+    public function update(Request $request, Member $member, NfcTagService $nfcTags)
     {
         $this->authorize('update', $member);
 
@@ -38,22 +39,18 @@ class MemberAccessController extends Controller
             'nfc_uid' => [
                 'nullable',
                 'string',
-                function ($attribute, $value, $fail) use ($member) {
+                function ($attribute, $value, $fail) use ($member, $nfcTags) {
                     if ($value) {
                         // Normalisiere die NFC-ID
-                        $normalized = $this->normalizeCardId($value);
+                        $normalized = $nfcTags->normalizeUid($value);
                         if (! $normalized) {
                             $fail('Die NFC-ID hat ein ungültiges Format.');
 
                             return;
                         }
 
-                        // Prüfe auf Eindeutigkeit
-                        $exists = MemberAccessConfig::where('nfc_uid', $normalized)
-                            ->where('member_id', '!=', $member->id)
-                            ->exists();
-
-                        if ($exists) {
+                        // Unique across primary and additional tags of all members
+                        if ($nfcTags->isTaken($normalized, $member)) {
                             $fail('Diese NFC-ID ist bereits einem anderen Mitglied zugeordnet.');
                         }
                     }
@@ -71,10 +68,10 @@ class MemberAccessController extends Controller
 
         // Normalisiere NFC-UID vor dem Speichern
         if (isset($validated['nfc_uid']) && $validated['nfc_uid']) {
-            $validated['nfc_uid'] = $this->normalizeCardId($validated['nfc_uid']);
+            $validated['nfc_uid'] = $nfcTags->normalizeUid($validated['nfc_uid']);
         }
 
-        DB::transaction(function () use ($member, $validated) {
+        DB::transaction(function () use ($member, $validated, $nfcTags) {
             $config = MemberAccessConfig::updateOrCreate(
                 ['member_id' => $member->id],
                 $validated
@@ -82,6 +79,12 @@ class MemberAccessController extends Controller
 
             // Log die Änderung
             $this->logAccessConfigChange($member, $config, auth()->user());
+
+            // Only react to an actual removal: enabling NFC without a tag yet
+            // must not switch it right back off.
+            if ($config->wasChanged('nfc_uid')) {
+                $nfcTags->handlePrimaryRemoved($config);
+            }
         });
 
         return back()->with('success', 'Zugangskonfiguration wurde aktualisiert.');
@@ -302,7 +305,7 @@ class MemberAccessController extends Controller
                 $member = $this->validateQrCode($validated['identifier'], $validated['gym_id']);
             } else {
                 // NFC Validierung
-                $normalizedUid = $this->normalizeCardId($validated['identifier']);
+                $normalizedUid = app(NfcTagService::class)->normalizeUid($validated['identifier']);
                 if ($normalizedUid) {
                     $member = $this->validateNfcUid($normalizedUid, $validated['gym_id']);
                 }
@@ -345,48 +348,6 @@ class MemberAccessController extends Controller
                 'status' => $member->status,
             ] : null,
         ], $success ? 200 : 403);
-    }
-
-    /**
-     * Normalisiere verschiedene Karten-ID Formate
-     */
-    private function normalizeCardId($cardId)
-    {
-        if (! $cardId) {
-            return null;
-        }
-
-        // Whitespace entfernen und in Großbuchstaben
-        $cardId = strtoupper(trim($cardId));
-
-        // 1. UID-Format mit Trennzeichen (04:A1:B2:C3 oder 04-A1-B2-C3)
-        if (strpos($cardId, ':') !== false || strpos($cardId, '-') !== false) {
-            $normalized = preg_replace('/[:-]/', '', $cardId);
-            if (preg_match('/^[0-9A-F]+$/', $normalized)) {
-                return $normalized;
-            }
-        }
-
-        // 2. Hexadezimal mit 0x Prefix
-        elseif (strpos($cardId, '0X') === 0) {
-            $hexPart = substr($cardId, 2);
-            if (preg_match('/^[0-9A-F]+$/', $hexPart)) {
-                return $hexPart;
-            }
-        }
-
-        // 3. Reines Hexadezimal (nur A-F, 0-9)
-        elseif (preg_match('/^[0-9A-F]+$/', $cardId)) {
-            return $cardId;
-        }
-
-        // 4. Reine Dezimalzahl
-        elseif (preg_match('/^[0-9]+$/', $cardId)) {
-            // Dezimal zu Hex konvertieren
-            return strtoupper(dechex(intval($cardId)));
-        }
-
-        return null;
     }
 
     /**
@@ -435,12 +396,7 @@ class MemberAccessController extends Controller
      */
     private function validateNfcUid($uid, $gymId)
     {
-        $config = MemberAccessConfig::where('nfc_uid', $uid)
-            ->whereHas('member', function ($query) use ($gymId) {
-                $query->where('gym_id', $gymId);
-            })
-            ->with('member')
-            ->first();
+        $config = app(NfcTagService::class)->findConfigByUid($uid, [(int) $gymId]);
 
         if (! $config) {
             throw new \Exception('NFC-Tag nicht registriert');
@@ -532,6 +488,10 @@ class MemberAccessController extends Controller
         $deviceToken = $device->device_token;
         $device->delete();
 
+        // API tokens are not bound to a device, so revoke all of them to make
+        // sure the removed device loses access as well.
+        $revokedTokens = $member->tokens()->delete();
+
         MemberAccessLog::create([
             'member_id' => $member->id,
             'action' => 'device_removed',
@@ -540,10 +500,11 @@ class MemberAccessController extends Controller
             'user_agent' => request()->userAgent(),
             'metadata' => [
                 'device_token' => substr($deviceToken, 0, 8).'...',
+                'revoked_tokens' => $revokedTokens,
             ],
         ]);
 
-        return back()->with('success', 'Gerät wurde entfernt.');
+        return back()->with('success', 'Gerät wurde entfernt und das Mitglied auf allen Geräten abgemeldet.');
     }
 
     /**

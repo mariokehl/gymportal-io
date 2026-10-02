@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Gym;
 use App\Models\Member;
-use App\Models\MemberAccessConfig;
 use Carbon\Carbon;
 
 class ScannerValidationService
@@ -194,9 +193,9 @@ class ScannerValidationService
         return $scannedAt->diffInMinutes(now(), true) <= $this->qrCodeValidityMinutes;
     }
 
-    public function validateNfcCard(string $cardId): array
+    public function validateNfcCard(string $cardId, int $gymId): array
     {
-        $accessConfig = MemberAccessConfig::where('nfc_uid', $cardId)->first();
+        $accessConfig = app(NfcTagService::class)->findConfigByUid($cardId, [$gymId]);
         $member = $accessConfig?->member;
 
         return [

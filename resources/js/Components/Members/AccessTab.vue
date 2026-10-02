@@ -206,6 +206,86 @@
             Normalisiert: {{ formatNfcIdForDisplay(normalizedNfcId) }}
           </div>
         </div>
+
+        <!-- Additional tags (only next to a registered primary tag) -->
+        <div
+          v-if="accessForm.nfc_enabled && accessForm.nfc_uid && !editingNfc && !isNfcScanning"
+          class="px-4 py-3 border-t border-gray-100 space-y-3"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <span class="text-sm font-medium text-gray-700">Weitere NFC-Tags</span>
+            <button
+              v-if="!addingNfcTag"
+              @click="startNfcTagAdd"
+              type="button"
+              class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
+            >
+              <Plus class="w-4 h-4" />
+              Hinzufügen
+            </button>
+          </div>
+
+          <div v-if="additionalNfcTags.length > 0" class="flex flex-wrap gap-2">
+            <span
+              v-for="tag in additionalNfcTags"
+              :key="tag.id"
+              class="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-mono"
+            >
+              {{ formatNfcIdForDisplay(tag.uid) }}
+              <button
+                @click="removeAdditionalNfcTag(tag)"
+                type="button"
+                :disabled="removingNfcTagId === tag.id"
+                :aria-label="`NFC-Tag ${formatNfcIdForDisplay(tag.uid)} entfernen`"
+                title="NFC-Tag entfernen"
+                class="p-0.5 rounded-full text-purple-500 hover:text-purple-900 hover:bg-purple-200 disabled:opacity-50"
+              >
+                <Loader2 v-if="removingNfcTagId === tag.id" class="w-3.5 h-3.5 animate-spin" />
+                <X v-else class="w-3.5 h-3.5" />
+              </button>
+            </span>
+          </div>
+          <p v-else-if="!addingNfcTag" class="text-xs text-gray-500">Keine weiteren NFC-Tags hinterlegt.</p>
+
+          <div v-if="addingNfcTag" class="space-y-2">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <input
+                ref="nfcTagInput"
+                v-model="nfcTagInputValue"
+                type="text"
+                placeholder="Weitere NFC ID eingeben..."
+                class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                @keyup.enter="saveAdditionalNfcTag"
+              />
+              <div class="flex gap-2">
+                <button
+                  @click="saveAdditionalNfcTag"
+                  type="button"
+                  :disabled="!normalizedNfcTagId || nfcTagForm.processing"
+                  class="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  Speichern
+                </button>
+                <button
+                  @click="cancelNfcTagAdd"
+                  type="button"
+                  class="flex-1 sm:flex-none px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+            <div v-if="nfcTagInputValue && !normalizedNfcTagId" class="flex items-center gap-2 text-sm text-red-600">
+              <XCircle class="w-4 h-4" />
+              Ungültiges Format
+            </div>
+            <div v-else-if="normalizedNfcTagId && !nfcTagForm.errors.uid" class="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle class="w-4 h-4" />
+              Normalisiert: {{ formatNfcIdForDisplay(normalizedNfcTagId) }}
+            </div>
+          </div>
+          <p v-if="nfcTagForm.errors.uid" class="text-sm text-red-600">{{ nfcTagForm.errors.uid }}</p>
+        </div>
       </div>
     </div>
 
@@ -594,7 +674,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import {
   QrCode, Nfc, Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio,
-  Smartphone, X, XCircle, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
+  Smartphone, X, XCircle, Plus, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 import MemberAggregatorCard from '@/Components/Members/MemberAggregatorCard.vue'
@@ -775,9 +855,69 @@ const activeAccessCount = computed(() => {
   return count
 })
 
+// Additional NFC tags next to the primary one
+const additionalNfcTags = computed(() => props.member.access_config?.additional_nfc_tags ?? [])
+const addingNfcTag = ref(false)
+const nfcTagInput = ref(null)
+const nfcTagInputValue = ref('')
+const normalizedNfcTagId = computed(() => normalizeCardId(nfcTagInputValue.value) || '')
+const nfcTagForm = useForm({ uid: '' })
+const removingNfcTagId = ref(null)
+
+// The server may change the NFC state on its own (a removed primary tag is
+// replaced by an additional one, or NFC is switched off without any tag left),
+// so the form follows the props after every reload.
+watch(
+  () => [props.member.access_config?.nfc_enabled, props.member.access_config?.nfc_uid],
+  ([enabled, uid]) => {
+    accessForm.nfc_enabled = enabled ?? false
+    accessForm.nfc_uid = uid || ''
+    if (!editingNfc.value) {
+      nfcInputValue.value = formatNfcIdForDisplay(uid)
+    }
+  },
+)
+
+const startNfcTagAdd = () => {
+  nfcTagForm.clearErrors()
+  nfcTagInputValue.value = ''
+  addingNfcTag.value = true
+  nextTick(() => nfcTagInput.value?.focus())
+}
+
+const cancelNfcTagAdd = () => {
+  nfcTagForm.clearErrors()
+  nfcTagInputValue.value = ''
+  addingNfcTag.value = false
+}
+
+const saveAdditionalNfcTag = () => {
+  if (!normalizedNfcTagId.value || nfcTagForm.processing) return
+
+  nfcTagForm.uid = normalizedNfcTagId.value
+  nfcTagForm.post(route('members.access.nfc-tags.store', props.member.id), {
+    preserveScroll: true,
+    onSuccess: () => cancelNfcTagAdd(),
+  })
+}
+
+const removeAdditionalNfcTag = (tag) => {
+  if (!confirm(`Möchten Sie den NFC-Tag ${formatNfcIdForDisplay(tag.uid)} wirklich entfernen?`)) {
+    return
+  }
+
+  removingNfcTagId.value = tag.id
+  router.delete(route('members.access.nfc-tags.destroy', { member: props.member.id, nfcTag: tag.id }), {
+    preserveScroll: true,
+    onFinish: () => {
+      removingNfcTagId.value = null
+    },
+  })
+}
+
 // Device management
 const removeDevice = (device) => {
-  if (!confirm('Möchten Sie dieses Gerät wirklich entfernen? Das Mitglied kann sich dann mit einem neuen Gerät anmelden.')) {
+  if (!confirm('Möchten Sie dieses Gerät wirklich entfernen? Das Mitglied wird auf allen Geräten abgemeldet und kann sich anschließend mit einem neuen Gerät anmelden.')) {
     return
   }
   removingDeviceId.value = device.id
@@ -929,7 +1069,10 @@ const cancelNfcEdit = () => {
 }
 
 const removeNfcTag = () => {
-  if (confirm('Möchten Sie den NFC-Tag wirklich entfernen?')) {
+  const message = additionalNfcTags.value.length > 0
+    ? 'Möchten Sie den NFC-Tag wirklich entfernen? Der erste weitere NFC-Tag wird dann zum primären Tag.'
+    : 'Möchten Sie den NFC-Tag wirklich entfernen? Ohne NFC-Tag wird der NFC-Zugang deaktiviert.'
+  if (confirm(message)) {
     accessForm.nfc_uid = ''
     nfcInputValue.value = ''
     normalizedNfcId.value = ''

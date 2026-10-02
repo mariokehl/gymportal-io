@@ -498,7 +498,7 @@ class MemberController extends Controller
                     ->latest()
                     ->take(self::CHECKINS_PAGE_SIZE);
             },
-            'accessConfig',
+            'accessConfig.additionalNfcTags',
             'devices',
             // Access history of the "Zugänge" tab. service_name is an accessor
             // and has to be appended explicitly to reach the frontend.
