@@ -16,6 +16,7 @@ use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Services\MemberService;
 use App\Services\MemberStatusService;
+use App\Services\NfcTagService;
 use App\Services\PaymentService;
 use App\Services\StaffCheckInService;
 use Carbon\Carbon;
@@ -938,7 +939,7 @@ class MemberController extends Controller
     /**
      * Enhanced destroy method with validation
      */
-    public function destroy(Member $member)
+    public function destroy(Member $member, NfcTagService $nfcTags)
     {
         $this->authorize('delete', $member);
 
@@ -971,6 +972,10 @@ class MemberController extends Controller
                     'member_data' => $member->only(['member_number', 'email']),
                 ],
             ]);
+
+            // The soft delete keeps the access configuration, so the member's
+            // NFC tags are released explicitly for reuse by other members.
+            $nfcTags->releaseAll($member, $user);
 
             $member->delete();
 

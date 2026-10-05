@@ -172,6 +172,45 @@ class NfcTagService
     }
 
     /**
+     * Release every tag of a member so it can be assigned to another member.
+     *
+     * Members are only soft deleted, so the database cascade never removes
+     * their access configuration; without this, the tags of a deleted member
+     * stay blocked by the uniqueness check and the unique indexes.
+     */
+    public function releaseAll(Member $member, ?User $performedBy): void
+    {
+        $config = $member->accessConfig;
+
+        if (! $config) {
+            return;
+        }
+
+        $uids = array_values(array_filter([
+            $config->nfc_uid,
+            ...$config->additionalNfcTags()->pluck('uid')->all(),
+        ]));
+
+        if ($uids === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($member, $config, $uids, $performedBy) {
+            $config->additionalNfcTags()->delete();
+            $config->update([
+                'nfc_uid' => null,
+                'nfc_enabled' => false,
+                'nfc_registered_at' => null,
+            ]);
+
+            $this->log($member, MemberAccessLog::ACTION_NFC_REMOVED, $performedBy, [
+                'nfc_uids' => $uids,
+                'reason' => 'member_deleted',
+            ]);
+        });
+    }
+
+    /**
      * Keep the configuration consistent after its primary tag was cleared:
      * the oldest additional tag moves up to become the primary one, and
      * without any tag left NFC access is turned off.
