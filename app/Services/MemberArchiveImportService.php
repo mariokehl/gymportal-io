@@ -129,7 +129,7 @@ class MemberArchiveImportService
                 $stats['credit_balances']++;
             }
 
-            if ($data['access_tags']['nfc_uid']) {
+            if ($data['access_tags']['nfc_uids'] !== []) {
                 $stats['access_tags']++;
             }
 
@@ -275,7 +275,7 @@ class MemberArchiveImportService
 
         $this->importAccessConfig($member, $data);
 
-        if ($data['access_tags']['nfc_uid']) {
+        if ($data['access_tags']['nfc_uids'] !== []) {
             $stats['access_configs_created']++;
         }
 
@@ -776,37 +776,50 @@ class MemberArchiveImportService
     }
 
     /**
-     * Take over the member card so the existing cards keep working at the
-     * scanner after the migration.
+     * Take over the member cards so the existing cards keep working at the
+     * scanner after the migration. The first card becomes the primary tag,
+     * every further card an additional tag.
      */
     private function importAccessConfig(Member $member, array $data): void
     {
-        $nfcUid = $data['access_tags']['nfc_uid'];
-
-        if (! $nfcUid) {
-            return;
-        }
-
         // A card identifier must stay unique across the installation; a
         // duplicate is skipped rather than silently reassigned.
-        if ($this->nfcTags->isTaken($nfcUid)) {
-            Log::warning('Skipping duplicate NFC identifier during archive import', [
-                'member_id' => $member->id,
-                'nfc_uid' => $nfcUid,
-            ]);
+        $nfcUids = array_values(array_filter(
+            $data['access_tags']['nfc_uids'],
+            function (string $uid) use ($member) {
+                if (! $this->nfcTags->isTaken($uid)) {
+                    return true;
+                }
 
+                Log::warning('Skipping duplicate NFC identifier during archive import', [
+                    'member_id' => $member->id,
+                    'nfc_uid' => $uid,
+                ]);
+
+                return false;
+            }
+        ));
+
+        if ($nfcUids === []) {
             return;
         }
 
-        MemberAccessConfig::updateOrCreate(
+        $config = MemberAccessConfig::updateOrCreate(
             ['member_id' => $member->id],
             [
-                'nfc_uid' => $nfcUid,
+                'nfc_uid' => array_shift($nfcUids),
                 'nfc_enabled' => true,
                 'nfc_registered_at' => now(),
                 'qr_code_enabled' => true,
             ]
         );
+
+        foreach ($nfcUids as $uid) {
+            $config->additionalNfcTags()->create([
+                'uid' => $uid,
+                'registered_at' => now(),
+            ]);
+        }
     }
 
     /**

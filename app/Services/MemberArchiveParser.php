@@ -417,11 +417,18 @@ class MemberArchiveParser
     }
 
     /**
-     * Access identifications: member card (NFC) and QR code identifier.
+     * Access identifications: member cards (NFC) and QR code identifier.
+     *
+     * A member can hold several cards, either as separate rows or as a list
+     * inside one cell (e.g. "1000000001, 1000000002"). All of them are
+     * collected in their original order without duplicates.
+     *
+     * @return array{nfc_uids: array<int, string>, qr_code: ?string}
      */
     private function readAccessIdentifications(string $path, array $primary): array
     {
-        $tags = ['nfc_uid' => null, 'qr_code' => null];
+        $nfcUids = [];
+        $qrCode = null;
 
         foreach ($this->readSheet($path) as $index => $row) {
             if ($index === 0) {
@@ -436,15 +443,28 @@ class MemberArchiveParser
             }
 
             if (str_contains($type, 'karte')) {
-                $tags['nfc_uid'] = $value;
+                array_push($nfcUids, ...$this->splitCardIds($value));
             } elseif (str_contains($type, 'QR')) {
-                $tags['qr_code'] = $value;
+                $qrCode = $value;
             }
         }
 
-        $tags['nfc_uid'] ??= trim($primary['Mitgliedskarte'] ?? '') ?: null;
+        if ($nfcUids === []) {
+            $nfcUids = $this->splitCardIds($primary['Mitgliedskarte'] ?? '');
+        }
 
-        return $tags;
+        return ['nfc_uids' => array_values(array_unique($nfcUids)), 'qr_code' => $qrCode];
+    }
+
+    /**
+     * Split a cell holding one or more card identifiers separated by commas,
+     * semicolons, line breaks or whitespace.
+     *
+     * @return array<int, string>
+     */
+    private function splitCardIds(string $value): array
+    {
+        return preg_split('/[\s,;]+/', trim($value), -1, PREG_SPLIT_NO_EMPTY) ?: [];
     }
 
     /**
