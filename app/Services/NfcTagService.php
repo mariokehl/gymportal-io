@@ -59,6 +59,33 @@ class NfcTagService
     }
 
     /**
+     * Convert a card number stored as a decimal value, as ML exports
+     * it, to the hex UID the scanner reads.
+     *
+     * The decimal value loses a leading zero nibble, which is restored to
+     * complete the first byte. The QR scanner reads at least four bytes and
+     * fills shorter UIDs with trailing zero bytes, so 8426334 (80935E)
+     * becomes 80935E00, read as 80:93:5E:00.
+     */
+    public function decimalToUid(string $decimal): ?string
+    {
+        $decimal = trim($decimal);
+
+        // Up to 18 digits fit into a 64-bit integer, enough for 7-byte UIDs.
+        if (! preg_match('/^[0-9]{1,18}$/', $decimal)) {
+            return null;
+        }
+
+        $hex = strtoupper(dechex((int) $decimal));
+
+        if (strlen($hex) % 2 === 1) {
+            $hex = '0'.$hex;
+        }
+
+        return str_pad($hex, 8, '0', STR_PAD_RIGHT);
+    }
+
+    /**
      * Find the access configuration a tag belongs to, limited to members of
      * the given gyms. Returns the configuration regardless of nfc_enabled so
      * callers can tell a disabled tag from an unknown one.

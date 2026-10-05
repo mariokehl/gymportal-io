@@ -785,7 +785,7 @@ class MemberArchiveImportService
         // A card identifier must stay unique across the installation; a
         // duplicate is skipped rather than silently reassigned.
         $nfcUids = array_values(array_filter(
-            $data['access_tags']['nfc_uids'],
+            $this->convertCardIds($member, $data['access_tags']['nfc_uids']),
             function (string $uid) use ($member) {
                 if (! $this->nfcTags->isTaken($uid)) {
                     return true;
@@ -820,6 +820,37 @@ class MemberArchiveImportService
                 'registered_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Convert the card numbers of the export to the hex UIDs the scanner
+     * reads. ML stores them as decimal values; an identifier that is
+     * already given in hex is only normalised.
+     *
+     * @param  array<int, string>  $cardIds
+     * @return array<int, string>
+     */
+    private function convertCardIds(Member $member, array $cardIds): array
+    {
+        $uids = [];
+
+        foreach ($cardIds as $cardId) {
+            $uid = $this->nfcTags->decimalToUid($cardId) ?? $this->nfcTags->normalizeUid($cardId);
+
+            if ($uid === null) {
+                Log::warning('Skipping unreadable NFC identifier during archive import', [
+                    'member_id' => $member->id,
+                    'nfc_uid' => $cardId,
+                ]);
+
+                continue;
+            }
+
+            $uids[] = $uid;
+        }
+
+        // Different spellings of the same card collapse into one UID.
+        return array_values(array_unique($uids));
     }
 
     /**
