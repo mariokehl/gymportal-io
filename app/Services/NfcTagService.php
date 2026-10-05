@@ -59,6 +59,33 @@ class NfcTagService
     }
 
     /**
+     * Convert a card number stored as a decimal value, as ML exports
+     * it, to the hex UID the scanner reads.
+     *
+     * The decimal value loses a leading zero nibble, which is restored to
+     * complete the first byte. The QR scanner reads at least four bytes and
+     * fills shorter UIDs with trailing zero bytes, so 8426334 (80935E)
+     * becomes 80935E00, read as 80:93:5E:00.
+     */
+    public function decimalToUid(string $decimal): ?string
+    {
+        $decimal = trim($decimal);
+
+        // Up to 18 digits fit into a 64-bit integer, enough for 7-byte UIDs.
+        if (! preg_match('/^[0-9]{1,18}$/', $decimal)) {
+            return null;
+        }
+
+        $hex = strtoupper(dechex((int) $decimal));
+
+        if (strlen($hex) % 2 === 1) {
+            $hex = '0'.$hex;
+        }
+
+        return str_pad($hex, 8, '0', STR_PAD_RIGHT);
+    }
+
+    /**
      * Find the access configuration a tag belongs to, limited to members of
      * the given gyms. Returns the configuration regardless of nfc_enabled so
      * callers can tell a disabled tag from an unknown one.
@@ -141,6 +168,45 @@ class NfcTagService
             ]);
 
             $this->disableWithoutTags($config);
+        });
+    }
+
+    /**
+     * Release every tag of a member so it can be assigned to another member.
+     *
+     * Members are only soft deleted, so the database cascade never removes
+     * their access configuration; without this, the tags of a deleted member
+     * stay blocked by the uniqueness check and the unique indexes.
+     */
+    public function releaseAll(Member $member, ?User $performedBy): void
+    {
+        $config = $member->accessConfig;
+
+        if (! $config) {
+            return;
+        }
+
+        $uids = array_values(array_filter([
+            $config->nfc_uid,
+            ...$config->additionalNfcTags()->pluck('uid')->all(),
+        ]));
+
+        if ($uids === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($member, $config, $uids, $performedBy) {
+            $config->additionalNfcTags()->delete();
+            $config->update([
+                'nfc_uid' => null,
+                'nfc_enabled' => false,
+                'nfc_registered_at' => null,
+            ]);
+
+            $this->log($member, MemberAccessLog::ACTION_NFC_REMOVED, $performedBy, [
+                'nfc_uids' => $uids,
+                'reason' => 'member_deleted',
+            ]);
         });
     }
 

@@ -221,4 +221,37 @@ class MemberNfcTagTest extends TestCase
                 ->where('member.access_config.additional_nfc_tags.0.uid', '04112233')
             );
     }
+
+    #[Test]
+    public function deleting_a_member_releases_its_tags_for_other_members(): void
+    {
+        [$owner, $gym, $member] = $this->ownerWithMember();
+        $member->update(['status' => 'inactive']);
+        $config = $this->configWithPrimary($member);
+        $config->additionalNfcTags()->create(['uid' => '04112233']);
+
+        $this->actingAs($owner)
+            ->delete(route('members.destroy', $member))
+            ->assertRedirect(route('members.index'));
+
+        $this->assertSoftDeleted($member);
+
+        $config->refresh();
+        $this->assertNull($config->nfc_uid);
+        $this->assertFalse($config->nfc_enabled);
+        $this->assertSame(0, MemberNfcTag::count());
+
+        $this->assertDatabaseHas('member_access_logs', [
+            'member_id' => $member->id,
+            'action' => MemberAccessLog::ACTION_NFC_REMOVED,
+        ]);
+
+        // Both tags can be assigned to another member again.
+        $other = Member::factory()->create(['gym_id' => $gym->id]);
+        $this->configWithPrimary($other);
+
+        $this->actingAs($owner)
+            ->post(route('members.access.nfc-tags.store', $other), ['uid' => '04112233'])
+            ->assertSessionHasNoErrors();
+    }
 }

@@ -6,6 +6,7 @@ use App\Models\Addon;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
+use App\Models\MemberNfcTag;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\PaymentMethod;
@@ -135,9 +136,10 @@ class MemberArchiveImportTest extends TestCase
         $booked = $membership->addons()->where('addons.id', $addon->id)->first();
         $this->assertSame('2023-02-01', $booked->pivot->booked_at);
 
-        // The member card keeps working at the scanner.
+        // The member card keeps working at the scanner, converted from the
+        // decimal card number of the export to the hex UID the scanner reads.
         $config = MemberAccessConfig::where('member_id', $member->id)->firstOrFail();
-        $this->assertSame('1000000001', $config->nfc_uid);
+        $this->assertSame('3B9ACA01', $config->nfc_uid);
         $this->assertTrue((bool) $config->nfc_enabled);
     }
 
@@ -933,6 +935,39 @@ class MemberArchiveImportTest extends TestCase
                 ]],
             ]],
         ];
+    }
+
+    #[Test]
+    public function it_imports_several_member_cards_as_primary_and_additional_tags(): void
+    {
+        // Already assigned to another member, so it must be skipped.
+        $other = Member::factory()->create(['gym_id' => $this->gym->id]);
+        MemberAccessConfig::create(['member_id' => $other->id, 'nfc_uid' => '3B9ACA02', 'nfc_enabled' => true]);
+
+        $this->makeMemberFolder('9-104_Card Test_x', [
+            'primary' => [
+                'Mitgliedsnummer' => '9-104',
+                'Vorname' => 'Card',
+                'Nachname' => 'Test',
+                'E-Mail' => 'card.test@example.test',
+                'Typ' => 'Vertrag',
+                'Tarifname' => 'Basis',
+                'Preis' => "monatlich: 20,00\u{00A0}€",
+                'Mitgliedskarte' => '1000000001, 1000000002, 8426334',
+            ],
+        ]);
+
+        $stats = $this->importService()->import($this->gym->id, $this->folders());
+
+        $this->assertSame([], $stats['errors']);
+
+        $member = Member::where('email', 'card.test@example.test')->firstOrFail();
+        $config = MemberAccessConfig::where('member_id', $member->id)->firstOrFail();
+
+        $this->assertSame('3B9ACA01', $config->nfc_uid);
+        $this->assertTrue((bool) $config->nfc_enabled);
+        $this->assertSame(['80935E00'], $config->additionalNfcTags()->pluck('uid')->all());
+        $this->assertSame(1, MemberNfcTag::count());
     }
 
     #[Test]

@@ -287,10 +287,44 @@ class MemberArchiveParserTest extends TestCase
         $this->assertSame(119.90, $data['balance']['balance']);
         $this->assertSame(5.00, $data['balance']['credit']);
 
-        $this->assertSame('1000000002', $data['access_tags']['nfc_uid']);
+        $this->assertSame(['1000000002'], $data['access_tags']['nfc_uids']);
         $this->assertSame('c0ffee00-0000-4000-8000-000000000000', $data['access_tags']['qr_code']);
 
         $this->assertSame('Erika', $data['legal_guardian']['first_name']);
+    }
+
+    #[Test]
+    public function it_splits_several_member_cards_into_separate_identifiers(): void
+    {
+        $folder = $this->makeMemberFolder('1-1_A B_x', [
+            'master' => ['primary' => $this->minimalPrimary('1-1'), 'modules' => []],
+            'access' => [
+                ['Typ', 'Kennung'],
+                ['Mitgliedskarte', '1000000001, 1000000002;1000000003'],
+                ['Mitgliedskarte', '1000000004'],
+                ['Mitgliedskarte', '1000000002'],
+            ],
+        ]);
+
+        $data = (new MemberArchiveParser)->parseMemberFolder($folder);
+
+        $this->assertSame(
+            ['1000000001', '1000000002', '1000000003', '1000000004'],
+            $data['access_tags']['nfc_uids']
+        );
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_card_list_of_the_master_data(): void
+    {
+        $primary = $this->minimalPrimary('1-1');
+        $primary['Mitgliedskarte'] = '1000000001,1000000002';
+
+        $folder = $this->makeMemberFolder('1-1_A B_x', ['master' => ['primary' => $primary, 'modules' => []]]);
+
+        $data = (new MemberArchiveParser)->parseMemberFolder($folder);
+
+        $this->assertSame(['1000000001', '1000000002'], $data['access_tags']['nfc_uids']);
     }
 
     #[Test]
