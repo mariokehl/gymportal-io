@@ -137,6 +137,8 @@ class MembershipService
 
             $this->expireLinkedFreeTrial($membership, $source);
 
+            $this->endBookedAddons($membership);
+
             // Send the acknowledgement of receipt by mail (§ 356a BGB).
             // IMPORTANT: it may only confirm receipt, never that the
             // withdrawal is "effective".
@@ -370,6 +372,35 @@ class MembershipService
         $freeTrial->update($attributes);
 
         $freeTrial->markAsExpired($source);
+    }
+
+    /**
+     * Booked add-ons are part of the withdrawn contract and end with it.
+     *
+     * They are cancelled rather than detached so the booking history stays
+     * visible. They end on the withdrawal date, the same day the linked free
+     * trial ends. Their payments belong to the membership and are already
+     * voided or refunded with it.
+     */
+    private function endBookedAddons(Membership $membership): void
+    {
+        $lastUsableDay = now()->toDateString();
+
+        $addons = $membership->addons()
+            ->where(function ($query) use ($lastUsableDay) {
+                $query->whereNull('addon_membership.cancellation_effective_at')
+                    ->orWhereDate('addon_membership.cancellation_effective_at', '>', $lastUsableDay);
+            })
+            ->get();
+
+        foreach ($addons as $addon) {
+            // An add-on cancelled earlier keeps its cancellation date and only
+            // ends sooner.
+            $membership->addons()->updateExistingPivot($addon->id, [
+                'cancelled_at' => $addon->pivot->cancelled_at ?? now(),
+                'cancellation_effective_at' => $lastUsableDay,
+            ]);
+        }
     }
 
     private function appendNote(?string $existing, string $note): string
