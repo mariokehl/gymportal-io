@@ -61,6 +61,15 @@ class MembershipController extends Controller
                         'linked_membership_id' => 'Die ausgewählte Mitgliedschaft gehört nicht zu diesem Mitglied.',
                     ]);
                 }
+
+                // A free period can only be put in front of a real contract.
+                if ($linkedMembership->is_free_trial) {
+                    DB::rollBack();
+
+                    return back()->withErrors([
+                        'linked_membership_id' => 'Ein Gratis-Zeitraum kann nur mit einer Mitgliedschaft verknüpft werden, nicht mit einem anderen Gratis-Zeitraum.',
+                    ]);
+                }
             }
 
             // Create the free membership

@@ -186,3 +186,28 @@ export function resolveSelectedAddonIds(addons) {
     .filter((addon) => addon.mode === 'included' || addon.checked === true)
     .map((addon) => addon.id)
 }
+
+/**
+ * Monthly amount of a membership: the plan fee plus every recurring add-on
+ * that is still billed. Cancelled add-ons are left out, one-time add-ons are
+ * not a monthly charge, and included add-ons carry a price of 0.
+ *
+ * Only monthly plans can be summed up with the monthly add-ons, so any other
+ * billing cycle yields null.
+ *
+ * @param {Object} membership membership with membership_plan and addons (pivot)
+ * @returns {number|null} the total rounded to cents, or null if not monthly
+ */
+export function monthlyMembershipTotal(membership) {
+  const plan = membership?.membership_plan
+
+  if ((plan?.billing_cycle || 'monthly') !== 'monthly') {
+    return null
+  }
+
+  const addonsTotal = (membership.addons || [])
+    .filter((addon) => addon.billing_type === 'recurring' && !addon.pivot?.cancelled_at)
+    .reduce((sum, addon) => sum + (Number(addon.pivot?.price) || 0), 0)
+
+  return Math.round(((Number(plan?.price) || 0) + addonsTotal) * 100) / 100
+}

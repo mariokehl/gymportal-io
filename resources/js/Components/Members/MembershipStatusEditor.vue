@@ -78,6 +78,7 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ChevronDown, ArrowRight, Info } from 'lucide-vue-next'
+import { MEMBERSHIP_STATUSES } from '@/utils/membershipStatus'
 
 const props = defineProps({
   membership: {
@@ -93,14 +94,7 @@ const props = defineProps({
 
 const emit = defineEmits(['force-status'])
 
-const allStatuses = [
-  { value: 'active', label: 'Aktiv', dotClass: 'bg-green-500', badgeClass: 'bg-green-100 text-green-800' },
-  { value: 'paused', label: 'Pausiert', dotClass: 'bg-yellow-500', badgeClass: 'bg-yellow-100 text-yellow-800' },
-  { value: 'cancelled', label: 'Gekündigt', dotClass: 'bg-red-500', badgeClass: 'bg-red-100 text-red-800' },
-  { value: 'expired', label: 'Abgelaufen', dotClass: 'bg-gray-500', badgeClass: 'bg-gray-100 text-gray-800' },
-  { value: 'pending', label: 'Ausstehend', dotClass: 'bg-orange-500', badgeClass: 'bg-orange-100 text-orange-800' },
-  { value: 'withdrawn', label: 'Widerrufen', dotClass: 'bg-purple-500', badgeClass: 'bg-purple-100 text-purple-800' },
-]
+const allStatuses = MEMBERSHIP_STATUSES
 
 // State
 const showMenu = ref(false)
