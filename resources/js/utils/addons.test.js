@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
   cappedBillingDate, endOfBookingMonth, endOfCurrentMonth, isTrialActive, nextMonthlyBillingDate,
-  resolveSelectedAddonIds, weeklyPriceOf
+  monthlyMembershipTotal, resolveSelectedAddonIds, weeklyPriceOf
 } from '@/utils/addons'
 
 describe('nextMonthlyBillingDate', () => {
@@ -193,5 +193,30 @@ describe('weeklyPriceOf', () => {
     expect(weeklyPriceOf(null)).toBe(0)
     expect(weeklyPriceOf(undefined)).toBe(0)
     expect(weeklyPriceOf('abc')).toBe(0)
+  })
+})
+
+describe('monthlyMembershipTotal', () => {
+  const membership = (addons, billingCycle = 'monthly') => ({
+    membership_plan: { price: '39.90', billing_cycle: billingCycle },
+    addons
+  })
+
+  it('adds recurring add-ons that are still billed to the plan fee', () => {
+    expect(monthlyMembershipTotal(membership([
+      { billing_type: 'recurring', pivot: { price: '9.90' } },
+      { billing_type: 'recurring', pivot: { price: '0.00' } }
+    ]))).toBe(49.8)
+  })
+
+  it('leaves out cancelled and one-time add-ons', () => {
+    expect(monthlyMembershipTotal(membership([
+      { billing_type: 'recurring', pivot: { price: '9.90', cancelled_at: '2026-10-01' } },
+      { billing_type: 'one_time', pivot: { price: '25.00' } }
+    ]))).toBe(39.9)
+  })
+
+  it('returns null for plans that are not billed monthly', () => {
+    expect(monthlyMembershipTotal(membership([], 'yearly'))).toBeNull()
   })
 })

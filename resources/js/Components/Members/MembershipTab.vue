@@ -1,209 +1,372 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <!-- Active Memberships Section -->
-    <div class="flex flex-col gap-3.5">
-      <h3 class="text-lg font-bold text-gray-900">Mitgliedschaften</h3>
+  <div :class="['flex flex-col gap-6', showMobileTotal ? 'max-sm:pb-24' : '']">
+    <!-- Active Memberships: overview tiles (master) + selected contract with its services (detail) -->
+    <div class="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+      <div class="flex flex-col gap-3 lg:gap-2.5 min-w-0">
+        <div class="flex items-center justify-between gap-2.5">
+          <h3 class="text-xs lg:text-lg font-medium lg:font-bold uppercase lg:normal-case tracking-wider lg:tracking-normal text-gray-500 lg:text-gray-900">
+            Mitgliedschaften<span class="lg:hidden"> · {{ membershipEntries.length }}</span>
+            <span
+              v-if="membershipEntries.length > 0"
+              class="hidden lg:inline-flex ml-1.5 align-middle text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] justify-center bg-indigo-100 text-indigo-700"
+            >{{ membershipEntries.length }}</span>
+          </h3>
+          <div class="flex gap-1 lg:gap-1.5">
+            <button
+              @click="openFreePeriodModal()"
+              type="button"
+              title="Gratis-Zeitraum ohne Mitgliedschaft"
+              class="inline-flex items-center justify-center gap-1 h-9 px-2 text-[13px] font-medium text-green-700 transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:border lg:border-gray-300 lg:bg-white lg:hover:bg-gray-50"
+            >
+              <Gift class="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-none" />
+              <span class="lg:hidden">Gratis</span>
+            </button>
+            <button
+              @click="openAddMembershipModal"
+              type="button"
+              title="Neue Mitgliedschaft"
+              class="inline-flex items-center justify-center gap-1 h-9 pl-2 text-[13px] font-medium text-indigo-600 transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:bg-indigo-600 lg:text-white lg:hover:bg-indigo-700"
+            >
+              <Plus class="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-none" />
+              <span class="lg:hidden">Neu</span>
+            </button>
+          </div>
+        </div>
 
-      <!-- Primary actions -->
-      <div class="grid grid-cols-2 gap-2.5">
-        <button
-          @click="openFreePeriodModal"
-          type="button"
-          class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition-colors whitespace-nowrap"
-        >
-          <Gift class="w-[17px] h-[17px] flex-none" />
-          <span>Gratis-Zeitraum</span>
-        </button>
-        <button
-          @click="openAddMembershipModal"
-          type="button"
-          class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap"
-        >
-          <Plus class="w-[17px] h-[17px] flex-none" />
-          <span class="sm:hidden">Neue</span>
-          <span class="hidden sm:inline">Neue Mitgliedschaft</span>
-        </button>
+        <!-- All tiles: one horizontal picker with vertical dividers (mobile) / vertical list (desktop) -->
+        <div class="flex gap-2.5 overflow-x-auto snap-x scroll-px-1 -m-1 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:m-0 lg:flex-col lg:overflow-visible lg:snap-none lg:p-0">
+          <!-- Current contracts -->
+          <button
+            v-for="entry in membershipEntries"
+            :key="entry.membership.id"
+            @click="selectedMembershipId = entry.membership.id"
+            type="button"
+            :aria-pressed="entry === selectedEntry"
+            :class="[
+              'flex-none w-[250px] lg:w-auto snap-start text-left rounded-lg border bg-white px-3.5 lg:px-4 py-3 lg:py-3.5 flex flex-col gap-2 cursor-pointer transition-colors',
+              entry === selectedEntry ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'
+            ]"
+          >
+            <span class="flex items-center justify-between gap-2">
+              <span class="text-[15px] font-semibold text-gray-900 truncate">{{ entry.membership.membership_plan?.name || 'Unbekannter Vertrag' }}</span>
+              <span :class="['flex-none px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(entry.membership.status).badgeClass]">
+                {{ membershipStatusOption(entry.membership.status).label }}
+              </span>
+            </span>
+            <span class="text-xs text-gray-500">{{ formatTerm(entry.membership) }}</span>
+            <span v-if="entry.freeTrial" class="flex items-center gap-1.5 text-xs font-medium text-green-700">
+              <Gift class="w-3.5 h-3.5" /> bis {{ formatDate(entry.freeTrial.end_date) }} kostenfrei
+            </span>
+            <span class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+              <span class="flex items-center gap-1.5 text-xs lg:text-[13px] text-gray-600">
+                <Puzzle class="w-3.5 h-3.5" /> {{ addonCountLabel(entry.membership) }}
+              </span>
+              <span class="text-sm lg:text-[15px] font-bold text-gray-900">{{ formatCurrency(entryTotal(entry.membership)) }}</span>
+            </span>
+          </button>
+
+          <!-- Free periods that are not linked to a membership -->
+          <template v-if="standaloneFreeTrials.length > 0">
+            <div class="lg:hidden flex-none self-stretch flex items-center gap-1.5 px-1" aria-hidden="true">
+              <span class="w-px self-stretch bg-gray-300"></span>
+              <span class="flex flex-col items-center text-[10px] font-semibold leading-[1.15] text-gray-400">
+                <span v-for="(letter, index) in 'OHNE'" :key="index">{{ letter }}</span>
+              </span>
+            </div>
+            <div class="hidden lg:block mt-1.5 text-xs font-medium uppercase tracking-wider text-gray-500">Ohne Mitgliedschaft</div>
+            <div
+              v-for="freeTrial in standaloneFreeTrials"
+              :key="freeTrial.id"
+              role="button"
+              tabindex="0"
+              :aria-pressed="selectedEntry?.membership.id === freeTrial.id"
+              @click="selectedMembershipId = freeTrial.id"
+              @keydown.enter.self.prevent="selectedMembershipId = freeTrial.id"
+              @keydown.space.self.prevent="selectedMembershipId = freeTrial.id"
+              :class="[
+                'flex-none w-[250px] lg:w-auto snap-start rounded-lg border bg-white shadow-sm px-3.5 py-3 flex flex-col gap-2 cursor-pointer transition-colors',
+                selectedEntry?.membership.id === freeTrial.id ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'
+              ]"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="flex items-center gap-2 min-w-0 text-[15px] font-semibold text-gray-900">
+                  <Gift class="w-4 h-4 flex-none text-green-700" />
+                  <span class="truncate">{{ freeTrial.membership_plan?.name || 'Gratis-Zeitraum' }}</span>
+                </span>
+                <span :class="['flex-none px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(freeTrial.status).badgeClass]">
+                  {{ membershipStatusOption(freeTrial.status).label }}
+                </span>
+              </div>
+              <div class="text-xs text-gray-500">{{ formatTerm(freeTrial) }}</div>
+              <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                <button
+                  v-if="freeTrial.status === 'pending'"
+                  @click.stop="$emit('activate', freeTrial)"
+                  type="button"
+                  :disabled="activatingMembership === freeTrial.id"
+                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle class="w-3.5 h-3.5" />
+                  {{ activatingMembership === freeTrial.id ? 'Wird aktiviert...' : 'Aktivieren' }}
+                </button>
+                <button
+                  v-else-if="freeTrial.status === 'active'"
+                  @click.stop="$emit('abort', freeTrial)"
+                  type="button"
+                  :disabled="abortingMembership === freeTrial.id"
+                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <StopCircle class="w-3.5 h-3.5" />
+                  {{ abortingMembership === freeTrial.id ? 'Wird gestoppt...' : 'Stoppen' }}
+                </button>
+                <span v-else></span>
+                <span class="text-sm lg:text-[15px] font-bold text-gray-900">{{ formatCurrency(0) }}</span>
+              </div>
+            </div>
+          </template>
+
+          <!-- Past contracts: always in the picker (mobile) / collapsed by default (desktop) -->
+          <template v-if="pastEntries.length > 0">
+            <div class="lg:hidden flex-none self-stretch flex items-center gap-1.5 px-1" aria-hidden="true">
+              <span class="w-px self-stretch bg-gray-300"></span>
+              <span class="flex flex-col items-center text-[10px] font-semibold leading-[1.15] text-gray-400">
+                <span v-for="(letter, index) in 'FRÜHER'" :key="index">{{ letter }}</span>
+              </span>
+            </div>
+            <button
+              @click="showPastMemberships = !showPastMemberships"
+              type="button"
+              :aria-expanded="showPastMemberships"
+              class="hidden lg:flex items-center justify-between gap-2 mt-1.5 py-1 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+            >
+              <span>Frühere Mitgliedschaften</span>
+              <ChevronDown :class="['w-4 h-4 transition-transform', showPastMemberships ? 'rotate-180' : '']" />
+            </button>
+            <button
+              v-for="entry in pastEntries"
+              :key="entry.membership.id"
+              @click="selectedMembershipId = entry.membership.id"
+              type="button"
+              :aria-pressed="entry === selectedEntry"
+              :class="[
+                'flex-none w-[250px] lg:w-auto snap-start text-left rounded-lg border px-3.5 lg:px-4 py-3 flex flex-col gap-1.5 cursor-pointer transition-colors',
+                entry === selectedEntry ? 'bg-white border-indigo-600 ring-1 ring-indigo-600' : 'bg-gray-50 border-gray-200 hover:border-gray-300',
+                showPastMemberships ? '' : 'lg:hidden'
+              ]"
+            >
+              <span class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-gray-600 truncate">{{ entry.membership.membership_plan?.name || 'Unbekannter Vertrag' }}</span>
+                <span :class="['flex-none px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(entry.membership.status).badgeClass]">
+                  {{ membershipStatusOption(entry.membership.status).label }}
+                </span>
+              </span>
+              <span class="text-xs text-gray-500">{{ formatTerm(entry.membership) }}</span>
+              <span v-if="addonCount(entry.membership) > 0" class="flex items-center gap-1.5 text-xs text-gray-500">
+                <Puzzle class="w-3.5 h-3.5" /> {{ addonCountLabel(entry.membership) }}
+              </span>
+            </button>
+          </template>
+        </div>
       </div>
 
-      <!-- Active Memberships List -->
-      <div v-if="activeMemberships.length > 0" class="flex flex-col gap-3.5">
-        <template v-for="membership in displayableMemberships" :key="membership.id">
-          <!-- Linked memberships: stacked (mobile) / side-by-side (desktop) -->
-          <div
-            v-if="membership.linkedMembership"
-            class="rounded-lg border border-gray-200 bg-white overflow-hidden"
-          >
-            <div class="flex flex-col lg:grid lg:grid-cols-[1fr_1px_1fr] lg:items-stretch">
-              <!-- Free trial period (left/top side) -->
-              <MembershipCard
-                :membership="membership"
-                :is-secondary="!isCurrentlyActive(membership)"
-                :resumingMembership="resumingMembership"
-                :revokingCancellation="revokingCancellation"
-                :activatingMembership="activatingMembership"
-                :abortingMembership="abortingMembership"
-                :withdrawingMembership="withdrawingMembership"
-                :forcingMembershipStatus="forcingMembershipStatus"
-                @activate="$emit('activate', $event)"
-                @pause="$emit('pause', $event)"
-                @resume="$emit('resume', $event)"
-                @cancel="$emit('cancel', $event)"
-                @revoke-cancellation="$emit('revoke-cancellation', $event)"
-                @abort="$emit('abort', $event)"
-                @withdraw="$emit('withdraw', $event)"
-                @force-status="(m, s) => $emit('force-status', m, s)"
-              />
+      <!-- Selected contract -->
+      <div v-if="selectedEntry" class="flex flex-col rounded-lg border border-gray-200 bg-white sm:overflow-hidden min-w-0">
+        <MembershipCard
+          :membership="selectedEntry.membership"
+          :is-secondary="selectedIsPast"
+          :show-price="false"
+          detail
+          :resumingMembership="resumingMembership"
+          :revokingCancellation="revokingCancellation"
+          :activatingMembership="activatingMembership"
+          :abortingMembership="abortingMembership"
+          :withdrawingMembership="withdrawingMembership"
+          :forcingMembershipStatus="forcingMembershipStatus"
+          @activate="$emit('activate', $event)"
+          @pause="$emit('pause', $event)"
+          @resume="$emit('resume', $event)"
+          @cancel="$emit('cancel', $event)"
+          @revoke-cancellation="$emit('revoke-cancellation', $event)"
+          @abort="$emit('abort', $event)"
+          @withdraw="$emit('withdraw', $event)"
+          @force-status="(m, s) => $emit('force-status', m, s)"
+        >
+          <template v-if="selectedIsPast" #actions>
+            <button
+              @click="$emit('ignore', selectedEntry.membership)"
+              type="button"
+              :disabled="ignoringMembership === selectedEntry.membership.id"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm font-medium text-red-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <EyeOff class="w-4 h-4" />
+              <span>{{ ignoringMembership === selectedEntry.membership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
+            </button>
+          </template>
+        </MembershipCard>
 
-              <!-- Connector: pill (mobile) / vertical divider (desktop) -->
-              <div class="flex items-center gap-2.5 px-4 py-1 lg:hidden">
-                <span class="flex-1 h-px bg-gray-200"></span>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
-                  <Link class="w-3 h-3" /> Verknüpft
-                </span>
-                <span class="flex-1 h-px bg-gray-200"></span>
-              </div>
-              <div class="hidden lg:block bg-gray-100"></div>
-
-              <!-- Linked membership (right/bottom side) -->
-              <MembershipCard
-                :membership="membership.linkedMembership"
-                :is-secondary="!isCurrentlyActive(membership.linkedMembership)"
-                :resumingMembership="resumingMembership"
-                :revokingCancellation="revokingCancellation"
-                :activatingMembership="activatingMembership"
-                :abortingMembership="abortingMembership"
-                :withdrawingMembership="withdrawingMembership"
-                :forcingMembershipStatus="forcingMembershipStatus"
-                @activate="$emit('activate', $event)"
-                @pause="$emit('pause', $event)"
-                @resume="$emit('resume', $event)"
-                @cancel="$emit('cancel', $event)"
-                @revoke-cancellation="$emit('revoke-cancellation', $event)"
-                @abort="$emit('abort', $event)"
-                @withdraw="$emit('withdraw', $event)"
-                @force-status="(m, s) => $emit('force-status', m, s)"
-              />
+        <!-- Services: free period, base fee and add-ons of this contract -->
+        <div v-if="!selectedEntry.membership.is_free_trial" class="sm:px-6 pt-4 sm:pt-5 pb-4 sm:pb-5 flex flex-col sm:gap-3">
+          <div class="flex items-center justify-between gap-3 flex-wrap px-4 sm:px-0 pb-1.5 sm:pb-0">
+            <h4 class="text-xs sm:text-base font-medium sm:font-semibold uppercase sm:normal-case tracking-wider sm:tracking-normal text-gray-500 sm:text-gray-900">Leistungen</h4>
+            <div class="hidden sm:flex gap-2 flex-wrap">
+              <button
+                v-if="isLinkable(selectedEntry.membership)"
+                @click="openFreePeriodModal(selectedEntry.membership.id)"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-gray-300 bg-white text-green-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                <Gift class="w-4 h-4" /> Gratis-Zeitraum vorschalten
+              </button>
+              <button
+                v-if="!selectedIsPast && selectedBookableAddons.length > 0"
+                @click="memberAddons?.openBookingDialog()"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+              >
+                <Plus class="w-4 h-4" /> Add-on hinzufügen
+              </button>
             </div>
           </div>
 
-          <!-- Standalone membership (no link) -->
-          <div v-else class="rounded-lg border border-gray-200 bg-white overflow-hidden">
-            <MembershipCard
-              :membership="membership"
-              :is-secondary="false"
-              :resumingMembership="resumingMembership"
-              :revokingCancellation="revokingCancellation"
-              :activatingMembership="activatingMembership"
-              :abortingMembership="abortingMembership"
-              :withdrawingMembership="withdrawingMembership"
-              :forcingMembershipStatus="forcingMembershipStatus"
-              @activate="$emit('activate', $event)"
-              @pause="$emit('pause', $event)"
-              @resume="$emit('resume', $event)"
-              @cancel="$emit('cancel', $event)"
-              @revoke-cancellation="$emit('revoke-cancellation', $event)"
-              @abort="$emit('abort', $event)"
-              @withdraw="$emit('withdraw', $event)"
-              @force-status="(m, s) => $emit('force-status', m, s)"
+          <div class="sm:rounded-lg sm:border border-gray-200 overflow-hidden">
+            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem_10rem] gap-3 px-4 py-2.5 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <span>Leistung</span><span class="text-right">Betrag</span><span></span>
+            </div>
+
+            <!-- Linked free period in front of the contract -->
+            <div
+              v-if="selectedEntry.freeTrial"
+              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+            >
+              <div class="flex gap-3 items-center min-w-0">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-green-100 text-green-700">
+                  <Gift class="w-4 h-4" />
+                </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-semibold text-gray-900">{{ selectedEntry.freeTrial.membership_plan?.name || 'Gratis-Zeitraum' }}</span>
+                    <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(selectedEntry.freeTrial.status).badgeClass]">
+                      {{ membershipStatusOption(selectedEntry.freeTrial.status).label }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-0.5">vorgeschaltet · {{ formatTerm(selectedEntry.freeTrial) }}</div>
+                </div>
+              </div>
+              <span class="text-right text-sm font-semibold text-gray-900">{{ formatCurrency(0) }}</span>
+              <div class="col-span-2 sm:col-span-1 flex sm:justify-end pl-11 sm:pl-0">
+                <button
+                  v-if="selectedEntry.freeTrial.status === 'pending'"
+                  @click="$emit('activate', selectedEntry.freeTrial)"
+                  type="button"
+                  :disabled="activatingMembership === selectedEntry.freeTrial.id"
+                  class="inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle class="w-3.5 h-3.5" />
+                  {{ activatingMembership === selectedEntry.freeTrial.id ? 'Wird aktiviert...' : 'Aktivieren' }}
+                </button>
+                <button
+                  v-if="selectedEntry.freeTrial.status === 'active'"
+                  @click="$emit('abort', selectedEntry.freeTrial)"
+                  type="button"
+                  :disabled="abortingMembership === selectedEntry.freeTrial.id"
+                  class="inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <StopCircle class="w-3.5 h-3.5" />
+                  {{ abortingMembership === selectedEntry.freeTrial.id ? 'Wird gestoppt...' : 'Stoppen' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Base fee -->
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 items-center px-4 py-3.5 border-t border-gray-100">
+              <div class="flex gap-3 items-center min-w-0">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-gray-100 text-gray-600">
+                  <FileText class="w-4 h-4" />
+                </span>
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold text-gray-900">Grundbeitrag {{ selectedEntry.membership.membership_plan?.name }}</div>
+                  <div class="text-xs text-gray-500 mt-0.5">
+                    Tarif · seit {{ formatDate(selectedEntry.membership.start_date) }}<template v-if="selectedNextBillingAt"> · nächste Abrechnung {{ formatDate(selectedNextBillingAt) }}</template>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(selectedEntry.membership.membership_plan?.price || 0) }}</div>
+                <div class="text-xs text-gray-500">pro {{ formatBillingCycle(selectedEntry.membership.membership_plan?.billing_cycle || 'monthly') }}</div>
+              </div>
+              <span class="hidden sm:block"></span>
+            </div>
+
+            <!-- Booked add-ons -->
+            <MemberAddons
+              ref="memberAddons"
+              :key="selectedEntry.membership.id"
+              :member="member"
+              :membership="selectedEntry.membership"
+              :bookable-addons="selectedBookableAddons"
+              :readonly="selectedIsPast"
             />
+
+            <!-- Monthly total -->
+            <div
+              v-if="!selectedIsPast && selectedTotal !== null"
+              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-gray-200 bg-gray-50"
+            >
+              <span class="text-sm font-semibold text-gray-900">
+                Summe pro Monat
+                <span class="font-normal text-gray-500">· {{ totalBreakdown(selectedEntry.membership) }}</span>
+              </span>
+              <span class="text-right text-lg font-bold text-gray-900">{{ formatCurrency(selectedTotal) }}</span>
+              <span class="hidden sm:block"></span>
+            </div>
           </div>
-        </template>
+
+          <p class="hidden sm:block text-[13px] text-gray-500">Add-ons laufen synchron zum Beitrag und enden spätestens mit diesem Vertrag.</p>
+
+          <!-- Add actions below the services (mobile) -->
+          <div
+            v-if="!selectedIsPast && (selectedBookableAddons.length > 0 || isLinkable(selectedEntry.membership))"
+            class="sm:hidden flex flex-col items-center gap-2 px-4 pt-2"
+          >
+            <button
+              v-if="selectedBookableAddons.length > 0"
+              @click="memberAddons?.openBookingDialog()"
+              type="button"
+              class="w-full h-11 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-indigo-300 bg-indigo-50 text-indigo-700 text-sm font-medium"
+            >
+              <Plus class="w-4 h-4" /> Add-on zu {{ selectedEntry.membership.membership_plan?.name }} hinzufügen
+            </button>
+            <button
+              v-if="isLinkable(selectedEntry.membership)"
+              @click="openFreePeriodModal(selectedEntry.membership.id)"
+              type="button"
+              class="min-h-10 inline-flex items-center gap-1.5 text-green-700 text-sm font-medium"
+            >
+              <Gift class="w-4 h-4" /> Gratis-Zeitraum vorschalten
+            </button>
+          </div>
+        </div>
+
+        <!-- Monthly total, pinned to the bottom of the screen (mobile) -->
+        <div
+          v-if="showMobileTotal"
+          class="sm:hidden fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
+        >
+          <div class="min-w-0 text-xs text-gray-500">
+            <div>{{ selectedEntry.membership.membership_plan?.name }} gesamt</div>
+            <div>{{ totalBreakdown(selectedEntry.membership) }}</div>
+          </div>
+          <div class="flex-none text-xl font-bold text-gray-900">
+            {{ formatCurrency(selectedTotal) }}<span class="text-xs font-normal text-gray-500"> / Monat</span>
+          </div>
+        </div>
+
       </div>
 
       <!-- No Memberships -->
-      <div v-if="activeMemberships.length === 0" class="text-center py-8">
+      <div v-else class="text-center py-8">
         <UserX class="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <p class="text-gray-500">Keine aktiven Mitgliedschaften vorhanden</p>
-      </div>
-    </div>
-
-    <!-- Past Memberships Section -->
-    <div v-if="pastMemberships.length > 0" class="flex flex-col gap-3.5">
-      <div class="flex justify-between items-center gap-2.5">
-        <h3 class="text-lg font-bold text-gray-900">Frühere Mitgliedschaften</h3>
-        <button
-          @click="showPastMemberships = !showPastMemberships"
-          type="button"
-          class="flex-none text-gray-500 hover:text-gray-700 flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
-        >
-          <span>{{ showPastMemberships ? 'Ausblenden' : 'Einblenden' }}</span>
-          <ChevronDown v-if="!showPastMemberships" class="w-4 h-4" />
-          <ChevronUp v-else class="w-4 h-4" />
-        </button>
-      </div>
-
-      <div v-if="showPastMemberships" class="flex flex-col gap-3.5">
-        <template v-for="membership in displayablePastMemberships" :key="membership.id">
-          <!-- Linked memberships: stacked (mobile) / side-by-side (desktop) -->
-          <div
-            v-if="membership.linkedMembership"
-            class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
-          >
-            <div class="flex flex-col lg:grid lg:grid-cols-[1fr_1px_1fr] lg:items-stretch">
-              <!-- Free trial period (left/top side) -->
-              <MembershipCard
-                :membership="membership"
-                :is-secondary="true"
-                :forcingMembershipStatus="forcingMembershipStatus"
-                @force-status="(m, s) => $emit('force-status', m, s)"
-              />
-
-              <!-- Connector: pill (mobile) / vertical divider (desktop) -->
-              <div class="flex items-center gap-2.5 px-4 py-1 lg:hidden">
-                <span class="flex-1 h-px bg-gray-200"></span>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">
-                  <Link class="w-3 h-3" /> Verknüpft
-                </span>
-                <span class="flex-1 h-px bg-gray-200"></span>
-              </div>
-              <div class="hidden lg:block bg-gray-200"></div>
-
-              <!-- Linked membership (right/bottom side) -->
-              <MembershipCard
-                :membership="membership.linkedMembership"
-                :is-secondary="true"
-                :forcingMembershipStatus="forcingMembershipStatus"
-                @force-status="(m, s) => $emit('force-status', m, s)"
-              />
-            </div>
-
-            <!-- Action links -->
-            <div class="flex flex-wrap items-center justify-center gap-4 border-t border-gray-200 px-4 py-3">
-              <button
-                @click="$emit('ignore', membership.linkedMembership)"
-                type="button"
-                class="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800"
-                :disabled="ignoringMembership === membership.linkedMembership.id"
-              >
-                <EyeOff class="w-4 h-4" />
-                <span>{{ ignoringMembership === membership.linkedMembership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Standalone past membership (no link) -->
-          <div v-else class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-            <MembershipCard
-              :membership="membership"
-              :is-secondary="true"
-              :forcingMembershipStatus="forcingMembershipStatus"
-              @force-status="(m, s) => $emit('force-status', m, s)"
-            />
-
-            <!-- Action links -->
-            <div class="flex flex-wrap items-center justify-center gap-4 border-t border-gray-200 px-4 py-3">
-              <button
-                @click="$emit('ignore', membership)"
-                type="button"
-                class="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-800"
-                :disabled="ignoringMembership === membership.id"
-              >
-                <EyeOff class="w-4 h-4" />
-                <span>{{ ignoringMembership === membership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
-              </button>
-            </div>
-          </div>
-        </template>
       </div>
     </div>
 
@@ -380,9 +543,12 @@
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
-  Plus, AlertCircle, UserX, ChevronDown, ChevronUp, Gift, Link, EyeOff
+  Plus, AlertCircle, UserX, ChevronDown, Gift, EyeOff, Puzzle, FileText, CheckCircle, StopCircle
 } from 'lucide-vue-next'
-import { formatDate, getDisplayTimezone } from '@/utils/formatters'
+import { formatBillingCycle, formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
+import { cappedBillingDate, monthlyMembershipTotal, nextMonthlyBillingDate } from '@/utils/addons'
+import { membershipStatusOption } from '@/utils/membershipStatus'
+import MemberAddons from '@/Components/Members/MemberAddons.vue'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
 import GuestAccessRevokeWarning from '@/Components/Members/GuestAccessRevokeWarning.vue'
@@ -395,6 +561,11 @@ const props = defineProps({
   membershipPlans: {
     type: Array,
     default: () => []
+  },
+  // Bookable add-ons keyed by membership id.
+  bookableAddons: {
+    type: Object,
+    default: () => ({})
   },
   resumingMembership: {
     type: [Number, null],
@@ -477,11 +648,12 @@ const showGuestAccessWarning = computed(() =>
   Boolean(props.member.guest_access) && activeMemberships.value.length === 0
 )
 
-// Memberships that can be linked to a free period
+// Memberships that can be linked to a free period: only real contracts, never
+// another free period
 const linkableMemberships = computed(() => {
   if (!props.member.memberships) return []
   return props.member.memberships.filter(m =>
-    (m.status === 'active' || m.status === 'pending') && !m.linked_free_membership_id
+    (m.status === 'active' || m.status === 'pending') && !m.linked_free_membership_id && !m.is_free_trial
   )
 })
 
@@ -551,6 +723,97 @@ const displayablePastMemberships = computed(() => {
   return result
 })
 
+// Contracts shown as tiles: each paid membership together with the free period
+// linked in front of it, if any.
+const membershipEntries = computed(() =>
+  displayableMemberships.value
+    .map(entry => entry.linkedMembership
+      ? { membership: entry.linkedMembership, freeTrial: entry }
+      : { membership: entry, freeTrial: null })
+    .filter(entry => !entry.membership.is_free_trial)
+)
+
+// Past contracts, grouped the same way as the current ones
+const pastEntries = computed(() =>
+  displayablePastMemberships.value.map(entry => entry.linkedMembership
+    ? { membership: entry.linkedMembership, freeTrial: entry }
+    : { membership: entry, freeTrial: null })
+)
+
+// Free periods without a membership (e.g. a trial workout)
+const standaloneFreeTrials = computed(() =>
+  displayableMemberships.value.filter(entry => !entry.linkedMembership && entry.is_free_trial)
+)
+
+const standaloneFreeTrialEntries = computed(() =>
+  standaloneFreeTrials.value.map(freeTrial => ({ membership: freeTrial, freeTrial: null }))
+)
+
+const selectedMembershipId = ref(null)
+const memberAddons = ref(null)
+
+// Falls back to the first current contract when nothing (or a contract that is gone) is selected.
+const selectedEntry = computed(() =>
+  [...membershipEntries.value, ...standaloneFreeTrialEntries.value, ...pastEntries.value]
+    .find(entry => entry.membership.id === selectedMembershipId.value)
+    || membershipEntries.value[0]
+    || standaloneFreeTrialEntries.value[0]
+    || null
+)
+
+const selectedIsPast = computed(() => pastEntries.value.includes(selectedEntry.value))
+
+// The monthly total is pinned to the bottom of the screen on mobile for current contracts.
+const showMobileTotal = computed(() =>
+  Boolean(selectedEntry.value)
+    && !selectedEntry.value.membership.is_free_trial
+    && !selectedIsPast.value
+    && selectedTotal.value !== null
+)
+
+const selectedBookableAddons = computed(() =>
+  (selectedEntry.value && props.bookableAddons?.[selectedEntry.value.membership.id]) || []
+)
+
+const selectedTotal = computed(() =>
+  selectedEntry.value ? monthlyMembershipTotal(selectedEntry.value.membership) : null
+)
+
+// The membership fee shares its due dates with recurring add-ons, so the same
+// anchor applies; only monthly contracts that are running have one.
+const selectedNextBillingAt = computed(() => {
+  const membership = selectedEntry.value?.membership
+  if (!membership || membership.status !== 'active' || selectedTotal.value === null) return null
+  return cappedBillingDate(nextMonthlyBillingDate(membership.start_date), membership.end_date)
+})
+
+const isLinkable = (membership) => linkableMemberships.value.some(m => m.id === membership.id)
+
+const formatTerm = (membership) =>
+  `${formatDate(membership.start_date)} – ${membership.end_date ? formatDate(membership.end_date) : (membership.cancellation_date ? formatDate(membership.cancellation_date) : 'unbefristet')}`
+
+const addonCount = (membership) => (membership.addons || []).length
+
+const addonCountLabel = (membership) => {
+  const count = addonCount(membership)
+  if (count === 0) return 'Keine Add-ons'
+  return count === 1 ? '1 Add-on' : `${count} Add-ons`
+}
+
+// Monthly total where it can be summed up, otherwise the plan fee alone.
+const entryTotal = (membership) =>
+  monthlyMembershipTotal(membership) ?? (membership.membership_plan?.price || 0)
+
+// e.g. "Tarif 34,95 € + 2 Add-ons 12,12 €" — only add-ons that are still billed count.
+const totalBreakdown = (membership) => {
+  const running = (membership.addons || [])
+    .filter(addon => addon.billing_type === 'recurring' && !addon.pivot?.cancelled_at)
+  const tariff = `Tarif ${formatCurrency(membership.membership_plan?.price || 0)}`
+  if (running.length === 0) return tariff
+  const addonsTotal = running.reduce((sum, addon) => sum + (Number(addon.pivot?.price) || 0), 0)
+  return `${tariff} + ${running.length === 1 ? '1 Add-on' : `${running.length} Add-ons`} ${formatCurrency(addonsTotal)}`
+}
+
 // Check if a membership is currently active (based on date)
 const isCurrentlyActive = (membership) => {
   if (!membership) return false
@@ -613,7 +876,7 @@ const addMembership = () => {
 }
 
 // Free period modal functions
-const openFreePeriodModal = () => {
+const openFreePeriodModal = (linkedMembershipId = null) => {
   freePeriodForm.reset()
   freePeriodForm.clearErrors()
   freePeriodForm.start_date = new Date().toISOString().split('T')[0]
@@ -622,7 +885,7 @@ const openFreePeriodModal = () => {
   endOfMonth.setMonth(endOfMonth.getMonth() + 1)
   endOfMonth.setDate(0) // Letzter Tag des aktuellen Monats
   freePeriodForm.end_date = endOfMonth.toISOString().split('T')[0]
-  freePeriodForm.linked_membership_id = null
+  freePeriodForm.linked_membership_id = linkedMembershipId
   showFreePeriodModal.value = true
 }
 

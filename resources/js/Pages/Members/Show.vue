@@ -212,6 +212,7 @@
         <MembershipTab
           :member="member"
           :membership-plans="membershipPlans"
+          :bookable-addons="bookableAddons"
           :resuming-membership="resumingMembership"
           :revoking-cancellation="revokingCancellation"
           :activating-membership="activatingMembership"
@@ -229,11 +230,6 @@
           @force-status="handleForceStatus"
           @ignore="ignoreMembership"
         />
-
-        <!-- Booked add-ons (addon_membership) -->
-        <div class="mt-6">
-          <MemberAddons :member="member" :bookable-addons="bookableAddons" />
-        </div>
       </div>
 
       <!-- Payments Tab (rendered directly on the gray canvas; only the cards are white) -->
@@ -315,7 +311,6 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
 import PaymentsTab from '@/Components/Members/PaymentsTab.vue'
-import MemberAddons from '@/Components/Members/MemberAddons.vue'
 import MemberDocumentsTab from '@/Components/MemberDocumentsTab.vue'
 import MemberPersonalDataTab from '@/Components/Members/MemberPersonalDataTab.vue'
 import MemberHeaderCard from '@/Components/Members/MemberHeaderCard.vue'

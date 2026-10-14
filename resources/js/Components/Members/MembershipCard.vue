@@ -1,8 +1,13 @@
 <template>
-  <div class="flex flex-col h-full">
+  <!-- In the detail view on mobile the card dissolves into the parent's flex
+       column, so its action bar can be moved to the bottom of the panel. -->
+  <div :class="['flex flex-col h-full', detail ? 'max-sm:contents' : '']">
     <!-- Body -->
-    <div class="p-4 flex-1">
-      <div class="flex items-start justify-between gap-3">
+    <div :class="detail ? '' : 'p-4 flex-1'">
+      <div :class="detail
+        ? 'px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-gray-100'
+        : 'flex items-start justify-between gap-3'"
+      >
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span v-if="membership.is_free_trial" :class="['flex', isSecondary ? 'text-gray-400' : 'text-green-700']">
@@ -15,19 +20,54 @@
                 {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
               </template>
             </h4>
+            <!-- A free period is only ever active or expired, so its status is shown, not edited -->
+            <span
+              v-if="membership.is_free_trial"
+              :class="['px-3 py-1 rounded-full text-sm font-semibold', membershipStatusOption(membership.status).badgeClass]"
+            >
+              {{ membershipStatusOption(membership.status).label }}
+            </span>
             <MembershipStatusEditor
+              v-else
               :membership="membership"
               :forcing-membership-status="forcingMembershipStatus"
               @force-status="(m, s) => $emit('force-status', m, s)"
             />
           </div>
-          <p :class="['text-sm mt-2.5', isSecondary ? 'text-gray-500' : 'text-gray-700']">
+          <p :class="['text-sm', detail ? 'mt-1.5' : 'mt-2.5', isSecondary ? 'text-gray-500' : 'text-gray-700']">
             {{ membership.is_free_trial ? 'Kostenloser Testzeitraum' : (membership.membership_plan?.description || 'Keine Beschreibung verfügbar') }}
           </p>
         </div>
 
+        <!-- Actions (detail view) -->
+        <div
+          v-if="detail && (hasActions || $slots.actions)"
+          :class="['flex-wrap gap-2 sm:flex-none sm:justify-end', $slots.actions ? 'flex' : 'hidden sm:flex']"
+        >
+          <template v-if="hasActions">
+            <button
+              v-for="action in actions"
+              :key="action.key"
+              @click="action.handler"
+              type="button"
+              :disabled="action.loading"
+              :title="action.title"
+              :class="[
+                'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                action.filled
+                  ? 'bg-green-700 text-white hover:bg-green-800'
+                  : ['border border-gray-300 bg-white hover:bg-gray-50', action.colorClass],
+              ]"
+            >
+              <component :is="action.icon" class="w-4 h-4" />
+              <span>{{ action.loading ? action.loadingLabel : action.label }}</span>
+            </button>
+          </template>
+          <slot name="actions" />
+        </div>
+
         <!-- Price -->
-        <div class="text-right flex-none">
+        <div v-if="showPrice && !detail" class="text-right flex-none">
           <p :class="['text-xl font-bold leading-tight', priceColorClass]">
             {{ membership.is_free_trial ? 'Gratis' : formatCurrency(membership.membership_plan?.price || 0) }}
           </p>
@@ -37,57 +77,75 @@
         </div>
       </div>
 
-      <!-- Detail rows -->
-      <div class="flex flex-col gap-[5px] mt-3.5">
+      <!-- Detail facts: grid (detail view) -->
+      <div v-if="detail" class="grid sm:grid-flow-col sm:auto-cols-fr py-2 sm:py-0 border-b border-gray-100">
+        <div class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-gray-100">
+          <div class="w-32 flex-none text-[13px] sm:w-auto sm:text-xs text-gray-500">Laufzeit</div>
+          <div :class="['text-[13px] sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ termText }}</div>
+        </div>
+        <div v-if="!membership.is_free_trial && membership.membership_plan?.commitment_months" class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-gray-100">
+          <div class="w-32 flex-none text-[13px] sm:w-auto sm:text-xs text-gray-500">Mindestlaufzeit</div>
+          <div :class="['text-[13px] sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.commitment_months }} Monate</div>
+        </div>
+        <div v-if="!membership.is_free_trial && membership.membership_plan?.cancellation_period" class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-gray-100">
+          <div class="w-32 flex-none text-[13px] sm:w-auto sm:text-xs text-gray-500">Kündigungsfrist</div>
+          <div :class="['text-[13px] sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.formatted_cancellation_period }}</div>
+        </div>
+      </div>
+
+      <!-- Detail rows (card view) -->
+      <div v-else class="flex flex-col gap-[5px] mt-3.5">
         <div class="flex gap-1.5 text-sm">
           <span class="text-gray-500">Laufzeit:</span>
           <span :class="['font-medium', isSecondary ? 'text-gray-600' : 'text-gray-900']">
-            {{ formatDate(membership.start_date) }} - {{ membership.end_date ? formatDate(membership.end_date) : (membership.cancellation_date ? formatDate(membership.cancellation_date) : 'unbefristet') }}
+            {{ termText }}
           </span>
         </div>
-        <div v-if="membership.membership_plan?.commitment_months" class="flex gap-1.5 text-sm">
+        <div v-if="!membership.is_free_trial && membership.membership_plan?.commitment_months" class="flex gap-1.5 text-sm">
           <span class="text-gray-500">Mindestlaufzeit:</span>
           <span :class="['font-medium', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.commitment_months }} Monate</span>
         </div>
-        <div v-if="membership.membership_plan?.cancellation_period" class="flex gap-1.5 text-sm">
+        <div v-if="!membership.is_free_trial && membership.membership_plan?.cancellation_period" class="flex gap-1.5 text-sm">
           <span class="text-gray-500">Kündigungsfrist:</span>
           <span :class="['font-medium', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.formatted_cancellation_period }}</span>
         </div>
       </div>
 
       <!-- Notice banners -->
-      <div v-if="membership.membership_plan?.deleted_at" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-red-50">
-        <AlertCircle class="w-[17px] h-[17px] text-red-500 flex-none" />
-        <span class="text-[13.5px] font-medium text-red-700">Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.</span>
-      </div>
+      <div :class="detail ? 'px-4 sm:px-6' : ''">
+        <div v-if="membership.membership_plan?.deleted_at" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-red-50">
+          <AlertCircle class="w-[17px] h-[17px] text-red-500 flex-none" />
+          <span class="text-[13.5px] font-medium text-red-700">Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.</span>
+        </div>
 
-      <div v-if="membership.status === 'pending'" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-orange-100">
-        <AlertCircle class="w-[17px] h-[17px] text-orange-500 flex-none" />
-        <span class="text-[13.5px] font-medium text-orange-700">Diese Mitgliedschaft wartet auf Aktivierung</span>
-      </div>
+        <div v-if="membership.status === 'pending'" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-orange-100">
+          <AlertCircle class="w-[17px] h-[17px] text-orange-500 flex-none" />
+          <span class="text-[13.5px] font-medium text-orange-700">Diese Mitgliedschaft wartet auf Aktivierung</span>
+        </div>
 
-      <div v-if="membership.pause_start_date" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-yellow-100">
-        <Clock class="w-[17px] h-[17px] text-yellow-700 flex-none" />
-        <span class="text-[13.5px] font-medium text-yellow-800">
-          Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
-        </span>
-      </div>
-
-      <div v-if="membership.cancellation_date" class="mt-3.5 flex items-start gap-2 px-3 py-2.5 rounded-md bg-red-50">
-        <AlertCircle class="w-[17px] h-[17px] text-red-500 flex-none mt-px" />
-        <span class="text-[13.5px] font-medium text-red-700">
-          Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
-          <span v-if="membership.cancellation_reason" class="block mt-1 font-normal">
-            Grund: {{ membership.cancellation_reason }}
+        <div v-if="membership.pause_start_date" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-yellow-100">
+          <Clock class="w-[17px] h-[17px] text-yellow-700 flex-none" />
+          <span class="text-[13.5px] font-medium text-yellow-800">
+            Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
           </span>
-        </span>
+        </div>
+
+        <div v-if="membership.cancellation_date" class="mt-3.5 flex items-start gap-2 px-3 py-2.5 rounded-md bg-red-50">
+          <AlertCircle class="w-[17px] h-[17px] text-red-500 flex-none mt-px" />
+          <span class="text-[13.5px] font-medium text-red-700">
+            Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
+            <span v-if="membership.cancellation_reason" class="block mt-1 font-normal">
+              Grund: {{ membership.cancellation_reason }}
+            </span>
+          </span>
+        </div>
       </div>
     </div>
 
-    <!-- Action footer bar -->
+    <!-- Action footer bar (card view; detail view on mobile) -->
     <div
       v-if="hasActions"
-      class="flex border-t border-gray-100"
+      :class="['flex border-t border-gray-100', detail ? 'sm:hidden order-last' : '']"
     >
       <template v-for="(action, index) in actions" :key="action.key">
         <div v-if="index > 0" class="w-px bg-gray-100 flex-none"></div>
@@ -116,6 +174,7 @@ import {
   RotateCcw, AlertCircle, Gift, Undo2
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate } from '@/utils/formatters'
+import { membershipStatusOption } from '@/utils/membershipStatus'
 import MembershipStatusEditor from '@/Components/Members/MembershipStatusEditor.vue'
 
 const props = defineProps({
@@ -124,6 +183,17 @@ const props = defineProps({
     required: true
   },
   isSecondary: {
+    type: Boolean,
+    default: false
+  },
+  // Hidden where the fee is listed elsewhere, e.g. in the services breakdown.
+  showPrice: {
+    type: Boolean,
+    default: true
+  },
+  // Detail view: actions as buttons in the header and the facts as a grid
+  // instead of rows with an action bar at the bottom.
+  detail: {
     type: Boolean,
     default: false
   },
@@ -166,6 +236,11 @@ const getBillingCycleText = (cycle) => {
   return cycles[cycle] || cycle
 }
 
+const termText = computed(() => {
+  const m = props.membership
+  return `${formatDate(m.start_date)} - ${m.end_date ? formatDate(m.end_date) : (m.cancellation_date ? formatDate(m.cancellation_date) : 'unbefristet')}`
+})
+
 const priceColorClass = computed(() => {
   if (props.membership.is_free_trial) {
     return props.isSecondary ? 'text-gray-500' : 'text-indigo-600'
@@ -187,6 +262,7 @@ const actions = computed(() => {
       loading: props.activatingMembership === m.id,
       icon: CheckCircle,
       colorClass: 'text-green-700',
+      filled: true,
       handler: () => emit('activate', m),
     })
   }
