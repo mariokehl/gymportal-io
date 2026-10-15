@@ -229,14 +229,14 @@
           </div>
 
           <div class="sm:rounded-lg sm:border border-gray-200 overflow-hidden">
-            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem_10rem] gap-3 px-4 py-2.5 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
-              <span>Leistung</span><span class="text-right">Betrag</span><span></span>
+            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem] gap-3 px-4 py-2.5 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <span>Leistung</span><span class="text-right">Betrag</span>
             </div>
 
             <!-- Linked free period in front of the contract -->
             <div
               v-if="selectedEntry.freeTrial"
-              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
             >
               <div class="flex gap-3 items-center min-w-0">
                 <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-green-100 text-green-700">
@@ -253,13 +253,13 @@
                 </div>
               </div>
               <span class="text-right text-sm font-semibold text-gray-900">{{ formatCurrency(0) }}</span>
-              <div class="col-span-2 sm:col-span-1 flex sm:justify-end pl-11 sm:pl-0">
+              <div v-if="['pending', 'active'].includes(selectedEntry.freeTrial.status)" class="col-span-2 flex pl-11">
                 <button
                   v-if="selectedEntry.freeTrial.status === 'pending'"
                   @click="$emit('activate', selectedEntry.freeTrial)"
                   type="button"
                   :disabled="activatingMembership === selectedEntry.freeTrial.id"
-                  class="inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle class="w-3.5 h-3.5" />
                   {{ activatingMembership === selectedEntry.freeTrial.id ? 'Wird aktiviert...' : 'Aktivieren' }}
@@ -269,7 +269,7 @@
                   @click="$emit('abort', selectedEntry.freeTrial)"
                   type="button"
                   :disabled="abortingMembership === selectedEntry.freeTrial.id"
-                  class="inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <StopCircle class="w-3.5 h-3.5" />
                   {{ abortingMembership === selectedEntry.freeTrial.id ? 'Wird gestoppt...' : 'Stoppen' }}
@@ -278,7 +278,7 @@
             </div>
 
             <!-- Base fee -->
-            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 items-center px-4 py-3.5 border-t border-gray-100">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-center px-4 py-3.5 border-t border-gray-100">
               <div class="flex gap-3 items-center min-w-0">
                 <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-gray-100 text-gray-600">
                   <FileText class="w-4 h-4" />
@@ -294,7 +294,6 @@
                 <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(selectedEntry.membership.membership_plan?.price || 0) }}</div>
                 <div class="text-xs text-gray-500">pro {{ formatBillingCycle(selectedEntry.membership.membership_plan?.billing_cycle || 'monthly') }}</div>
               </div>
-              <span class="hidden sm:block"></span>
             </div>
 
             <!-- Booked add-ons -->
@@ -310,14 +309,13 @@
             <!-- Monthly total -->
             <div
               v-if="!selectedIsPast && selectedTotal !== null"
-              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-gray-200 bg-gray-50"
+              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-gray-200 bg-gray-50"
             >
               <span class="text-sm font-semibold text-gray-900">
                 Summe pro Monat
                 <span class="font-normal text-gray-500">· {{ totalBreakdown(selectedEntry.membership) }}</span>
               </span>
               <span class="text-right text-lg font-bold text-gray-900">{{ formatCurrency(selectedTotal) }}</span>
-              <span class="hidden sm:block"></span>
             </div>
           </div>
 

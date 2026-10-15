@@ -3,7 +3,7 @@
   <div
     v-for="addon in bookedAddons"
     :key="addon.key"
-    class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+    class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
   >
     <div class="flex gap-3 items-start min-w-0">
       <span
@@ -88,7 +88,7 @@
       </template>
     </div>
 
-    <div v-if="!readonly" class="col-span-2 sm:col-span-1 flex sm:justify-end pl-11 sm:pl-0">
+    <div v-if="!readonly" class="col-span-2 flex pl-11">
       <!-- Recurring add-ons are an ongoing service, so marking them as
            "carried out" does not apply — they are cancelled instead. -->
       <button
@@ -97,7 +97,7 @@
         :disabled="togglingKey === addon.key"
         @click="toggleCancellation(addon)"
         :class="[
-          'inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
           addon.cancelledAt ? 'text-gray-700 hover:text-gray-900' : 'text-red-600 hover:text-red-800'
         ]"
       >
@@ -111,7 +111,7 @@
         :disabled="togglingKey === addon.key"
         @click="toggleCompletion(addon)"
         :class="[
-          'inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
           addon.completedAt ? 'text-gray-700 hover:text-gray-900' : 'text-green-700 hover:text-green-800'
         ]"
       >
