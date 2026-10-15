@@ -347,6 +347,7 @@
 
         <!-- Monthly total, pinned to the bottom of the screen (mobile) -->
         <div
+          ref="mobileTotalBar"
           v-if="showMobileTotal"
           class="sm:hidden fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
         >
@@ -546,6 +547,7 @@ import {
 import { formatBillingCycle, formatCurrency, formatDate, formatDateForInput, todayInDisplayTimezone } from '@/utils/formatters'
 import { cappedBillingDate, monthlyMembershipTotal, nextMonthlyBillingDate } from '@/utils/addons'
 import { membershipStatusOption } from '@/utils/membershipStatus'
+import { useBottomBarOffset } from '@/composables/useBottomBarOffset'
 import MemberAddons from '@/Components/Members/MemberAddons.vue'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
@@ -768,6 +770,10 @@ const showMobileTotal = computed(() =>
     && !selectedIsPast.value
     && selectedTotal.value !== null
 )
+
+// Keeps floating launchers (Chatwoot) above the pinned total
+const mobileTotalBar = ref(null)
+useBottomBarOffset(mobileTotalBar)
 
 const selectedBookableAddons = computed(() =>
   (selectedEntry.value && props.bookableAddons?.[selectedEntry.value.membership.id]) || []
