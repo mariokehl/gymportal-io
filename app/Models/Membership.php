@@ -116,7 +116,9 @@ class Membership extends Model
                 'completed_by',
                 'cancelled_at',
                 'cancellation_effective_at',
-                'cancelled_by'
+                'cancelled_by',
+                'cancelled_with_membership',
+                'original_cancellation_effective_at'
             )
             ->withTimestamps();
     }

@@ -60,7 +60,7 @@
           class="text-xs text-red-700 inline-flex items-center gap-1.5"
         >
           <CalendarX class="w-3.5 h-3.5" />
-          Gekündigt zum {{ formatDate(addon.cancellationEffectiveAt) }} – danach keine Abrechnung mehr
+          {{ addon.cancelledWithMembership ? 'Endet mit dem Vertrag am' : 'Gekündigt zum' }} {{ formatDate(addon.cancellationEffectiveAt) }} – danach keine Abrechnung mehr
         </p>
 
         <p v-if="addon.completedAt" class="text-xs text-emerald-600">
@@ -88,7 +88,9 @@
       </template>
     </div>
 
-    <div v-if="!readonly" class="col-span-2 flex pl-11">
+    <!-- Cancelled together with the contract: it only comes back when that
+         cancellation is revoked, so there is nothing to undo here. -->
+    <div v-if="!readonly && !addon.cancelledWithMembership" class="col-span-2 flex pl-11">
       <!-- Recurring add-ons are an ongoing service, so marking them as
            "carried out" does not apply — they are cancelled instead. -->
       <button
@@ -345,7 +347,8 @@ const bookedAddons = computed(() => {
       completedAt: pivot.completed_at,
       completedByName: pivot.completed_by_name,
       cancelledAt: pivot.cancelled_at,
-      cancellationEffectiveAt: pivot.cancellation_effective_at
+      cancellationEffectiveAt: pivot.cancellation_effective_at,
+      cancelledWithMembership: Boolean(pivot.cancelled_with_membership)
     }
   })
 })

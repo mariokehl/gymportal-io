@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\ContractWithdrawn;
 use App\Mail\Dispatching\MemberMailDispatcher;
 use App\Mail\WithdrawalConfirmationMail;
+use App\Models\Addon;
 use App\Models\Membership;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -399,6 +400,72 @@ class MembershipService
             $membership->addons()->updateExistingPivot($addon->id, [
                 'cancelled_at' => $addon->pivot->cancelled_at ?? now(),
                 'cancellation_effective_at' => $lastUsableDay,
+            ]);
+        }
+    }
+
+    /**
+     * Cancels the recurring add-ons booked with a cancelled contract, so they
+     * end together with it.
+     *
+     * Add-ons cancelled on their own with a later date are shortened to the
+     * contract end, while earlier ones are left alone. Each touched add-on is
+     * flagged, so revoking the contract cancellation can undo exactly this.
+     * One-time add-ons are already billed and have no term to end.
+     *
+     * @param  Carbon  $effectiveAt  Last day of the contract
+     */
+    public function cancelBookedAddons(Membership $membership, Carbon $effectiveAt, ?int $cancelledBy = null): void
+    {
+        $lastUsableDay = $effectiveAt->copy()->startOfDay();
+
+        $addons = $membership->addons()
+            ->where('billing_type', Addon::BILLING_TYPE_RECURRING)
+            ->where(function ($query) use ($lastUsableDay) {
+                $query->whereNull('addon_membership.cancellation_effective_at')
+                    ->orWhereDate('addon_membership.cancellation_effective_at', '>', $lastUsableDay->toDateString());
+            })
+            ->get();
+
+        foreach ($addons as $addon) {
+            $pivot = $addon->pivot;
+            $wasCancelled = $pivot->cancelled_at !== null;
+
+            $membership->addons()->updateExistingPivot($addon->id, [
+                'cancelled_at' => $pivot->cancelled_at ?? now(),
+                'cancellation_effective_at' => $lastUsableDay->toDateString(),
+                'cancelled_by' => $wasCancelled ? $pivot->cancelled_by : $cancelledBy,
+                'cancelled_with_membership' => true,
+                'original_cancellation_effective_at' => $wasCancelled ? $pivot->cancellation_effective_at : null,
+            ]);
+
+            $this->paymentService->cancelScheduledAddonPayments($membership, $addon, $lastUsableDay);
+        }
+    }
+
+    /**
+     * Restores the add-ons that were cancelled together with the contract once
+     * that cancellation is revoked.
+     *
+     * An add-on that had been cancelled on its own beforehand gets its own
+     * cancellation date back instead of being reactivated.
+     */
+    public function restoreAddonsCancelledWithMembership(Membership $membership): void
+    {
+        $addons = $membership->addons()
+            ->wherePivot('cancelled_with_membership', true)
+            ->get();
+
+        foreach ($addons as $addon) {
+            $originalEffectiveAt = $addon->pivot->original_cancellation_effective_at;
+
+            $attributes = $originalEffectiveAt === null
+                ? ['cancelled_at' => null, 'cancellation_effective_at' => null, 'cancelled_by' => null]
+                : ['cancellation_effective_at' => $originalEffectiveAt];
+
+            $membership->addons()->updateExistingPivot($addon->id, $attributes + [
+                'cancelled_with_membership' => false,
+                'original_cancellation_effective_at' => null,
             ]);
         }
     }

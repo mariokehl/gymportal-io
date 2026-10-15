@@ -272,7 +272,7 @@ class MembershipController extends Controller
     /**
      * Cancels a membership.
      */
-    public function cancel(Request $request, Member $member, Membership $membership)
+    public function cancel(Request $request, Member $member, Membership $membership, MembershipService $membershipService)
     {
         $this->authorize('update', $membership);
 
@@ -396,6 +396,13 @@ class MembershipController extends Controller
                 // a cron job or task scheduler could take care of that.
             }
 
+            // Booked add-ons end together with the contract
+            $membershipService->cancelBookedAddons(
+                $membership,
+                Carbon::parse($membership->cancellation_date),
+                $request->user()->id,
+            );
+
             // Append a note
             $membership->update([
                 'notes' => ($membership->notes ? $membership->notes."\n" : '').
@@ -434,7 +441,7 @@ class MembershipController extends Controller
     /**
      * Revokes a cancellation.
      */
-    public function revokeCancellation(Request $request, Member $member, Membership $membership)
+    public function revokeCancellation(Request $request, Member $member, Membership $membership, MembershipService $membershipService)
     {
         $this->authorize('update', $membership);
 
@@ -471,6 +478,8 @@ class MembershipController extends Controller
                 'cancellation_date' => null,
                 'cancellation_reason' => null,
             ]);
+
+            $membershipService->restoreAddonsCancelledWithMembership($membership);
 
             // Append a note
             $membership->update([
@@ -852,6 +861,14 @@ class MembershipController extends Controller
         }
 
         $isCancelled = $pivot->cancelled_at !== null;
+
+        // It ends with the cancelled contract and only comes back when that
+        // cancellation is revoked.
+        if ($isCancelled && $pivot->cancelled_with_membership) {
+            return back()->withErrors([
+                'error' => 'Dieses Add-on endet mit dem gekündigten Vertrag. Nehmen Sie dafür die Kündigung des Vertrags zurück.',
+            ]);
+        }
 
         // Revoking restores the previous state and takes no date.
         if ($isCancelled) {
