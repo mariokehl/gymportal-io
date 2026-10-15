@@ -116,7 +116,7 @@
         ]"
       >
         <component :is="addon.completedAt ? RotateCcw : CheckCircle" class="w-3.5 h-3.5 flex-none" />
-        <span>{{ addon.completedAt ? 'Zurücksetzen' : 'Erledigen' }}</span>
+        <span>{{ addon.completedAt ? 'Als offen markieren' : 'Als erledigt markieren' }}</span>
       </button>
     </div>
   </div>
