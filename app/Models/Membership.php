@@ -516,8 +516,8 @@ class Membership extends Model
             return $this->end_date->format('Y-m-d');
         }
 
-        // Fallback to min_cancellation_date if no end_date exists
-        return $this->min_cancellation_date;
+        // Without an end_date the contract still ends with its initial term at the earliest
+        return $this->commitmentEndDate()?->format('Y-m-d') ?? $this->min_cancellation_date;
     }
 
     /**
@@ -647,12 +647,31 @@ class Membership extends Model
             : now()->addDays($period);
 
         // Inside the initial term the contract cannot end before that term does.
-        $minimumDate = $this->min_cancellation_date;
-        if ($minimumDate !== null && $noticeEnd->lt(Carbon::parse($minimumDate))) {
-            return $minimumDate;
+        $commitmentEnd = $this->commitmentEndDate();
+        if ($commitmentEnd !== null && $noticeEnd->lt($commitmentEnd)) {
+            return $commitmentEnd->format('Y-m-d');
         }
 
         return $noticeEnd->format('Y-m-d');
+    }
+
+    /**
+     * Last day of the initial term (start + commitment months - 1 day), the
+     * earliest date an ordinary cancellation can take effect. Null without a
+     * commitment period.
+     *
+     * Not to be confused with min_cancellation_date, the last day a
+     * cancellation can still be submitted for that date.
+     */
+    public function commitmentEndDate(): ?Carbon
+    {
+        $commitmentMonths = $this->membershipPlan?->commitment_months;
+
+        if (! $this->start_date || ! $commitmentMonths) {
+            return null;
+        }
+
+        return $this->start_date->copy()->startOfDay()->addMonths($commitmentMonths)->subDay();
     }
 
     public function getCanCancelAttribute(): bool

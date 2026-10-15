@@ -78,11 +78,20 @@ class MembershipNextPossibleCancellationDateTest extends TestCase
             ],
 
             // Inside the initial term the notice period would end too early, so
-            // the minimum cancellation date wins.
+            // the contract ends with the last day of the initial term.
             'inside the initial term the commitment wins' => [
                 '2026-01-01', '2026-01-15', null,
                 ['commitment_months' => 12, 'cancellation_period' => 1, 'cancellation_period_unit' => 'months'],
-                '2026-12-01',
+                '2026-12-31',
+            ],
+
+            // Term end already passed and rolled over indefinitely while still in
+            // the initial term: it ends on the last day of the commitment, not on
+            // the last day a cancellation could be submitted (14.09.2027).
+            'rolled over inside the initial term ends with the commitment' => [
+                '2026-10-14', '2026-10-15', '2026-10-15',
+                ['commitment_months' => 12, 'cancellation_period' => 30, 'cancellation_period_unit' => 'days', 'auto_renew_type' => 'indefinite'],
+                '2027-10-13',
             ],
         ];
     }
