@@ -126,10 +126,10 @@ class ActivatePresaleMemberships extends Command
     private function writeReport(Gym $gym, array $rows, bool $dryRun): string
     {
         $handle = fopen('php://temp', 'r+');
-        fputcsv($handle, array_keys($rows[0]), ';');
+        fputcsv($handle, array_keys($rows[0]), ';', '"', '');
 
         foreach ($rows as $row) {
-            fputcsv($handle, $row, ';');
+            fputcsv($handle, $row, ';', '"', '');
         }
 
         rewind($handle);
