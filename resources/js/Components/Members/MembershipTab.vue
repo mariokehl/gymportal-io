@@ -210,7 +210,7 @@
             <h4 class="text-xs sm:text-base font-medium sm:font-semibold uppercase sm:normal-case tracking-wider sm:tracking-normal text-gray-500 sm:text-gray-900">Leistungen</h4>
             <div class="hidden sm:flex gap-2 flex-wrap">
               <button
-                v-if="isLinkable(selectedEntry.membership)"
+                v-if="canPrependFreePeriod(selectedEntry.membership)"
                 @click="openFreePeriodModal(selectedEntry.membership.id)"
                 type="button"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-gray-300 bg-white text-green-700 text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -325,7 +325,7 @@
 
           <!-- Add actions below the services (mobile) -->
           <div
-            v-if="!selectedIsPast && (selectedBookableAddons.length > 0 || isLinkable(selectedEntry.membership))"
+            v-if="!selectedIsPast && (selectedBookableAddons.length > 0 || canPrependFreePeriod(selectedEntry.membership))"
             class="sm:hidden flex flex-col items-center gap-2 px-4 pt-2"
           >
             <button
@@ -337,7 +337,7 @@
               <Plus class="w-4 h-4" /> Add-on zu {{ selectedEntry.membership.membership_plan?.name }} hinzufügen
             </button>
             <button
-              v-if="isLinkable(selectedEntry.membership)"
+              v-if="canPrependFreePeriod(selectedEntry.membership)"
               @click="openFreePeriodModal(selectedEntry.membership.id)"
               type="button"
               class="min-h-10 inline-flex items-center gap-1.5 text-green-700 text-sm font-medium"
@@ -788,6 +788,18 @@ const selectedNextBillingAt = computed(() => {
 })
 
 const isLinkable = (membership) => linkableMemberships.value.some(m => m.id === membership.id)
+
+// A free period can only be prepended to a membership that has not started yet
+const startsInFuture = (membership) => {
+  if (!membership?.start_date) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const startDate = new Date(membership.start_date)
+  startDate.setHours(0, 0, 0, 0)
+  return startDate > today
+}
+
+const canPrependFreePeriod = (membership) => isLinkable(membership) && startsInFuture(membership)
 
 const formatTerm = (membership) =>
   `${formatDate(membership.start_date)} – ${membership.end_date ? formatDate(membership.end_date) : (membership.cancellation_date ? formatDate(membership.cancellation_date) : 'unbefristet')}`
