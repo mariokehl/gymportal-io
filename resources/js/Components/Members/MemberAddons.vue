@@ -44,7 +44,7 @@
         </div>
 
         <p class="text-xs text-gray-500">
-          Add-on<template v-if="addon.bookedAt"> · gebucht am {{ formatDate(addon.bookedAt) }}</template><template v-if="addon.isRecurring"> · monatlich kündbar</template>
+          Add-on<template v-if="addon.bookedAt"> · gebucht am {{ formatDate(addon.bookedAt) }}</template><template v-if="isTrialActive(addon.trialEndsAt)"> · <span class="whitespace-nowrap"><Gift class="inline w-3.5 h-3.5 mr-1 align-[-0.2em] text-green-700" />bis {{ formatDate(addon.trialEndsAt) }} kostenfrei</span></template><template v-if="addon.isRecurring"> · monatlich kündbar</template>
         </p>
 
         <p
@@ -66,14 +66,6 @@
         <p v-if="addon.completedAt" class="text-xs text-emerald-600">
           Erledigt am {{ formatDateTime(addon.completedAt) }}<template v-if="addon.completedByName"> · von {{ addon.completedByName }}</template>
         </p>
-
-        <span
-          v-if="isTrialActive(addon.trialEndsAt)"
-          class="self-start inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"
-        >
-          <Gift class="w-3.5 h-3.5" />
-          Testphase bis {{ formatDate(addon.trialEndsAt) }} (Restmonat gratis)
-        </span>
       </div>
     </div>
 
