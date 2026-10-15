@@ -79,15 +79,19 @@ class UpdateMembershipStatuses extends Command
         }
 
         // 5. Ausstehende Mitgliedschaften prüfen (z.B. nach 30 Tagen automatisch stornieren)
+        // Pre-registrations for a future opening stay pending well beyond 30
+        // days, so the timeout only starts counting once the contract has started
+        $timeoutCutoff = $now->copy()->subDays(Membership::PENDING_TIMEOUT_DAYS);
         $pendingTimeout = Membership::ofGymsWithActiveAccess()
             ->where('status', 'pending')
-            ->where('created_at', '<=', $now->subDays(30))
+            ->where('created_at', '<=', $timeoutCutoff)
+            ->whereDate('start_date', '<=', $timeoutCutoff->toDateString())
             ->get();
 
         foreach ($pendingTimeout as $membership) {
             $membership->update([
                 'status' => 'expired',
-                'cancellation_reason' => 'Automatisch storniert - Aktivierung nicht abgeschlossen',
+                'cancellation_reason' => Membership::PENDING_TIMEOUT_REASON,
             ]);
             $updated++;
 

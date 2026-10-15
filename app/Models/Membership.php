@@ -30,6 +30,14 @@ class Membership extends Model
         });
     }
 
+    /**
+     * Days a membership may stay pending — counted from both its creation and
+     * its contract start — before memberships:update-statuses cancels it.
+     */
+    public const PENDING_TIMEOUT_DAYS = 30;
+
+    public const PENDING_TIMEOUT_REASON = 'Automatisch storniert - Aktivierung nicht abgeschlossen';
+
     protected $fillable = [
         'member_id',
         'membership_plan_id',
