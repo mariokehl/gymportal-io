@@ -210,7 +210,7 @@
             <h4 class="text-xs sm:text-base font-medium sm:font-semibold uppercase sm:normal-case tracking-wider sm:tracking-normal text-gray-500 sm:text-gray-900">Leistungen</h4>
             <div class="hidden sm:flex gap-2 flex-wrap">
               <button
-                v-if="isLinkable(selectedEntry.membership)"
+                v-if="canPrependFreePeriod(selectedEntry.membership)"
                 @click="openFreePeriodModal(selectedEntry.membership.id)"
                 type="button"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-gray-300 bg-white text-green-700 text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -229,14 +229,14 @@
           </div>
 
           <div class="sm:rounded-lg sm:border border-gray-200 overflow-hidden">
-            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem_10rem] gap-3 px-4 py-2.5 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
-              <span>Leistung</span><span class="text-right">Betrag</span><span></span>
+            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem] gap-3 px-4 py-2.5 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <span>Leistung</span><span class="text-right">Betrag</span>
             </div>
 
             <!-- Linked free period in front of the contract -->
             <div
               v-if="selectedEntry.freeTrial"
-              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
             >
               <div class="flex gap-3 items-center min-w-0">
                 <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-green-100 text-green-700">
@@ -253,13 +253,13 @@
                 </div>
               </div>
               <span class="text-right text-sm font-semibold text-gray-900">{{ formatCurrency(0) }}</span>
-              <div class="col-span-2 sm:col-span-1 flex sm:justify-end pl-11 sm:pl-0">
+              <div v-if="['pending', 'active'].includes(selectedEntry.freeTrial.status)" class="col-span-2 flex pl-11">
                 <button
                   v-if="selectedEntry.freeTrial.status === 'pending'"
                   @click="$emit('activate', selectedEntry.freeTrial)"
                   type="button"
                   :disabled="activatingMembership === selectedEntry.freeTrial.id"
-                  class="inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle class="w-3.5 h-3.5" />
                   {{ activatingMembership === selectedEntry.freeTrial.id ? 'Wird aktiviert...' : 'Aktivieren' }}
@@ -269,7 +269,7 @@
                   @click="$emit('abort', selectedEntry.freeTrial)"
                   type="button"
                   :disabled="abortingMembership === selectedEntry.freeTrial.id"
-                  class="inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <StopCircle class="w-3.5 h-3.5" />
                   {{ abortingMembership === selectedEntry.freeTrial.id ? 'Wird gestoppt...' : 'Stoppen' }}
@@ -278,7 +278,7 @@
             </div>
 
             <!-- Base fee -->
-            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 items-center px-4 py-3.5 border-t border-gray-100">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-center px-4 py-3.5 border-t border-gray-100">
               <div class="flex gap-3 items-center min-w-0">
                 <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-gray-100 text-gray-600">
                   <FileText class="w-4 h-4" />
@@ -294,7 +294,6 @@
                 <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(selectedEntry.membership.membership_plan?.price || 0) }}</div>
                 <div class="text-xs text-gray-500">pro {{ formatBillingCycle(selectedEntry.membership.membership_plan?.billing_cycle || 'monthly') }}</div>
               </div>
-              <span class="hidden sm:block"></span>
             </div>
 
             <!-- Booked add-ons -->
@@ -310,14 +309,13 @@
             <!-- Monthly total -->
             <div
               v-if="!selectedIsPast && selectedTotal !== null"
-              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-gray-200 bg-gray-50"
+              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-gray-200 bg-gray-50"
             >
               <span class="text-sm font-semibold text-gray-900">
                 Summe pro Monat
                 <span class="font-normal text-gray-500">· {{ totalBreakdown(selectedEntry.membership) }}</span>
               </span>
               <span class="text-right text-lg font-bold text-gray-900">{{ formatCurrency(selectedTotal) }}</span>
-              <span class="hidden sm:block"></span>
             </div>
           </div>
 
@@ -325,7 +323,7 @@
 
           <!-- Add actions below the services (mobile) -->
           <div
-            v-if="!selectedIsPast && (selectedBookableAddons.length > 0 || isLinkable(selectedEntry.membership))"
+            v-if="!selectedIsPast && (selectedBookableAddons.length > 0 || canPrependFreePeriod(selectedEntry.membership))"
             class="sm:hidden flex flex-col items-center gap-2 px-4 pt-2"
           >
             <button
@@ -337,7 +335,7 @@
               <Plus class="w-4 h-4" /> Add-on zu {{ selectedEntry.membership.membership_plan?.name }} hinzufügen
             </button>
             <button
-              v-if="isLinkable(selectedEntry.membership)"
+              v-if="canPrependFreePeriod(selectedEntry.membership)"
               @click="openFreePeriodModal(selectedEntry.membership.id)"
               type="button"
               class="min-h-10 inline-flex items-center gap-1.5 text-green-700 text-sm font-medium"
@@ -349,6 +347,7 @@
 
         <!-- Monthly total, pinned to the bottom of the screen (mobile) -->
         <div
+          ref="mobileTotalBar"
           v-if="showMobileTotal"
           class="sm:hidden fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
         >
@@ -452,8 +451,8 @@
                     <div class="text-sm">
                       <p class="font-medium text-green-800">Vorschau</p>
                       <p class="text-green-700">
-                        Gratis-Zeitraum vom {{ formatDateShort(freePeriodForm.start_date) }}
-                        bis {{ formatDateShort(freePeriodForm.end_date) }}
+                        Gratis-Zeitraum vom {{ formatDate(freePeriodForm.start_date) }}
+                        bis {{ formatDate(freePeriodForm.end_date) }}
                         ({{ freePeriodDays }} Tage)
                       </p>
                     </div>
@@ -545,9 +544,10 @@ import { useForm } from '@inertiajs/vue3'
 import {
   Plus, AlertCircle, UserX, ChevronDown, Gift, EyeOff, Puzzle, FileText, CheckCircle, StopCircle
 } from 'lucide-vue-next'
-import { formatBillingCycle, formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
+import { formatBillingCycle, formatCurrency, formatDate, formatDateForInput, todayInDisplayTimezone } from '@/utils/formatters'
 import { cappedBillingDate, monthlyMembershipTotal, nextMonthlyBillingDate } from '@/utils/addons'
 import { membershipStatusOption } from '@/utils/membershipStatus'
+import { useBottomBarOffset } from '@/composables/useBottomBarOffset'
 import MemberAddons from '@/Components/Members/MemberAddons.vue'
 import MembershipFormSection from '@/Components/Members/MembershipFormSection.vue'
 import MembershipCard from '@/Components/Members/MembershipCard.vue'
@@ -606,8 +606,8 @@ const showFreePeriodModal = ref(false)
 
 // Free period form
 const freePeriodForm = useForm({
-  start_date: new Date().toISOString().split('T')[0],
-  end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 Tage
+  start_date: todayInDisplayTimezone(),
+  end_date: formatDateForInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // +30 days
   linked_membership_id: null
 })
 
@@ -615,14 +615,14 @@ const freePeriodForm = useForm({
 const addMembershipForm = useForm({
   member_id: props.member.id,
   membership_plan_id: null,
-  start_date: new Date().toISOString().split('T')[0],
+  start_date: todayInDisplayTimezone(),
   allow_past_start_date: false,
   billing_anchor_date: ''
 })
 
 const membershipFormData = ref({
   membership_plan_id: null,
-  start_date: new Date().toISOString().split('T')[0],
+  start_date: todayInDisplayTimezone(),
   allow_past_start_date: false,
   billing_anchor_date: ''
 })
@@ -771,6 +771,10 @@ const showMobileTotal = computed(() =>
     && selectedTotal.value !== null
 )
 
+// Keeps floating launchers (Chatwoot) above the pinned total
+const mobileTotalBar = ref(null)
+useBottomBarOffset(mobileTotalBar)
+
 const selectedBookableAddons = computed(() =>
   (selectedEntry.value && props.bookableAddons?.[selectedEntry.value.membership.id]) || []
 )
@@ -788,6 +792,14 @@ const selectedNextBillingAt = computed(() => {
 })
 
 const isLinkable = (membership) => linkableMemberships.value.some(m => m.id === membership.id)
+
+// A free period can only be prepended to a membership that has not started yet
+const startsInFuture = (membership) => {
+  if (!membership?.start_date) return false
+  return formatDateForInput(membership.start_date) > todayInDisplayTimezone()
+}
+
+const canPrependFreePeriod = (membership) => isLinkable(membership) && startsInFuture(membership)
 
 const formatTerm = (membership) =>
   `${formatDate(membership.start_date)} – ${membership.end_date ? formatDate(membership.end_date) : (membership.cancellation_date ? formatDate(membership.cancellation_date) : 'unbefristet')}`
@@ -817,15 +829,10 @@ const totalBreakdown = (membership) => {
 // Check if a membership is currently active (based on date)
 const isCurrentlyActive = (membership) => {
   if (!membership) return false
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const startDate = new Date(membership.start_date)
-  startDate.setHours(0, 0, 0, 0)
-  const endDate = membership.end_date ? new Date(membership.end_date) : null
-  if (endDate) endDate.setHours(23, 59, 59, 999)
-
-  const isAfterStart = today >= startDate
-  const isBeforeEnd = !endDate || today <= endDate
+  // YYYY-MM-DD strings compare lexicographically
+  const today = todayInDisplayTimezone()
+  const isAfterStart = today >= formatDateForInput(membership.start_date)
+  const isBeforeEnd = !membership.end_date || today <= formatDateForInput(membership.end_date)
 
   return isAfterStart && isBeforeEnd && membership.status === 'active'
 }
@@ -851,7 +858,7 @@ watch(membershipFormData, (newVal) => {
 const openAddMembershipModal = () => {
   membershipFormData.value = {
     membership_plan_id: null,
-    start_date: new Date().toISOString().split('T')[0],
+    start_date: todayInDisplayTimezone(),
     allow_past_start_date: false,
     billing_anchor_date: ''
   }
@@ -879,12 +886,11 @@ const addMembership = () => {
 const openFreePeriodModal = (linkedMembershipId = null) => {
   freePeriodForm.reset()
   freePeriodForm.clearErrors()
-  freePeriodForm.start_date = new Date().toISOString().split('T')[0]
-  // Default: Ende des aktuellen Monats
-  const endOfMonth = new Date()
-  endOfMonth.setMonth(endOfMonth.getMonth() + 1)
-  endOfMonth.setDate(0) // Letzter Tag des aktuellen Monats
-  freePeriodForm.end_date = endOfMonth.toISOString().split('T')[0]
+  const today = todayInDisplayTimezone()
+  freePeriodForm.start_date = today
+  // Default: last day of the current month (day 0 of the next month)
+  const [year, month] = today.split('-').map(Number)
+  freePeriodForm.end_date = formatDateForInput(new Date(Date.UTC(year, month, 0)))
   freePeriodForm.linked_membership_id = linkedMembershipId
   showFreePeriodModal.value = true
 }
@@ -902,12 +908,5 @@ const addFreePeriod = () => {
       closeFreePeriodModal()
     }
   })
-}
-
-// Helper function to format date in short German format
-const formatDateShort = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone(), day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 </script>

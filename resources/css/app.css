@@ -65,3 +65,10 @@
 .focus\:border-blue-500:focus {
   border-color: rgb(59 130 246);
 }
+
+/* Lift the Chatwoot launcher above a bar pinned to the bottom of the screen
+   (see useBottomBarOffset). A margin shifts the fixed bubble without touching
+   the bottom offsets and transitions Chatwoot sets per state. */
+.woot-widget-bubble {
+  margin-bottom: var(--bottom-bar-height, 0px);
+}

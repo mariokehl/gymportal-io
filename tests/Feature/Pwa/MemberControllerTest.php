@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pwa;
 
 use App\Mail\CancellationConfirmationMail;
+use App\Models\Addon;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
@@ -204,6 +205,37 @@ class MemberControllerTest extends TestCase
 
         $this->assertNotNull($membership->fresh()->cancellation_date);
         Mail::assertSent(CancellationConfirmationMail::class);
+    }
+
+    #[Test]
+    public function cancel_contract_cancels_the_booked_recurring_addons_to_the_contract_end(): void
+    {
+        Mail::fake();
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create(['gym_id' => $gym->id]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => now()->subMonth()->toDateString(),
+        ]);
+
+        $addon = Addon::factory()->usageFlatRate()->create(['gym_id' => $gym->id]);
+        $membership->addons()->attach($addon->id, ['mode' => 'optional', 'price' => 8.62]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk();
+
+        $pivot = $membership->addons()->first()->pivot;
+
+        $this->assertNotNull($pivot->cancelled_at);
+        $this->assertTrue((bool) $pivot->cancelled_with_membership);
+        $this->assertSame(
+            Carbon::parse($membership->fresh()->cancellation_date)->toDateString(),
+            Carbon::parse($pivot->cancellation_effective_at)->toDateString(),
+        );
     }
 
     #[Test]

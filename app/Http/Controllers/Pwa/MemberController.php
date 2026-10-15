@@ -178,7 +178,7 @@ class MemberController extends Controller
         ]);
     }
 
-    public function cancelContract(MemberMailDispatcher $mailDispatcher): JsonResponse
+    public function cancelContract(MemberMailDispatcher $mailDispatcher, MembershipService $membershipService): JsonResponse
     {
         /** @var Member $member */
         $member = request()->user();
@@ -214,6 +214,11 @@ class MemberController extends Controller
             'cancellation_reason' => 'Sonstiges (Ordentliche Kündigung über PWA)',
             'notes' => 'Gekündigt am '.now()->format('d.m.Y H:i'),
         ]);
+
+        // Booked add-ons end together with the contract
+        if ($membership->cancellation_date) {
+            $membershipService->cancelBookedAddons($membership, Carbon::parse($membership->cancellation_date));
+        }
 
         $mailDispatcher->sendToMember(
             $member,

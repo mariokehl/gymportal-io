@@ -3,7 +3,7 @@
   <div
     v-for="addon in bookedAddons"
     :key="addon.key"
-    class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem_10rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+    class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
   >
     <div class="flex gap-3 items-start min-w-0">
       <span
@@ -44,7 +44,7 @@
         </div>
 
         <p class="text-xs text-gray-500">
-          Add-on<template v-if="addon.bookedAt"> · gebucht am {{ formatDate(addon.bookedAt) }}</template><template v-if="addon.isRecurring"> · monatlich kündbar</template>
+          Add-on<template v-if="addon.bookedAt"> · gebucht am {{ formatDate(addon.bookedAt) }}</template><template v-if="isTrialActive(addon.trialEndsAt)"> · <span class="whitespace-nowrap"><Gift class="inline w-3.5 h-3.5 mr-1 align-[-0.2em] text-green-700" />bis {{ formatDate(addon.trialEndsAt) }} kostenfrei</span></template><template v-if="addon.isRecurring"> · monatlich kündbar</template>
         </p>
 
         <p
@@ -60,20 +60,12 @@
           class="text-xs text-red-700 inline-flex items-center gap-1.5"
         >
           <CalendarX class="w-3.5 h-3.5" />
-          Gekündigt zum {{ formatDate(addon.cancellationEffectiveAt) }} – danach keine Abrechnung mehr
+          {{ addon.cancelledWithMembership ? 'Endet mit dem Vertrag am' : 'Gekündigt zum' }} {{ formatDate(addon.cancellationEffectiveAt) }} – danach keine Abrechnung mehr
         </p>
 
         <p v-if="addon.completedAt" class="text-xs text-emerald-600">
           Erledigt am {{ formatDateTime(addon.completedAt) }}<template v-if="addon.completedByName"> · von {{ addon.completedByName }}</template>
         </p>
-
-        <span
-          v-if="isTrialActive(addon.trialEndsAt)"
-          class="self-start inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"
-        >
-          <Gift class="w-3.5 h-3.5" />
-          Testphase bis {{ formatDate(addon.trialEndsAt) }} (Restmonat gratis)
-        </span>
       </div>
     </div>
 
@@ -88,7 +80,9 @@
       </template>
     </div>
 
-    <div v-if="!readonly" class="col-span-2 sm:col-span-1 flex sm:justify-end pl-11 sm:pl-0">
+    <!-- Cancelled together with the contract: it only comes back when that
+         cancellation is revoked, so there is nothing to undo here. -->
+    <div v-if="!readonly && !addon.cancelledWithMembership" class="col-span-2 flex pl-11">
       <!-- Recurring add-ons are an ongoing service, so marking them as
            "carried out" does not apply — they are cancelled instead. -->
       <button
@@ -97,7 +91,7 @@
         :disabled="togglingKey === addon.key"
         @click="toggleCancellation(addon)"
         :class="[
-          'inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
           addon.cancelledAt ? 'text-gray-700 hover:text-gray-900' : 'text-red-600 hover:text-red-800'
         ]"
       >
@@ -111,12 +105,12 @@
         :disabled="togglingKey === addon.key"
         @click="toggleCompletion(addon)"
         :class="[
-          'inline-flex items-center gap-1.5 sm:p-1 text-[13px] font-medium text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
           addon.completedAt ? 'text-gray-700 hover:text-gray-900' : 'text-green-700 hover:text-green-800'
         ]"
       >
         <component :is="addon.completedAt ? RotateCcw : CheckCircle" class="w-3.5 h-3.5 flex-none" />
-        <span>{{ addon.completedAt ? 'Zurücksetzen' : 'Erledigen' }}</span>
+        <span>{{ addon.completedAt ? 'Als offen markieren' : 'Als erledigt markieren' }}</span>
       </button>
     </div>
   </div>
@@ -345,7 +339,8 @@ const bookedAddons = computed(() => {
       completedAt: pivot.completed_at,
       completedByName: pivot.completed_by_name,
       cancelledAt: pivot.cancelled_at,
-      cancellationEffectiveAt: pivot.cancellation_effective_at
+      cancellationEffectiveAt: pivot.cancellation_effective_at,
+      cancelledWithMembership: Boolean(pivot.cancelled_with_membership)
     }
   })
 })
