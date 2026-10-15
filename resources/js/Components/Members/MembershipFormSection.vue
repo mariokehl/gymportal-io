@@ -48,7 +48,7 @@
                 {{ formatCurrency(plan.price) }}
               </span>
               <span class="text-sm text-gray-500">
-                / {{ getBillingCycleText(plan.billing_cycle) }}
+                / {{ formatBillingCycle(plan.billing_cycle) }}
               </span>
             </div>
             <div class="mt-2 text-xs text-gray-500">
@@ -145,7 +145,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { AlertTriangle } from 'lucide-vue-next'
-import { formatCurrency, getDisplayTimezone } from '@/utils/formatters'
+import { formatBillingCycle, formatCurrency, formatDate, todayInDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({
   modelValue: {
@@ -164,9 +164,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const today = computed(() => {
-  return new Date().toISOString().split('T')[0]
-})
+const today = computed(() => todayInDisplayTimezone())
 
 const selectedPlan = computed(() => {
   if (!props.membershipPlans || !props.modelValue.membership_plan_id) {
@@ -209,7 +207,7 @@ const calculatedEndDate = computed(() => {
     multiplier++
   }
 
-  return endDate.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone() })
+  return formatDate(endDate)
 })
 
 const updateField = (field, value) => {
@@ -221,15 +219,5 @@ const updateField = (field, value) => {
 
 const selectPlan = (planId) => {
   updateField('membership_plan_id', planId)
-}
-
-const getBillingCycleText = (cycle) => {
-  const cycles = {
-    'monthly': 'Monat',
-    'quarterly': 'Quartal',
-    'biannual': 'Halbjahr',
-    'yearly': 'Jahr'
-  }
-  return cycles[cycle] || cycle
 }
 </script>

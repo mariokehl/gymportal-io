@@ -452,8 +452,8 @@
                     <div class="text-sm">
                       <p class="font-medium text-green-800">Vorschau</p>
                       <p class="text-green-700">
-                        Gratis-Zeitraum vom {{ formatDateShort(freePeriodForm.start_date) }}
-                        bis {{ formatDateShort(freePeriodForm.end_date) }}
+                        Gratis-Zeitraum vom {{ formatDate(freePeriodForm.start_date) }}
+                        bis {{ formatDate(freePeriodForm.end_date) }}
                         ({{ freePeriodDays }} Tage)
                       </p>
                     </div>
@@ -545,7 +545,7 @@ import { useForm } from '@inertiajs/vue3'
 import {
   Plus, AlertCircle, UserX, ChevronDown, Gift, EyeOff, Puzzle, FileText, CheckCircle, StopCircle
 } from 'lucide-vue-next'
-import { formatBillingCycle, formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
+import { formatBillingCycle, formatCurrency, formatDate, formatDateForInput, todayInDisplayTimezone } from '@/utils/formatters'
 import { cappedBillingDate, monthlyMembershipTotal, nextMonthlyBillingDate } from '@/utils/addons'
 import { membershipStatusOption } from '@/utils/membershipStatus'
 import MemberAddons from '@/Components/Members/MemberAddons.vue'
@@ -606,8 +606,8 @@ const showFreePeriodModal = ref(false)
 
 // Free period form
 const freePeriodForm = useForm({
-  start_date: new Date().toISOString().split('T')[0],
-  end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 Tage
+  start_date: todayInDisplayTimezone(),
+  end_date: formatDateForInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // +30 days
   linked_membership_id: null
 })
 
@@ -615,14 +615,14 @@ const freePeriodForm = useForm({
 const addMembershipForm = useForm({
   member_id: props.member.id,
   membership_plan_id: null,
-  start_date: new Date().toISOString().split('T')[0],
+  start_date: todayInDisplayTimezone(),
   allow_past_start_date: false,
   billing_anchor_date: ''
 })
 
 const membershipFormData = ref({
   membership_plan_id: null,
-  start_date: new Date().toISOString().split('T')[0],
+  start_date: todayInDisplayTimezone(),
   allow_past_start_date: false,
   billing_anchor_date: ''
 })
@@ -792,11 +792,7 @@ const isLinkable = (membership) => linkableMemberships.value.some(m => m.id === 
 // A free period can only be prepended to a membership that has not started yet
 const startsInFuture = (membership) => {
   if (!membership?.start_date) return false
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const startDate = new Date(membership.start_date)
-  startDate.setHours(0, 0, 0, 0)
-  return startDate > today
+  return formatDateForInput(membership.start_date) > todayInDisplayTimezone()
 }
 
 const canPrependFreePeriod = (membership) => isLinkable(membership) && startsInFuture(membership)
@@ -829,15 +825,10 @@ const totalBreakdown = (membership) => {
 // Check if a membership is currently active (based on date)
 const isCurrentlyActive = (membership) => {
   if (!membership) return false
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const startDate = new Date(membership.start_date)
-  startDate.setHours(0, 0, 0, 0)
-  const endDate = membership.end_date ? new Date(membership.end_date) : null
-  if (endDate) endDate.setHours(23, 59, 59, 999)
-
-  const isAfterStart = today >= startDate
-  const isBeforeEnd = !endDate || today <= endDate
+  // YYYY-MM-DD strings compare lexicographically
+  const today = todayInDisplayTimezone()
+  const isAfterStart = today >= formatDateForInput(membership.start_date)
+  const isBeforeEnd = !membership.end_date || today <= formatDateForInput(membership.end_date)
 
   return isAfterStart && isBeforeEnd && membership.status === 'active'
 }
@@ -863,7 +854,7 @@ watch(membershipFormData, (newVal) => {
 const openAddMembershipModal = () => {
   membershipFormData.value = {
     membership_plan_id: null,
-    start_date: new Date().toISOString().split('T')[0],
+    start_date: todayInDisplayTimezone(),
     allow_past_start_date: false,
     billing_anchor_date: ''
   }
@@ -891,12 +882,11 @@ const addMembership = () => {
 const openFreePeriodModal = (linkedMembershipId = null) => {
   freePeriodForm.reset()
   freePeriodForm.clearErrors()
-  freePeriodForm.start_date = new Date().toISOString().split('T')[0]
-  // Default: Ende des aktuellen Monats
-  const endOfMonth = new Date()
-  endOfMonth.setMonth(endOfMonth.getMonth() + 1)
-  endOfMonth.setDate(0) // Letzter Tag des aktuellen Monats
-  freePeriodForm.end_date = endOfMonth.toISOString().split('T')[0]
+  const today = todayInDisplayTimezone()
+  freePeriodForm.start_date = today
+  // Default: last day of the current month (day 0 of the next month)
+  const [year, month] = today.split('-').map(Number)
+  freePeriodForm.end_date = formatDateForInput(new Date(Date.UTC(year, month, 0)))
   freePeriodForm.linked_membership_id = linkedMembershipId
   showFreePeriodModal.value = true
 }
@@ -914,12 +904,5 @@ const addFreePeriod = () => {
       closeFreePeriodModal()
     }
   })
-}
-
-// Helper function to format date in short German format
-const formatDateShort = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('de-DE', { timeZone: getDisplayTimezone(), day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 </script>
