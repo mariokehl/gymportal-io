@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\MemberAccessConfig;
 use App\Models\MemberBlocklist;
 use App\Services\SchedulerHealthCheckService;
+use App\Services\SolariumRedemptionService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
@@ -84,6 +86,39 @@ Schedule::command('disposable:update')->daily();
 
 // Prune expired personal access tokens - runs daily
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+// ===================================
+// GUESTS: EXPIRE PENDING SOLARIUM REDEMPTIONS
+// ===================================
+
+// Safety net in case neither the solarium terminal nor the guest app clears
+// a redemption: expires unacknowledged ones and returns the reserved minutes.
+Schedule::call(function () {
+    $expired = app(SolariumRedemptionService::class)->expireStale();
+
+    if ($expired > 0) {
+        Log::info("Solarium redemption cleanup: {$expired} redemption(s) expired");
+    }
+})->everyMinute()
+    ->name('solarium.expire-pending-redemptions')
+    ->withoutOverlapping();
+
+// ===================================
+// GUESTS: DISABLE EXPIRED DAY PASSES
+// ===================================
+
+Schedule::call(function () {
+    $expired = MemberAccessConfig::where('day_pass_enabled', true)
+        ->where('day_pass_valid_until', '<', now()->toDateString())
+        ->update(['day_pass_enabled' => false]);
+
+    if ($expired > 0) {
+        Log::info("Guest cleanup: {$expired} expired day pass(es) disabled");
+    }
+})->dailyAt('02:30')
+    ->timezone('Europe/Berlin')
+    ->name('guests.expire-day-passes')
+    ->withoutOverlapping();
 
 // ===================================
 // FRAUD PREVENTION / BLOCKLIST CLEANUP

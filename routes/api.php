@@ -90,14 +90,17 @@ Route::group(['prefix' => 'pwa'], function () {
 /*
 | Scanner Routes
 |
-| Only `ping` and `verify-membership` are called by the scanner client
-| (gymportal-qr-scanner, see devices/saas.py).
+| The scanner client (gymportal-qr-scanner) calls `ping`, `verify-membership`
+| and `verify-member` (devices/saas.py); solarium terminals additionally poll
+| and acknowledge pending redemptions (services/solarium-service.py).
 */
 Route::prefix('scanner')->group(function () {
     Route::middleware(['scanner.auth'])->group(function () {
         Route::get('ping', [ScannerController::class, 'ping']);
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
         Route::get('verify-member', [ScannerController::class, 'verifyMember']);
+        Route::get('pending-solarium-redemptions', [ScannerController::class, 'pendingSolariumRedemptions']);
+        Route::post('pending-solarium-redemptions/{id}/acknowledge', [ScannerController::class, 'acknowledgeSolariumRedemption']);
 
         // @deprecated No scanner client calls these; the scan is validated
         // on the device itself (qr-scanner-server.py).

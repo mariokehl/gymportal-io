@@ -9,11 +9,14 @@ use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MemberAccessLog;
 use App\Models\Membership;
+use App\Models\PendingSolariumRedemption;
 use App\Models\ScannerAccessLog;
 use App\Services\CrossLocationAccessService;
 use App\Services\DeviceAccessService;
+use App\Services\GuestEntitlementService;
 use App\Services\NfcTagService;
 use App\Services\ScannerValidationService;
+use App\Services\SolariumRedemptionService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,7 +38,9 @@ class ScannerController extends Controller
         private ScannerValidationService $validationService,
         private DeviceAccessService $deviceAccessService,
         private CrossLocationAccessService $crossLocationService,
-        private NfcTagService $nfcTags
+        private NfcTagService $nfcTags,
+        private GuestEntitlementService $guestEntitlements,
+        private SolariumRedemptionService $solariumRedemptions
     ) {}
 
     /**
@@ -78,8 +83,8 @@ class ScannerController extends Controller
     public function verifyMembership(Request $request): JsonResponse|Response
     {
         $validator = Validator::make($request->all(), [
-            'scan_type' => 'required|string|in:qr_code,nfc_card,rolling_qr',
-            'member_id' => 'required_if:scan_type,qr_code|required_if:scan_type,rolling_qr|string',
+            'scan_type' => 'required|string|in:qr_code,nfc_card,rolling_qr,guest_service',
+            'member_id' => 'required_if:scan_type,qr_code|required_if:scan_type,rolling_qr|required_if:scan_type,guest_service|string',
             'nfc_card_id' => 'required_if:scan_type,nfc_card|string',
         ]);
 
@@ -102,7 +107,7 @@ class ScannerController extends Controller
             // here is not permission.
             $organizationGymIds = $this->organizationGymIds($scanner->gym_id);
 
-            if ($scanType === 'qr_code' || $scanType === 'rolling_qr') {
+            if ($scanType === 'qr_code' || $scanType === 'rolling_qr' || $scanType === 'guest_service') {
                 $memberId = $request->input('member_id');
                 $member = Member::whereIn('gym_id', $organizationGymIds)
                     ->whereKey($memberId)
@@ -141,8 +146,8 @@ class ScannerController extends Controller
                 return new Response(status: 404);
             }
 
-            // Member is not active (e.g. locked, cancelled, pending)
-            if (! $member->isActive()) {
+            // Member is neither active nor a guest (e.g. locked, cancelled, pending)
+            if (! $member->isActive() && ! $member->isExtern()) {
                 $this->logAccessFromVerify(
                     $scanner,
                     $member->id,
@@ -190,6 +195,12 @@ class ScannerController extends Controller
                         'message' => 'Zugang bereits gewährt',
                     ]);
                 }
+            }
+
+            // Guest service QR code (day pass, visit card, solarium minutes).
+            // Guests can only redeem what they bought at their own gym.
+            if ($scanType === 'guest_service') {
+                return $this->verifyGuestService($scanner, $member);
             }
 
             // Guest access: skip the membership check
@@ -378,6 +389,157 @@ class ScannerController extends Controller
 
             return new Response(status: 500);
         }
+    }
+
+    /**
+     * Decide on a guest service QR code. The response keeps the contract the
+     * scanner client expects for this scan type (access_allowed,
+     * service_allowed, services).
+     */
+    private function verifyGuestService(GymScanner $scanner, Member $member): JsonResponse|Response
+    {
+        if ($member->gym_id !== $scanner->gym_id) {
+            $this->logAccessFromVerify(
+                $scanner,
+                $member->id,
+                'guest_service',
+                false,
+                'Gastprodukte gelten nur im Studio, in dem sie gekauft wurden',
+                null,
+                $member->gym_id
+            );
+
+            return new Response(status: 403);
+        }
+
+        if ($scanner->isAddonLinked()) {
+            $this->logAccessFromVerify($scanner, $member->id, 'guest_service', false, 'Gerät nicht für Gäste freigegeben', null, $member->gym_id);
+
+            return new Response(status: 403);
+        }
+
+        $result = $this->guestEntitlements->redeemAtScanner($scanner, $member);
+
+        $this->logAccessFromVerify(
+            $scanner,
+            $member->id,
+            'guest_service',
+            $result['access_allowed'],
+            $result['message'],
+            null,
+            $member->gym_id
+        );
+
+        if (! $result['access_allowed']) {
+            return response()->json([
+                'member_id' => $member->id,
+                'access_allowed' => false,
+                'service_allowed' => false,
+                'scan_type' => 'guest_service',
+                'message' => $result['message'],
+            ], 403);
+        }
+
+        // A solarium visit is not a gym visit, so only entrance devices book
+        // a check-in.
+        if (! $scanner->isSolarium()) {
+            CheckIn::create([
+                'member_id' => $member->id,
+                'gym_id' => $scanner->gym_id,
+                'check_in_time' => now(),
+                'check_in_method' => 'guest_service',
+            ]);
+        }
+
+        return response()->json([
+            'member_id' => $member->id,
+            'access_allowed' => true,
+            'service_allowed' => true,
+            'scan_type' => 'guest_service',
+            'services' => $result['entitlements'],
+            'member' => $member->only(['first_name', 'last_name', 'member_number']),
+            'message' => $result['message'],
+        ]);
+    }
+
+    /**
+     * Solarium terminal fetches the redemptions it has to switch.
+     *
+     * Route: GET /api/scanner/pending-solarium-redemptions
+     *
+     * has_recent_checkins tells the terminal to poll more frequently because
+     * a guest has just scanned at a solarium of this gym.
+     */
+    public function pendingSolariumRedemptions(Request $request): JsonResponse
+    {
+        /** @var GymScanner $scanner */
+        $scanner = $request->get('scanner');
+
+        if (! $scanner->isSolarium()) {
+            return response()->json(['error' => 'Dieses Gerät ist kein Solarium.'], 403);
+        }
+
+        $redemptions = $this->solariumRedemptions->pendingFor($scanner);
+
+        return response()->json([
+            'redemptions' => $redemptions->map(fn (PendingSolariumRedemption $redemption) => [
+                'id' => $redemption->id,
+                'member_id' => $redemption->member_id,
+                'minutes' => $redemption->minutes,
+                'created_at' => $redemption->created_at->toIso8601String(),
+            ])->values(),
+            'has_recent_checkins' => $this->solariumRedemptions->hasRecentScan($scanner),
+        ]);
+    }
+
+    /**
+     * Solarium terminal confirms a redemption. "failed" returns the reserved
+     * minutes to the guest.
+     *
+     * Route: POST /api/scanner/pending-solarium-redemptions/{id}/acknowledge
+     */
+    public function acknowledgeSolariumRedemption(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:completed,failed',
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed'], 422);
+        }
+
+        /** @var GymScanner $scanner */
+        $scanner = $request->get('scanner');
+
+        if (! $scanner->isSolarium()) {
+            return response()->json(['error' => 'Dieses Gerät ist kein Solarium.'], 403);
+        }
+
+        $redemption = PendingSolariumRedemption::where('gym_id', $scanner->gym_id)->find($id);
+
+        if (! $redemption) {
+            return response()->json(['error' => 'Einlösung nicht gefunden'], 404);
+        }
+
+        $acknowledged = $this->solariumRedemptions->acknowledge(
+            $redemption,
+            $scanner,
+            $request->input('status') === 'completed',
+            $request->input('reason')
+        );
+
+        if (! $acknowledged) {
+            return response()->json([
+                'error' => 'Einlösung ist nicht mehr offen',
+                'current_status' => $redemption->fresh()->status,
+            ], 409);
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => $redemption->status,
+        ]);
     }
 
     /**
@@ -609,6 +771,16 @@ class ScannerController extends Controller
                 'valid' => false,
                 'scan_type' => 'qr_code',
                 'message' => 'Invalid JSON format',
+            ];
+        }
+
+        // A guest service QR code must never pass as a regular access code
+        if (($qrData['type'] ?? null) === 'guest_service') {
+            return [
+                'valid' => false,
+                'scan_type' => 'guest_service',
+                'member_id' => $qrData['mid'] ?? null,
+                'message' => 'Guest-Service QR-Code ist kein Zugangs-QR',
             ];
         }
 
