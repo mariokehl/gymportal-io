@@ -37,6 +37,12 @@ class GymScanner extends Model
      */
     public const TASK_MANUAL = 'manual';
 
+    /**
+     * Solarium terminal. Opens for guests with solarium minutes left and
+     * switches the tanning bed for redemptions started in the guest app.
+     */
+    public const TASK_SOLARIUM = 'solarium';
+
     public const DEVICE_TASKS = [
         self::TASK_CHECKIN,
         self::TASK_CHECKIN_CHECKOUT,
@@ -44,6 +50,7 @@ class GymScanner extends Model
         self::TASK_DISPENSER,
         self::TASK_AREA_CONTROL,
         self::TASK_MANUAL,
+        self::TASK_SOLARIUM,
     ];
 
     /**
@@ -324,6 +331,11 @@ class GymScanner extends Model
     public function isAddonLinked(): bool
     {
         return in_array($this->device_task, self::ADDON_LINKED_TASKS, true);
+    }
+
+    public function isSolarium(): bool
+    {
+        return $this->device_task === self::TASK_SOLARIUM;
     }
 
     public function isDispenser(): bool
