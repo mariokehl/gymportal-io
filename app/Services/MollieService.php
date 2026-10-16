@@ -264,6 +264,43 @@ class MollieService
     }
 
     /**
+     * Create a one-off Mollie checkout for an existing local payment, e.g. the
+     * part of a guest purchase not covered by credit. The local payment keeps
+     * its amount and is linked to the Mollie payment for the webhook.
+     */
+    public function createOneoffPaymentFor(Payment $payment, string $method, string $redirectUrl): MolliePayment
+    {
+        $gym = $payment->gym;
+        $client = $this->initializeClient($gym);
+        $config = $this->getConfig($gym);
+
+        $molliePayment = $client->payments->create([
+            'amount' => [
+                'currency' => $payment->currency ?? 'EUR',
+                'value' => number_format($payment->amount, 2, '.', ''),
+            ],
+            'description' => $this->formatDescription($config, $payment->description, $payment->member),
+            'redirectUrl' => $redirectUrl,
+            'webhookUrl' => $config['webhook_url'] ?? '',
+            'method' => str_starts_with($method, 'mollie_') ? substr($method, 7) : $method,
+            'metadata' => [
+                'payment_id' => $payment->id,
+                'member_id' => $payment->member_id,
+                'gym_id' => $gym->id,
+            ],
+        ]);
+
+        $payment->update([
+            'mollie_payment_id' => $molliePayment->id,
+            'mollie_status' => $molliePayment->status,
+            'checkout_url' => $molliePayment->getCheckoutUrl(),
+            'payment_method' => str_starts_with($method, 'mollie_') ? $method : 'mollie_'.$method,
+        ]);
+
+        return $molliePayment;
+    }
+
+    /**
      * Cancel payment: Depending on the payment method, you may be able to cancel a payment
      * for a certain amount of time — usually until the next business day or as long as the payment status is open.
      */
@@ -777,20 +814,36 @@ class MollieService
     }
 
     /**
-     * Perform additional actions based on status
+     * List payment methods
+     *
+     * @param Gym $gym
+     * @param string|null $sequenceType oneoff, first, or recurring
+     * @return array
      */
-    public function getAvailableMethods(Gym $gym): array
+    public function getAvailableMethods(Gym $gym, ?string $sequenceType = null): array
     {
         $client = $this->initializeClient($gym);
         $config = $this->getConfig($gym);
 
-        /** @var MethodCollection $methods */
-        $methods = $client->methods->allEnabled();
-        $enabledMethods = $config['enabled_methods'] ?? [];
+        $params = [
+            'locale' => 'de_DE',
+        ];
+        if ($sequenceType) {
+            $params['sequenceType'] = $sequenceType;
+        }
 
-        return array_filter($methods->toArray(), function($method) use ($enabledMethods) {
-            return in_array($method->id, $enabledMethods);
-        });
+        /** @var MethodCollection $methods */
+        $methods = $client->methods->allEnabled($params);
+
+        if ($sequenceType === 'recurring') {
+            $enabledMethods = $config['enabled_methods'] ?? [];
+
+            return $methods->filter(function($method) use ($enabledMethods) {
+                return in_array($method->id, $enabledMethods);
+            })->getArrayCopy();
+        }
+
+        return $methods->getArrayCopy();
     }
 
     /**
@@ -908,7 +961,7 @@ class MollieService
             'user_id' => $paymentData['metadata']['user_id'] ?? null,
             'member_id' => $paymentData['metadata']['member_id'] ?? null,
             'invoice_id' => $paymentData['metadata']['invoice_id'] ?? null,
-            'metadata' => $paymentData['metdata'] ?? null,
+            'metadata' => $paymentData['metadata'] ?? null,
             'execution_date' => Carbon::now()->format('Y-m-d'),
             'due_date' => Carbon::now()->format('Y-m-d'),
             'created_at' => now(),
