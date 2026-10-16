@@ -35,11 +35,22 @@ class ScannerValidationService
     }
 
     /**
-     * Validiert einen QR-Code
+     * Validiert einen QR-Code für die Zugangskontrolle.
+     *
+     * Guest service QR codes are rejected here: they use a different format
+     * and HMAC prefix and must never pass as an access code.
      */
     public function validateQrCode(array $qrData, string $gymId): array
     {
         try {
+            // A guest service QR code is never an access code
+            if (($qrData['type'] ?? null) === 'guest_service') {
+                return [
+                    'valid' => false,
+                    'message' => 'Guest-Service QR-Code ist kein Zugangs-QR',
+                ];
+            }
+
             $gym = Gym::findOrFail($gymId);
 
             // Zeitstempel prüfen
