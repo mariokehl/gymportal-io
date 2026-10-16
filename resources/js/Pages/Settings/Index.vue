@@ -437,6 +437,13 @@
                     @error="handleError" />
             </div>
 
+            <!-- Guest portal -->
+            <div v-if="activeTab === 'guests'" class="space-y-6">
+                <GuestPortalSettingsWidget
+                    @success="handleSuccess"
+                    @error="handleError" />
+            </div>
+
             <!-- PWA Settings -->
             <div v-if="activeTab === 'pwa'" class="space-y-6">
                 <PwaSettingsWidget
@@ -463,7 +470,7 @@ import { ref, computed, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
     Building2, Users, Plus, Signature, CreditCard,
-    Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature
+    Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature, Ticket
 } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
@@ -475,6 +482,7 @@ import TeamManagement from '@/Components/TeamManagement.vue'
 import IbanInput from '@/Components/IbanInput.vue'
 import LegalUrlsManager from '@/Components/LegalUrlsManager.vue'
 import PwaSettingsWidget from '@/Components/PwaSettingsWidget.vue'
+import GuestPortalSettingsWidget from '@/Components/GuestPortalSettingsWidget.vue'
 import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
 import PaymentExecutionSettingsWidget from '@/Components/PaymentExecutionSettingsWidget.vue'
 import OrganizationSymbolCard from '@/Components/OrganizationSymbolCard.vue'
@@ -522,6 +530,7 @@ const tabs = [
     { key: 'contracts', label: 'Online-Widget', icon: Signature },
     { key: 'contract_settings', label: 'Verträge', icon: FileSignature },
     { key: 'pwa', label: 'App (PWA)', icon: Smartphone },
+    { key: 'guests', label: 'Gästeportal', icon: Ticket },
 ]
 
 // Computed property to check if SEPA Direct Debit is enabled

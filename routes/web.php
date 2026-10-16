@@ -25,6 +25,7 @@ use App\Http\Controllers\Web\PaymentReturnController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\Settings\EmailTemplateController;
+use App\Http\Controllers\Web\Settings\GuestPortalController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
 use Illuminate\Http\Request;
@@ -257,6 +258,11 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::delete('/legal-urls/{legalUrl}', [SettingController::class, 'destroyLegalUrl'])->name('legal-urls.destroy');
         // PWA Settings
         Route::put('/pwa/{gym}', [SettingController::class, 'updatePwaSettings'])->name('pwa.update');
+        // Guest portal (day passes, visit cards, solarium minutes)
+        Route::get('/guest-portal', [GuestPortalController::class, 'index'])->name('guest-portal.index');
+        Route::put('/guest-portal', [GuestPortalController::class, 'update'])->name('guest-portal.update');
+        Route::post('/guest-portal/products', [GuestPortalController::class, 'storeProduct'])->name('guest-portal.products.store');
+        Route::put('/guest-portal/products/{guestProduct}', [GuestPortalController::class, 'updateProduct'])->name('guest-portal.products.update');
         // Contract Settings
         Route::put('/contract-settings', [SettingController::class, 'updateContractSettings'])->name('contract-settings.update');
         Route::post('/contract-template/preview', [SettingController::class, 'previewContractTemplate'])->name('contract-template.preview');
