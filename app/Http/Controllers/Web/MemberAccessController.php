@@ -64,6 +64,10 @@ class MemberAccessController extends Controller
             'massage_sessions' => 'nullable|integer|min:0',
             'coffee_flat_enabled' => 'boolean',
             'coffee_flat_expiry' => 'nullable|date|after:today',
+            'day_pass_enabled' => 'boolean',
+            'day_pass_valid_until' => 'nullable|date',
+            'visit_card_enabled' => 'boolean',
+            'visit_card_entries' => 'nullable|integer|min:0',
         ]);
 
         // Normalisiere NFC-UID vor dem Speichern
@@ -111,7 +115,8 @@ class MemberAccessController extends Controller
         // Log die Aktion
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'qr_invalidated',
+            'action' => MemberAccessLog::ACTION_QR_INVALIDATED,
+            'success' => true,
             'performed_by' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -245,7 +250,8 @@ class MemberAccessController extends Controller
         // Log die Aktion
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'app_link_sent',
+            'action' => MemberAccessLog::ACTION_APP_LINK_SENT,
+            'success' => true,
             'performed_by' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -414,6 +420,11 @@ class MemberAccessController extends Controller
      */
     private function checkServiceAccess(Member $member, $service)
     {
+        // Guests are granted by their access config, without a membership check
+        if ($member->isExtern()) {
+            return $member->accessConfig !== null;
+        }
+
         // Prüfe Mitgliedsstatus
         if ($member->status !== 'active') {
             return false;
@@ -463,7 +474,9 @@ class MemberAccessController extends Controller
 
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'config_updated',
+            'action' => MemberAccessLog::ACTION_CONFIG_UPDATED,
+            'success' => true,
+            'method' => MemberAccessLog::METHOD_MANUAL,
             'performed_by' => $user->id,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -494,7 +507,8 @@ class MemberAccessController extends Controller
 
         MemberAccessLog::create([
             'member_id' => $member->id,
-            'action' => 'device_removed',
+            'action' => MemberAccessLog::ACTION_DEVICE_REMOVED,
+            'success' => true,
             'performed_by' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -552,7 +566,8 @@ class MemberAccessController extends Controller
             // Log den Verbrauch
             MemberAccessLog::create([
                 'member_id' => $member->id,
-                'action' => 'credit_consumed',
+                'action' => MemberAccessLog::ACTION_CREDIT_CONSUMED,
+                'success' => true,
                 'service' => $validated['service'],
                 'performed_by' => auth()->id(),
                 'ip_address' => request()->ip(),
