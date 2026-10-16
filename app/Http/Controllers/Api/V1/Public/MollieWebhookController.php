@@ -11,6 +11,7 @@ use App\Models\PaymentMethod;
 use App\Models\Refund;
 use App\Models\WidgetRegistration;
 use App\Services\CreditLedgerService;
+use App\Services\GuestCheckoutService;
 use App\Services\MemberStatusService;
 use App\Services\MollieService;
 use App\Services\WidgetService;
@@ -109,6 +110,17 @@ class MollieWebhookController extends Controller
                 ]),
                 'webhook_processed_at' => now(),
             ]);
+
+            // Guest purchases grant their product (or give the redeemed credit
+            // back) instead of touching any membership.
+            if (GuestCheckoutService::isGuestPurchase($localPayment)) {
+                app(GuestCheckoutService::class)->handleWebhook($localPayment, $molliePayment);
+
+                $this->processRefunds($gym, $localPayment, $molliePayment, $mollieService);
+                $this->processChargebacks($gym, $localPayment, $molliePayment, $mollieService);
+
+                return response('OK', 200);
+            }
 
             // Prüfen ob es sich um eine 1. Zahlung zur Kreditkarten-Authorisierung handelt
             $isFirstCreditCardPayment = $molliePayment->sequenceType === 'first'

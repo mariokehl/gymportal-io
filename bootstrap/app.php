@@ -4,6 +4,7 @@ use App\Http\Middleware\AuthenticateScanner;
 use App\Http\Middleware\BasicAuthMiddleware;
 use App\Http\Middleware\CheckIfUserBlocked;
 use App\Http\Middleware\CheckSubscription;
+use App\Http\Middleware\EnsureAgeVerified;
 use App\Http\Middleware\EnsureFullSession;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PaddleIpMiddleware;
@@ -15,6 +16,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -47,11 +49,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'blocked.check' => CheckIfUserBlocked::class,
             'basic.auth' => BasicAuthMiddleware::class,
             'full.session' => EnsureFullSession::class,
+            'age.verified' => EnsureAgeVerified::class,
+            'abilities' => CheckAbilities::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/pwa/*',
             'api/scanner/*',
             'api/widget/*',
+            'api/guests/*',
             'billing/webhook/paddle',
         ]);
     })
