@@ -11,7 +11,7 @@ import {
 } from './deviceTasks'
 
 describe('DEVICE_TASKS', () => {
-  it('covers the six tasks supported by the backend', () => {
+  it('covers the seven tasks supported by the backend', () => {
     expect(DEVICE_TASKS.map(task => task.value)).toEqual([
       'checkin',
       'checkin_checkout',
@@ -19,6 +19,7 @@ describe('DEVICE_TASKS', () => {
       'dispenser',
       'area_control',
       'manual',
+      'solarium',
     ])
   })
 

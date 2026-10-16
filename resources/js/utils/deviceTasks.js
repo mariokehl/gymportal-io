@@ -1,4 +1,4 @@
-import { DoorOpen, LogIn, LogOut, CupSoda, ShieldCheck, ClipboardCheck } from 'lucide-vue-next'
+import { DoorOpen, LogIn, LogOut, CupSoda, ShieldCheck, ClipboardCheck, Sun } from 'lucide-vue-next'
 
 /**
  * The job a device does. Mirrors App\Models\GymScanner::DEVICE_TASKS.
@@ -41,6 +41,12 @@ export const DEVICE_TASKS = [
     label: 'Manueller Check-in/out',
     icon: ClipboardCheck,
     hint: 'Zeigt am Tresen einen Check-in-Dialog zur manuellen Freigabe.',
+  },
+  {
+    value: 'solarium',
+    label: 'Solarium',
+    icon: Sun,
+    hint: 'Steuert ein Solarium. Gäste mit Solarium-Minuten erhalten Zutritt und können die Minuten in der Gäste-App einlösen.',
   },
 ]
 
