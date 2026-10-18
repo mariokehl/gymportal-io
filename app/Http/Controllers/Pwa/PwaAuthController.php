@@ -8,6 +8,7 @@ use App\Mail\LoginCodeMail;
 use App\Models\Gym;
 use App\Models\LoginCode;
 use App\Models\Member;
+use App\Services\LoginCodeVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -227,17 +228,13 @@ abstract class PwaAuthController extends Controller
      */
     protected function verifyLoginCode(Request $request, Member $member): ?JsonResponse
     {
-        $loginCode = LoginCode::findValidCode($request->code, $member->id);
-
-        if (! $loginCode) {
+        if (! app(LoginCodeVerifier::class)->checkIssuedCode($member, $request->code)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Ungültiger oder abgelaufener Code',
                 'error_code' => 'INVALID_CODE',
             ], 422);
         }
-
-        $loginCode->markAsUsed();
 
         return null;
     }
@@ -252,7 +249,17 @@ abstract class PwaAuthController extends Controller
 
     protected function createAndSendCode(Member $member, Gym $gym, string $rateLimitKey, Request $request): JsonResponse
     {
+        // Per-account cap, independent of the client IP
+        if (! app(LoginCodeVerifier::class)->mayIssueCode($member)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Zu viele Anmeldecodes angefordert. Bitte versuche es später erneut.',
+                'error_code' => 'RATE_LIMITED',
+            ], 429);
+        }
+
         $loginCode = LoginCode::createForMember($member);
+        app(LoginCodeVerifier::class)->recordIssuedCode($member);
         $result = app(MemberMailDispatcher::class)->sendToMember($member, new LoginCodeMail($loginCode, $member, $gym));
 
         if ($result->wasSkipped()) {

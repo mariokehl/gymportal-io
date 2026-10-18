@@ -17,14 +17,16 @@ class LoginCode extends Model
         'expires_at',
         'used',
         'used_at',
+        'failed_attempts',
         'ip_address',
-        'user_agent'
+        'user_agent',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'used' => 'boolean',
-        'used_at' => 'datetime'
+        'used_at' => 'datetime',
+        'failed_attempts' => 'integer',
     ];
 
     protected $hidden = [
@@ -41,7 +43,7 @@ class LoginCode extends Model
     public function scopeValid($query)
     {
         return $query->where('expires_at', '>', now())
-                    ->where('used', false);
+            ->where('used', false);
     }
 
     public function scopeExpired($query)
@@ -62,7 +64,7 @@ class LoginCode extends Model
     // Methods
     public function isValid(): bool
     {
-        return !$this->used && $this->expires_at->gt(now());
+        return ! $this->used && $this->expires_at->gt(now());
     }
 
     public function isExpired(): bool
@@ -129,14 +131,6 @@ class LoginCode extends Model
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
         ]);
-    }
-
-    public static function findValidCode(string $code, int $memberId): ?self
-    {
-        return self::where('code', $code)
-                  ->where('member_id', $memberId)
-                  ->valid()
-                  ->first();
     }
 
     // Boot method for model events
