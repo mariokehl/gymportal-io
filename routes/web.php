@@ -142,6 +142,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::post('/send-app-link', [MemberAccessController::class, 'sendAppLink'])->name('send-app-link');
         Route::post('/static-login-code', [MemberAccessController::class, 'setStaticLoginCode'])->name('static-login-code.store');
         Route::delete('/static-login-code', [MemberAccessController::class, 'removeStaticLoginCode'])->name('static-login-code.destroy');
+        Route::delete('/guest-pass', [MemberAccessController::class, 'revokeGuestPass'])->name('guest-pass.destroy');
         Route::put('/aggregator', [MemberAccessController::class, 'updateAggregator'])->name('aggregator.update');
         Route::delete('/aggregator', [MemberAccessController::class, 'removeAggregator'])->name('aggregator.destroy');
         Route::get('/logs', [MemberAccessController::class, 'logs'])->name('logs');

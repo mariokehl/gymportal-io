@@ -63,12 +63,14 @@ class MemberAccessConfig extends Model
      */
     protected $hidden = [
         'static_login_code',
+        'guest_pass_token_hash',
     ];
 
     protected $appends = [
         'has_active_services',
         'active_services_count',
         'has_static_login_code',
+        'has_guest_pass',
         'aggregator_status',
     ];
 
@@ -159,6 +161,11 @@ class MemberAccessConfig extends Model
     /**
      * Expose only whether a static login code exists, never the code itself
      */
+    public function getHasGuestPassAttribute(): bool
+    {
+        return ! empty($this->guest_pass_token_hash);
+    }
+
     public function getHasStaticLoginCodeAttribute(): bool
     {
         return $this->hasStaticLoginCode();

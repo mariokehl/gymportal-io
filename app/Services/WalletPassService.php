@@ -13,7 +13,6 @@ class WalletPassService
     public function generateApplePass(Member $member): string
     {
         $gym = $member->gym;
-        $qrData = app(GuestService::class)->generateStaticQrData($member);
 
         $certBase64 = config('services.apple_wallet.certificate_base64');
         $certPassword = config('services.apple_wallet.certificate_password');
@@ -23,6 +22,9 @@ class WalletPassService
         if (! $certBase64) {
             throw new \RuntimeException('Apple Wallet certificate not configured');
         }
+
+        // Issued only once the pass can be built: a new pass replaces the old one.
+        $qrCode = app(GuestQrCodeService::class)->issuePassCode($member);
 
         $pass = new PKPass;
         $pass->setCertificateString(base64_decode($certBase64));
@@ -75,13 +77,13 @@ class WalletPassService
             ],
             'barcode' => [
                 'format' => 'PKBarcodeFormatQR',
-                'message' => $qrData['qr_code'],
+                'message' => $qrCode,
                 'messageEncoding' => 'iso-8859-1',
             ],
             'barcodes' => [
                 [
                     'format' => 'PKBarcodeFormatQR',
-                    'message' => $qrData['qr_code'],
+                    'message' => $qrCode,
                     'messageEncoding' => 'iso-8859-1',
                 ],
             ],
@@ -110,7 +112,6 @@ class WalletPassService
     public function generateGoogleWalletUrl(Member $member): string
     {
         $gym = $member->gym;
-        $qrData = app(GuestService::class)->generateStaticQrData($member);
 
         $issuerId = config('services.google_wallet.issuer_id');
         $serviceAccountBase64 = config('services.google_wallet.service_account_base64');
@@ -119,9 +120,13 @@ class WalletPassService
             throw new \RuntimeException('Google Wallet not configured');
         }
 
+        // Issued only once the pass can be built: a new pass replaces the old one.
+        $qrCode = app(GuestQrCodeService::class)->issuePassCode($member);
+
         $serviceAccount = json_decode(base64_decode($serviceAccountBase64), true);
 
-        $objectId = $issuerId.'.guest-'.$member->id;
+        // A fresh object per pass: saving an existing object id would keep its old code.
+        $objectId = $issuerId.'.guest-'.$member->id.'-'.time();
 
         $payload = [
             'iss' => $serviceAccount['client_email'],
@@ -162,7 +167,7 @@ class WalletPassService
                         ],
                         'barcode' => [
                             'type' => 'QR_CODE',
-                            'value' => $qrData['qr_code'],
+                            'value' => $qrCode,
                         ],
                     ],
                 ],

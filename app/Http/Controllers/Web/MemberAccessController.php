@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\MemberAccessLog;
 use App\Models\MemberDevice;
+use App\Services\GuestQrCodeService;
 use App\Services\MemberAggregatorService;
 use App\Services\NfcTagService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -194,6 +195,33 @@ class MemberAccessController extends Controller
         ]);
 
         return back()->with('success', 'Der statische Login-Code wurde entfernt.');
+    }
+
+    /**
+     * Revoke the guest's wallet pass, e.g. when the phone was lost or the code
+     * was passed on. The guest can add a new pass in the guest app.
+     */
+    public function revokeGuestPass(Request $request, Member $member, GuestQrCodeService $guestQrCodes)
+    {
+        $this->authorize('update', $member);
+
+        if (! $guestQrCodes->hasPass($member)) {
+            return back()->with('error', 'Für dieses Mitglied ist kein Wallet-Pass aktiv.');
+        }
+
+        $guestQrCodes->revokePass($member);
+
+        MemberAccessLog::create([
+            'member_id' => $member->id,
+            'action' => MemberAccessLog::ACTION_GUEST_PASS_REVOKED,
+            'success' => true,
+            'performed_by' => auth()->id(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => [],
+        ]);
+
+        return back()->with('success', 'Der Wallet-Pass wurde gesperrt.');
     }
 
     /**

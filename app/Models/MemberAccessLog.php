@@ -55,6 +55,8 @@ class MemberAccessLog extends Model
 
     const ACTION_STATIC_CODE_REMOVED = 'static_code_removed';
 
+    const ACTION_GUEST_PASS_REVOKED = 'guest_pass_revoked';
+
     const ACTION_AGGREGATOR_SET = 'aggregator_set';
 
     const ACTION_AGGREGATOR_REMOVED = 'aggregator_removed';
@@ -120,6 +122,7 @@ class MemberAccessLog extends Model
             self::ACTION_DEVICE_REMOVED => 'Gerät entfernt',
             self::ACTION_STATIC_CODE_SET => 'Statischer Login-Code gesetzt',
             self::ACTION_STATIC_CODE_REMOVED => 'Statischer Login-Code entfernt',
+            self::ACTION_GUEST_PASS_REVOKED => 'Wallet-Pass gesperrt',
             self::ACTION_AGGREGATOR_SET => 'Aggregator-Verknüpfung gespeichert',
             self::ACTION_AGGREGATOR_REMOVED => 'Aggregator-Verknüpfung entfernt',
         ];

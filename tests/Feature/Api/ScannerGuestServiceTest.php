@@ -10,6 +10,7 @@ use App\Models\MemberAccessConfig;
 use App\Models\PendingSolariumRedemption;
 use App\Models\ScannerAccessLog;
 use App\Models\User;
+use App\Services\GuestQrCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -61,12 +62,15 @@ class ScannerGuestServiceTest extends TestCase
         return $member;
     }
 
-    private function scan(Member $member, GymScanner $scanner)
+    private function scan(Member $member, GymScanner $scanner, ?string $guestQr = null)
     {
+        $guestQr ??= app(GuestQrCodeService::class)->rollingCode($member)['qr_code'];
+
         return $this->withHeader('Authorization', 'Bearer '.$scanner->getPlainTextToken())
             ->getJson('/api/scanner/verify-membership?'.http_build_query([
                 'scan_type' => 'guest_service',
                 'member_id' => $member->id,
+                'guest_qr' => $guestQr,
             ]));
     }
 

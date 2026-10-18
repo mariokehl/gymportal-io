@@ -8,14 +8,14 @@ use App\Models\Payment;
 use App\Services\CreditLedgerService;
 use App\Services\GuestCheckoutService;
 use App\Services\GuestEntitlementService;
-use App\Services\GuestService;
+use App\Services\GuestQrCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GuestProfileController extends Controller
 {
     public function __construct(
-        private GuestService $guestService,
+        private GuestQrCodeService $guestQrCodes,
         private GuestEntitlementService $entitlements,
         private CreditLedgerService $creditLedger,
     ) {}
@@ -78,7 +78,8 @@ class GuestProfileController extends Controller
     }
 
     /**
-     * Guest service QR code.
+     * Current rolling guest service QR code. The app reloads it after
+     * refresh_in seconds.
      */
     public function generateQrCode(Request $request): JsonResponse
     {
@@ -94,7 +95,10 @@ class GuestProfileController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $this->guestService->generateStaticQrData($member),
+            'data' => [
+                ...$this->guestQrCodes->rollingCode($member),
+                'member' => $member->only(['first_name', 'last_name', 'member_number']),
+            ],
         ]);
     }
 

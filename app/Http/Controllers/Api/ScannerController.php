@@ -14,6 +14,7 @@ use App\Models\ScannerAccessLog;
 use App\Services\CrossLocationAccessService;
 use App\Services\DeviceAccessService;
 use App\Services\GuestEntitlementService;
+use App\Services\GuestQrCodeService;
 use App\Services\NfcTagService;
 use App\Services\ScannerValidationService;
 use App\Services\SolariumRedemptionService;
@@ -40,6 +41,7 @@ class ScannerController extends Controller
         private CrossLocationAccessService $crossLocationService,
         private NfcTagService $nfcTags,
         private GuestEntitlementService $guestEntitlements,
+        private GuestQrCodeService $guestQrCodes,
         private SolariumRedemptionService $solariumRedemptions
     ) {}
 
@@ -86,6 +88,8 @@ class ScannerController extends Controller
             'scan_type' => 'required|string|in:qr_code,nfc_card,rolling_qr,guest_service',
             'member_id' => 'required_if:scan_type,qr_code|required_if:scan_type,rolling_qr|required_if:scan_type,guest_service|string',
             'nfc_card_id' => 'required_if:scan_type,nfc_card|string',
+            // The raw guest QR code; its authenticity is checked here, not on the device.
+            'guest_qr' => 'required_if:scan_type,guest_service|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -161,6 +165,13 @@ class ScannerController extends Controller
                 return new Response(status: 403);
             }
 
+            // Guest service QR code (day pass, visit card, solarium minutes).
+            // Handled before the member debounce below, which would grant
+            // access without checking the code.
+            if ($scanType === 'guest_service') {
+                return $this->verifyGuestService($scanner, $member, $request->input('guest_qr'));
+            }
+
             // Repeated scan within the debounce window: grant access right away
             // without booking it a second time. Access devices look at the
             // check-ins, add-on devices at their own usage log — a dispenser
@@ -195,12 +206,6 @@ class ScannerController extends Controller
                         'message' => 'Zugang bereits gewährt',
                     ]);
                 }
-            }
-
-            // Guest service QR code (day pass, visit card, solarium minutes).
-            // Guests can only redeem what they bought at their own gym.
-            if ($scanType === 'guest_service') {
-                return $this->verifyGuestService($scanner, $member);
             }
 
             // Guest access: skip the membership check
@@ -396,7 +401,7 @@ class ScannerController extends Controller
      * scanner client expects for this scan type (access_allowed,
      * service_allowed, services).
      */
-    private function verifyGuestService(GymScanner $scanner, Member $member): JsonResponse|Response
+    private function verifyGuestService(GymScanner $scanner, Member $member, ?string $guestQr): JsonResponse|Response
     {
         if ($member->gym_id !== $scanner->gym_id) {
             $this->logAccessFromVerify(
@@ -416,6 +421,38 @@ class ScannerController extends Controller
             $this->logAccessFromVerify($scanner, $member->id, 'guest_service', false, 'Gerät nicht für Gäste freigegeben', null, $member->gym_id);
 
             return new Response(status: 403);
+        }
+
+        $invalidCode = $this->guestQrCodes->verify($member, $guestQr, $scanner);
+
+        if ($invalidCode) {
+            $this->logAccessFromVerify($scanner, $member->id, 'guest_service', false, $invalidCode, null, $member->gym_id);
+
+            return response()->json([
+                'member_id' => $member->id,
+                'access_allowed' => false,
+                'service_allowed' => false,
+                'scan_type' => 'guest_service',
+                'message' => $invalidCode,
+            ], 403);
+        }
+
+        // The reader repeats a code while it is held in front of it; a visit
+        // card entry must only be used once per visit.
+        if (! $scanner->isSolarium()) {
+            $recentCheckIn = CheckIn::where('member_id', $member->id)
+                ->where('check_in_time', '>=', now()->subSeconds(30))
+                ->exists();
+
+            if ($recentCheckIn) {
+                return response()->json([
+                    'member_id' => $member->id,
+                    'access_allowed' => true,
+                    'service_allowed' => true,
+                    'scan_type' => 'guest_service',
+                    'message' => 'Zugang bereits gewährt',
+                ]);
+            }
         }
 
         $result = $this->guestEntitlements->redeemAtScanner($scanner, $member);
