@@ -292,7 +292,7 @@ class MemberController extends Controller
 
         // Basis-Validierungsregeln (für alle Mitglieder)
         $rules = [
-            'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
+            'salutation' => ['nullable', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
@@ -660,7 +660,7 @@ class MemberController extends Controller
                     ->where('gym_id', $member->gym_id)
                     ->whereNull('deleted_at'),
             ],
-            'salutation' => ['required', Rule::in(['Herr', 'Frau', 'Divers'])],
+            'salutation' => ['nullable', Rule::in(['Herr', 'Frau', 'Divers'])],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
