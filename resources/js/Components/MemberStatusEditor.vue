@@ -144,7 +144,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['statusChanged', 'statusChanging'])
+const emit = defineEmits(['statusChanged', 'statusChanging', 'block'])
 
 // State
 const showMenu = ref(false)
@@ -303,6 +303,14 @@ const handleStatusChange = async (newStatus) => {
   const validation = validateStatusChange(newStatus)
 
   if (!validation.allowed || newStatus === props.status) {
+    return
+  }
+
+  // Blocking needs a reason and puts the member on the blocklist, which the
+  // plain status update cannot do; hand over to the block dialog instead.
+  if (newStatus === 'blocked') {
+    showMenu.value = false
+    emit('block')
     return
   }
 

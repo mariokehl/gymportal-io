@@ -119,7 +119,18 @@ class BlocklistService
 
         // Mitglied-Status zurücksetzen falls verknüpft
         if ($entry->original_member_id && $entry->member) {
-            $entry->member->update(['status' => 'active']);
+            $entry->member->update(['status' => $this->statusAfterUnblock($entry->member)]);
         }
+    }
+
+    /**
+     * A guest without a contract goes back to "extern"; anyone with a
+     * membership becomes active again as before.
+     */
+    private function statusAfterUnblock(Member $member): string
+    {
+        $isGuest = $member->registration_source === 'guest' && ! $member->memberships()->exists();
+
+        return $isGuest ? 'extern' : 'active';
     }
 }

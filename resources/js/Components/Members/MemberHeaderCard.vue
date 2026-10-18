@@ -44,6 +44,7 @@
                 :status="member.status"
                 @status-changed="$emit('status-changed', $event)"
                 @status-changing="$emit('status-changing', $event)"
+                @block="$emit('block')"
               />
 
               <!-- View mode: read-only badge -->
