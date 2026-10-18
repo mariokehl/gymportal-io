@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Services\CreditLedgerService;
 use App\Services\MollieService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mollie\Api\MollieApiClient;
 use Mollie\Api\Resources\Payment as MolliePayment;
@@ -253,5 +254,40 @@ class GuestShopCheckoutTest extends TestCase
             ->assertOk()
             ->assertJsonMissingPath('data.solarium_minutes')
             ->assertJsonCount(1, 'data.day_pass');
+    }
+
+    #[Test]
+    public function internal_errors_are_not_shown_to_the_guest(): void
+    {
+        $this->topUp(2000);
+
+        $ledger = Mockery::mock(CreditLedgerService::class)->makePartial();
+        $ledger->shouldReceive('settlePayment')
+            ->andThrow(new \RuntimeException('Credit ledger integrity check failed for member #'.$this->guest->id.'.'));
+        $this->app->instance(CreditLedgerService::class, $ledger);
+
+        $response = $this->checkout(['product_id' => $this->minutes->id])
+            ->assertStatus(500)
+            ->assertJsonPath('error_code', 'CHECKOUT_FAILED');
+
+        $this->assertStringNotContainsString('ledger', $response->json('message'));
+        $this->assertStringNotContainsString((string) $this->guest->id, $response->json('message'));
+    }
+
+    #[Test]
+    public function failing_wallet_passes_are_logged(): void
+    {
+        config(['services.apple_wallet.certificate_base64' => null]);
+        Log::spy();
+
+        $this->withHeader('Authorization', 'Bearer '.$this->guestToken())
+            ->get('/api/guests/wallet/apple-pass')
+            ->assertStatus(500);
+
+        Log::shouldHaveReceived('error')
+            ->withArgs(fn (string $message, array $context) => $message === 'Wallet pass generation failed'
+                && $context['wallet'] === 'apple'
+                && $context['member_id'] === $this->guest->id)
+            ->once();
     }
 }

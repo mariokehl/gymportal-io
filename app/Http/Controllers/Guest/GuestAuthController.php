@@ -80,12 +80,16 @@ class GuestAuthController extends PwaAuthController
 
         $existingMember = $this->findMember($email, $gym);
 
+        // An existing account is not revealed: it gets a login code instead
+        // of a new account, and the answer is the same as for a registration.
         if ($existingMember) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Du hast bereits ein Konto oder bist Mitglied. Bitte melde dich an.',
-                'error_code' => 'MEMBER_EXISTS',
-            ], 409);
+            if (! $this->isMemberEligible($existingMember)) {
+                RateLimiter::hit($key, 60);
+
+                return $this->codeSentResponse();
+            }
+
+            return $this->createAndSendCode($existingMember, $gym, $key, $request);
         }
 
         $member = $this->guestService->createGuestMember($gym, [

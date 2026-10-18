@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\GuestActionException;
 use App\Models\GuestProduct;
 use App\Models\Member;
 use App\Models\MemberCreditLedger;
@@ -9,7 +10,6 @@ use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Mollie\Api\Resources\Payment as MolliePayment;
-use RuntimeException;
 
 /**
  * Purchase of guest products, credit first.
@@ -40,12 +40,12 @@ class GuestCheckoutService
      * @param  string|null  $paymentMethod  Mollie method for the part not covered by credit
      * @return array{payment: Payment, checkout_url: string|null}
      *
-     * @throws RuntimeException with a guest-facing message
+     * @throws GuestActionException with a guest-facing message
      */
     public function checkout(Member $member, GuestProduct $product, ?string $paymentMethod, string $redirectUrl): array
     {
         if (! $product->isAvailableTo($member)) {
-            throw new RuntimeException('Solarium-Minuten sind erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren erhältlich.');
+            throw new GuestActionException('Solarium-Minuten sind erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren erhältlich.');
         }
 
         $gym = $member->gym;
@@ -54,11 +54,11 @@ class GuestCheckoutService
 
         if (! $coveredByCredit) {
             if (! $gym->hasMollieConfigured()) {
-                throw new RuntimeException('Dein Guthaben reicht nicht aus und Online-Zahlungen sind für dieses Studio nicht eingerichtet.');
+                throw new GuestActionException('Dein Guthaben reicht nicht aus und Online-Zahlungen sind für dieses Studio nicht eingerichtet.');
             }
 
             if (! $paymentMethod) {
-                throw new RuntimeException('Dein Guthaben reicht nicht aus. Bitte wähle eine Zahlungsart für den Restbetrag.');
+                throw new GuestActionException('Dein Guthaben reicht nicht aus. Bitte wähle eine Zahlungsart für den Restbetrag.');
             }
         }
 
@@ -104,7 +104,7 @@ class GuestCheckoutService
             $payment->update(['status' => 'failed', 'failed_at' => now()]);
             $this->restoreCreditOnce($payment);
 
-            throw new RuntimeException('Fehler bei der Zahlungsverarbeitung. Bitte versuche es erneut.');
+            throw new GuestActionException('Fehler bei der Zahlungsverarbeitung. Bitte versuche es erneut.');
         }
 
         return ['payment' => $payment->fresh(), 'checkout_url' => $molliePayment->getCheckoutUrl()];

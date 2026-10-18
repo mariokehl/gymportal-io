@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Guest;
 
+use App\Exceptions\GuestActionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guest\GuestCheckoutRequest;
 use App\Models\GuestProduct;
@@ -13,7 +14,7 @@ use App\Services\MollieService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
+use Throwable;
 
 class GuestShopController extends Controller
 {
@@ -115,12 +116,21 @@ class GuestShopController extends Controller
                 $request->validated('payment_method'),
                 rtrim(config('gymportal.guests_url'), '/').'/'.$member->gym->slug.'/payment-result'
             );
-        } catch (RuntimeException $e) {
+        } catch (GuestActionException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
                 'error_code' => 'CHECKOUT_FAILED',
             ], 422);
+        } catch (Throwable $e) {
+            // Internal details (ledger checks, database errors) stay in the log.
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es später erneut.',
+                'error_code' => 'CHECKOUT_FAILED',
+            ], 500);
         }
 
         $payment = $result['payment'];

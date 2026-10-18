@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Guest;
 
+use App\Exceptions\GuestActionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guest\RedeemSolariumRequest;
 use App\Models\Member;
@@ -9,7 +10,7 @@ use App\Models\PendingSolariumRedemption;
 use App\Services\SolariumRedemptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use RuntimeException;
+use Throwable;
 
 class GuestSolariumController extends Controller
 {
@@ -30,11 +31,15 @@ class GuestSolariumController extends Controller
 
         try {
             $redemption = $this->redemptions->reserve($member, (int) $request->validated('minutes'));
-        } catch (RuntimeException $e) {
+        } catch (GuestActionException $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 409);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->failed('Die Einlösung konnte nicht gestartet werden. Bitte versuche es erneut.');
         }
 
         return response()->json([
@@ -93,12 +98,16 @@ class GuestSolariumController extends Controller
 
         try {
             $this->redemptions->cancel($redemption);
-        } catch (RuntimeException $e) {
+        } catch (GuestActionException $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
                 'current_status' => $redemption->fresh()->status,
             ], 409);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->failed('Die Einlösung konnte nicht abgebrochen werden. Bitte versuche es erneut.');
         }
 
         return response()->json([
@@ -110,6 +119,14 @@ class GuestSolariumController extends Controller
     private function findOwn(Request $request, int $id): ?PendingSolariumRedemption
     {
         return PendingSolariumRedemption::where('member_id', $request->user()->id)->find($id);
+    }
+
+    private function failed(string $message): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'error' => $message,
+        ], 500);
     }
 
     private function notFound(): JsonResponse

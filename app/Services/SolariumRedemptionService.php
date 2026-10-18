@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\GuestActionException;
 use App\Models\GuestProduct;
 use App\Models\GymScanner;
 use App\Models\Member;
@@ -12,7 +13,6 @@ use App\Models\ScannerAccessLog;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 
 /**
  * Redemption of solarium minutes.
@@ -38,25 +38,25 @@ class SolariumRedemptionService
     /**
      * Reserve minutes for a redemption.
      *
-     * @throws RuntimeException with a guest-facing message when not possible
+     * @throws GuestActionException with a guest-facing message when not possible
      */
     public function reserve(Member $member, int $minutes): PendingSolariumRedemption
     {
         if (! $member->hasReachedAge(GuestProduct::SOLARIUM_MIN_AGE)) {
-            throw new RuntimeException('Das Solarium darfst du erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren nutzen.');
+            throw new GuestActionException('Das Solarium darfst du erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren nutzen.');
         }
 
         $scan = $this->recentSolariumScan($member);
 
         if (! $scan) {
-            throw new RuntimeException('Bitte scanne zuerst deinen QR-Code am Solarium.');
+            throw new GuestActionException('Bitte scanne zuerst deinen QR-Code am Solarium.');
         }
 
         return DB::transaction(function () use ($member, $minutes, $scan) {
             $config = MemberAccessConfig::where('member_id', $member->id)->lockForUpdate()->first();
 
             if (! $config || ! $config->solarium_enabled || $config->solarium_minutes < $minutes) {
-                throw new RuntimeException('Du hast nicht genügend Solarium-Minuten.');
+                throw new GuestActionException('Du hast nicht genügend Solarium-Minuten.');
             }
 
             $openRedemption = PendingSolariumRedemption::where('member_id', $member->id)
@@ -64,7 +64,7 @@ class SolariumRedemptionService
                 ->exists();
 
             if ($openRedemption) {
-                throw new RuntimeException('Es läuft bereits eine Einlösung. Bitte warte kurz oder brich sie ab.');
+                throw new GuestActionException('Es läuft bereits eine Einlösung. Bitte warte kurz oder brich sie ab.');
             }
 
             $remaining = $config->solarium_minutes - $minutes;
@@ -93,12 +93,12 @@ class SolariumRedemptionService
     /**
      * Cancel a pending redemption on the guest's request.
      *
-     * @throws RuntimeException when the redemption is no longer pending
+     * @throws GuestActionException when the redemption is no longer pending
      */
     public function cancel(PendingSolariumRedemption $redemption): void
     {
         if (! $this->close($redemption, PendingSolariumRedemption::STATUS_CANCELLED, 'cancelled_by_guest')) {
-            throw new RuntimeException('Die Einlösung ist nicht mehr offen.');
+            throw new GuestActionException('Die Einlösung ist nicht mehr offen.');
         }
     }
 

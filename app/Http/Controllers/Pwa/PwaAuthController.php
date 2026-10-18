@@ -67,22 +67,12 @@ abstract class PwaAuthController extends Controller
 
         $member = $this->findMember($email, $gym);
 
-        if (! $member) {
-            RateLimiter::hit($key, 300);
+        // Unknown and ineligible accounts get the same answer as a sent code,
+        // so the endpoint cannot be used to find out who has an account.
+        if (! $member || ! $this->isMemberEligible($member)) {
+            RateLimiter::hit($key, 60);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Mitglied nicht gefunden',
-                'error_code' => 'MEMBER_NOT_FOUND',
-            ], 404);
-        }
-
-        if (! $this->isMemberEligible($member)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mitgliedschaft ist nicht aktiv',
-                'error_code' => 'MEMBER_INACTIVE',
-            ], 403);
+            return $this->codeSentResponse();
         }
 
         // Hook for subclass-specific pre-send checks (e.g. static codes, device limits)
@@ -120,14 +110,11 @@ abstract class PwaAuthController extends Controller
 
         $member = $this->findMember($email, $gym);
 
+        // Same answer as a wrong code, so an unknown address is not revealed.
         if (! $member) {
-            RateLimiter::hit($key, 300);
+            RateLimiter::hit($key, 60);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Mitglied nicht gefunden',
-                'error_code' => 'MEMBER_NOT_FOUND',
-            ], 404);
+            return $this->invalidCodeResponse();
         }
 
         // Verify the code (subclass can override for static codes etc.)
@@ -229,11 +216,7 @@ abstract class PwaAuthController extends Controller
     protected function verifyLoginCode(Request $request, Member $member): ?JsonResponse
     {
         if (! app(LoginCodeVerifier::class)->checkIssuedCode($member, $request->code)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ungültiger oder abgelaufener Code',
-                'error_code' => 'INVALID_CODE',
-            ], 422);
+            return $this->invalidCodeResponse();
         }
 
         return null;
@@ -249,13 +232,15 @@ abstract class PwaAuthController extends Controller
 
     protected function createAndSendCode(Member $member, Gym $gym, string $rateLimitKey, Request $request): JsonResponse
     {
-        // Per-account cap, independent of the client IP
+        // Per-account cap, independent of the client IP. Answered like a sent
+        // code: a distinct error would reveal that the account exists.
         if (! app(LoginCodeVerifier::class)->mayIssueCode($member)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Zu viele Anmeldecodes angefordert. Bitte versuche es später erneut.',
-                'error_code' => 'RATE_LIMITED',
-            ], 429);
+            Log::warning('Login code not sent: hourly limit reached', [
+                'member_id' => $member->id,
+                'ip' => $request->ip(),
+            ]);
+
+            return $this->codeSentResponse();
         }
 
         $loginCode = LoginCode::createForMember($member);
@@ -280,11 +265,29 @@ abstract class PwaAuthController extends Controller
 
         RateLimiter::hit($rateLimitKey, 60);
 
+        return $this->codeSentResponse();
+    }
+
+    /**
+     * The one answer to every login code request, whether or not an account
+     * exists for the address.
+     */
+    protected function codeSentResponse(): JsonResponse
+    {
         return response()->json([
             'success' => true,
-            'message' => 'Anmeldecode wurde versendet',
-            'expires_in' => 600,
+            'message' => 'Falls ein Konto zu dieser E-Mail-Adresse besteht, haben wir dir einen Anmeldecode geschickt.',
+            'expires_in' => LoginCode::EXPIRY_MINUTES * 60,
         ]);
+    }
+
+    protected function invalidCodeResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Ungültiger oder abgelaufener Code',
+            'error_code' => 'INVALID_CODE',
+        ], 422);
     }
 
     protected function rateLimitedResponse(): JsonResponse

@@ -4,16 +4,15 @@ namespace App\Http\Controllers\Guest;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
-use App\Services\GuestService;
 use App\Services\WalletPassService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class GuestWalletController extends Controller
 {
     public function __construct(
-        private GuestService $guestService,
         private WalletPassService $walletPassService
     ) {}
 
@@ -41,6 +40,8 @@ class GuestWalletController extends Controller
                 'Content-Disposition' => 'attachment; filename="gymportal-guest.pkpass"',
             ]);
         } catch (\Exception $e) {
+            $this->logFailure('apple', $member, $e);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Apple Wallet Pass konnte nicht erstellt werden.',
@@ -75,11 +76,27 @@ class GuestWalletController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            $this->logFailure('google', $member, $e);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Google Wallet Pass konnte nicht erstellt werden.',
                 'error_code' => 'WALLET_GENERATION_FAILED',
             ], 500);
         }
+    }
+
+    /**
+     * A failing pass usually means a missing or expired certificate, which
+     * affects every guest of the platform, so it has to show up in the log.
+     */
+    private function logFailure(string $wallet, Member $member, \Exception $e): void
+    {
+        Log::error('Wallet pass generation failed', [
+            'wallet' => $wallet,
+            'member_id' => $member->id,
+            'gym_id' => $member->gym_id,
+            'error' => $e->getMessage(),
+        ]);
     }
 }
