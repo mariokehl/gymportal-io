@@ -222,4 +222,15 @@ class ScannerGuestServiceTest extends TestCase
 
         $this->assertTrue($redemption->fresh()->isPending());
     }
+
+    #[Test]
+    public function the_solarium_stays_closed_for_minors(): void
+    {
+        $guest = $this->guest(['solarium_enabled' => true, 'solarium_minutes' => 20]);
+        $guest->update(['birth_date' => now()->subYears(17)->toDateString()]);
+
+        $this->scan($guest, $this->solarium)
+            ->assertForbidden()
+            ->assertJson(['access_allowed' => false]);
+    }
 }

@@ -65,8 +65,8 @@ class GuestShopController extends Controller
     }
 
     /**
-     * Active products of the guest's gym, grouped by type, plus the credit
-     * available to pay for them.
+     * Active products of the guest's gym the guest may buy, grouped by type,
+     * plus the credit available to pay for them.
      */
     public function products(Request $request): JsonResponse
     {
@@ -78,6 +78,7 @@ class GuestShopController extends Controller
             ->orderBy('type')
             ->orderBy('sort_order')
             ->get(['id', 'type', 'name', 'description', 'price', 'quantity'])
+            ->filter(fn (GuestProduct $product) => $product->isAvailableTo($member))
             ->groupBy('type');
 
         return response()->json([

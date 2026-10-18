@@ -663,6 +663,15 @@ class Member extends Authenticatable
         return $this->birth_date ? $this->birth_date->age : null;
     }
 
+    /**
+     * Whether the member has reached the given age. Without a birth date the
+     * age is unknown and the answer is no.
+     */
+    public function hasReachedAge(int $years): bool
+    {
+        return $this->birth_date !== null && $this->birth_date->age >= $years;
+    }
+
     public function getLastCheckInAttribute()
     {
         // Serve from the eager-loaded relation when available to avoid an N+1 query.

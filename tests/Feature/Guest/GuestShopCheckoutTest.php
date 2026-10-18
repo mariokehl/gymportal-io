@@ -222,4 +222,36 @@ class GuestShopCheckoutTest extends TestCase
             ->assertJsonPath('data.solarium_minutes', 0)
             ->assertJsonPath('credit_balance', 12.5);
     }
+
+    #[Test]
+    public function minors_cannot_buy_solarium_minutes(): void
+    {
+        $this->topUp(5000);
+        $this->guest->update(['birth_date' => now()->subYears(17)->toDateString()]);
+
+        $this->checkout(['product_id' => $this->minutes->id])
+            ->assertStatus(422);
+
+        $this->assertSame(5000, $this->balance());
+        $this->assertSame(0, Payment::count());
+    }
+
+    #[Test]
+    public function minors_are_not_offered_solarium_minutes(): void
+    {
+        GuestProduct::create([
+            'gym_id' => $this->gym->id,
+            'type' => GuestProduct::TYPE_DAY_PASS,
+            'name' => 'Tageskarte',
+            'price' => 12.00,
+            'quantity' => 1,
+        ]);
+        $this->guest->update(['birth_date' => now()->subYears(17)->toDateString()]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->guestToken())
+            ->getJson('/api/guests/shop/products')
+            ->assertOk()
+            ->assertJsonMissingPath('data.solarium_minutes')
+            ->assertJsonCount(1, 'data.day_pass');
+    }
 }

@@ -44,6 +44,10 @@ class GuestCheckoutService
      */
     public function checkout(Member $member, GuestProduct $product, ?string $paymentMethod, string $redirectUrl): array
     {
+        if (! $product->isAvailableTo($member)) {
+            throw new RuntimeException('Solarium-Minuten sind erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren erhältlich.');
+        }
+
         $gym = $member->gym;
         $priceCents = $this->creditLedger->toCents((string) $product->price);
         $coveredByCredit = $this->creditLedger->getBalance($member) >= $priceCents;

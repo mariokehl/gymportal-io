@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\GuestProduct;
 use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
@@ -41,6 +42,10 @@ class SolariumRedemptionService
      */
     public function reserve(Member $member, int $minutes): PendingSolariumRedemption
     {
+        if (! $member->hasReachedAge(GuestProduct::SOLARIUM_MIN_AGE)) {
+            throw new RuntimeException('Das Solarium darfst du erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren nutzen.');
+        }
+
         $scan = $this->recentSolariumScan($member);
 
         if (! $scan) {

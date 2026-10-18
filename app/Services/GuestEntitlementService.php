@@ -126,6 +126,10 @@ class GuestEntitlementService
             $config = $this->lockedConfig($member);
 
             if ($scanner->isSolarium()) {
+                if (! $member->hasReachedAge(GuestProduct::SOLARIUM_MIN_AGE)) {
+                    return $this->scanResult($member, false, 'Solarium erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren');
+                }
+
                 $allowed = $config->solarium_enabled && $config->solarium_minutes > 0;
 
                 return $this->scanResult($member, $allowed, $allowed

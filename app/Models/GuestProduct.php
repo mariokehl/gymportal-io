@@ -27,6 +27,12 @@ class GuestProduct extends Model
         self::TYPE_DAY_PASS,
     ];
 
+    /**
+     * Minors must not use a solarium (§ 4 NiSG). The staff's age verification
+     * only confirms the identity, so the birth date decides.
+     */
+    public const SOLARIUM_MIN_AGE = 18;
+
     protected $fillable = [
         'gym_id',
         'type',
@@ -63,6 +69,15 @@ class GuestProduct extends Model
     public function scopeByType(Builder $query, string $type): Builder
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Whether the member may buy this product.
+     */
+    public function isAvailableTo(Member $member): bool
+    {
+        return $this->type !== self::TYPE_SOLARIUM_MINUTES
+            || $member->hasReachedAge(self::SOLARIUM_MIN_AGE);
     }
 
     public function getTypeLabelAttribute(): string

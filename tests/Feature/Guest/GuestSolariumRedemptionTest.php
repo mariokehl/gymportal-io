@@ -143,4 +143,15 @@ class GuestSolariumRedemptionTest extends TestCase
         $this->assertSame(30, $this->minutes());
         $this->assertSame(PendingSolariumRedemption::STATUS_EXPIRED, PendingSolariumRedemption::find($id)->status);
     }
+
+    #[Test]
+    public function minors_cannot_redeem_solarium_minutes(): void
+    {
+        $this->guest->update(['birth_date' => now()->subYears(17)->toDateString()]);
+        $this->scannedAtSolarium();
+
+        $this->redeem(10)->assertStatus(409);
+
+        $this->assertSame(30, $this->minutes());
+    }
 }
