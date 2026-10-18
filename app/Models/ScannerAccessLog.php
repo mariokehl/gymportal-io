@@ -82,7 +82,7 @@ class ScannerAccessLog extends Model
         self::SCAN_TYPE_NFC => 'NFC-Karte',
         self::SCAN_TYPE_ROLLING_QR => 'Rolling QR',
         self::SCAN_TYPE_MANUAL => 'Manueller Check-in/out',
-        self::SCAN_TYPE_GUEST_SERVICE => 'Statischer QR (Gastzugang)',
+        self::SCAN_TYPE_GUEST_SERVICE => 'Gast-QR',
     ];
 
     /**

@@ -67,7 +67,7 @@ class CheckIn extends Model
             'qr_code' => 'QR-Code',
             'nfc_card' => 'NFC-Tag',
             'manual' => 'Manuell',
-            'guest_service' => 'Statischer QR',
+            'guest_service' => 'Gast-QR',
         ][$this->check_in_method] ?? $this->check_in_method;
     }
 
