@@ -656,7 +656,6 @@ class AuthController extends Controller
             'address' => $member->address,
             'postal_code' => $member->postal_code,
             'city' => $member->city,
-            'status' => $member->status,
             'birth_date' => $member->birth_date?->format('Y-m-d'),
             'status' => $member->status,
             'avatar_url' => null,
