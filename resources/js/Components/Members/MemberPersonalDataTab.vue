@@ -41,7 +41,7 @@
             <!-- Salutation (25% = 2/8 columns) -->
             <div class="md:col-span-2">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Anrede <span class="text-red-500">*</span></label>
+                <label :class="fieldLabel">Anrede</label>
                 <span v-if="changed('salutation')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.salutation || '—' }}</div>

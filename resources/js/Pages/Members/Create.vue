@@ -53,14 +53,13 @@
             <!-- Anrede (25% = 2/8 Spalten) -->
             <div class="md:col-span-2">
               <label for="salutation" class="block text-sm font-medium text-gray-700 mb-2">
-                Anrede <span class="text-red-500">*</span>
+                Anrede
               </label>
               <select
                 id="salutation"
                 v-model="form.salutation"
                 class="w-full px-3 p-2.5 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.salutation }"
-                @blur="handleFieldBlur('salutation', 'Anrede ist erforderlich')"
               >
                 <option value="" selected>Anrede auswählen</option>
                 <option value="Herr">Herr</option>
@@ -1036,7 +1035,7 @@ const handleBillingAnchorDateBlur = () => {
 
 // Step validation
 const validateStep1 = () => {
-  const step1Fields = ['salutation', 'first_name', 'last_name', 'address', 'city', 'postal_code', 'country']
+  const step1Fields = ['first_name', 'last_name', 'address', 'city', 'postal_code', 'country']
 
   let isValid = true
 
@@ -1063,7 +1062,7 @@ const validateStep1 = () => {
 }
 
 const touchAllStep1Fields = () => {
-  const step1Fields = ['salutation', 'first_name', 'last_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country']
+  const step1Fields = ['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country']
   step1Fields.forEach(field => markFieldAsTouched(field))
 }
 
@@ -1116,7 +1115,6 @@ const nextStep = () => {
     // Alle Felder als berührt markieren und validieren
     touchAllStep1Fields()
     const requiredFields = [
-      { field: 'salutation', message: 'Anrede ist erforderlich' },
       { field: 'first_name', message: 'Vorname ist erforderlich' },
       { field: 'last_name', message: 'Nachname ist erforderlich' },
       { field: 'address', message: 'Straße und Hausnummer ist erforderlich' },
