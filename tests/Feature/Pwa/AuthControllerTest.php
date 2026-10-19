@@ -12,12 +12,18 @@ use App\Models\Membership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AuthControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const CROSS_LOCATION_APP_HEADERS = [
+        'X-Client-Type' => 'branded-app',
+        'X-App-Version' => '1.0.2',
+    ];
 
     protected function setUp(): void
     {
@@ -594,7 +600,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/api/pwa/auth/send-code', [
             'email' => $member->email,
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertOk()
             ->assertJson(['success' => true]);
 
@@ -624,7 +630,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/api/pwa/auth/send-code', [
             'email' => $member->email,
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertStatus(404)
             ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
     }
@@ -643,7 +649,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/api/pwa/auth/send-code', [
             'email' => 'test@example.com',
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertStatus(404)
             ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
     }
@@ -661,7 +667,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/api/pwa/auth/send-code', [
             'email' => 'test@example.com',
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertOk();
 
         $this->assertDatabaseHas('login_codes', ['member_id' => $activeMember->id]);
@@ -683,7 +689,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/api/pwa/auth/send-code', [
             'email' => 'test@example.com',
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertOk();
 
         $this->assertDatabaseHas('login_codes', ['member_id' => $siblingMember->id]);
@@ -700,7 +706,7 @@ class AuthControllerTest extends TestCase
             'email' => $member->email,
             'code' => $loginCode->code,
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertOk()
             ->assertJsonPath('token_type', 'full')
             ->assertJsonPath('gym.slug', $siblingGym->slug)
@@ -722,7 +728,7 @@ class AuthControllerTest extends TestCase
             'email' => 'test@example.com',
             'code' => $loginCode->code,
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertOk()
             ->assertJsonPath('member.id', $siblingMember->id);
     }
@@ -736,7 +742,7 @@ class AuthControllerTest extends TestCase
             'email' => $member->email,
             'birth_date' => '1990-01-01',
             'gym_slug' => $entryGym->slug,
-        ], ['X-Client-Type' => 'branded-app'])
+        ], self::CROSS_LOCATION_APP_HEADERS)
             ->assertOk()
             ->assertJsonPath('token_type', 'anonymous')
             ->assertJsonPath('member.gym.slug', $siblingGym->slug);
@@ -751,7 +757,7 @@ class AuthControllerTest extends TestCase
 
         $this->withHeaders([
             'Authorization' => 'Bearer ' . $anonToken,
-            'X-Client-Type' => 'branded-app',
+            ...self::CROSS_LOCATION_APP_HEADERS,
         ])
             ->postJson('/api/pwa/member/upgrade-session', [
                 'code' => $loginCode->code,
@@ -771,6 +777,62 @@ class AuthControllerTest extends TestCase
         $this->withHeaders([
             'Authorization' => 'Bearer ' . $anonToken,
             'X-Client-Type' => 'pwa',
+        ])
+            ->postJson('/api/pwa/member/upgrade-session', [
+                'code' => '123456',
+                'gym_slug' => $entryGym->slug,
+            ])
+            ->assertStatus(403)
+            ->assertJson(['error_code' => 'INVALID_GYM']);
+    }
+
+    public static function appVersionsWithoutCrossLocationLogin(): array
+    {
+        return [
+            'missing version' => [[]],
+            'older version' => [['X-App-Version' => '1.0.1']],
+            'malformed version' => [['X-App-Version' => 'abc']],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('appVersionsWithoutCrossLocationLogin')]
+    public function send_login_code_does_not_search_sibling_gyms_for_older_branded_apps(array $versionHeader): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], ['X-Client-Type' => 'branded-app', ...$versionHeader])
+            ->assertStatus(404)
+            ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
+    }
+
+    #[Test]
+    public function send_login_code_searches_sibling_gyms_for_newer_branded_apps(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], ['X-Client-Type' => 'branded-app', 'X-App-Version' => '1.1.0'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('login_codes', ['member_id' => $member->id]);
+    }
+
+    #[Test]
+    public function upgrade_session_rejects_sibling_gym_for_older_branded_apps(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+        $anonToken = $member->createToken('anon', ['member-pwa', 'anonymous'])->plainTextToken;
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $anonToken,
+            'X-Client-Type' => 'branded-app',
+            'X-App-Version' => '1.0.1',
         ])
             ->postJson('/api/pwa/member/upgrade-session', [
                 'code' => '123456',

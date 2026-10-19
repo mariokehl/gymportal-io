@@ -17,6 +17,11 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
+    /**
+     * First branded app version that supports login across all locations of an owner.
+     */
+    private const CROSS_LOCATION_MIN_APP_VERSION = '1.0.2';
+
     public function sendLoginCode(Request $request, MemberMailDispatcher $mailDispatcher): JsonResponse
     {
         $request->validate([
@@ -404,9 +409,9 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Verify member belongs to this gym (branded app: any gym of the same owner)
+        // Verify member belongs to this gym (cross-location capable app: any gym of the same owner)
         $belongsToGym = $member->gym_id === $gym->id
-            || ($this->isBrandedAppRequest($request) && $member->gym?->owner_id === $gym->owner_id);
+            || ($this->supportsCrossLocationLogin($request) && $member->gym?->owner_id === $gym->owner_id);
 
         if (!$belongsToGym) {
             return response()->json([
@@ -515,7 +520,8 @@ class AuthController extends Controller
     /**
      * Find members by email (and optionally birth date).
      *
-     * The PWA stays scoped to the requested gym. Branded apps search all
+     * The PWA and older branded apps stay scoped to the requested gym.
+     * Branded apps from CROSS_LOCATION_MIN_APP_VERSION on search all
      * PWA-enabled gyms of the same owner, so members of every location can
      * log in. Order: members with an active membership first, then active
      * member status, then the requested gym, then the most recent record.
@@ -530,7 +536,7 @@ class AuthController extends Controller
             $query->whereDate('birth_date', $birthDate);
         }
 
-        if (!$this->isBrandedAppRequest($request)) {
+        if (!$this->supportsCrossLocationLogin($request)) {
             return $query->where('gym_id', $gym->id)->limit(1)->get();
         }
 
@@ -561,6 +567,21 @@ class AuthController extends Controller
     private function isBrandedAppRequest(Request $request): bool
     {
         return $request->header('X-Client-Type') === 'branded-app';
+    }
+
+    /**
+     * Check if the branded app can handle a member of another location of the
+     * same owner, i.e. it stores the gym slug from the login response.
+     * The app sends its version in X-App-Version.
+     */
+    private function supportsCrossLocationLogin(Request $request): bool
+    {
+        $version = $request->header('X-App-Version');
+
+        return $this->isBrandedAppRequest($request)
+            && is_string($version)
+            && preg_match('/^\d+(\.\d+)*$/', $version) === 1
+            && version_compare($version, self::CROSS_LOCATION_MIN_APP_VERSION, '>=');
     }
 
     /**
