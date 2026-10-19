@@ -11,6 +11,7 @@ use App\Models\Member;
 use App\Models\MemberDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -40,9 +41,7 @@ class AuthController extends Controller
             return $gym;
         }
 
-        $member = Member::whereRaw('LOWER(email) = ?', [$email])
-                       ->where('gym_id', $gym->id)
-                       ->first();
+        $member = $this->findMembersByEmail($request, $gym, $email)->first();
 
         if (!$member) {
             // Rate limiting auch für ungültige E-Mails
@@ -62,6 +61,9 @@ class AuthController extends Controller
                 'error_code' => 'MEMBER_INACTIVE'
             ], 403);
         }
+
+        // The member may belong to another location of the same owner
+        $gym = $member->gym;
 
         // Check if member has a static login code configured (for App Store review)
         if ($member->accessConfig && $member->accessConfig->hasStaticLoginCode()) {
@@ -159,10 +161,14 @@ class AuthController extends Controller
             return $gym;
         }
 
-        /** @var Member $member */
-        $member = Member::whereRaw('LOWER(email) = ?', [$email])
-                       ->where('gym_id', $gym->id)
-                       ->first();
+        $candidates = $this->findMembersByEmail($request, $gym, $email);
+
+        // On multiple matches (same email at several locations) pick the member
+        // the code was issued for
+        /** @var Member|null $member */
+        $member = $candidates->first(
+            fn (Member $candidate) => LoginCode::findValidCode($request->code, $candidate->id) !== null
+        ) ?? $candidates->first();
 
         if (!$member) {
             RateLimiter::hit($key, 300);
@@ -173,6 +179,8 @@ class AuthController extends Controller
                 'error_code' => 'MEMBER_NOT_FOUND'
             ], 404);
         }
+
+        $gym = $member->gym;
 
         $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
 
@@ -299,10 +307,7 @@ class AuthController extends Controller
          * Find member by email and birth_date
          * @var Member|null $member
          */
-        $member = Member::whereRaw('LOWER(email) = ?', [$email])
-                       ->where('gym_id', $gym->id)
-                       ->whereDate('birth_date', $request->birth_date)
-                       ->first();
+        $member = $this->findMembersByEmail($request, $gym, $email, $request->birth_date)->first();
 
         if (!$member) {
             RateLimiter::hit($key, 300);
@@ -311,6 +316,8 @@ class AuthController extends Controller
                 'message' => 'Kein Vertrag mit dieser E-Mail und Geburtsdatum gefunden.'
             ], 404);
         }
+
+        $gym = $member->gym;
 
         // Block when the device is already bound to a different member account
         // (skipped for static-code accounts used by App Store reviewers)
@@ -397,14 +404,19 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Verify member belongs to this gym
-        if ($member->gym_id !== $gym->id) {
+        // Verify member belongs to this gym (branded app: any gym of the same owner)
+        $belongsToGym = $member->gym_id === $gym->id
+            || ($this->isBrandedAppRequest($request) && $member->gym?->owner_id === $gym->owner_id);
+
+        if (!$belongsToGym) {
             return response()->json([
                 'success' => false,
                 'message' => 'Ungültige Gym-Zuordnung',
                 'error_code' => 'INVALID_GYM'
             ], 403);
         }
+
+        $gym = $member->gym;
 
         $hasStaticCode = $member->accessConfig && $member->accessConfig->hasStaticLoginCode();
 
@@ -498,6 +510,39 @@ class AuthController extends Controller
         }
 
         return $gym;
+    }
+
+    /**
+     * Find members by email (and optionally birth date).
+     *
+     * The PWA stays scoped to the requested gym. Branded apps search all
+     * PWA-enabled gyms of the same owner, so members of every location can
+     * log in. Order: members with an active membership first, then active
+     * member status, then the requested gym, then the most recent record.
+     *
+     * @return Collection<int, Member>
+     */
+    private function findMembersByEmail(Request $request, Gym $gym, string $email, ?string $birthDate = null): Collection
+    {
+        $query = Member::whereRaw('LOWER(email) = ?', [$email]);
+
+        if ($birthDate !== null) {
+            $query->whereDate('birth_date', $birthDate);
+        }
+
+        if (!$this->isBrandedAppRequest($request)) {
+            return $query->where('gym_id', $gym->id)->limit(1)->get();
+        }
+
+        $gymIds = Gym::where('owner_id', $gym->owner_id)->pwaEnabled()->pluck('id');
+
+        return $query->whereIn('gym_id', $gymIds)
+            ->withExists(['memberships as has_active_membership' => fn ($q) => $q->where('status', 'active')])
+            ->orderByDesc('has_active_membership')
+            ->orderByRaw("CASE WHEN members.status = 'active' THEN 0 ELSE 1 END")
+            ->orderByRaw('CASE WHEN members.gym_id = ? THEN 0 ELSE 1 END', [$gym->id])
+            ->orderByDesc('id')
+            ->get();
     }
 
     /**
