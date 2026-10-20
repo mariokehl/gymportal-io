@@ -135,7 +135,8 @@ class FinancesController extends Controller
         $paymentIds = $request->input('payment_ids', []);
         $exportType = $request->input('export_type', 'csv');
 
-        $payments = Payment::with(['member', 'membership', 'invoice'])
+        // A membership may be soft-deleted while its payments are still due.
+        $payments = Payment::with(['member', 'membership' => fn ($query) => $query->withTrashed(), 'invoice'])
             ->where('gym_id', $gymId)
             ->whereIn('id', $paymentIds)
             ->get();
@@ -207,8 +208,12 @@ class FinancesController extends Controller
         $cdtrSchmeIdPrvtIdOthr->addChild('SchmeNm')->addChild('Prtry', 'SEPA');
 
         foreach ($sepaPayments as $payment) {
-            /** @var Member $member */
-            $member = $payment->membership->member;
+            /** @var Member|null $member */
+            $member = $payment->member;
+
+            if (! $member) {
+                continue;
+            }
 
             // Hole die aktive SEPA-Zahlungsmethode des Mitglieds
             $sepaPaymentMethod = $member->paymentMethods()
@@ -231,7 +236,7 @@ class FinancesController extends Controller
             $drctDbtTx = $drctDbtTxInf->addChild('DrctDbtTx');
             $mndtRltdInf = $drctDbtTx->addChild('MndtRltdInf');
             $mndtRltdInf->addChild('MndtId', $sepaPaymentMethod->sepa_mandate_reference ?? 'MANDATE-'.$member->id);
-            $mndtRltdInf->addChild('DtOfSgntr', $sepaPaymentMethod->sepa_mandate_signed_at ? $sepaPaymentMethod->sepa_mandate_signed_at->format('Y-m-d') : $payment->membership->start_date->format('Y-m-d'));
+            $mndtRltdInf->addChild('DtOfSgntr', ($sepaPaymentMethod->sepa_mandate_signed_at ?? $payment->membership?->start_date ?? $payment->created_at)->format('Y-m-d'));
 
             $dbtrAgt = $drctDbtTxInf->addChild('DbtrAgt');
             $dbtrAgtFfinInstnId = $dbtrAgt->addChild('FinInstnId')->addChild('Othr');
