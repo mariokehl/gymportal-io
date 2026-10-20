@@ -158,10 +158,10 @@
         </div>
 
         <!-- Mitglied -->
-        <div v-if="payment.membership?.member">
+        <div v-if="payment.member">
           <label class="block text-sm font-medium text-gray-500">Mitglied</label>
           <MemberIdentity
-            :member="payment.membership.member"
+            :member="payment.member"
             size="sm"
             :max-width="null"
             class="mt-1"

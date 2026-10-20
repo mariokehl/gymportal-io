@@ -126,7 +126,7 @@
                 <!-- Member Column -->
                 <template v-else-if="column.key === 'member'">
                   <MemberIdentity
-                    :member="payment.membership?.member"
+                    :member="payment.member"
                     size="sm"
                     max-width="250px"
                   />

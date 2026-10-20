@@ -9,6 +9,7 @@ use App\Models\Gym;
 use App\Models\LoginCode;
 use App\Models\Member;
 use App\Models\MemberDevice;
+use App\Services\LoginCodeVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -113,7 +114,17 @@ class AuthController extends Controller
             }
         }
 
+        // Per-account cap, independent of the client IP
+        if (! app(LoginCodeVerifier::class)->mayIssueCode($member)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Zu viele Anmeldecodes angefordert. Bitte versuche es später erneut.',
+                'error_code' => 'RATE_LIMITED',
+            ], 429);
+        }
+
         $loginCode = LoginCode::createForMember($member);
+        app(LoginCodeVerifier::class)->recordIssuedCode($member);
         $result = $mailDispatcher->sendToMember($member, new LoginCodeMail($loginCode, $member, $gym));
 
         if ($result->wasSkipped()) {
@@ -171,9 +182,7 @@ class AuthController extends Controller
         // On multiple matches (same email at several locations) pick the member
         // the code was issued for
         /** @var Member|null $member */
-        $member = $candidates->first(
-            fn (Member $candidate) => LoginCode::findValidCode($request->code, $candidate->id) !== null
-        ) ?? $candidates->first();
+        $member = app(LoginCodeVerifier::class)->accountWithPendingCode($candidates);
 
         if (!$member) {
             RateLimiter::hit($key, 300);
@@ -200,7 +209,7 @@ class AuthController extends Controller
         // Check if member has a static login code configured
         if ($hasStaticCode) {
             // Verify against static code
-            if ($request->code !== $member->accessConfig->static_login_code) {
+            if (! app(LoginCodeVerifier::class)->checkStaticCode($member, $request->code)) {
                 RateLimiter::hit($key, 60);
 
                 return response()->json([
@@ -214,9 +223,7 @@ class AuthController extends Controller
             // (it can be reused for App Store review)
         } else {
             // Normal flow: check database login code
-            $loginCode = LoginCode::findValidCode($request->code, $member->id);
-
-            if (!$loginCode) {
+            if (! app(LoginCodeVerifier::class)->checkIssuedCode($member, $request->code)) {
                 RateLimiter::hit($key, 60);
 
                 return response()->json([
@@ -225,9 +232,6 @@ class AuthController extends Controller
                     'error_code' => 'INVALID_CODE'
                 ], 422);
             }
-
-            // Code als verwendet markieren
-            $loginCode->markAsUsed();
         }
 
         // Token erstellen (full session - user verified via email code)
@@ -436,7 +440,7 @@ class AuthController extends Controller
         // Check if member has a static login code configured
         if ($hasStaticCode) {
             // Verify against static code
-            if ($request->code !== $member->accessConfig->static_login_code) {
+            if (! app(LoginCodeVerifier::class)->checkStaticCode($member, $request->code)) {
                 RateLimiter::hit($key, 60);
 
                 return response()->json([
@@ -450,9 +454,7 @@ class AuthController extends Controller
             // (it can be reused for App Store review)
         } else {
             // Normal flow: check database login code
-            $loginCode = LoginCode::findValidCode($request->code, $member->id);
-
-            if (!$loginCode) {
+            if (! app(LoginCodeVerifier::class)->checkIssuedCode($member, $request->code)) {
                 RateLimiter::hit($key, 60);
 
                 return response()->json([
@@ -461,9 +463,6 @@ class AuthController extends Controller
                     'error_code' => 'INVALID_CODE'
                 ], 422);
             }
-
-            // Mark code as used
-            $loginCode->markAsUsed();
         }
 
         // Delete current anonymous token

@@ -161,7 +161,7 @@ class Member extends Authenticatable
         return $this->update([
             'age_verified' => true,
             'age_verified_at' => now(),
-            'age_verified_by' => $verifiedBy ?? auth()->id(),
+            'age_verified_by' => $verifiedBy,
         ]);
     }
 
@@ -533,6 +533,11 @@ class Member extends Authenticatable
         return $this->status === 'active';
     }
 
+    public function isExtern(): bool
+    {
+        return $this->status === 'extern';
+    }
+
     public function activateMember(): bool
     {
         if ($this->status !== 'pending') {
@@ -565,6 +570,7 @@ class Member extends Authenticatable
             'overdue' => 'Überfällig',
             'pending' => 'Ausstehend',
             'blocked' => 'Gesperrt',
+            'extern' => 'Extern',
         ][$this->status] ?? $this->status;
     }
 
@@ -577,6 +583,7 @@ class Member extends Authenticatable
             'overdue' => 'red',
             'pending' => 'orange',
             'blocked' => 'black',
+            'extern' => 'blue',
         ][$this->status] ?? 'gray';
     }
 
@@ -589,6 +596,7 @@ class Member extends Authenticatable
             'overdue' => 'Zahlung ist überfällig',
             'pending' => 'Mitgliedschaft wartet auf Aktivierung (z.B. Zahlungsbestätigung oder SEPA-Mandat)',
             'blocked' => 'Mitglied ist gesperrt (Sperrliste)',
+            'extern' => 'Laufkunde, kein reguläres Mitglied',
             default => 'Unbekannter Status'
         };
     }
@@ -653,6 +661,15 @@ class Member extends Authenticatable
     public function getAgeAttribute()
     {
         return $this->birth_date ? $this->birth_date->age : null;
+    }
+
+    /**
+     * Whether the member has reached the given age. Without a birth date the
+     * age is unknown and the answer is no.
+     */
+    public function hasReachedAge(int $years): bool
+    {
+        return $this->birth_date !== null && $this->birth_date->age >= $years;
     }
 
     public function getLastCheckInAttribute()
@@ -812,6 +829,7 @@ class Member extends Authenticatable
             'overdue' => ['active', 'inactive'],
             'pending' => ['active', 'inactive'],
             'blocked' => ['active', 'inactive'],
+            'extern' => ['inactive'],
         ];
 
         return $transitions[$current] ?? [];
@@ -867,6 +885,11 @@ class Member extends Authenticatable
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+    }
+
+    public function scopeExtern($query)
+    {
+        return $query->where('status', 'extern');
     }
 
     public function scopeFromWidget($query)

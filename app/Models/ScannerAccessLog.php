@@ -69,6 +69,8 @@ class ScannerAccessLog extends Model
 
     const SCAN_TYPE_ROLLING_QR = 'rolling_qr';
 
+    const SCAN_TYPE_GUEST_SERVICE = 'guest_service';
+
     /**
      * Member scanned the printed station code with their own phone, without a
      * scanner device. Carries no device_number — there is no device.
@@ -80,6 +82,7 @@ class ScannerAccessLog extends Model
         self::SCAN_TYPE_NFC => 'NFC-Karte',
         self::SCAN_TYPE_ROLLING_QR => 'Rolling QR',
         self::SCAN_TYPE_MANUAL => 'Manueller Check-in/out',
+        self::SCAN_TYPE_GUEST_SERVICE => 'Gast-QR',
     ];
 
     /**

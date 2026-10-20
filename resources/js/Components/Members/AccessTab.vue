@@ -396,6 +396,76 @@
             </label>
           </div>
         </div>
+
+        <!-- Tageskarte -->
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-[10px] bg-rose-100 text-rose-600 flex items-center justify-center flex-none">
+              <Ticket class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h5 class="font-semibold text-gray-900">Tageskarte</h5>
+              <p class="text-sm text-gray-500 mt-0.5">Eintritt für einen Tag</p>
+              <p v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
+                {{ accessForm.day_pass_valid_until ? `Gültig am ${formatDate(accessForm.day_pass_valid_until)}` : 'Wird beim ersten Check-in eingelöst' }}
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-none">
+              <input
+                v-model="accessForm.day_pass_enabled"
+                type="checkbox"
+                class="sr-only peer"
+                @change="updateAccessSettings"
+              >
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Visit card -->
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-[10px] bg-teal-100 text-teal-600 flex items-center justify-center flex-none">
+              <Hash class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h5 class="font-semibold text-gray-900">Mehrfachkarte</h5>
+              <p class="text-sm text-gray-500 mt-0.5">Mehrere Eintritte</p>
+              <p v-if="accessForm.visit_card_enabled" class="text-xs text-gray-400 mt-1">
+                {{ accessForm.visit_card_entries || 0 }} Eintritte übrig
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-none">
+              <input
+                v-model="accessForm.visit_card_enabled"
+                type="checkbox"
+                class="sr-only peer"
+                @change="updateAccessSettings"
+              >
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Guest wallet pass -->
+        <div v-if="member.access_config?.has_guest_pass" class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-[10px] bg-gray-100 text-gray-700 flex items-center justify-center flex-none">
+              <WalletCards class="w-5 h-5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h5 class="font-semibold text-gray-900">Wallet-Pass</h5>
+              <p class="text-sm text-gray-500 mt-0.5">Gast-QR-Code im Apple oder Google Wallet</p>
+            </div>
+            <button
+              type="button"
+              class="flex-none px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+              @click="revokeGuestPass"
+            >
+              Sperren
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -673,7 +743,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import {
-  QrCode, Nfc, Sun, Package, Armchair, Coffee, Info, Mail, Loader2, Radio,
+  QrCode, Nfc, Sun, Package, Armchair, Coffee, Ticket, Hash, WalletCards, Info, Mail, Loader2, Radio,
   Smartphone, X, XCircle, Plus, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-vue-next'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
@@ -840,6 +910,12 @@ const accessForm = useForm({
 
   coffee_flat_enabled: props.member.access_config?.coffee_flat_enabled || false,
   coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
+
+  day_pass_enabled: props.member.access_config?.day_pass_enabled || false,
+  day_pass_valid_until: props.member.access_config?.day_pass_valid_until || null,
+
+  visit_card_enabled: props.member.access_config?.visit_card_enabled || false,
+  visit_card_entries: props.member.access_config?.visit_card_entries || 0,
 })
 
 // Number of currently active access methods/services — surfaced to the parent
@@ -852,6 +928,8 @@ const activeAccessCount = computed(() => {
   if (accessForm.vending_enabled) count++
   if (accessForm.massage_enabled) count++
   if (accessForm.coffee_flat_enabled) count++
+  if (accessForm.day_pass_enabled) count++
+  if (accessForm.visit_card_enabled) count++
   return count
 })
 
@@ -963,6 +1041,16 @@ const removeStaticCode = () => {
   }
 
   router.delete(route('members.access.static-login-code.destroy', props.member.id), {
+    preserveScroll: true,
+  })
+}
+
+const revokeGuestPass = () => {
+  if (!confirm('Möchten Sie den Wallet-Pass wirklich sperren? Der Gast kann danach in der Gäste-App einen neuen Pass hinzufügen.')) {
+    return
+  }
+
+  router.delete(route('members.access.guest-pass.destroy', props.member.id), {
     preserveScroll: true,
   })
 }

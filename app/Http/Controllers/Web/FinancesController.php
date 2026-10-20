@@ -17,7 +17,7 @@ class FinancesController extends Controller
     {
         $gymId = Auth::user()->current_gym_id;
 
-        $query = Payment::with(['membership.member', 'invoice', 'chargebacks', 'refunds'])
+        $query = Payment::with(['member', 'invoice', 'chargebacks', 'refunds'])
             ->where('gym_id', $gymId);
 
         // Apply filters
@@ -26,7 +26,7 @@ class FinancesController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(description) like ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(transaction_id) like ?', ["%{$search}%"])
-                    ->orWhereHas('membership.member', function ($memberQuery) use ($search) {
+                    ->orWhereHas('member', function ($memberQuery) use ($search) {
                         $memberQuery->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
                             ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
                             ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"]);
@@ -135,7 +135,8 @@ class FinancesController extends Controller
         $paymentIds = $request->input('payment_ids', []);
         $exportType = $request->input('export_type', 'csv');
 
-        $payments = Payment::with(['membership.member', 'invoice'])
+        // A membership may be soft-deleted while its payments are still due.
+        $payments = Payment::with(['member', 'membership' => fn ($query) => $query->withTrashed(), 'invoice'])
             ->where('gym_id', $gymId)
             ->whereIn('id', $paymentIds)
             ->get();
@@ -207,8 +208,12 @@ class FinancesController extends Controller
         $cdtrSchmeIdPrvtIdOthr->addChild('SchmeNm')->addChild('Prtry', 'SEPA');
 
         foreach ($sepaPayments as $payment) {
-            /** @var Member $member */
-            $member = $payment->membership->member;
+            /** @var Member|null $member */
+            $member = $payment->member;
+
+            if (! $member) {
+                continue;
+            }
 
             // Hole die aktive SEPA-Zahlungsmethode des Mitglieds
             $sepaPaymentMethod = $member->paymentMethods()
@@ -231,7 +236,7 @@ class FinancesController extends Controller
             $drctDbtTx = $drctDbtTxInf->addChild('DrctDbtTx');
             $mndtRltdInf = $drctDbtTx->addChild('MndtRltdInf');
             $mndtRltdInf->addChild('MndtId', $sepaPaymentMethod->sepa_mandate_reference ?? 'MANDATE-'.$member->id);
-            $mndtRltdInf->addChild('DtOfSgntr', $sepaPaymentMethod->sepa_mandate_signed_at ? $sepaPaymentMethod->sepa_mandate_signed_at->format('Y-m-d') : $payment->membership->start_date->format('Y-m-d'));
+            $mndtRltdInf->addChild('DtOfSgntr', ($sepaPaymentMethod->sepa_mandate_signed_at ?? $payment->membership?->start_date ?? $payment->created_at)->format('Y-m-d'));
 
             $dbtrAgt = $drctDbtTxInf->addChild('DbtrAgt');
             $dbtrAgtFfinInstnId = $dbtrAgt->addChild('FinInstnId')->addChild('Othr');
@@ -279,7 +284,7 @@ class FinancesController extends Controller
             $csvData[] = [
                 $payment->id,
                 $payment->created_at->format('d.m.Y H:i'),
-                $payment->membership->member->first_name.' '.$payment->membership->member->last_name,
+                trim(($payment->member?->first_name ?? '').' '.($payment->member?->last_name ?? '')),
                 $payment->description,
                 $payment->formatted_amount,
                 $payment->currency,

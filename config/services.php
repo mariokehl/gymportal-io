@@ -41,4 +41,16 @@ return [
         'environment' => env('PADDLE_ENVIRONMENT', 'sandbox'), // sandbox oder production
     ],
 
+    'apple_wallet' => [
+        'certificate_base64' => env('APPLE_WALLET_CERTIFICATE_BASE64'),
+        'certificate_password' => env('APPLE_WALLET_CERTIFICATE_PASSWORD'),
+        'pass_type_identifier' => env('APPLE_WALLET_PASS_TYPE_IDENTIFIER'),
+        'team_identifier' => env('APPLE_WALLET_TEAM_IDENTIFIER'),
+    ],
+
+    'google_wallet' => [
+        'issuer_id' => env('GOOGLE_WALLET_ISSUER_ID'),
+        'service_account_base64' => env('GOOGLE_WALLET_SERVICE_ACCOUNT_BASE64'),
+    ],
+
 ];

@@ -4,6 +4,12 @@ use App\Http\Controllers\Api\ScannerController;
 use App\Http\Controllers\Api\V1\MollieSetupController;
 use App\Http\Controllers\Api\V1\Public\MollieWebhookController;
 use App\Http\Controllers\Api\WidgetController;
+use App\Http\Controllers\Guest\GuestAuthController;
+use App\Http\Controllers\Guest\GuestGymController;
+use App\Http\Controllers\Guest\GuestProfileController;
+use App\Http\Controllers\Guest\GuestShopController;
+use App\Http\Controllers\Guest\GuestSolariumController;
+use App\Http\Controllers\Guest\GuestWalletController;
 use App\Http\Controllers\Pwa\AuthController;
 use App\Http\Controllers\Pwa\CheckInController;
 use App\Http\Controllers\Pwa\GymController;
@@ -55,7 +61,7 @@ Route::group(['prefix' => 'pwa'], function () {
         Route::post('verify-code', [AuthController::class, 'verifyCode']);
         Route::post('link-contract-anonymous', [AuthController::class, 'linkContractAnonymous']);
     });
-    Route::middleware(['auth:member-pwa'])->prefix('member')->group(function () {
+    Route::middleware(['auth:member-pwa', 'abilities:member-pwa'])->prefix('member')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [MemberController::class, 'profile']);
         Route::get('contract', [MemberController::class, 'contract']);
@@ -90,14 +96,17 @@ Route::group(['prefix' => 'pwa'], function () {
 /*
 | Scanner Routes
 |
-| Only `ping` and `verify-membership` are called by the scanner client
-| (gymportal-qr-scanner, see devices/saas.py).
+| The scanner client (gymportal-qr-scanner) calls `ping`, `verify-membership`
+| and `verify-member` (devices/saas.py); solarium terminals additionally poll
+| and acknowledge pending redemptions (services/solarium-service.py).
 */
 Route::prefix('scanner')->group(function () {
     Route::middleware(['scanner.auth'])->group(function () {
         Route::get('ping', [ScannerController::class, 'ping']);
         Route::get('verify-membership', [ScannerController::class, 'verifyMembership']);
         Route::get('verify-member', [ScannerController::class, 'verifyMember']);
+        Route::get('pending-solarium-redemptions', [ScannerController::class, 'pendingSolariumRedemptions']);
+        Route::post('pending-solarium-redemptions/{id}/acknowledge', [ScannerController::class, 'acknowledgeSolariumRedemption']);
 
         // @deprecated No scanner client calls these; the scan is validated
         // on the device itself (qr-scanner-server.py).
@@ -127,6 +136,46 @@ Route::group(['prefix' => 'widget', 'middleware' => ['widget']], function () {
 });
 Route::prefix('widget')->group(function () {
     Route::get('/mollie/return/{gym}/{session}', [WidgetController::class, 'handleMollieReturn'])->name('widget.mollie.return');
+});
+
+/*
+| Guest Routes
+*/
+Route::group(['prefix' => 'guests'], function () {
+    // Public routes
+    Route::get('gyms/{slug}', [GuestGymController::class, 'show']);
+    Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
+        Route::post('register', [GuestAuthController::class, 'register']);
+        Route::post('send-code', [GuestAuthController::class, 'sendLoginCode']);
+        Route::post('verify-code', [GuestAuthController::class, 'verifyCode']);
+    });
+
+    // Authenticated routes; guest tokens only, member PWA tokens are rejected
+    Route::middleware(['auth:member-pwa', 'abilities:guest-pwa'])->group(function () {
+        Route::post('auth/logout', [GuestAuthController::class, 'logout']);
+        Route::get('profile', [GuestProfileController::class, 'show']);
+        Route::post('age-verification', [GuestProfileController::class, 'initiateAgeVerification']);
+        Route::get('qr-code', [GuestProfileController::class, 'generateQrCode']);
+        Route::get('purchases', [GuestProfileController::class, 'purchases']);
+        Route::get('entitlements', [GuestProfileController::class, 'entitlements']);
+
+        // Solarium minutes
+        Route::post('solarium/redeem', [GuestSolariumController::class, 'redeem']);
+        Route::get('solarium/redemption/{id}/status', [GuestSolariumController::class, 'status']);
+        Route::delete('solarium/redemption/{id}', [GuestSolariumController::class, 'cancel']);
+
+        // Wallet passes
+        Route::get('wallet/apple-pass', [GuestWalletController::class, 'applePass']);
+        Route::get('wallet/google-pass', [GuestWalletController::class, 'googlePass']);
+
+        // Shop (requires age verification)
+        Route::middleware(['age.verified'])->group(function () {
+            Route::get('shop/products', [GuestShopController::class, 'products']);
+            Route::get('shop/payment-methods', [GuestShopController::class, 'paymentMethods']);
+            Route::post('shop/checkout', [GuestShopController::class, 'checkout']);
+            Route::get('shop/payment-status/{paymentId}', [GuestShopController::class, 'paymentStatus']);
+        });
+    });
 });
 
 /**

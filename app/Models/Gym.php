@@ -146,6 +146,8 @@ class Gym extends Model
         'social_media',
         'member_app_description',
         'contract_settings',
+        'guest_enabled',
+        'guest_settings',
     ];
 
     protected $casts = [
@@ -164,6 +166,8 @@ class Gym extends Model
         'opening_hours' => 'array',
         'social_media' => 'array',
         'contract_settings' => 'array',
+        'guest_enabled' => 'boolean',
+        'guest_settings' => 'array',
     ];
 
     protected $hidden = [
@@ -270,6 +274,11 @@ class Gym extends Model
     public function scanners()
     {
         return $this->hasMany(GymScanner::class);
+    }
+
+    public function guestProducts()
+    {
+        return $this->hasMany(GuestProduct::class);
     }
 
     public function accessLogs()
