@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class MemberCountVisibilityTest extends TestCase
+class DashboardStatisticsVisibilityTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -43,13 +43,13 @@ class MemberCountVisibilityTest extends TestCase
     /**
      * @return array<string, mixed>|null
      */
-    private function activeMembersTile(array $props): ?array
+    private function tile(array $props, string $key): ?array
     {
-        return collect($props['stats']['main_stats'])->firstWhere('key', 'active_members');
+        return collect($props['stats']['main_stats'])->firstWhere('key', $key);
     }
 
     #[Test]
-    public function an_owner_sees_member_counts_on_the_dashboard(): void
+    public function an_owner_sees_statistics_on_the_dashboard(): void
     {
         $this->actingAs($this->owner)
             ->get(route('dashboard'))
@@ -57,15 +57,16 @@ class MemberCountVisibilityTest extends TestCase
             ->assertInertia(function (AssertableInertia $page) {
                 $props = $page->toArray()['props'];
 
-                $this->assertTrue($props['canViewMemberCounts']);
+                $this->assertTrue($props['canViewStatistics']);
                 $this->assertSame(3, $props['totalMembers']);
-                $this->assertSame(3, $this->activeMembersTile($props)['value']);
+                $this->assertSame(3, $this->tile($props, 'active_members')['value']);
+                $this->assertNotNull($this->tile($props, 'monthly_revenue')['value']);
                 $this->assertArrayHasKey('detailed_stats', $props['stats']);
             });
     }
 
     #[Test]
-    public function staff_does_not_receive_member_counts_on_the_dashboard(): void
+    public function staff_does_not_receive_statistics_on_the_dashboard(): void
     {
         $this->actingAs($this->staff)
             ->get(route('dashboard'))
@@ -73,12 +74,15 @@ class MemberCountVisibilityTest extends TestCase
             ->assertInertia(function (AssertableInertia $page) {
                 $props = $page->toArray()['props'];
 
-                $this->assertFalse($props['canViewMemberCounts']);
+                $this->assertFalse($props['canViewStatistics']);
                 $this->assertNull($props['totalMembers']);
 
-                $tile = $this->activeMembersTile($props);
-                $this->assertNull($tile['value']);
-                $this->assertNull($tile['change']);
+                foreach (['active_members', 'monthly_revenue'] as $key) {
+                    $tile = $this->tile($props, $key);
+                    $this->assertNotEmpty($tile['title']);
+                    $this->assertNull($tile['value']);
+                    $this->assertNull($tile['change']);
+                }
 
                 foreach (['detailed_stats', 'status_distribution', 'plan_stats', 'financial_stats', 'trends'] as $key) {
                     $this->assertArrayNotHasKey($key, $props['stats']);
@@ -92,11 +96,11 @@ class MemberCountVisibilityTest extends TestCase
         $this->actingAs($this->owner)
             ->get(route('members.index'))
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->where('canViewMemberCounts', true));
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('canViewStatistics', true));
 
         $this->actingAs($this->staff)
             ->get(route('members.index'))
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->where('canViewMemberCounts', false));
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('canViewStatistics', false));
     }
 }

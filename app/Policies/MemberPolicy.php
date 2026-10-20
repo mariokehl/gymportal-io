@@ -16,10 +16,10 @@ class MemberPolicy
     }
 
     /**
-     * Determine whether the user can see aggregate member counts
-     * (active members, total members). Staff only sees individual records.
+     * Determine whether the user can see aggregate gym statistics
+     * (member counts, revenue). Staff only sees individual records.
      */
-    public function viewCounts(User $user): bool
+    public function viewStatistics(User $user): bool
     {
         return $user->isOwner() || $user->isAdmin();
     }

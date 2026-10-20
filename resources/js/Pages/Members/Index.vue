@@ -210,7 +210,7 @@
         <Pagination
           :data="members"
           item-label="Mitglieder"
-          :hide-total="!canViewMemberCounts"
+          :hide-total="!canViewStatistics"
           :is-loading="isProcessing"
           @navigate="handlePaginationEvent"
         />
@@ -326,7 +326,7 @@ import { aggregatorFilterOptions } from '@/utils/aggregators'
 const props = defineProps({
   members: Object,
   filters: Object,
-  canViewMemberCounts: Boolean
+  canViewStatistics: Boolean
 })
 
 // Reactive data

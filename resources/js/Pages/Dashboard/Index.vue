@@ -8,7 +8,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-white p-6 rounded-lg shadow-sm">
                 <div class="flex justify-between items-start">
-                    <div :class="{ 'blur-sm select-none': !isOwnerOrAdmin && stat.title === 'Monatsumsatz' }">
+                    <div>
                         <p class="text-sm text-gray-500">{{ stat.title }}</p>
                         <!-- Value is redacted server-side for staff; render a blurred placeholder instead -->
                         <div v-if="isRedacted(stat)" class="blur-sm select-none" aria-hidden="true">
@@ -95,7 +95,7 @@
                 <div class="mt-4 flex justify-between items-center">
                     <p class="text-sm text-gray-500">
                         Zeige 1-{{ props.members.length }} von
-                        <span v-if="canViewMemberCounts">{{ totalMembers }}</span>
+                        <span v-if="canViewStatistics">{{ totalMembers }}</span>
                         <span v-else class="blur-sm select-none" aria-hidden="true">000</span>
                         Mitgliedern
                     </p>
@@ -177,8 +177,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3'
+import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
@@ -189,14 +188,6 @@ import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate } from '@/utils/formatters'
 
-// Reactive data
-const page = usePage()
-
-const isOwnerOrAdmin = computed(() => {
-    const user = page.props.auth.user
-    return user?.role_id === 1 || user?.role_id === 2
-})
-
 // Props
 const props = defineProps({
     user: {
@@ -205,13 +196,15 @@ const props = defineProps({
     },
     members: Array,
     totalMembers: Number,
-    canViewMemberCounts: Boolean,
+    canViewStatistics: Boolean,
     stats: Object,
     notifications: Array,
     activeCheckIns: Array
 })
 
-const isRedacted = (stat) => stat.key === 'active_members' && !props.canViewMemberCounts
+const REDACTED_STAT_KEYS = ['active_members', 'monthly_revenue']
+
+const isRedacted = (stat) => REDACTED_STAT_KEYS.includes(stat.key) && !props.canViewStatistics
 
 // Methods
 const getIcon = (iconName) => {

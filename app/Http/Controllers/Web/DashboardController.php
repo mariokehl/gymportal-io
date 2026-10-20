@@ -56,9 +56,9 @@ class DashboardController extends Controller
         $stats = $this->memberService->getDashboardStats($user->current_gym_id);
         $totalMembers = $stats['detailed_stats']['total_members'];
 
-        $canViewMemberCounts = $user->can('viewCounts', Member::class);
-        if (! $canViewMemberCounts) {
-            $stats = $this->memberService->redactMemberCounts($stats);
+        $canViewStatistics = $user->can('viewStatistics', Member::class);
+        if (! $canViewStatistics) {
+            $stats = $this->memberService->redactStatistics($stats);
             $totalMembers = null;
         }
 
@@ -106,7 +106,7 @@ class DashboardController extends Controller
             'notifications' => $notifications,
             'activeCheckIns' => $activeCheckIns,
             'totalMembers' => $totalMembers,
-            'canViewMemberCounts' => $canViewMemberCounts,
+            'canViewStatistics' => $canViewStatistics,
             'filters' => [
                 'search' => request('search'),
                 'status' => request('status'),

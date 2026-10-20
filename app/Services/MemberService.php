@@ -13,6 +13,12 @@ use Illuminate\Support\Str;
 
 class MemberService
 {
+    /**
+     * Dashboard stat keys whose values are hidden from users without
+     * permission to view aggregate statistics.
+     */
+    private const REDACTED_STAT_KEYS = ['active_members', 'monthly_revenue'];
+
     public function __construct(
         private readonly MemberMailDispatcher $mailDispatcher,
     ) {}
@@ -279,6 +285,7 @@ class MemberService
                 'color' => 'blue',
             ],
             [
+                'key' => 'monthly_revenue',
                 'title' => 'Monatsumsatz',
                 'value' => number_format($monthlyRevenue, 2, ',', '.').' €',
                 'change' => $this->calculatePercentageChange($monthlyRevenue, $lastMonthRevenue),
@@ -514,13 +521,13 @@ class MemberService
     }
 
     /**
-     * Strip aggregate member counts from dashboard stats for users who
-     * must not see them. Only the payload the dashboard renders is kept.
+     * Strip aggregate member counts and revenue from dashboard stats for
+     * users who must not see them. Only the payload the dashboard renders is kept.
      */
-    public function redactMemberCounts(array $stats): array
+    public function redactStatistics(array $stats): array
     {
         $mainStats = array_map(function (array $stat): array {
-            if (($stat['key'] ?? null) === 'active_members') {
+            if (in_array($stat['key'] ?? null, self::REDACTED_STAT_KEYS, true)) {
                 $stat['value'] = null;
                 $stat['change'] = null;
             }
