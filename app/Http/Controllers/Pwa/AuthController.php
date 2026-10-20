@@ -182,9 +182,7 @@ class AuthController extends Controller
         // On multiple matches (same email at several locations) pick the member
         // the code was issued for
         /** @var Member|null $member */
-        $member = $candidates->first(
-            fn (Member $candidate) => LoginCode::findValidCode($request->code, $candidate->id) !== null
-        ) ?? $candidates->first();
+        $member = app(LoginCodeVerifier::class)->accountWithPendingCode($candidates);
 
         if (!$member) {
             RateLimiter::hit($key, 300);

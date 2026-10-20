@@ -134,4 +134,41 @@ class LoginCodeBruteForceTest extends TestCase
 
         $this->verify('424242')->assertStatus(422);
     }
+
+    #[Test]
+    public function wrong_entries_count_against_the_right_account_across_locations(): void
+    {
+        // Same address at two locations of one owner; the code is issued for
+        // the sibling location's account.
+        $sibling = Gym::factory()->create(['owner_id' => $this->gym->owner_id]);
+        $siblingMember = Member::factory()->create([
+            'gym_id' => $sibling->id,
+            'email' => 'test@example.com',
+            'status' => 'active',
+        ]);
+        $loginCode = LoginCode::createForMember($siblingMember);
+        $crossLocationApp = ['X-Client-Type' => 'branded-app', 'X-App-Version' => '1.0.2'];
+
+        for ($i = 0; $i < LoginCodeVerifier::MAX_FAILED_ATTEMPTS; $i++) {
+            $this->fromNewIp()
+                ->withHeaders($crossLocationApp)
+                ->postJson('/api/pwa/auth/verify-code', [
+                    'email' => 'test@example.com',
+                    'code' => $this->wrongCode($loginCode),
+                    'gym_slug' => $this->gym->slug,
+                ])
+                ->assertStatus(422);
+        }
+
+        $this->fromNewIp()
+            ->withHeaders($crossLocationApp)
+            ->postJson('/api/pwa/auth/verify-code', [
+                'email' => 'test@example.com',
+                'code' => $loginCode->code,
+                'gym_slug' => $this->gym->slug,
+            ])
+            ->assertStatus(422);
+
+        $this->assertTrue($loginCode->fresh()->used);
+    }
 }

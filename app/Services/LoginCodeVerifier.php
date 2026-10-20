@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\LoginCode;
 use App\Models\Member;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -33,6 +34,32 @@ class LoginCodeVerifier
      * code never expires, so it needs its own cap.
      */
     public const MAX_STATIC_FAILURES_PER_HOUR = 10;
+
+    /**
+     * Pick the account a login code was issued for when one address matches
+     * several (same email at several locations).
+     *
+     * Decided by the most recently issued valid code, never by the entered
+     * code: trying the entry against every account would only count wrong
+     * entries against one of them, leaving the others open to guessing.
+     *
+     * @param  Collection<int, Member>  $candidates
+     */
+    public function accountWithPendingCode(Collection $candidates): ?Member
+    {
+        if ($candidates->count() <= 1) {
+            return $candidates->first();
+        }
+
+        $latest = LoginCode::whereIn('member_id', $candidates->pluck('id'))
+            ->valid()
+            ->latest('id')
+            ->first();
+
+        return $latest
+            ? $candidates->firstWhere('id', $latest->member_id)
+            : $candidates->first();
+    }
 
     public function mayIssueCode(Member $member): bool
     {
