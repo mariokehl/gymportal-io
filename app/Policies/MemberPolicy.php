@@ -16,6 +16,15 @@ class MemberPolicy
     }
 
     /**
+     * Determine whether the user can see aggregate member counts
+     * (active members, total members). Staff only sees individual records.
+     */
+    public function viewCounts(User $user): bool
+    {
+        return $user->isOwner() || $user->isAdmin();
+    }
+
+    /**
      * Determine whether the user can view the model.
      */
     public function view(User $user, Member $member): bool

@@ -10,13 +10,20 @@
                 <div class="flex justify-between items-start">
                     <div :class="{ 'blur-sm select-none': !isOwnerOrAdmin && stat.title === 'Monatsumsatz' }">
                         <p class="text-sm text-gray-500">{{ stat.title }}</p>
-                        <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
-                        <span :class="[
-                            'text-sm',
-                            `text-${stat.color}-500`
-                        ]">
-                            {{ stat.change }} gegenüber letztem Monat
-                        </span>
+                        <!-- Value is redacted server-side for staff; render a blurred placeholder instead -->
+                        <div v-if="isRedacted(stat)" class="blur-sm select-none" aria-hidden="true">
+                            <h3 class="text-2xl font-bold mt-1">000</h3>
+                            <span class="text-sm text-gray-500">0% gegenüber letztem Monat</span>
+                        </div>
+                        <template v-else>
+                            <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
+                            <span :class="[
+                                'text-sm',
+                                `text-${stat.color}-500`
+                            ]">
+                                {{ stat.change }} gegenüber letztem Monat
+                            </span>
+                        </template>
                     </div>
                     <div class="p-2 bg-indigo-50 rounded-lg">
                         <component :is="getIcon(stat.icon)" class="w-6 h-6 text-indigo-500" />
@@ -86,7 +93,12 @@
 
                 <!-- Pagination -->
                 <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-500">Zeige 1-{{ props.members.length }} von {{ totalMembers }} Mitgliedern</p>
+                    <p class="text-sm text-gray-500">
+                        Zeige 1-{{ props.members.length }} von
+                        <span v-if="canViewMemberCounts">{{ totalMembers }}</span>
+                        <span v-else class="blur-sm select-none" aria-hidden="true">000</span>
+                        Mitgliedern
+                    </p>
                 </div>
             </div>
 
@@ -193,10 +205,13 @@ const props = defineProps({
     },
     members: Array,
     totalMembers: Number,
+    canViewMemberCounts: Boolean,
     stats: Object,
     notifications: Array,
     activeCheckIns: Array
 })
+
+const isRedacted = (stat) => stat.key === 'active_members' && !props.canViewMemberCounts
 
 // Methods
 const getIcon = (iconName) => {

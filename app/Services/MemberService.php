@@ -264,6 +264,7 @@ class MemberService
 
         return [
             [
+                'key' => 'active_members',
                 'title' => 'Aktive Mitglieder',
                 'value' => $activeMembers,
                 'change' => $this->calculatePercentageChange($activeMembers, $activeMembers - $newMembersThisMonth),
@@ -510,6 +511,28 @@ class MemberService
             'trends' => $trends,
             'last_updated' => Carbon::now()->toISOString(),
         ]);
+    }
+
+    /**
+     * Strip aggregate member counts from dashboard stats for users who
+     * must not see them. Only the payload the dashboard renders is kept.
+     */
+    public function redactMemberCounts(array $stats): array
+    {
+        $mainStats = array_map(function (array $stat): array {
+            if (($stat['key'] ?? null) === 'active_members') {
+                $stat['value'] = null;
+                $stat['change'] = null;
+            }
+
+            return $stat;
+        }, $stats['main_stats']);
+
+        return [
+            'main_stats' => $mainStats,
+            'alerts' => $stats['alerts'] ?? [],
+            'last_updated' => $stats['last_updated'] ?? null,
+        ];
     }
 
     /**
