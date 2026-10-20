@@ -241,6 +241,7 @@ class MemberController extends Controller
         return Inertia::render('Members/Index', [
             'members' => $members,
             'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection', 'outstandingBalance', 'aggregator']),
+            'canViewStatistics' => $request->user()->can('viewStatistics', Member::class),
         ]);
     }
 

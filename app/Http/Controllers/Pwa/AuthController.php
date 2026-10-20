@@ -609,6 +609,7 @@ class AuthController extends Controller
 
         Log::warning('Login blocked: device token already bound to another member', [
             'attempted_member_id' => $member->id,
+            'device_token' => substr($deviceToken, 0, 8).'...',
             'ip' => $request->ip(),
         ]);
 

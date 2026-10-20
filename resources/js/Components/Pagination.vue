@@ -29,7 +29,8 @@
             bis
             <span class="font-medium">{{ data.to || 0 }}</span>
             von
-            <span class="font-medium">{{ data.total }}</span>
+            <span v-if="hideTotal" class="font-medium blur-sm select-none" aria-hidden="true">000</span>
+            <span v-else class="font-medium">{{ data.total }}</span>
             {{ itemLabel }}
           </template>
           <template v-else>
@@ -127,6 +128,11 @@ const props = defineProps({
   itemLabel: {
     type: String,
     default: 'Ergebnisse'
+  },
+  // Blur the total count (e.g. for users without permission to see it)
+  hideTotal: {
+    type: Boolean,
+    default: false
   },
   // Whether to preserve scroll position on navigation
   preserveScroll: {

@@ -16,6 +16,15 @@ class MemberPolicy
     }
 
     /**
+     * Determine whether the user can see aggregate gym statistics
+     * (member counts, revenue). Staff only sees individual records.
+     */
+    public function viewStatistics(User $user): bool
+    {
+        return $user->isOwner() || $user->isAdmin();
+    }
+
+    /**
      * Determine whether the user can view the model.
      */
     public function view(User $user, Member $member): bool
