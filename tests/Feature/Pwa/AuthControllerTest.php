@@ -8,15 +8,22 @@ use App\Models\LoginCode;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\MemberDevice;
+use App\Models\Membership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AuthControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const CROSS_LOCATION_APP_HEADERS = [
+        'X-Client-Type' => 'branded-app',
+        'X-App-Version' => '1.0.2',
+    ];
 
     protected function setUp(): void
     {
@@ -559,6 +566,277 @@ class AuthControllerTest extends TestCase
             ->postJson('/api/pwa/member/upgrade-session', [
                 'code' => '123456',
                 'gym_slug' => $otherGym->slug,
+            ])
+            ->assertStatus(403)
+            ->assertJson(['error_code' => 'INVALID_GYM']);
+    }
+
+    // ------------------------------------------------------------------
+    // Cross-location login (branded app only)
+    // ------------------------------------------------------------------
+
+    /**
+     * Entry gym (as configured in the branded app) plus a sibling gym of the
+     * same owner, with the member belonging to the sibling.
+     */
+    private function createSiblingGymsWithMember(array $memberOverrides = []): array
+    {
+        $entryGym = Gym::factory()->create();
+        $siblingGym = Gym::factory()->create(['owner_id' => $entryGym->owner_id]);
+        $member = Member::factory()->create(array_merge([
+            'gym_id' => $siblingGym->id,
+            'email' => 'test@example.com',
+            'status' => 'active',
+        ], $memberOverrides));
+
+        return [$entryGym, $siblingGym, $member];
+    }
+
+    #[Test]
+    public function send_login_code_finds_member_of_sibling_gym_for_branded_app(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('login_codes', ['member_id' => $member->id]);
+        Mail::assertSent(LoginCodeMail::class);
+    }
+
+    #[Test]
+    public function send_login_code_does_not_search_sibling_gyms_for_pwa(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], ['X-Client-Type' => 'pwa'])
+            ->assertStatus(404)
+            ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
+    }
+
+    #[Test]
+    public function send_login_code_does_not_search_gyms_of_other_owners(): void
+    {
+        $entryGym = Gym::factory()->create();
+        [, $member] = $this->createGymWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertStatus(404)
+            ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
+    }
+
+    #[Test]
+    public function send_login_code_skips_sibling_gyms_without_pwa(): void
+    {
+        $entryGym = Gym::factory()->create();
+        $siblingGym = Gym::factory()->pwaDisabled()->create(['owner_id' => $entryGym->owner_id]);
+        Member::factory()->create([
+            'gym_id' => $siblingGym->id,
+            'email' => 'test@example.com',
+            'status' => 'active',
+        ]);
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => 'test@example.com',
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertStatus(404)
+            ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
+    }
+
+    #[Test]
+    public function send_login_code_prefers_active_membership_across_gyms(): void
+    {
+        [$entryGym, , $activeMember] = $this->createSiblingGymsWithMember();
+        $inactiveMember = Member::factory()->create([
+            'gym_id' => $entryGym->id,
+            'email' => 'test@example.com',
+            'status' => 'inactive',
+        ]);
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => 'test@example.com',
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertOk();
+
+        $this->assertDatabaseHas('login_codes', ['member_id' => $activeMember->id]);
+        $this->assertDatabaseMissing('login_codes', ['member_id' => $inactiveMember->id]);
+    }
+
+    #[Test]
+    public function send_login_code_prefers_member_with_active_membership_over_requested_gym(): void
+    {
+        [$entryGym, , $siblingMember] = $this->createSiblingGymsWithMember();
+        $entryMember = Member::factory()->create([
+            'gym_id' => $entryGym->id,
+            'email' => 'test@example.com',
+            'status' => 'active',
+        ]);
+        Membership::factory()->create(['member_id' => $siblingMember->id, 'status' => 'active']);
+        Membership::factory()->create(['member_id' => $entryMember->id, 'status' => 'cancelled']);
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => 'test@example.com',
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertOk();
+
+        $this->assertDatabaseHas('login_codes', ['member_id' => $siblingMember->id]);
+        $this->assertDatabaseMissing('login_codes', ['member_id' => $entryMember->id]);
+    }
+
+    #[Test]
+    public function verify_code_logs_into_sibling_gym_for_branded_app(): void
+    {
+        [$entryGym, $siblingGym, $member] = $this->createSiblingGymsWithMember();
+        $loginCode = LoginCode::createForMember($member);
+
+        $this->postJson('/api/pwa/auth/verify-code', [
+            'email' => $member->email,
+            'code' => $loginCode->code,
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertOk()
+            ->assertJsonPath('token_type', 'full')
+            ->assertJsonPath('gym.slug', $siblingGym->slug)
+            ->assertJsonPath('member.gym.slug', $siblingGym->slug);
+    }
+
+    #[Test]
+    public function verify_code_picks_member_the_code_was_issued_for(): void
+    {
+        [$entryGym, , $siblingMember] = $this->createSiblingGymsWithMember();
+        Member::factory()->create([
+            'gym_id' => $entryGym->id,
+            'email' => 'test@example.com',
+            'status' => 'active',
+        ]);
+        $loginCode = LoginCode::createForMember($siblingMember);
+
+        $this->postJson('/api/pwa/auth/verify-code', [
+            'email' => 'test@example.com',
+            'code' => $loginCode->code,
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertOk()
+            ->assertJsonPath('member.id', $siblingMember->id);
+    }
+
+    #[Test]
+    public function link_contract_anonymous_finds_member_of_sibling_gym_for_branded_app(): void
+    {
+        [$entryGym, $siblingGym, $member] = $this->createSiblingGymsWithMember(['birth_date' => '1990-01-01']);
+
+        $this->postJson('/api/pwa/auth/link-contract-anonymous', [
+            'email' => $member->email,
+            'birth_date' => '1990-01-01',
+            'gym_slug' => $entryGym->slug,
+        ], self::CROSS_LOCATION_APP_HEADERS)
+            ->assertOk()
+            ->assertJsonPath('token_type', 'anonymous')
+            ->assertJsonPath('member.gym.slug', $siblingGym->slug);
+    }
+
+    #[Test]
+    public function upgrade_session_accepts_sibling_gym_for_branded_app(): void
+    {
+        [$entryGym, $siblingGym, $member] = $this->createSiblingGymsWithMember();
+        $loginCode = LoginCode::createForMember($member);
+        $anonToken = $member->createToken('anon', ['member-pwa', 'anonymous'])->plainTextToken;
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $anonToken,
+            ...self::CROSS_LOCATION_APP_HEADERS,
+        ])
+            ->postJson('/api/pwa/member/upgrade-session', [
+                'code' => $loginCode->code,
+                'gym_slug' => $entryGym->slug,
+            ])
+            ->assertOk()
+            ->assertJsonPath('token_type', 'full')
+            ->assertJsonPath('member.gym.slug', $siblingGym->slug);
+    }
+
+    #[Test]
+    public function upgrade_session_rejects_sibling_gym_for_pwa(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+        $anonToken = $member->createToken('anon', ['member-pwa', 'anonymous'])->plainTextToken;
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $anonToken,
+            'X-Client-Type' => 'pwa',
+        ])
+            ->postJson('/api/pwa/member/upgrade-session', [
+                'code' => '123456',
+                'gym_slug' => $entryGym->slug,
+            ])
+            ->assertStatus(403)
+            ->assertJson(['error_code' => 'INVALID_GYM']);
+    }
+
+    public static function appVersionsWithoutCrossLocationLogin(): array
+    {
+        return [
+            'missing version' => [[]],
+            'older version' => [['X-App-Version' => '1.0.1']],
+            'malformed version' => [['X-App-Version' => 'abc']],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('appVersionsWithoutCrossLocationLogin')]
+    public function send_login_code_does_not_search_sibling_gyms_for_older_branded_apps(array $versionHeader): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], ['X-Client-Type' => 'branded-app', ...$versionHeader])
+            ->assertStatus(404)
+            ->assertJson(['error_code' => 'MEMBER_NOT_FOUND']);
+    }
+
+    #[Test]
+    public function send_login_code_searches_sibling_gyms_for_newer_branded_apps(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+
+        $this->postJson('/api/pwa/auth/send-code', [
+            'email' => $member->email,
+            'gym_slug' => $entryGym->slug,
+        ], ['X-Client-Type' => 'branded-app', 'X-App-Version' => '1.1.0'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('login_codes', ['member_id' => $member->id]);
+    }
+
+    #[Test]
+    public function upgrade_session_rejects_sibling_gym_for_older_branded_apps(): void
+    {
+        [$entryGym, , $member] = $this->createSiblingGymsWithMember();
+        $anonToken = $member->createToken('anon', ['member-pwa', 'anonymous'])->plainTextToken;
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $anonToken,
+            'X-Client-Type' => 'branded-app',
+            'X-App-Version' => '1.0.1',
+        ])
+            ->postJson('/api/pwa/member/upgrade-session', [
+                'code' => '123456',
+                'gym_slug' => $entryGym->slug,
             ])
             ->assertStatus(403)
             ->assertJson(['error_code' => 'INVALID_GYM']);
