@@ -170,7 +170,33 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ scanner.addon?.name || '—' }}
+                                    <template v-if="linkedAddons(scanner).length === 1">
+                                        {{ linkedAddons(scanner)[0].name }}
+                                    </template>
+                                    <Tooltip
+                                        v-else-if="linkedAddons(scanner).length > 1"
+                                        position="top"
+                                        teleport
+                                    >
+                                        <span class="underline decoration-dotted underline-offset-2 cursor-default">
+                                            {{ linkedAddons(scanner).length }} Leistungen
+                                        </span>
+                                        <template #content>
+                                            <div
+                                                v-for="group in groupAddonsByLocation(linkedAddons(scanner), gymId)"
+                                                :key="group.gymId"
+                                                class="not-first:mt-2"
+                                            >
+                                                <p class="font-bold uppercase">
+                                                    {{ group.isOwnLocation ? 'Dieser Standort' : (group.gymName ?? 'Anderer Standort') }}
+                                                </p>
+                                                <p v-for="addon in group.addons" :key="addon.id">
+                                                    {{ addon.name }}
+                                                </p>
+                                            </div>
+                                        </template>
+                                    </Tooltip>
+                                    <template v-else>—</template>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                                     {{ scanner.ip_address || '-' }}
@@ -303,7 +329,7 @@
                             </div>
 
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Verknüpfte Nutzungsleistung <span class="text-red-500">*</span>
+                                Verknüpfte Nutzungsleistungen <span class="text-red-500">*</span>
                             </label>
 
                             <p v-if="usageAddons.length === 0" class="text-sm text-gray-600">
@@ -312,19 +338,37 @@
                             </p>
 
                             <template v-else>
-                                <select
-                                    v-model="form.addon_id"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option :value="null" disabled>Bitte wählen</option>
-                                    <option v-for="addon in usageAddons" :key="addon.id" :value="addon.id">
-                                        {{ addon.name }}
-                                    </option>
-                                </select>
+                                <div class="bg-white border border-gray-300 rounded-md divide-y divide-gray-100 max-h-60 overflow-y-auto">
+                                    <div v-for="group in usageAddonGroups" :key="group.gymId" class="p-3">
+                                        <p
+                                            v-if="hasForeignAddons"
+                                            class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                        >
+                                            {{ group.isOwnLocation ? 'Dieser Standort' : group.gymName }}
+                                        </p>
+                                        <label
+                                            v-for="addon in group.addons"
+                                            :key="addon.id"
+                                            class="flex items-center py-1 cursor-pointer"
+                                        >
+                                            <input
+                                                v-model="form.addon_ids"
+                                                type="checkbox"
+                                                :value="addon.id"
+                                                class="rounded text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <span class="ml-2 text-sm text-gray-700">{{ addon.name }}</span>
+                                        </label>
+                                    </div>
+                                </div>
                                 <p class="mt-1.5 text-xs text-gray-600">
                                     Beim Zapfvorgang wird geprüft, ob das Mitglied ein gültiges
-                                    Kontingent dieser Leistung besitzt.
+                                    Kontingent einer der ausgewählten Leistungen besitzt.
+                                    <template v-if="hasForeignAddons">
+                                        Leistungen anderer Standorte gelten nur für Mitglieder dieses
+                                        Standorts und werden nur angeboten, wenn Ihr Standort deren
+                                        Mitglieder zum Check-in zulässt.
+                                    </template>
                                 </p>
 
                                 <div class="mt-3 bg-white border border-gray-200 rounded-lg p-3">
@@ -489,7 +533,7 @@
                             <button
                                 v-if="!newApiToken"
                                 type="submit"
-                                :disabled="isSaving"
+                                :disabled="isSaving || missingAddonLink"
                                 class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
                             >
                                 {{ isSaving ? 'Speichern...' : (editingScanner ? 'Speichern' : 'Erstellen') }}
@@ -581,6 +625,7 @@ import {
     deviceTaskLabel,
     isAddonLinkedTask
 } from '@/utils/deviceTasks'
+import { groupAddonsByLocation, linkedAddons } from '@/utils/scannerAddons'
 import { defaultTokenExpiry, tokenExpiryState, tokenExpiryWarning } from '@/utils/scannerToken'
 import { formatDateForInput } from '@/utils/formatters'
 
@@ -623,12 +668,24 @@ const isRegeneratingKey = ref(false)
 const form = reactive({
     device_name: '',
     device_task: DEFAULT_DEVICE_TASK,
-    addon_id: null,
+    addon_ids: [],
     enforce_quota: true,
     allowed_ips: [],
     token_expires_at: '',
     is_active: true
 })
+
+// Usage add-ons grouped by location, the scanner's own location first.
+const usageAddonGroups = computed(() => groupAddonsByLocation(props.usageAddons, props.gymId))
+
+// Checkboxes cannot be marked required, so the button guards the add-on link.
+const missingAddonLink = computed(() =>
+    isAddonLinkedTask(form.device_task) && form.addon_ids.length === 0
+)
+
+const hasForeignAddons = computed(() => usageAddonGroups.value.some(group => !group.isOwnLocation))
+
+const scannerAddonIds = (scanner) => linkedAddons(scanner).map(addon => addon.id)
 
 // Separate from the form: the payload carries null, not a flag.
 const tokenNeverExpires = ref(false)
@@ -650,7 +707,7 @@ watch(tokenNeverExpires, (never) => {
 const resetForm = () => {
     form.device_name = ''
     form.device_task = DEFAULT_DEVICE_TASK
-    form.addon_id = null
+    form.addon_ids = []
     form.enforce_quota = true
     form.allowed_ips = []
     form.token_expires_at = defaultTokenExpiry()
@@ -669,7 +726,10 @@ const openEditModal = (scanner) => {
     editingScanner.value = scanner
     form.device_name = scanner.device_name
     form.device_task = scanner.device_task || DEFAULT_DEVICE_TASK
-    form.addon_id = scanner.addon_id ?? null
+    // Links the location no longer offers (add-on deactivated, sibling
+    // location closed) are dropped here, so saving does not fail on them.
+    form.addon_ids = scannerAddonIds(scanner)
+        .filter(id => props.usageAddons.some(addon => addon.id === id))
     form.enforce_quota = scanner.enforce_quota ?? true
     form.allowed_ips = scanner.allowed_ips ? [...scanner.allowed_ips] : []
     // Existing devices keep what they have — an unset expiry stays unset
@@ -706,8 +766,8 @@ const saveScanner = async () => {
         const data = {
             device_name: form.device_name,
             device_task: form.device_task,
-            // The add-on link and the quota mode only apply to add-on linked tasks.
-            addon_id: isAddonLinked ? form.addon_id : null,
+            // The add-on links and the quota mode only apply to add-on linked tasks.
+            addon_ids: isAddonLinked ? form.addon_ids : [],
             enforce_quota: isAddonLinked ? form.enforce_quota : true,
             allowed_ips: form.allowed_ips.filter(ip => ip.trim() !== ''),
             // null tells the API the token never expires.

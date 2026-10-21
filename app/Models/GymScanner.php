@@ -360,6 +360,50 @@ class GymScanner extends Model
         return $this->belongsTo(Addon::class);
     }
 
+    /**
+     * Every usage add-on this device settles against. May include add-ons of
+     * sibling locations whose members are admitted here.
+     */
+    public function addons()
+    {
+        return $this->belongsToMany(Addon::class)->withTimestamps();
+    }
+
+    /**
+     * IDs of the add-ons this device settles against.
+     *
+     * Falls back to the single addon_id for devices whose link was written
+     * without the pivot — during a rolling deploy, or by code that predates
+     * multiple links.
+     *
+     * @return array<int>
+     */
+    public function linkedAddonIds(): array
+    {
+        $ids = $this->addons->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        if ($ids === [] && $this->addon_id) {
+            return [(int) $this->addon_id];
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Replace the linked add-ons. The first one is mirrored into addon_id,
+     * which keeps the single link readable for everything still using it.
+     *
+     * @param  array<int>  $addonIds
+     */
+    public function syncAddons(array $addonIds): void
+    {
+        $addonIds = array_values(array_unique(array_map('intval', $addonIds)));
+
+        $this->addons()->sync($addonIds);
+        $this->update(['addon_id' => $addonIds[0] ?? null]);
+        $this->unsetRelation('addons');
+    }
+
     public function accessLogs()
     {
         return $this->hasMany(ScannerAccessLog::class, 'device_number', 'device_number')

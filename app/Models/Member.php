@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
@@ -273,6 +274,43 @@ class Member extends Authenticatable
      */
     public function hasActiveAddon(int $addonId): bool
     {
+        return $this->activeAddonsQuery([$addonId])->exists();
+    }
+
+    /**
+     * The first of $addonIds this member may currently use, in the given
+     * order, or null if none. Same rules as hasActiveAddon().
+     *
+     * @param  array<int>  $addonIds
+     */
+    public function firstActiveAddonId(array $addonIds): ?int
+    {
+        if ($addonIds === []) {
+            return null;
+        }
+
+        $usable = $this->activeAddonsQuery($addonIds)
+            ->distinct()
+            ->pluck('addon_membership.addon_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        foreach ($addonIds as $addonId) {
+            if (in_array((int) $addonId, $usable, true)) {
+                return (int) $addonId;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Bookings of $addonIds the member may use today, see hasActiveAddon().
+     *
+     * @param  array<int>  $addonIds
+     */
+    private function activeAddonsQuery(array $addonIds): QueryBuilder
+    {
         $today = now()->startOfDay();
 
         return DB::table('addon_membership')
@@ -280,7 +318,7 @@ class Member extends Authenticatable
             ->join('memberships', 'memberships.id', '=', 'addon_membership.membership_id')
             ->where('memberships.member_id', $this->id)
             ->whereNull('memberships.deleted_at')
-            ->where('addon_membership.addon_id', $addonId)
+            ->whereIn('addon_membership.addon_id', $addonIds)
             ->where('addons.is_active', true)
             // Booked, and its free trial month or its contract has begun.
             // booked_at carries the real booking date on imported contracts and
@@ -297,8 +335,7 @@ class Member extends Authenticatable
             ->where(function ($query) use ($today) {
                 $query->whereNull('addon_membership.cancellation_effective_at')
                     ->orWhereDate('addon_membership.cancellation_effective_at', '>=', $today);
-            })
-            ->exists();
+            });
     }
 
     /**
