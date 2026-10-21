@@ -10,12 +10,14 @@ use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\ScannerAccessLog;
 use App\Services\CrossLocationAccessService;
+use App\Services\DeviceAccessService;
 use App\Services\GoogleSheetsService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,6 +27,11 @@ class AccessControlController extends Controller
     use AuthorizesRequests;
 
     /**
+     * Add-on links loaded with every scanner handed to the UI.
+     */
+    private const SCANNER_ADDON_RELATIONS = ['addon:id,name', 'addons:id,gym_id,name', 'addons.gym:id,name'];
+
+    /**
      * Memoised location names of the current organisation.
      *
      * @var array<int, string>|null
@@ -32,7 +39,8 @@ class AccessControlController extends Controller
     private ?array $organizationGymNames = null;
 
     public function __construct(
-        private CrossLocationAccessService $crossLocationService
+        private CrossLocationAccessService $crossLocationService,
+        private DeviceAccessService $deviceAccessService
     ) {}
 
     /**
@@ -43,7 +51,7 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
 
         $scanners = $gym->scanners()
-            ->with('addon:id,name')
+            ->with(self::SCANNER_ADDON_RELATIONS)
             ->selectRaw('gym_scanners.*')
             ->selectSub(
                 ScannerAccessLog::selectRaw('COUNT(*)')
@@ -80,13 +88,29 @@ class AccessControlController extends Controller
 
         $statistics = ScannerAccessLog::getStatistics($gym->id, now()->startOfDay(), now());
 
-        // Usage add-ons a dispenser or area-control device can settle against.
-        $usageAddons = Addon::where('gym_id', $gym->id)
-            ->usageServices()
+        // Usage add-ons a dispenser or area-control device can settle against:
+        // the location's own, then those of the sibling locations it admits.
+        $gymNames = $this->organizationGymNames();
+        $usageAddons = $this->deviceAccessService->linkableAddons($gym)
             ->active()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'price', 'quota_amount', 'quota_interval']);
+            ->get(['id', 'gym_id', 'name', 'price', 'quota_amount', 'quota_interval', 'sort_order'])
+            ->sortBy([
+                fn ($a, $b) => ((int) $b->gym_id === $gym->id) <=> ((int) $a->gym_id === $gym->id),
+                fn ($a, $b) => ($gymNames[$a->gym_id] ?? '') <=> ($gymNames[$b->gym_id] ?? ''),
+                ['sort_order', 'asc'],
+                ['name', 'asc'],
+            ])
+            ->map(fn (Addon $addon) => [
+                'id' => $addon->id,
+                'gym_id' => $addon->gym_id,
+                'gym_name' => $gymNames[$addon->gym_id] ?? null,
+                'is_own_location' => (int) $addon->gym_id === $gym->id,
+                'name' => $addon->name,
+                'price' => $addon->price,
+                'quota_amount' => $addon->quota_amount,
+                'quota_interval' => $addon->quota_interval,
+            ])
+            ->values();
 
         return Inertia::render('AccessControl/Index', [
             'scanners' => $scanners,
@@ -429,21 +453,27 @@ class AccessControlController extends Controller
         $gym = Auth::user()->currentGym;
         $this->authorize('manage', $gym);
 
-        $validated = $request->validate($this->deviceRules($request, $gym));
+        $this->mergeLegacyAddonId($request);
+        $validated = $request->validate($this->deviceRules($request, $gym), $this->deviceMessages());
 
         // Filter empty IP values
         $allowedIps = array_filter($validated['allowed_ips'] ?? []);
 
-        $scanner = $gym->scanners()->create($this->deviceAttributes($validated) + [
-            'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
-            'token_expires_at' => $validated['token_expires_at'] ?? null,
-            'is_active' => true,
-        ]);
+        $scanner = DB::transaction(function () use ($gym, $validated, $allowedIps) {
+            $scanner = $gym->scanners()->create($this->deviceAttributes($validated) + [
+                'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
+                'token_expires_at' => $validated['token_expires_at'] ?? null,
+                'is_active' => true,
+            ]);
+            $scanner->syncAddons($this->linkedAddonIds($validated));
+
+            return $scanner;
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Gerät erfolgreich angelegt',
-            'scanner' => $scanner->load('addon:id,name'),
+            'scanner' => $scanner->load(self::SCANNER_ADDON_RELATIONS),
             // Only chance to hand out the token — stored is its hash alone.
             'api_token' => $scanner->getPlainTextToken(),
         ]);
@@ -457,18 +487,21 @@ class AccessControlController extends Controller
         return [
             'device_name' => 'required|string|max:255',
             'device_task' => ['required', Rule::in(GymScanner::DEVICE_TASKS)],
-            'addon_id' => [
+            'addon_ids' => [
                 Rule::requiredIf(fn () => in_array(
                     $request->input('device_task'),
                     GymScanner::ADDON_LINKED_TASKS,
                     true
                 )),
                 'nullable',
-                // Only usage add-ons of the current gym may be linked.
-                Rule::exists('addons', 'id')
-                    ->where('gym_id', $gym->id)
-                    ->where('service_type', Addon::SERVICE_TYPE_USAGE)
-                    ->whereNull('deleted_at'),
+                'array',
+            ],
+            // Only usage add-ons of this location, or of a sibling location
+            // whose members it admits, may be linked.
+            'addon_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::in($this->deviceAccessService->linkableAddons($gym)->pluck('id')->all()),
             ],
             'enforce_quota' => 'boolean',
             'allowed_ips' => 'nullable|array',
@@ -479,24 +512,56 @@ class AccessControlController extends Controller
         ];
     }
 
+    private function deviceMessages(): array
+    {
+        return [
+            'addon_ids.required' => 'Bitte wählen Sie mindestens eine Nutzungsleistung aus.',
+            'addon_ids.*.in' => 'Diese Nutzungsleistung kann mit dem Gerät nicht verknüpft werden.',
+        ];
+    }
+
     /**
-     * Normalise the task-dependent attributes. The add-on link and the quota
-     * mode only apply to devices that settle against a usage add-on.
+     * Accept the single addon_id clients sent before a device could settle
+     * against several add-ons. Ignored once addon_ids is present.
+     */
+    private function mergeLegacyAddonId(Request $request): void
+    {
+        if (! $request->has('addon_ids') && $request->filled('addon_id')) {
+            $request->merge(['addon_ids' => [$request->input('addon_id')]]);
+        }
+    }
+
+    /**
+     * Normalise the task-dependent attributes. The quota mode only applies
+     * to devices that settle against a usage add-on; the add-on links
+     * themselves are written by GymScanner::syncAddons().
      */
     private function deviceAttributes(array $validated): array
     {
-        $isAddonLinked = in_array(
-            $validated['device_task'],
-            GymScanner::ADDON_LINKED_TASKS,
-            true
-        );
-
         return [
             'device_name' => $validated['device_name'],
             'device_task' => $validated['device_task'],
-            'addon_id' => $isAddonLinked ? $validated['addon_id'] : null,
-            'enforce_quota' => $isAddonLinked ? ($validated['enforce_quota'] ?? true) : true,
+            'enforce_quota' => $this->isAddonLinkedTask($validated)
+                ? ($validated['enforce_quota'] ?? true)
+                : true,
         ];
+    }
+
+    /**
+     * The add-ons to link, empty for tasks that do not settle against one.
+     *
+     * @return array<int>
+     */
+    private function linkedAddonIds(array $validated): array
+    {
+        return $this->isAddonLinkedTask($validated)
+            ? array_map('intval', $validated['addon_ids'] ?? [])
+            : [];
+    }
+
+    private function isAddonLinkedTask(array $validated): bool
+    {
+        return in_array($validated['device_task'], GymScanner::ADDON_LINKED_TASKS, true);
     }
 
     /**
@@ -511,25 +576,30 @@ class AccessControlController extends Controller
             abort(403);
         }
 
+        $this->mergeLegacyAddonId($request);
         $validated = $request->validate(
-            $this->deviceRules($request, $gym) + ['is_active' => 'boolean']
+            $this->deviceRules($request, $gym) + ['is_active' => 'boolean'],
+            $this->deviceMessages()
         );
 
         // Filter empty IP values
         $allowedIps = array_filter($validated['allowed_ips'] ?? []);
 
-        $scanner->update($this->deviceAttributes($validated) + [
-            'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
-            'is_active' => $validated['is_active'] ?? $scanner->is_active,
-            // Sent as null when "never expires" is ticked, so it has to be
-            // written through rather than defaulted to the current value.
-            'token_expires_at' => $validated['token_expires_at'] ?? null,
-        ]);
+        DB::transaction(function () use ($scanner, $validated, $allowedIps) {
+            $scanner->update($this->deviceAttributes($validated) + [
+                'allowed_ips' => ! empty($allowedIps) ? array_values($allowedIps) : null,
+                'is_active' => $validated['is_active'] ?? $scanner->is_active,
+                // Sent as null when "never expires" is ticked, so it has to be
+                // written through rather than defaulted to the current value.
+                'token_expires_at' => $validated['token_expires_at'] ?? null,
+            ]);
+            $scanner->syncAddons($this->linkedAddonIds($validated));
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Gerät erfolgreich aktualisiert',
-            'scanner' => $scanner->fresh()->load('addon:id,name'),
+            'scanner' => $scanner->fresh()->load(self::SCANNER_ADDON_RELATIONS),
         ]);
     }
 
@@ -879,8 +949,10 @@ class AccessControlController extends Controller
             'DEVICE_NUMBER="'.$scanner->device_number.'"',
             'DEVICE_TASK="'.$scanner->device_task.'"',
             '',
-            '# Usage service settled by this device (dispenser / area control)',
+            '# Usage services settled by this device (dispenser / area control).',
+            '# ADDON_ID holds the first of ADDON_IDS for older clients.',
             'ADDON_ID="'.($scanner->addon_id ?? '').'"',
+            'ADDON_IDS="'.implode(',', $scanner->linkedAddonIds()).'"',
             'ENFORCE_QUOTA='.($scanner->enforce_quota ? 'True' : 'False'),
             '',
             '# Security Configuration',

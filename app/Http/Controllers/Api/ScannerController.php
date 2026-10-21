@@ -218,7 +218,7 @@ class ScannerController extends Controller
 
                 // Add-ons are only sold together with a membership, so there is
                 // nothing for a guest to get at a dispenser.
-                [$serviceAllowed, $serviceDenial] = $this->deviceAccessService->check(
+                [$serviceAllowed, $serviceDenial, $servedAddonId] = $this->deviceAccessService->check(
                     $scanner,
                     $member,
                     null
@@ -302,7 +302,7 @@ class ScannerController extends Controller
 
                 // Now check whether the device's service (e.g. drink package)
                 // has been booked as well.
-                [$serviceAllowed, $serviceDenial] = $this->deviceAccessService->check(
+                [$serviceAllowed, $serviceDenial, $servedAddonId] = $this->deviceAccessService->check(
                     $scanner,
                     $member,
                     $activeMembership
@@ -338,7 +338,7 @@ class ScannerController extends Controller
                     $nfcCardId,
                     $member->gym_id
                 );
-                $this->deviceAccessService->logUsage($scanner, $member, $scanType, true);
+                $this->deviceAccessService->logUsage($scanner, $member, $scanType, true, null, $servedAddonId);
 
                 // A dispenser scan is not a gym visit — only access devices
                 // write a check-in.
@@ -663,15 +663,17 @@ class ScannerController extends Controller
      * debounce window, if there is one.
      *
      * A dispenser tends to fire several scans while the member holds the code
-     * in front of the reader. Only a grant for the *same* add-on counts —
-     * having drawn a drink says nothing about the sauna next door.
+     * in front of the reader. Only a grant for one of the device's own add-ons
+     * counts — having drawn a drink says nothing about the sauna next door.
      */
     private function recentAddonAccess(GymScanner $scanner, Member $member): ?MemberAccessLog
     {
         // Without a linked add-on there is nothing to match against, and any
         // scan would collapse onto the same window. check() denies these
         // devices anyway.
-        if (! $scanner->addon_id) {
+        $addonIds = $scanner->linkedAddonIds();
+
+        if ($addonIds === []) {
             return null;
         }
 
@@ -679,7 +681,7 @@ class ScannerController extends Controller
             ->accessAttempts()
             ->successful()
             ->forService(MemberAccessLog::SERVICE_ADDON)
-            ->where('metadata->addon_id', $scanner->addon_id)
+            ->whereIn('metadata->addon_id', $addonIds)
             ->where('accessed_at', '>=', now()->subSeconds(self::ADDON_DEBOUNCE_SECONDS))
             ->latest('accessed_at')
             ->first();

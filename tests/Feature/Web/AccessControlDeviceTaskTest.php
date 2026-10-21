@@ -129,7 +129,7 @@ class AccessControlDeviceTaskTest extends TestCase
                 'device_task' => GymScanner::TASK_DISPENSER,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('addon_id');
+            ->assertJsonValidationErrors('addon_ids');
     }
 
     #[Test]
@@ -143,7 +143,7 @@ class AccessControlDeviceTaskTest extends TestCase
                 'device_task' => GymScanner::TASK_AREA_CONTROL,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('addon_id');
+            ->assertJsonValidationErrors('addon_ids');
     }
 
     #[Test]
@@ -174,7 +174,7 @@ class AccessControlDeviceTaskTest extends TestCase
                 'addon_id' => $foreignAddon->id,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('addon_id');
+            ->assertJsonValidationErrors('addon_ids.0');
     }
 
     #[Test]
@@ -193,7 +193,7 @@ class AccessControlDeviceTaskTest extends TestCase
                 'addon_id' => $additionalAddon->id,
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('addon_id');
+            ->assertJsonValidationErrors('addon_ids.0');
     }
 
     #[Test]
@@ -223,7 +223,151 @@ class AccessControlDeviceTaskTest extends TestCase
 
         $this->assertSame(GymScanner::TASK_CHECKIN, $scanner->device_task);
         $this->assertNull($scanner->addon_id);
+        $this->assertSame([], $scanner->linkedAddonIds());
         $this->assertTrue($scanner->enforce_quota);
+    }
+
+    #[Test]
+    public function it_links_several_usage_addons(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+        $drinks = $this->usageAddon($gym, ['name' => 'Getränke-Flatrate']);
+        $shakes = $this->usageAddon($gym, ['name' => 'Protein-Shakes']);
+
+        $this->actingAs($owner)
+            ->postJson(route('access-control.scanners.store'), [
+                'device_name' => 'Getränkeautomat Theke',
+                'device_task' => GymScanner::TASK_DISPENSER,
+                'addon_ids' => [$drinks->id, $shakes->id],
+            ])
+            ->assertOk()
+            ->assertJsonCount(2, 'scanner.addons');
+
+        $scanner = GymScanner::where('gym_id', $gym->id)->sole();
+
+        $this->assertEqualsCanonicalizing([$drinks->id, $shakes->id], $scanner->linkedAddonIds());
+        // The single link keeps pointing at the first add-on for older readers.
+        $this->assertSame($drinks->id, $scanner->addon_id);
+    }
+
+    #[Test]
+    public function updating_replaces_the_linked_addons(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+        $drinks = $this->usageAddon($gym);
+        $shakes = $this->usageAddon($gym);
+        $scanner = GymScanner::create([
+            'gym_id' => $gym->id,
+            'device_name' => 'Getränkeautomat Theke',
+            'device_task' => GymScanner::TASK_DISPENSER,
+        ]);
+        $scanner->syncAddons([$drinks->id, $shakes->id]);
+
+        $this->actingAs($owner)
+            ->putJson(route('access-control.scanners.update', $scanner), [
+                'device_name' => 'Getränkeautomat Theke',
+                'device_task' => GymScanner::TASK_DISPENSER,
+                'addon_ids' => [$shakes->id],
+                'is_active' => true,
+            ])
+            ->assertOk();
+
+        $scanner->refresh();
+
+        $this->assertSame([$shakes->id], $scanner->linkedAddonIds());
+        $this->assertSame($shakes->id, $scanner->addon_id);
+    }
+
+    #[Test]
+    public function the_single_addon_id_of_older_clients_is_still_accepted(): void
+    {
+        [$owner, $gym] = $this->ownerWithGym();
+        $addon = $this->usageAddon($gym);
+
+        $this->actingAs($owner)
+            ->postJson(route('access-control.scanners.store'), [
+                'device_name' => 'Getränkeautomat Theke',
+                'device_task' => GymScanner::TASK_DISPENSER,
+                'addon_id' => $addon->id,
+            ])
+            ->assertOk();
+
+        $this->assertSame(
+            [$addon->id],
+            GymScanner::where('gym_id', $gym->id)->sole()->linkedAddonIds()
+        );
+    }
+
+    #[Test]
+    public function it_links_an_addon_of_a_sibling_location_that_is_admitted(): void
+    {
+        [$owner, $berlin] = $this->ownerWithGym();
+        $munich = Gym::factory()->create(['owner_id' => $owner->id, 'name' => 'FitZone München']);
+        $berlin->update(['cross_location_checkin_rule' => Gym::CHECKIN_RULE_SELECTED]);
+        $berlin->allowedCheckinGyms()->sync([$munich->id]);
+
+        $own = $this->usageAddon($berlin);
+        $munichDrinks = $this->usageAddon($munich);
+
+        $this->actingAs($owner)
+            ->postJson(route('access-control.scanners.store'), [
+                'device_name' => 'Getränkeautomat Theke',
+                'device_task' => GymScanner::TASK_DISPENSER,
+                'addon_ids' => [$own->id, $munichDrinks->id],
+            ])
+            ->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            [$own->id, $munichDrinks->id],
+            GymScanner::where('gym_id', $berlin->id)->sole()->linkedAddonIds()
+        );
+    }
+
+    #[Test]
+    public function it_rejects_an_addon_of_a_sibling_location_that_is_not_admitted(): void
+    {
+        // 'own' is the default: members of other locations are not let in.
+        [$owner, $berlin] = $this->ownerWithGym();
+        $munich = Gym::factory()->create(['owner_id' => $owner->id]);
+        $munichDrinks = $this->usageAddon($munich);
+
+        $this->actingAs($owner)
+            ->postJson(route('access-control.scanners.store'), [
+                'device_name' => 'Getränkeautomat Theke',
+                'device_task' => GymScanner::TASK_DISPENSER,
+                'addon_ids' => [$munichDrinks->id],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('addon_ids.0');
+
+        $this->assertSame(0, GymScanner::where('gym_id', $berlin->id)->count());
+    }
+
+    #[Test]
+    public function the_index_offers_addons_of_admitted_sibling_locations_only(): void
+    {
+        [$owner, $berlin] = $this->ownerWithGym();
+        $munich = Gym::factory()->create(['owner_id' => $owner->id, 'name' => 'FitZone München']);
+        $hamburg = Gym::factory()->create(['owner_id' => $owner->id, 'name' => 'FitZone Hamburg']);
+        $berlin->update(['cross_location_checkin_rule' => Gym::CHECKIN_RULE_SELECTED]);
+        $berlin->allowedCheckinGyms()->sync([$munich->id]);
+
+        $own = $this->usageAddon($berlin, ['name' => 'Getränke-Flatrate']);
+        $munichDrinks = $this->usageAddon($munich, ['name' => 'Getränke-Flatrate']);
+        $this->usageAddon($hamburg, ['name' => 'Getränke-Flatrate']);
+        // A gym of another organisation never shows up.
+        $this->usageAddon(Gym::factory()->create());
+
+        $this->actingAs($owner)
+            ->get(route('access-control.index'))
+            ->assertInertia(fn ($page) => $page
+                ->has('usageAddons', 2)
+                ->where('usageAddons.0.id', $own->id)
+                ->where('usageAddons.0.is_own_location', true)
+                ->where('usageAddons.1.id', $munichDrinks->id)
+                ->where('usageAddons.1.gym_name', 'FitZone München')
+                ->where('usageAddons.1.is_own_location', false)
+            );
     }
 
     #[Test]
@@ -244,6 +388,27 @@ class AccessControlDeviceTaskTest extends TestCase
                 ->has('usageAddons', 1)
                 ->where('usageAddons.0.id', $usage->id)
                 ->where('usageAddons.0.name', 'Getränke-Flatrate')
+            );
+    }
+
+    #[Test]
+    public function the_device_list_names_the_location_of_each_linked_addon(): void
+    {
+        [$owner, $berlin] = $this->ownerWithGym();
+        $munich = Gym::factory()->create(['owner_id' => $owner->id, 'name' => 'FitZone München']);
+        $berlin->update(['cross_location_checkin_rule' => Gym::CHECKIN_RULE_ALL]);
+
+        $scanner = GymScanner::create([
+            'gym_id' => $berlin->id,
+            'device_name' => 'Getränkeautomat Theke',
+            'device_task' => GymScanner::TASK_DISPENSER,
+        ]);
+        $scanner->syncAddons([$this->usageAddon($munich)->id]);
+
+        $this->actingAs($owner)
+            ->get(route('access-control.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('scanners.0.addons.0.gym.name', 'FitZone München')
             );
     }
 
@@ -272,6 +437,7 @@ class AccessControlDeviceTaskTest extends TestCase
 
         $this->assertStringContainsString('DEVICE_TASK="'.GymScanner::TASK_DISPENSER.'"', $config);
         $this->assertStringContainsString('ADDON_ID="'.$addon->id.'"', $config);
+        $this->assertStringContainsString('ADDON_IDS="'.$addon->id.'"', $config);
         $this->assertStringContainsString('ENFORCE_QUOTA=False', $config);
         $this->assertStringContainsString('SAAS_API_KEY="scan_legacy_token_value"', $config);
     }
