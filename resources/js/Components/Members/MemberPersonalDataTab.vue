@@ -149,7 +149,7 @@
                 <span v-if="changed('birth_date')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.birth_date ? formatDate(form.birth_date) : '—' }}</div>
-              <input v-else v-model="form.birth_date" type="date" :class="fieldClass('birth_date')" />
+              <input v-else v-model="form.birth_date" type="date" :min="earliestBirthDate()" :class="fieldClass('birth_date')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
@@ -325,7 +325,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useForm, router, Link } from '@inertiajs/vue3'
 import { AlertCircle, Edit, Mail, Phone } from 'lucide-vue-next'
-import { formatDate, formatDateForInput } from '@/utils/formatters'
+import { earliestBirthDate, formatDate, formatDateForInput } from '@/utils/formatters'
 
 const props = defineProps({
   member: {

@@ -40,7 +40,7 @@ class GuestEntitlementService
         return [
             'solarium_minutes' => $config->solarium_enabled ? (int) $config->solarium_minutes : 0,
             'visit_card_entries' => $config->visit_card_enabled ? (int) $config->visit_card_entries : 0,
-            'day_pass_valid_until' => $config->isDayPassValid()
+            'day_pass_valid_until' => $config->isDayPassValid() || $config->isDayPassUpcoming()
                 ? $config->day_pass_valid_until->toDateString()
                 : null,
         ];
@@ -137,6 +137,18 @@ class GuestEntitlementService
                     : 'Keine Solarium-Minuten vorhanden');
             }
 
+            // A day pass granted without a date is redeemed for today on the first entrance scan.
+            if ($config->day_pass_enabled && ! $config->day_pass_valid_until) {
+                $config->update(['day_pass_valid_until' => now()->toDateString()]);
+
+                $this->log($member, MemberAccessLog::ACTION_CREDIT_CONSUMED, MemberAccessLog::SERVICE_GYM, [
+                    'product_type' => GuestProduct::TYPE_DAY_PASS,
+                    'quantity' => 1,
+                    'valid_until' => $config->day_pass_valid_until->toDateString(),
+                    'scanner_device' => $scanner->device_number,
+                ]);
+            }
+
             if ($config->isDayPassValid()) {
                 return $this->scanResult($member, true, 'Zugang gewährt (Tageskarte)');
             }
@@ -152,6 +164,10 @@ class GuestEntitlementService
                 ]);
 
                 return $this->scanResult($member, true, 'Zugang gewährt (Mehrfachkarte)');
+            }
+
+            if ($config->isDayPassUpcoming()) {
+                return $this->scanResult($member, false, 'Tageskarte erst gültig am '.$config->day_pass_valid_until->format('d.m.Y'));
             }
 
             return $this->scanResult($member, false, 'Keine Tageskarte und keine Eintritte vorhanden');

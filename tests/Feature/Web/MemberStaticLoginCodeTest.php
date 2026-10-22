@@ -92,6 +92,41 @@ class MemberStaticLoginCodeTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_a_static_login_code_for_external_members(): void
+    {
+        [$owner, , $member] = $this->ownerWithMember();
+        $member->update(['status' => 'extern']);
+
+        $this->actingAs($owner)
+            ->post(route('members.access.static-login-code.store', $member), [
+                'static_login_code' => '428913',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertNull(MemberAccessConfig::where('member_id', $member->id)->value('static_login_code'));
+        $this->assertDatabaseMissing('member_access_logs', [
+            'member_id' => $member->id,
+            'action' => MemberAccessLog::ACTION_STATIC_CODE_SET,
+        ]);
+    }
+
+    #[Test]
+    public function an_external_member_can_still_have_an_existing_code_removed(): void
+    {
+        [$owner, , $member] = $this->ownerWithMember();
+        $member->update(['status' => 'extern']);
+        MemberAccessConfig::factory()->withStaticLoginCode('424242')->create(['member_id' => $member->id]);
+
+        $this->actingAs($owner)
+            ->delete(route('members.access.static-login-code.destroy', $member))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertNull(MemberAccessConfig::where('member_id', $member->id)->value('static_login_code'));
+    }
+
+    #[Test]
     public function it_removes_a_static_login_code(): void
     {
         [$owner, , $member] = $this->ownerWithMember();

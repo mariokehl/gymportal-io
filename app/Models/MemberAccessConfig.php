@@ -49,7 +49,7 @@ class MemberAccessConfig extends Model
         'coffee_flat_enabled' => 'boolean',
         'coffee_flat_expiry' => 'date:Y-m-d',
         'day_pass_enabled' => 'boolean',
-        'day_pass_valid_until' => 'date',
+        'day_pass_valid_until' => 'date:Y-m-d',
         'visit_card_enabled' => 'boolean',
         'visit_card_entries' => 'integer',
         'additional_services' => 'array',
@@ -292,7 +292,7 @@ class MemberAccessConfig extends Model
     }
 
     /**
-     * Check if the day pass is still valid (today or future)
+     * Check if the day pass is valid today. A day pass only grants entry on its date.
      */
     public function isDayPassValid(): bool
     {
@@ -304,7 +304,17 @@ class MemberAccessConfig extends Model
             return false;
         }
 
-        return $this->day_pass_valid_until->isFuture() || $this->day_pass_valid_until->isToday();
+        return $this->day_pass_valid_until->isToday();
+    }
+
+    /**
+     * Check if the day pass is dated to a day after today.
+     */
+    public function isDayPassUpcoming(): bool
+    {
+        return $this->day_pass_enabled
+            && $this->day_pass_valid_until
+            && $this->day_pass_valid_until->isFuture();
     }
 
     /**

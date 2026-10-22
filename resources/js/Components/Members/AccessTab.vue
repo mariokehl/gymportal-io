@@ -406,9 +406,69 @@
             <div class="flex-1 min-w-0">
               <h5 class="font-semibold text-gray-900">Tageskarte</h5>
               <p class="text-sm text-gray-500 mt-0.5">Eintritt für einen Tag</p>
-              <p v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
-                {{ accessForm.day_pass_valid_until ? `Gültig am ${formatDate(accessForm.day_pass_valid_until)}` : 'Wird beim ersten Check-in eingelöst' }}
-              </p>
+              <div v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
+                <div v-if="editingDayPassDate" class="flex items-center gap-1.5">
+                  <span>Gültig am</span>
+                  <input
+                    ref="dayPassDateInput"
+                    v-model="dayPassDateValue"
+                    type="date"
+                    :min="todayIso"
+                    class="px-1.5 py-0.5 text-xs text-gray-700 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    @keydown.enter.prevent="saveDayPassDate"
+                    @keydown.esc.prevent="cancelDayPassDateEdit"
+                  >
+                  <button
+                    type="button"
+                    class="p-0.5 text-gray-400 hover:text-green-600 disabled:opacity-50"
+                    title="Datum speichern"
+                    :disabled="!dayPassDateValue || accessForm.processing"
+                    @click="saveDayPassDate"
+                  >
+                    <CheckCircle class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-0.5 text-gray-400 hover:text-gray-600"
+                    title="Abbrechen"
+                    @click="cancelDayPassDateEdit"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div v-else-if="accessForm.day_pass_valid_until" class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="hover:text-gray-600 hover:underline"
+                    title="Datum ändern"
+                    @click="startDayPassDateEdit"
+                  >
+                    Gültig am {{ formatDate(accessForm.day_pass_valid_until) }}
+                  </button>
+                  <button
+                    type="button"
+                    class="p-0.5 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                    title="Datum entfernen"
+                    :disabled="accessForm.processing"
+                    @click="removeDayPassDate"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div v-else>
+                  Wird beim ersten Check-in eingelöst ·
+                  <button
+                    type="button"
+                    class="text-rose-600 hover:underline"
+                    @click="startDayPassDateEdit"
+                  >
+                    Datum festlegen
+                  </button>
+                </div>
+                <p v-if="accessForm.errors.day_pass_valid_until" class="text-red-600 mt-1">
+                  {{ accessForm.errors.day_pass_valid_until }}
+                </p>
+              </div>
             </div>
             <label class="relative inline-flex items-center cursor-pointer flex-none">
               <input
@@ -469,8 +529,8 @@
       </div>
     </div>
 
-    <!-- Advanced: static login code override -->
-    <div class="flex flex-col gap-3">
+    <!-- Advanced: static login code override (not used for external members) -->
+    <div v-if="!isExternMember || hasStaticLoginCode" class="flex flex-col gap-3">
       <div class="flex justify-between items-center gap-2.5">
         <div class="flex items-center gap-2 min-w-0">
           <h3 class="text-lg font-bold text-gray-900">Erweiterte Optionen</h3>
@@ -524,7 +584,7 @@
         </div>
 
         <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
-          <div class="bg-blue-50 p-3 rounded-lg">
+          <div v-if="!isExternMember" class="bg-blue-50 p-3 rounded-lg">
             <div class="flex items-start gap-2">
               <Info class="w-5 h-5 text-blue-600 mt-0.5 flex-none" />
               <p class="text-sm text-blue-800">
@@ -535,8 +595,19 @@
             </div>
           </div>
 
+          <div v-if="isExternMember" class="bg-amber-50 p-3 rounded-lg">
+            <div class="flex items-start gap-2">
+              <ShieldAlert class="w-5 h-5 text-amber-600 mt-0.5 flex-none" />
+              <p class="text-sm text-amber-800">
+                Für externe Mitglieder wird kein statischer Login-Code berücksichtigt. Sie können den hinterlegten
+                Code nur noch entfernen.
+              </p>
+            </div>
+          </div>
+
           <div v-if="!editingStaticCode" class="flex flex-wrap gap-x-4 gap-y-2">
             <button
+              v-if="!isExternMember"
               @click="startStaticCodeEdit"
               type="button"
               class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
@@ -746,7 +817,7 @@ import {
   QrCode, Nfc, Sun, Package, Armchair, Coffee, Ticket, Hash, WalletCards, Info, Mail, Loader2, Radio,
   Smartphone, X, XCircle, Plus, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-vue-next'
-import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
+import { formatCurrency, formatDate, formatDateForInput, formatDateTime, todayInDisplayTimezone } from '@/utils/formatters'
 import MemberAggregatorCard from '@/Components/Members/MemberAggregatorCard.vue'
 
 const props = defineProps({
@@ -823,6 +894,7 @@ const advancedOpen = ref(false)
 const editingStaticCode = ref(false)
 const staticCodeForm = useForm({ static_login_code: '' })
 const hasStaticLoginCode = computed(() => props.member.access_config?.has_static_login_code ?? false)
+const isExternMember = computed(() => props.member.status === 'extern')
 const isStaticCodeValid = computed(() => /^\d{6}$/.test(staticCodeForm.static_login_code))
 
 // Six single-digit boxes; the joined value is what gets submitted.
@@ -1175,6 +1247,51 @@ const updateAccessSettings = () => {
   accessForm.put(route('members.access.update', props.member.id), {
     preserveScroll: true,
   })
+}
+
+// Day pass date editing
+const editingDayPassDate = ref(false)
+const dayPassDateInput = ref(null)
+const dayPassDateValue = ref('')
+const todayIso = computed(() => todayInDisplayTimezone())
+
+const startDayPassDateEdit = () => {
+  accessForm.clearErrors('day_pass_valid_until')
+  dayPassDateValue.value = formatDateForInput(accessForm.day_pass_valid_until) || todayIso.value
+  editingDayPassDate.value = true
+  nextTick(() => dayPassDateInput.value?.focus())
+}
+
+const cancelDayPassDateEdit = () => {
+  editingDayPassDate.value = false
+  dayPassDateValue.value = ''
+}
+
+// Submits a new day pass date and restores the previous one if validation fails
+const submitDayPassDate = (date, onSuccess = () => {}) => {
+  const previous = accessForm.day_pass_valid_until
+  accessForm.day_pass_valid_until = date
+  accessForm.put(route('members.access.update', props.member.id), {
+    preserveScroll: true,
+    onSuccess,
+    onError: () => {
+      accessForm.day_pass_valid_until = previous
+    },
+  })
+}
+
+const saveDayPassDate = () => {
+  if (!dayPassDateValue.value || accessForm.processing) return
+
+  submitDayPassDate(dayPassDateValue.value, cancelDayPassDateEdit)
+}
+
+const removeDayPassDate = () => {
+  if (!confirm('Möchten Sie das Datum der Tageskarte wirklich entfernen? Die Tageskarte wird dann beim nächsten Check-in eingelöst.')) {
+    return
+  }
+
+  submitDayPassDate(null)
 }
 
 // NFC Scanning functions

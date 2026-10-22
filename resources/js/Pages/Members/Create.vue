@@ -143,6 +143,7 @@
                 id="birth_date"
                 v-model="form.birth_date"
                 type="date"
+                :min="earliestBirthDate()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :class="{ 'border-red-500': errors.birth_date }"
               />
@@ -753,7 +754,7 @@ import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EmailInput from '@/Components/EmailInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
-import { formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
+import { earliestBirthDate, formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({
     membershipPlans: {
