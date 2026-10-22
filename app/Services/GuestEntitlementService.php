@@ -40,7 +40,7 @@ class GuestEntitlementService
         return [
             'solarium_minutes' => $config->solarium_enabled ? (int) $config->solarium_minutes : 0,
             'visit_card_entries' => $config->visit_card_enabled ? (int) $config->visit_card_entries : 0,
-            'day_pass_valid_until' => $config->isDayPassValid()
+            'day_pass_valid_until' => $config->isDayPassValid() || $config->isDayPassUpcoming()
                 ? $config->day_pass_valid_until->toDateString()
                 : null,
         ];
@@ -164,6 +164,10 @@ class GuestEntitlementService
                 ]);
 
                 return $this->scanResult($member, true, 'Zugang gewährt (Mehrfachkarte)');
+            }
+
+            if ($config->isDayPassUpcoming()) {
+                return $this->scanResult($member, false, 'Tageskarte erst gültig am '.$config->day_pass_valid_until->format('d.m.Y'));
             }
 
             return $this->scanResult($member, false, 'Keine Tageskarte und keine Eintritte vorhanden');

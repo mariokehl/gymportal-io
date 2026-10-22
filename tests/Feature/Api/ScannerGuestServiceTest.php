@@ -10,6 +10,7 @@ use App\Models\MemberAccessConfig;
 use App\Models\PendingSolariumRedemption;
 use App\Models\ScannerAccessLog;
 use App\Models\User;
+use App\Services\GuestEntitlementService;
 use App\Services\GuestQrCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -111,6 +112,38 @@ class ScannerGuestServiceTest extends TestCase
         $this->assertTrue($config->day_pass_valid_until->isToday());
         $this->assertSame(5, $config->visit_card_entries);
         $this->assertSame(1, CheckIn::where('member_id', $guest->id)->count());
+    }
+
+    #[Test]
+    public function a_day_pass_dated_to_a_later_day_does_not_open_the_entrance_today(): void
+    {
+        $guest = $this->guest([
+            'day_pass_enabled' => true,
+            'day_pass_valid_until' => now()->addDay()->toDateString(),
+        ]);
+
+        $this->scan($guest, $this->entrance)
+            ->assertForbidden()
+            ->assertJson([
+                'access_allowed' => false,
+                'message' => 'Tageskarte erst gültig am '.now()->addDay()->format('d.m.Y'),
+            ]);
+
+        $this->assertSame(0, CheckIn::count());
+    }
+
+    #[Test]
+    public function a_day_pass_dated_to_a_later_day_is_still_listed_for_the_guest(): void
+    {
+        $guest = $this->guest([
+            'day_pass_enabled' => true,
+            'day_pass_valid_until' => now()->addDay()->toDateString(),
+        ]);
+
+        $this->assertSame(
+            now()->addDay()->toDateString(),
+            app(GuestEntitlementService::class)->summary($guest)['day_pass_valid_until'],
+        );
     }
 
     #[Test]
