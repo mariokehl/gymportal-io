@@ -14,6 +14,7 @@ use App\Models\MembershipPlan;
 use App\Models\MemberStatusHistory;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Rules\MaxAge;
 use App\Services\MemberService;
 use App\Services\MemberStatusService;
 use App\Services\NfcTagService;
@@ -302,7 +303,7 @@ class MemberController extends Controller
                     ->whereNull('deleted_at'),
             ],
             'phone' => ['nullable', 'string', 'max:20'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', new MaxAge],
             'custom_member_number' => [
                 'nullable',
                 'string',
@@ -671,7 +672,7 @@ class MemberController extends Controller
                     ->whereNull('deleted_at'),
             ],
             'phone' => ['nullable', 'string', 'max:20'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', new MaxAge],
             'address' => ['nullable', 'string', 'max:255'],
             'address_addition' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],

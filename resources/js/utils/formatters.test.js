@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  earliestBirthDate,
   formatDate,
   formatDateTime,
   formatTime,
@@ -68,6 +69,23 @@ describe('formatters – timezone handling', () => {
 
     it('returns a dash for empty input', () => {
       expect(formatTime(null)).toBe('-');
+    });
+  });
+
+  describe('earliestBirthDate', () => {
+    it('is today minus 100 years by default', () => {
+      const [year, rest] = [todayInDisplayTimezone().slice(0, 4), todayInDisplayTimezone().slice(4)];
+      const expected = `${Number(year) - 100}${rest}`;
+      // 29.02. rolls over to 01.03. when the target year is not a leap year.
+      if (rest !== '-02-29') {
+        expect(earliestBirthDate()).toBe(expected);
+      }
+      expect(earliestBirthDate()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('honours a custom maximum age', () => {
+      const year = Number(todayInDisplayTimezone().slice(0, 4));
+      expect(earliestBirthDate(50).slice(0, 4)).toBe(String(year - 50));
     });
   });
 

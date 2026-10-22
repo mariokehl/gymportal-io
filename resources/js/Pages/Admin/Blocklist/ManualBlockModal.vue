@@ -20,7 +20,8 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-1">Geburtsdatum</label>
-          <input v-model="form.birth_date" type="date" class="input-field" />
+          <input v-model="form.birth_date" type="date" :min="earliestBirthDate()" class="input-field" />
+          <p v-if="form.errors.birth_date" class="text-red-600 text-xs mt-1">{{ form.errors.birth_date }}</p>
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-1">Mobilnummer</label>
@@ -81,6 +82,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
 import { X } from 'lucide-vue-next'
+import { earliestBirthDate } from '@/utils/formatters'
 
 const emit = defineEmits(['close'])
 

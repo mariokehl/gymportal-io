@@ -46,7 +46,7 @@
             <div class="form-row">
                 <div class="form-group flex-grow-0">
                     <label for="birth_date">Geburtsdatum{!! $requireBirthDate ? '<span class="mandatory">*</span>' : '' !!}</label>
-                    <input type="date" name="birth_date" id="birth_date" max="{{ date('Y-m-d', strtotime('-' . $minAge . ' years')) }}" {{ $requireBirthDate ? 'required' : '' }}>
+                    <input type="date" name="birth_date" id="birth_date" min="{{ \App\Rules\MaxAge::earliestBirthDate() }}" max="{{ date('Y-m-d', strtotime('-' . $minAge . ' years')) }}" {{ $requireBirthDate ? 'required' : '' }}>
                 </div>
             </div>
             @if($requireBirthDate)

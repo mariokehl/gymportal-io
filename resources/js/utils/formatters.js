@@ -40,6 +40,20 @@ export function todayInDisplayTimezone() {
 }
 
 /**
+ * Earliest accepted birth date as a YYYY-MM-DD string, i.e. today minus
+ * `maxAge` years in the display timezone. Mirrors App\Rules\MaxAge so the
+ * date picker and the backend validation agree.
+ *
+ * @param {number} maxAge - Oldest plausible age in years
+ * @returns {string} Earliest birth date in YYYY-MM-DD
+ */
+export function earliestBirthDate(maxAge = 100) {
+  const [year, month, day] = todayInDisplayTimezone().split('-').map(Number)
+  // Date.UTC rolls 29.02. over to 01.03. in non-leap years, like Carbon does.
+  return new Date(Date.UTC(year - maxAge, month - 1, day)).toISOString().slice(0, 10)
+}
+
+/**
  * Standard date formatting (DD.MM.YYYY)
  * @param {string|Date} date - The date to format
  * @returns {string} Formatted date or '-' if no date provided
@@ -254,6 +268,7 @@ export function formatIbanDisplay(iban) {
  * Export all formatters as default object for convenience
  */
 export default {
+  earliestBirthDate,
   formatDate,
   formatDateTime,
   formatTime,

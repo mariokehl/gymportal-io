@@ -70,6 +70,13 @@ class WidgetFormMinAgeTest extends TestCase
         $this->assertStringContainsString('Du musst mindestens 21 Jahre alt sein', $html);
     }
 
+    public function test_birth_date_input_rejects_ages_above_100(): void
+    {
+        $html = $this->renderForm(['require_birth_date' => true]);
+
+        $this->assertStringContainsString('min="' . \App\Rules\MaxAge::earliestBirthDate() . '"', $html);
+    }
+
     public function test_hint_is_hidden_when_birth_date_not_required(): void
     {
         $html = $this->renderForm(['require_birth_date' => false, 'min_age' => 16]);

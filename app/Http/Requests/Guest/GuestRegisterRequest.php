@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Guest;
 
+use App\Rules\MaxAge;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -19,7 +20,7 @@ class GuestRegisterRequest extends FormRequest
         return [
             'first_name' => 'required|string|min:2|max:255',
             'last_name' => 'required|string|min:2|max:255',
-            'birth_date' => 'required|date|before:today',
+            'birth_date' => ['required', 'date', 'before:today', new MaxAge],
             'email' => 'required|email|max:255',
             'gym_slug' => 'required|string|max:255',
         ];

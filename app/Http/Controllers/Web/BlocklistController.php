@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FraudCheck;
 use App\Models\Member;
 use App\Models\MemberBlocklist;
+use App\Rules\MaxAge;
 use App\Services\Fraud\BlocklistService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -90,7 +91,7 @@ class BlocklistController extends Controller
         $data = $request->validate([
             'first_name' => ['nullable', 'string'],
             'last_name' => ['required', 'string'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', new MaxAge],
             'iban' => ['nullable', 'string'],
             'phone' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
