@@ -28,7 +28,7 @@ class GuestGymController extends Controller
             'success' => true,
             'data' => [
                 'id' => $gym->id,
-                'name' => $gym->getDisplayName(),
+                'name' => $gym->name,
                 'slug' => $gym->slug,
                 'description' => $gym->description,
                 'address' => $gym->address,
