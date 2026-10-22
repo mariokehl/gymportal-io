@@ -529,8 +529,8 @@
       </div>
     </div>
 
-    <!-- Advanced: static login code override -->
-    <div class="flex flex-col gap-3">
+    <!-- Advanced: static login code override (not used for external members) -->
+    <div v-if="!isExternMember || hasStaticLoginCode" class="flex flex-col gap-3">
       <div class="flex justify-between items-center gap-2.5">
         <div class="flex items-center gap-2 min-w-0">
           <h3 class="text-lg font-bold text-gray-900">Erweiterte Optionen</h3>
@@ -584,7 +584,7 @@
         </div>
 
         <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
-          <div class="bg-blue-50 p-3 rounded-lg">
+          <div v-if="!isExternMember" class="bg-blue-50 p-3 rounded-lg">
             <div class="flex items-start gap-2">
               <Info class="w-5 h-5 text-blue-600 mt-0.5 flex-none" />
               <p class="text-sm text-blue-800">
@@ -595,8 +595,19 @@
             </div>
           </div>
 
+          <div v-if="isExternMember" class="bg-amber-50 p-3 rounded-lg">
+            <div class="flex items-start gap-2">
+              <ShieldAlert class="w-5 h-5 text-amber-600 mt-0.5 flex-none" />
+              <p class="text-sm text-amber-800">
+                Für externe Mitglieder wird kein statischer Login-Code berücksichtigt. Sie können den hinterlegten
+                Code nur noch entfernen.
+              </p>
+            </div>
+          </div>
+
           <div v-if="!editingStaticCode" class="flex flex-wrap gap-x-4 gap-y-2">
             <button
+              v-if="!isExternMember"
               @click="startStaticCodeEdit"
               type="button"
               class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
@@ -883,6 +894,7 @@ const advancedOpen = ref(false)
 const editingStaticCode = ref(false)
 const staticCodeForm = useForm({ static_login_code: '' })
 const hasStaticLoginCode = computed(() => props.member.access_config?.has_static_login_code ?? false)
+const isExternMember = computed(() => props.member.status === 'extern')
 const isStaticCodeValid = computed(() => /^\d{6}$/.test(staticCodeForm.static_login_code))
 
 // Six single-digit boxes; the joined value is what gets submitted.

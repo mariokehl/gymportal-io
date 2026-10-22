@@ -140,6 +140,11 @@ class MemberAccessController extends Controller
     {
         $this->authorize('update', $member);
 
+        // The member app login ignores static codes of external members.
+        if ($member->isExtern()) {
+            return back()->with('error', 'Für externe Mitglieder kann kein statischer Login-Code festgelegt werden.');
+        }
+
         $validated = $request->validate([
             'static_login_code' => ['required', 'string', 'digits:6'],
         ], [
