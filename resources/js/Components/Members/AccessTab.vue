@@ -806,7 +806,7 @@ import {
   QrCode, Nfc, Sun, Package, Armchair, Coffee, Ticket, Hash, WalletCards, Info, Mail, Loader2, Radio,
   Smartphone, X, XCircle, Plus, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-vue-next'
-import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
+import { formatCurrency, formatDate, formatDateForInput, formatDateTime, todayInDisplayTimezone } from '@/utils/formatters'
 import MemberAggregatorCard from '@/Components/Members/MemberAggregatorCard.vue'
 
 const props = defineProps({
@@ -1241,14 +1241,11 @@ const updateAccessSettings = () => {
 const editingDayPassDate = ref(false)
 const dayPassDateInput = ref(null)
 const dayPassDateValue = ref('')
-const todayIso = computed(() => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-})
+const todayIso = computed(() => todayInDisplayTimezone())
 
 const startDayPassDateEdit = () => {
   accessForm.clearErrors('day_pass_valid_until')
-  dayPassDateValue.value = accessForm.day_pass_valid_until || todayIso.value
+  dayPassDateValue.value = formatDateForInput(accessForm.day_pass_valid_until) || todayIso.value
   editingDayPassDate.value = true
   nextTick(() => dayPassDateInput.value?.focus())
 }
