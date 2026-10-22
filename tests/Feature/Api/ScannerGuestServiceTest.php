@@ -94,6 +94,39 @@ class ScannerGuestServiceTest extends TestCase
     }
 
     #[Test]
+    public function an_undated_day_pass_is_redeemed_for_today_on_the_first_check_in(): void
+    {
+        $guest = $this->guest([
+            'day_pass_enabled' => true,
+            'day_pass_valid_until' => null,
+            'visit_card_enabled' => true,
+            'visit_card_entries' => 5,
+        ]);
+
+        $this->scan($guest, $this->entrance)
+            ->assertOk()
+            ->assertJson(['access_allowed' => true, 'service_allowed' => true]);
+
+        $config = $guest->accessConfig->fresh();
+        $this->assertTrue($config->day_pass_valid_until->isToday());
+        $this->assertSame(5, $config->visit_card_entries);
+        $this->assertSame(1, CheckIn::where('member_id', $guest->id)->count());
+    }
+
+    #[Test]
+    public function an_undated_day_pass_is_not_redeemed_at_the_solarium(): void
+    {
+        $guest = $this->guest([
+            'day_pass_enabled' => true,
+            'day_pass_valid_until' => null,
+        ]);
+
+        $this->scan($guest, $this->solarium)->assertForbidden();
+
+        $this->assertNull($guest->accessConfig->fresh()->day_pass_valid_until);
+    }
+
+    #[Test]
     public function a_visit_card_entry_is_used_per_visit(): void
     {
         $guest = $this->guest(['visit_card_enabled' => true, 'visit_card_entries' => 1]);

@@ -137,6 +137,18 @@ class GuestEntitlementService
                     : 'Keine Solarium-Minuten vorhanden');
             }
 
+            // A day pass granted without a date is redeemed for today on the first entrance scan.
+            if ($config->day_pass_enabled && ! $config->day_pass_valid_until) {
+                $config->update(['day_pass_valid_until' => now()->toDateString()]);
+
+                $this->log($member, MemberAccessLog::ACTION_CREDIT_CONSUMED, MemberAccessLog::SERVICE_GYM, [
+                    'product_type' => GuestProduct::TYPE_DAY_PASS,
+                    'quantity' => 1,
+                    'valid_until' => $config->day_pass_valid_until->toDateString(),
+                    'scanner_device' => $scanner->device_number,
+                ]);
+            }
+
             if ($config->isDayPassValid()) {
                 return $this->scanResult($member, true, 'Zugang gewährt (Tageskarte)');
             }
