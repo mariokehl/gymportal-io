@@ -49,7 +49,7 @@ class MemberAccessConfig extends Model
         'coffee_flat_enabled' => 'boolean',
         'coffee_flat_expiry' => 'date:Y-m-d',
         'day_pass_enabled' => 'boolean',
-        'day_pass_valid_until' => 'date',
+        'day_pass_valid_until' => 'date:Y-m-d',
         'visit_card_enabled' => 'boolean',
         'visit_card_entries' => 'integer',
         'additional_services' => 'array',

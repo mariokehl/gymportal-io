@@ -972,8 +972,7 @@ const accessForm = useForm({
   coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
 
   day_pass_enabled: props.member.access_config?.day_pass_enabled || false,
-  // The date cast serializes as an ISO timestamp; keep only the date part
-  day_pass_valid_until: props.member.access_config?.day_pass_valid_until?.slice(0, 10) || null,
+  day_pass_valid_until: props.member.access_config?.day_pass_valid_until || null,
 
   visit_card_enabled: props.member.access_config?.visit_card_enabled || false,
   visit_card_entries: props.member.access_config?.visit_card_entries || 0,
