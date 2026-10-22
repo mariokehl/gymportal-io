@@ -406,9 +406,69 @@
             <div class="flex-1 min-w-0">
               <h5 class="font-semibold text-gray-900">Tageskarte</h5>
               <p class="text-sm text-gray-500 mt-0.5">Eintritt für einen Tag</p>
-              <p v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
-                {{ accessForm.day_pass_valid_until ? `Gültig am ${formatDate(accessForm.day_pass_valid_until)}` : 'Wird beim ersten Check-in eingelöst' }}
-              </p>
+              <div v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
+                <div v-if="editingDayPassDate" class="flex items-center gap-1.5">
+                  <span>Gültig am</span>
+                  <input
+                    ref="dayPassDateInput"
+                    v-model="dayPassDateValue"
+                    type="date"
+                    :min="todayIso"
+                    class="px-1.5 py-0.5 text-xs text-gray-700 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    @keydown.enter.prevent="saveDayPassDate"
+                    @keydown.esc.prevent="cancelDayPassDateEdit"
+                  >
+                  <button
+                    type="button"
+                    class="p-0.5 text-gray-400 hover:text-green-600 disabled:opacity-50"
+                    title="Datum speichern"
+                    :disabled="!dayPassDateValue || accessForm.processing"
+                    @click="saveDayPassDate"
+                  >
+                    <CheckCircle class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-0.5 text-gray-400 hover:text-gray-600"
+                    title="Abbrechen"
+                    @click="cancelDayPassDateEdit"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div v-else-if="accessForm.day_pass_valid_until" class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="hover:text-gray-600 hover:underline"
+                    title="Datum ändern"
+                    @click="startDayPassDateEdit"
+                  >
+                    Gültig am {{ formatDate(accessForm.day_pass_valid_until) }}
+                  </button>
+                  <button
+                    type="button"
+                    class="p-0.5 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                    title="Datum entfernen"
+                    :disabled="accessForm.processing"
+                    @click="removeDayPassDate"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div v-else>
+                  Wird beim ersten Check-in eingelöst ·
+                  <button
+                    type="button"
+                    class="text-rose-600 hover:underline"
+                    @click="startDayPassDateEdit"
+                  >
+                    Datum festlegen
+                  </button>
+                </div>
+                <p v-if="accessForm.errors.day_pass_valid_until" class="text-red-600 mt-1">
+                  {{ accessForm.errors.day_pass_valid_until }}
+                </p>
+              </div>
             </div>
             <label class="relative inline-flex items-center cursor-pointer flex-none">
               <input
@@ -912,7 +972,8 @@ const accessForm = useForm({
   coffee_flat_expiry: props.member.access_config?.coffee_flat_expiry || null,
 
   day_pass_enabled: props.member.access_config?.day_pass_enabled || false,
-  day_pass_valid_until: props.member.access_config?.day_pass_valid_until || null,
+  // The date cast serializes as an ISO timestamp; keep only the date part
+  day_pass_valid_until: props.member.access_config?.day_pass_valid_until?.slice(0, 10) || null,
 
   visit_card_enabled: props.member.access_config?.visit_card_enabled || false,
   visit_card_entries: props.member.access_config?.visit_card_entries || 0,
@@ -1175,6 +1236,54 @@ const updateAccessSettings = () => {
   accessForm.put(route('members.access.update', props.member.id), {
     preserveScroll: true,
   })
+}
+
+// Day pass date editing
+const editingDayPassDate = ref(false)
+const dayPassDateInput = ref(null)
+const dayPassDateValue = ref('')
+const todayIso = computed(() => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+})
+
+const startDayPassDateEdit = () => {
+  accessForm.clearErrors('day_pass_valid_until')
+  dayPassDateValue.value = accessForm.day_pass_valid_until || todayIso.value
+  editingDayPassDate.value = true
+  nextTick(() => dayPassDateInput.value?.focus())
+}
+
+const cancelDayPassDateEdit = () => {
+  editingDayPassDate.value = false
+  dayPassDateValue.value = ''
+}
+
+// Submits a new day pass date and restores the previous one if validation fails
+const submitDayPassDate = (date, onSuccess = () => {}) => {
+  const previous = accessForm.day_pass_valid_until
+  accessForm.day_pass_valid_until = date
+  accessForm.put(route('members.access.update', props.member.id), {
+    preserveScroll: true,
+    onSuccess,
+    onError: () => {
+      accessForm.day_pass_valid_until = previous
+    },
+  })
+}
+
+const saveDayPassDate = () => {
+  if (!dayPassDateValue.value || accessForm.processing) return
+
+  submitDayPassDate(dayPassDateValue.value, cancelDayPassDateEdit)
+}
+
+const removeDayPassDate = () => {
+  if (!confirm('Möchten Sie das Datum der Tageskarte wirklich entfernen? Die Tageskarte wird dann beim nächsten Check-in eingelöst.')) {
+    return
+  }
+
+  submitDayPassDate(null)
 }
 
 // NFC Scanning functions
