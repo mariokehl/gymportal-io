@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\MemberController;
 use App\Http\Controllers\Web\MemberDocumentController;
 use App\Http\Controllers\Web\MemberNfcTagController;
 use App\Http\Controllers\Web\MemberPaymentController;
+use App\Http\Controllers\Web\MemberQuickSearchController;
 use App\Http\Controllers\Web\MembershipController;
 use App\Http\Controllers\Web\MembershipPlanController;
 use App\Http\Controllers\Web\NotificationController;
@@ -89,6 +90,7 @@ Route::post('/billing/webhook/paddle', [BillingController::class, 'paddleWebhook
 Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/members/search', [MemberController::class, 'search'])->name('members.search');
+    Route::get('/members/quick-search', MemberQuickSearchController::class)->name('members.quick-search');
     Route::post('/members/check-email', [MemberController::class, 'checkEmail'])->name('members.check-email');
     Route::post('/members/check-member-number', [MemberController::class, 'checkMemberNumber'])->name('members.check-member-number');
     Route::resource('members', MemberController::class)->except('edit');

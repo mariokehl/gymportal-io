@@ -18,7 +18,12 @@
       </button>
     </div>
 
-    <nav class="mt-6 flex-1 overflow-y-auto">
+    <!-- Global member search -->
+    <div v-if="canAccessPremiumFeatures" class="px-4 pt-4 pb-2">
+      <MemberQuickSearch ref="quickSearch" />
+    </div>
+
+    <nav class="flex-1 overflow-y-auto" :class="canAccessPremiumFeatures ? 'mt-2' : 'mt-6'">
       <SidebarItem
         :icon="BarChart"
         label="Dashboard"
@@ -173,7 +178,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { router, usePage, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
@@ -184,6 +189,7 @@ import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import Logo from '@/Components/Logo.vue'
 import AppVersion from '@/Components/AppVersion.vue'
+import MemberQuickSearch from '@/Components/MemberQuickSearch.vue'
 
 defineProps({
   // When true, the brand header shows a close button (drawer usage on mobile).
@@ -219,4 +225,16 @@ const handleLogout = () => {
     router.post('/logout')
   }
 }
+
+const quickSearch = ref(null)
+
+// Returns false when the search is not available (e.g. expired trial).
+const focusSearch = () => {
+  if (!quickSearch.value) return false
+
+  quickSearch.value.focus()
+  return true
+}
+
+defineExpose({ focusSearch })
 </script>
