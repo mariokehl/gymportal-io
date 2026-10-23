@@ -3,8 +3,9 @@
     <Head :title="pageTitle || 'gymportal.io'" />
 
     <!-- Sidebar (static on large screens) -->
-    <div class="hidden lg:flex w-64 bg-white shadow-md flex-col">
-      <SidebarNav />
+    <!-- relative/z-20 lets the member search dropdown overlap the content area -->
+    <div class="hidden lg:flex relative z-20 w-64 bg-white shadow-md flex-col">
+      <SidebarNav ref="desktopNav" />
     </div>
 
     <!-- Mobile drawer (sidebar as slide-in overlay) -->
@@ -20,7 +21,7 @@
         class="fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85%] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out"
         :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
       >
-        <SidebarNav dismissible @close="drawerOpen = false" />
+        <SidebarNav ref="drawerNav" dismissible @close="drawerOpen = false" />
       </aside>
     </div>
 
@@ -44,6 +45,17 @@
         </div>
 
         <div class="flex items-center space-x-4 flex-shrink-0">
+          <!-- Member search (mobile only): opens the drawer with the search focused -->
+          <button
+            v-if="memberSearchAvailable"
+            type="button"
+            class="lg:hidden p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
+            aria-label="Mitglied suchen"
+            @click="openMobileSearch"
+          >
+            <Search class="w-5 h-5" />
+          </button>
+
           <!-- Page-specific header actions. When a page fills this slot it can
                opt to hide the default user cluster on mobile via
                `hideHeaderUserOnMobile` (e.g. to surface its own actions there). -->
@@ -98,13 +110,14 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { router, usePage, Head, Link } from '@inertiajs/vue3'
-import { Shield, Menu } from 'lucide-vue-next'
+import { Shield, Menu, Search } from 'lucide-vue-next'
 import SidebarNav from '@/Components/SidebarNav.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
 import NotificationContainer from '@/Components/NotificationContainer.vue'
 import { useToast } from '@/composables/useToast'
+import { useMemberSearchHistory } from '@/composables/useMemberSearchHistory'
 
 // Shared data
 const page = usePage()
@@ -144,6 +157,53 @@ watch(() => page.props.flash, showFlash, { immediate: true, deep: true })
 const drawerOpen = ref(false)
 const stopNavListener = router.on('navigate', () => { drawerOpen.value = false })
 onBeforeUnmount(() => stopNavListener())
+
+// Global member search lives in the sidebar (desktop) and the drawer (mobile).
+const desktopNav = ref(null)
+const drawerNav = ref(null)
+
+const memberSearchAvailable = computed(() => {
+  const status = page.props.subscription_status
+  if (!status) return true
+
+  return status.trial.is_active || status.subscription.is_active
+})
+
+function openMobileSearch() {
+  drawerOpen.value = true
+  // Focus synchronously within the tap so mobile browsers show the keyboard.
+  drawerNav.value?.focusSearch()
+}
+
+// "/" focuses the member search unless the user is typing somewhere.
+function onGlobalKeydown(event) {
+  if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+
+  const target = event.target
+  if (target?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName)) return
+
+  const isDesktop = window.matchMedia('(min-width: 1024px)').matches
+  const focused = isDesktop ? desktopNav.value?.focusSearch() : drawerNav.value?.focusSearch()
+
+  if (focused) {
+    event.preventDefault()
+    if (!isDesktop) drawerOpen.value = true
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onGlobalKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
+
+// Every visited member detail page feeds the "recently viewed" list,
+// regardless of whether it was opened via the search or a link elsewhere.
+const memberSearchHistory = useMemberSearchHistory()
+watch(
+  () => (page.component === 'Members/Show' ? page.props.member?.id : null),
+  (memberId) => {
+    if (memberId) memberSearchHistory.remember(memberId)
+  },
+  { immediate: true }
+)
 
 // Page
 const chatwootEnabled = page.props.chatwoot?.enabled ?? false
