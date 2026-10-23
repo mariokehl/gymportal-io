@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Enums\Aggregator;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Members\MemberIndexRequest;
 use App\Models\FraudCheck;
 use App\Models\Gym;
 use App\Models\Member;
@@ -13,18 +13,21 @@ use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\MemberStatusHistory;
 use App\Models\PaymentMethod;
+use App\Models\SavedFilter;
 use App\Models\User;
 use App\Rules\MaxAge;
+use App\Services\MemberFilterFields;
+use App\Services\MemberListService;
 use App\Services\MemberService;
 use App\Services\MemberStatusService;
 use App\Services\NfcTagService;
 use App\Services\PaymentService;
+use App\Services\SavedFilterService;
 use App\Services\StaffCheckInService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -43,206 +46,32 @@ class MemberController extends Controller
     public const CHECKINS_PAGE_SIZE = 10;
 
     /**
-     * Display a listing of the members.
+     * Display the filterable listing of the members.
      */
-    public function index(Request $request)
+    public function index(MemberIndexRequest $request, MemberListService $memberList, MemberFilterFields $filterFields, SavedFilterService $savedFilters)
     {
-        /** @var User $auth */
-        $user = Auth::user();
-
-        $query = Member::query()
-            ->with(['user', 'gym', 'accessConfig'])
-            ->where('gym_id', $user->current_gym_id)
-            ->addSelect(['members.*'])
-            ->selectSub(
-                'SELECT COALESCE(SUM(ABS(cb.amount)), 0) FROM payments cb WHERE cb.member_id = members.id AND cb.status = \'chargeback\' AND NOT EXISTS (SELECT 1 FROM payments settlement WHERE settlement.notes = cb.mollie_payment_id AND settlement.status = \'paid\')',
-                'outstanding_balance'
-            );
-
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = mb_strtolower($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(first_name) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(last_name) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(email) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(member_number) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(notes) like ?', ["%{$search}%"]);
-            });
-        }
-
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter: nur Mitglieder mit offenen Posten
-        if ($request->boolean('outstandingBalance')) {
-            $query->hasOutstandingBalance();
-        }
-
-        // Aggregator filter: any, none or a specific provider
-        $aggregatorFilter = $request->input('aggregator');
-        if ($aggregatorFilter === 'any') {
-            $query->whereHas('accessConfig', fn ($q) => $q->whereNotNull('aggregator'));
-        } elseif ($aggregatorFilter === 'none') {
-            $query->whereDoesntHave('accessConfig', fn ($q) => $q->whereNotNull('aggregator'));
-        } elseif ($aggregator = Aggregator::tryFrom((string) $aggregatorFilter)) {
-            $query->whereHas('accessConfig', fn ($q) => $q->withAggregator($aggregator));
-        }
-
-        // Sorting logic
-        $sortBy = $request->get('sortBy', 'member_number');
-        $sortDirection = $request->get('sortDirection', 'asc');
-
-        // Validate sort parameters
-        $allowedSortColumns = ['name', 'member_number', 'last_check_in', 'contract_end_date'];
-        $allowedDirections = ['asc', 'desc'];
-
-        if (! in_array($sortBy, $allowedSortColumns)) {
-            $sortBy = 'member_number';
-        }
-
-        if (! in_array($sortDirection, $allowedDirections)) {
-            $sortDirection = 'asc';
-        }
-
-        // Apply sorting based on column using database-agnostic approach
-        switch ($sortBy) {
-            case 'name':
-                $query->orderBy('first_name', $sortDirection)
-                    ->orderBy('last_name', $sortDirection);
-                break;
-            case 'member_number':
-                $query->orderBy('member_number', $sortDirection);
-                break;
-            case 'last_check_in':
-                // Load members with their last check-in and sort in PHP for database compatibility
-                $members = $query->with(['checkIns' => function ($q) {
-                    $q->orderBy('check_in_time', 'desc')->limit(1);
-                }])->get();
-
-                // Sort by last check-in time
-                $members = $members->sort(function ($a, $b) use ($sortDirection) {
-                    $aTime = $a->checkIns->first()?->check_in_time;
-                    $bTime = $b->checkIns->first()?->check_in_time;
-
-                    // Handle nulls - put them at the end regardless of sort direction
-                    if ($aTime === null && $bTime === null) {
-                        return 0;
-                    }
-                    if ($aTime === null) {
-                        return 1;
-                    }
-                    if ($bTime === null) {
-                        return -1;
-                    }
-
-                    if ($sortDirection === 'desc') {
-                        return $bTime <=> $aTime;
-                    } else {
-                        return $aTime <=> $bTime;
-                    }
-                });
-
-                // Convert back to paginated collection
-                $perPage = 15;
-                $currentPage = request()->get('page', 1);
-                $offset = ($currentPage - 1) * $perPage;
-                $total = $members->count();
-
-                $members = $members->slice($offset, $perPage)->values();
-
-                // Create a manual paginator
-                $members = new LengthAwarePaginator(
-                    $members,
-                    $total,
-                    $perPage,
-                    $currentPage,
-                    ['path' => request()->url(), 'pageName' => 'page']
-                );
-                $members->withQueryString();
-                break;
-            case 'contract_end_date':
-                // Load members with their active membership and sort in PHP for database compatibility
-                $members = $query->with(['memberships' => function ($q) {
-                    $q->where('status', 'active')->orderBy('cancellation_date', 'desc')->limit(1);
-                }])->get();
-
-                // Sort by contract end date (cancellation_date)
-                $members = $members->sort(function ($a, $b) use ($sortDirection) {
-                    $aDate = $a->memberships->first()?->cancellation_date;
-                    $bDate = $b->memberships->first()?->cancellation_date;
-
-                    // Handle nulls - put them at the end regardless of sort direction
-                    if ($aDate === null && $bDate === null) {
-                        return 0;
-                    }
-                    if ($aDate === null) {
-                        return 1;
-                    }
-                    if ($bDate === null) {
-                        return -1;
-                    }
-
-                    if ($sortDirection === 'desc') {
-                        return $bDate <=> $aDate;
-                    } else {
-                        return $aDate <=> $bDate;
-                    }
-                });
-
-                // Convert back to paginated collection
-                $perPage = 15;
-                $currentPage = request()->get('page', 1);
-                $offset = ($currentPage - 1) * $perPage;
-                $total = $members->count();
-
-                $members = $members->slice($offset, $perPage)->values();
-
-                // Create a manual paginator
-                $members = new LengthAwarePaginator(
-                    $members,
-                    $total,
-                    $perPage,
-                    $currentPage,
-                    ['path' => request()->url(), 'pageName' => 'page']
-                );
-                $members->withQueryString();
-                break;
-            default:
-                $query->orderBy('member_number', 'asc');
-                break;
-        }
-
-        // Only paginate if we haven't already done manual pagination above
-        if (! in_array($sortBy, ['last_check_in', 'contract_end_date'])) {
-            $members = $query->paginate(15)->withQueryString();
-        }
-
-        // Add additional data to each member
-        $members->getCollection()->transform(function ($member) {
-            $member->last_check_in = $member->last_check_in;
-            $member->contract_end_date = $member->activeMembership()?->cancellation_date;
-            $member->outstanding_balance = $member->outstanding_balance ? (float) $member->outstanding_balance : null;
-            // Only the aggregator badge is needed here; the rest of the access
-            // configuration (NFC UID, credits) stays out of the list payload.
-            $member->aggregator = $member->accessConfig?->aggregatorSummary();
-            $member->unsetRelation('accessConfig');
-            $member->can_delete = $member->canBeDeleted();
-            if (! $member->can_delete) {
-                $deleteBlockInfo = $member->getDeleteBlockReason();
-                $member->delete_block_reason = $deleteBlockInfo['reason'] ?? 'Löschen nicht möglich';
-                $member->delete_block_type = $deleteBlockInfo['type'] ?? 'unknown';
-            }
-
-            return $member;
-        });
+        $user = $request->user();
+        $gym = $user->currentGym;
+        $definition = $memberList->definition($gym, $request->validated('filter'));
+        $sortBy = $request->validated('sortBy') ?? 'member_number';
+        $sortDirection = $request->validated('sortDirection') ?? 'asc';
+        $perPage = (int) ($request->validated('perPage') ?? MemberListService::DEFAULT_PER_PAGE);
 
         return Inertia::render('Members/Index', [
-            'members' => $members,
-            'filters' => $request->only(['search', 'status', 'sortBy', 'sortDirection', 'outstandingBalance', 'aggregator']),
-            'canViewStatistics' => $request->user()->can('viewStatistics', Member::class),
+            'members' => $memberList->paginate($gym, $definition, $sortBy, $sortDirection, $perPage),
+            'filter' => $definition->toArray(),
+            'sorting' => ['sortBy' => $sortBy, 'sortDirection' => $sortDirection],
+            'perPage' => $perPage,
+            'perPageOptions' => MemberListService::PER_PAGE_OPTIONS,
+            // Closures: skipped on partial reloads while filtering.
+            'filterFields' => fn () => $filterFields->schema($gym),
+            'savedFilters' => fn () => $savedFilters->forContext($gym, SavedFilter::CONTEXT_MEMBERS),
+            // The unfiltered total counts as a statistic and stays hidden from staff.
+            'memberCount' => fn () => $user->can('viewStatistics', Member::class)
+                ? Member::where('gym_id', $gym->id)->count()
+                : null,
+            'canViewStatistics' => $user->can('viewStatistics', Member::class),
+            'canExport' => $user->can('export', Member::class),
         ]);
     }
 

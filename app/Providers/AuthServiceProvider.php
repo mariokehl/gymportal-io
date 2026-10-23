@@ -10,6 +10,7 @@ use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\SavedFilter;
 use App\Policies\AddonPolicy;
 use App\Policies\GymPolicy;
 use App\Policies\GymUserPolicy;
@@ -18,6 +19,7 @@ use App\Policies\MembershipPlanPolicy;
 use App\Policies\MembershipPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\PaymentPolicy;
+use App\Policies\SavedFilterPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -36,6 +38,7 @@ class AuthServiceProvider extends ServiceProvider
         Membership::class => MembershipPolicy::class,
         PaymentMethod::class => PaymentMethodPolicy::class,
         Payment::class => PaymentPolicy::class,
+        SavedFilter::class => SavedFilterPolicy::class,
     ];
 
     /**

@@ -27,6 +27,23 @@ class Member extends Authenticatable
      */
     public const SYNTHETIC_EMAIL_DOMAIN = '@import.local';
 
+    public const STATUS_LABELS = [
+        'active' => 'Aktiv',
+        'inactive' => 'Inaktiv',
+        'paused' => 'Pausiert',
+        'overdue' => 'Überfällig',
+        'pending' => 'Ausstehend',
+        'blocked' => 'Gesperrt',
+        'extern' => 'Extern',
+    ];
+
+    /**
+     * Correlated subquery of the open items (OPOS) of a member: the total of
+     * chargebacks without a settling payment (settlement.notes holds the
+     * mollie_payment_id of the chargeback). Select it with selectSub().
+     */
+    public const OUTSTANDING_BALANCE_SQL = 'SELECT COALESCE(SUM(ABS(cb.amount)), 0) FROM payments cb WHERE cb.member_id = members.id AND cb.status = \'chargeback\' AND NOT EXISTS (SELECT 1 FROM payments settlement WHERE settlement.notes = cb.mollie_payment_id AND settlement.status = \'paid\')';
+
     protected $fillable = [
         'gym_id',
         'user_id',
@@ -474,18 +491,24 @@ class Member extends Authenticatable
      */
     public function scopeHasOutstandingBalance($query)
     {
-        return $query->whereExists(function ($q) {
-            $q->select(DB::raw(1))
-                ->from('payments as cb')
-                ->whereColumn('cb.member_id', 'members.id')
-                ->where('cb.status', 'chargeback')
-                ->whereNotExists(function ($sub) {
-                    $sub->select(DB::raw(1))
-                        ->from('payments as settlement')
-                        ->whereColumn('settlement.notes', 'cb.mollie_payment_id')
-                        ->where('settlement.status', 'paid');
-                });
-        });
+        return $query->whereExists(fn ($q) => self::unsettledChargebacks($q->select(DB::raw(1))));
+    }
+
+    /**
+     * Restricts a subquery to the unsettled chargebacks of the outer member
+     * row — the rows behind OUTSTANDING_BALANCE_SQL.
+     */
+    public static function unsettledChargebacks(QueryBuilder $query): QueryBuilder
+    {
+        return $query->from('payments as cb')
+            ->whereColumn('cb.member_id', 'members.id')
+            ->where('cb.status', 'chargeback')
+            ->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('payments as settlement')
+                    ->whereColumn('settlement.notes', 'cb.mollie_payment_id')
+                    ->where('settlement.status', 'paid');
+            });
     }
 
     public function checkIns()
@@ -600,15 +623,7 @@ class Member extends Authenticatable
     // Erweiterte Status-Attribute
     public function getStatusTextAttribute()
     {
-        return [
-            'active' => 'Aktiv',
-            'inactive' => 'Inaktiv',
-            'paused' => 'Pausiert',
-            'overdue' => 'Überfällig',
-            'pending' => 'Ausstehend',
-            'blocked' => 'Gesperrt',
-            'extern' => 'Extern',
-        ][$this->status] ?? $this->status;
+        return self::STATUS_LABELS[$this->status] ?? $this->status;
     }
 
     public function getStatusColorAttribute()
