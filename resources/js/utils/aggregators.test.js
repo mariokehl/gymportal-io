@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  aggregators, aggregatorBadgeStyle, aggregatorFilterOptions, aggregatorStatusLabel, findAggregator,
+  aggregatorBadgeStyle, aggregatorStatusLabel, findAggregator,
 } from '@/utils/aggregators'
 
 describe('findAggregator', () => {
@@ -18,15 +18,6 @@ describe('aggregatorStatusLabel', () => {
   it('labels linked and pending accounts', () => {
     expect(aggregatorStatusLabel('linked')).toBe('Verknüpft')
     expect(aggregatorStatusLabel('pending')).toBe('Verknüpfung ausstehend')
-  })
-})
-
-describe('aggregatorFilterOptions', () => {
-  it('lists the generic options before every provider', () => {
-    const values = aggregatorFilterOptions().map(option => option.value)
-
-    expect(values.slice(0, 3)).toEqual(['', 'any', 'none'])
-    expect(values.slice(3)).toEqual(aggregators.map(aggregator => aggregator.key))
   })
 })
 

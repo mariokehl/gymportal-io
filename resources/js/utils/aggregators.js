@@ -19,15 +19,6 @@ export const aggregatorStatusLabel = (status) => status === AGGREGATOR_STATUS_LI
   ? 'Verknüpft'
   : 'Verknüpfung ausstehend'
 
-// Options of the member list filter: all members, any aggregator, none, or
-// one specific provider.
-export const aggregatorFilterOptions = () => [
-  { value: '', label: 'Alle Mitglieder' },
-  { value: 'any', label: 'Nur Aggregatoren' },
-  { value: 'none', label: 'Ohne Aggregator' },
-  ...aggregators.map(aggregator => ({ value: aggregator.key, label: aggregator.name })),
-]
-
 // Inline style of the short badge: filled once linked, dashed outline while
 // the link is pending.
 export const aggregatorBadgeStyle = (aggregator, status) => {

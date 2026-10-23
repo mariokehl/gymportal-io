@@ -25,6 +25,15 @@ class MemberPolicy
     }
 
     /**
+     * Determine whether the user can export member lists (personal data in
+     * bulk), which is limited like the data export to owners and admins.
+     */
+    public function export(User $user): bool
+    {
+        return $user->isOwner() || $user->isAdmin();
+    }
+
+    /**
      * Determine whether the user can view the model.
      */
     public function view(User $user, Member $member): bool

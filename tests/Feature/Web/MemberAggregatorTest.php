@@ -258,10 +258,20 @@ class MemberAggregatorTest extends TestCase
         $this->assignAggregator($wellpassMember, Aggregator::Wellpass, 'WP-1', linked: true);
         $this->assignAggregator($hansefitMember, Aggregator::Hansefit, 'HF-1');
 
-        $idsFor = function (string $filter) use ($owner) {
+        $condition = fn (string $filter) => match ($filter) {
+            'any' => ['field' => 'has_aggregator', 'op' => 'yes'],
+            'none' => ['field' => 'has_aggregator', 'op' => 'no'],
+            default => ['field' => 'aggregator', 'op' => 'any', 'values' => [$filter]],
+        };
+        $filterFor = fn (string $filter) => $filter === '' ? [] : ['filter' => json_encode([
+            'rootLogic' => 'AND',
+            'groups' => [['logic' => 'AND', 'conditions' => [$condition($filter)]]],
+        ])];
+
+        $idsFor = function (string $filter) use ($owner, $filterFor) {
             $ids = null;
             $this->actingAs($owner)
-                ->get(route('members.index', ['aggregator' => $filter]))
+                ->get(route('members.index', $filterFor($filter)))
                 ->assertInertia(function (AssertableInertia $page) use (&$ids) {
                     $ids = collect($page->toArray()['props']['members']['data'])->pluck('id')->sort()->values()->all();
                 });
@@ -275,7 +285,7 @@ class MemberAggregatorTest extends TestCase
         $this->assertCount(3, $idsFor(''));
 
         $this->actingAs($owner)
-            ->get(route('members.index', ['aggregator' => 'wellpass']))
+            ->get(route('members.index', $filterFor('wellpass')))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('members.data.0.aggregator', [
                     'key' => 'wellpass',
