@@ -387,9 +387,11 @@ const reload = () => {
 const debouncedReload = debounce(reload, 350)
 
 // Only changes that alter the result trigger a request; a condition that
-// is still being filled in (incomplete) does not.
+// is still being filled in (incomplete) does not. Separate sources are
+// compared by value; a getter returning a new array would fire on every
+// prop reload (e.g. paginating) and reset the list to page 1.
 watch(
-  () => [effectiveKey(definition.value, fieldsByKey.value), activeSavedId.value],
+  [() => effectiveKey(definition.value, fieldsByKey.value), activeSavedId],
   () => {
     clearSelection()
     debouncedReload()
