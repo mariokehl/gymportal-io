@@ -162,6 +162,9 @@ class EmailTemplate extends Model
                 '[Datum]' => 'Aktuelles Datum',
                 '[Uhrzeit]' => 'Aktuelle Uhrzeit',
                 '[Anmeldecode]' => 'Einmaliger Anmeldecode',
+            ],
+            'payment' => [
+                '[Mollie-Zahlungslink]' => 'Link zur Zahlung über Mollie (funktioniert nur im Template „Zahlung fehlgeschlagen“)',
             ]
         ];
     }

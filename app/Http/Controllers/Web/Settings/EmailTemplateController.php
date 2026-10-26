@@ -341,6 +341,7 @@ class EmailTemplateController extends Controller
             '[Mitgliederbereich-Link]' => config('app.pwa_url') . '/' . $gym->slug,
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
+            '[Mollie-Zahlungslink]' => 'https://www.mollie.com/checkout/beispiel',
         ];
     }
 

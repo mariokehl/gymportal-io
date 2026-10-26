@@ -97,6 +97,9 @@
                                 @click="insertPlaceholder(placeholder.key)"
                                 class="bg-white border border-blue-300 rounded px-2 py-1 cursor-pointer hover:bg-blue-100 transition-colors">
                                 {{ placeholder.key }} - {{ placeholder.description }}
+                                <Tooltip v-if="placeholder.hint" :text="placeholder.hint" max-width="none" class="align-middle ml-0.5">
+                                    <Info class="w-3.5 h-3.5 text-blue-600" :aria-label="placeholder.hint" />
+                                </Tooltip>
                             </span>
                         </div>
                         <p class="text-xs text-blue-600 mt-2">Klicken Sie auf einen Platzhalter, um ihn in den Editor einzufügen.</p>
@@ -393,11 +396,12 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import {
-    Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor
+    Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor, Info
 } from 'lucide-vue-next'
 import { usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/utils/formatters'
 import EmailAttachmentsDropzone from '@/Components/EmailAttachmentsDropzone.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -448,7 +452,12 @@ const availablePlaceholders = ref([
     { key: '[Enddatum]', description: 'Vertragsende' },
     { key: '[Mitgliederbereich-Link]', description: 'Link zum Mitgliederbereich' },
     { key: '[Datum]', description: 'Aktuelles Datum' },
-    { key: '[Anmeldecode]', description: 'Einmaliger Anmeldecode' }
+    { key: '[Anmeldecode]', description: 'Einmaliger Anmeldecode' },
+    {
+        key: '[Mollie-Zahlungslink]',
+        description: 'Link zur Zahlung über Mollie',
+        hint: 'Funktioniert nur im Template „Zahlung fehlgeschlagen“.'
+    }
 ])
 
 // Methods
@@ -782,7 +791,8 @@ const replacePlaceholders = (content) => {
         '[Enddatum]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
         '[Mitgliederbereich-Link]': page.props.pwaUrl,
         '[Datum]': new Date().toLocaleDateString('de-DE'),
-        '[Anmeldecode]': '482916'
+        '[Anmeldecode]': '482916',
+        '[Mollie-Zahlungslink]': 'https://www.mollie.com/checkout/beispiel'
     }
 
     let replacedContent = content
