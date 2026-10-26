@@ -21,7 +21,7 @@ class EmailTemplateService
             ->first();
 
         // If no default found, get any active template of this type
-        if (!$template) {
+        if (! $template) {
             $template = EmailTemplate::forGym($gym->id)
                 ->ofType($type)
                 ->active()
@@ -41,6 +41,7 @@ class EmailTemplateService
         array $additionalData = []
     ): array {
         $placeholderData = $this->buildPlaceholderData($gym, $member, $additionalData);
+
         return $template->replacePlaceholders($placeholderData);
     }
 
@@ -55,7 +56,7 @@ class EmailTemplateService
     ): ?array {
         $template = $this->getTemplate($gym, $type);
 
-        if (!$template) {
+        if (! $template) {
             return null;
         }
 
@@ -99,7 +100,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'confirmation' => [
                 'name' => 'Bestätigungs-E-Mail',
@@ -121,7 +122,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'reminder' => [
                 'name' => 'Erinnerungs-E-Mail',
@@ -139,7 +140,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'cancellation' => [
                 'name' => 'Kündigungs-Bestätigung',
@@ -157,7 +158,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'invoice' => [
                 'name' => 'Rechnungs-E-Mail',
@@ -176,7 +177,7 @@ class EmailTemplateService
 
                     <p>Telefon: [Telefon]<br>
                     E-Mail: Antworten Sie einfach auf diese E-Mail</p>
-                '
+                ',
             ],
             'general' => [
                 'name' => 'Allgemeine E-Mail',
@@ -196,7 +197,7 @@ class EmailTemplateService
                     <p>Kontakt:<br>
                     Telefon: [Telefon]<br>
                     Website: [Website]</p>
-                '
+                ',
             ],
             'payment_failed' => [
                 'name' => 'Zahlung fehlgeschlagen',
@@ -237,7 +238,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'login_code' => [
                 'name' => 'Anmeldecode',
@@ -291,7 +292,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'member_app_access' => [
                 'name' => 'App-Zugangslink',
@@ -355,8 +356,8 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
-            ]
+                ',
+            ],
         ];
 
         // Remove PHP source code indentation from body strings
@@ -378,7 +379,9 @@ class EmailTemplateService
         // Find minimum indentation (ignoring empty lines)
         $minIndent = PHP_INT_MAX;
         foreach ($lines as $line) {
-            if (trim($line) === '') continue;
+            if (trim($line) === '') {
+                continue;
+            }
             $indent = strlen($line) - strlen(ltrim($line));
             $minIndent = min($minIndent, $indent);
         }
@@ -450,7 +453,7 @@ class EmailTemplateService
             }
 
             $data = array_merge($data, [
-                '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months . ' Monate',
+                '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months.' Monate',
                 '[Monatsbeitrag]' => number_format($contract->membershipPlan->price, 2, ',', '.'),
                 '[Startdatum]' => $contract->start_date ? $contract->start_date->format('d.m.Y') : '',
                 '[Enddatum]' => $contract->end_date ? $contract->end_date->format('d.m.Y') : '',
@@ -469,7 +472,10 @@ class EmailTemplateService
 
     private function getAnrede(?Member $member): string
     {
-        if (!$member) return '';
+        if (! $member) {
+            return '';
+        }
+
         return $member->salutation ?? '';
     }
 
@@ -477,8 +483,9 @@ class EmailTemplateService
     {
         $parts = array_filter([
             $gym->address,
-            $gym->postal_code . ' ' . $gym->city
+            $gym->postal_code.' '.$gym->city,
         ]);
+
         return implode(', ', $parts);
     }
 
