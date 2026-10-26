@@ -210,4 +210,102 @@ class SwitchOrganizationTest extends TestCase
             ])
             ->assertRedirect(route('dashboard'));
     }
+
+    /*
+    | Return path — the sidebar switcher keeps the current page (and tab) when
+    | the user is allowed to open it in the target organization.
+    */
+
+    /**
+     * @return array{0: User, 1: Gym}
+     */
+    private function makeOwnerWithTwoGyms(): array
+    {
+        $owner = User::factory()->create();
+        $berlin = Gym::factory()->create(['owner_id' => $owner->id]);
+        $munich = Gym::factory()->create(['owner_id' => $owner->id]);
+        $owner->update(['current_gym_id' => $berlin->id]);
+
+        return [$owner->fresh(), $munich];
+    }
+
+    private function switchWithReturnPath(User $user, Gym $gym, string $returnTo)
+    {
+        return $this->actingAs($user)
+            ->post(route('user.switch-organization'), [
+                'gym_id' => $gym->id,
+                'return_to' => $returnTo,
+            ]);
+    }
+
+    #[Test]
+    public function it_keeps_the_settings_tab_after_switching(): void
+    {
+        [$owner, $munich] = $this->makeOwnerWithTwoGyms();
+
+        $this->switchWithReturnPath($owner, $munich, '/settings?tab=emails')
+            ->assertRedirect(route('settings.index', ['tab' => 'emails']));
+
+        $this->assertSame($munich->id, $owner->fresh()->current_gym_id);
+    }
+
+    #[Test]
+    public function staff_without_management_rights_lands_on_the_dashboard(): void
+    {
+        [$staff] = $this->makeOwnerWithGym();
+
+        $munich = Gym::factory()->create();
+        GymUser::create(['gym_id' => $munich->id, 'user_id' => $staff->id, 'role' => 'staff']);
+
+        // Settings are reserved for owners/admins of the target gym.
+        $this->switchWithReturnPath($staff->fresh(), $munich, '/settings?tab=emails')
+            ->assertRedirect(route('dashboard'));
+    }
+
+    #[Test]
+    public function staff_keeps_a_page_they_may_open_in_the_target_gym(): void
+    {
+        [$staff] = $this->makeOwnerWithGym();
+
+        $munich = Gym::factory()->create();
+        GymUser::create(['gym_id' => $munich->id, 'user_id' => $staff->id, 'role' => 'staff']);
+
+        $this->switchWithReturnPath($staff->fresh(), $munich, '/members')
+            ->assertRedirect(route('members.index'));
+    }
+
+    #[Test]
+    public function a_record_page_falls_back_to_its_list(): void
+    {
+        [$owner, $munich] = $this->makeOwnerWithTwoGyms();
+
+        // The member belongs to the previous gym — never link to it after the switch.
+        $member = Member::factory()->create(['gym_id' => $owner->current_gym_id]);
+
+        $this->switchWithReturnPath($owner, $munich, "/members/{$member->id}?tab=payments")
+            ->assertRedirect(route('members.index'));
+    }
+
+    #[Test]
+    public function only_the_tab_parameter_is_carried_over(): void
+    {
+        [$owner, $munich] = $this->makeOwnerWithTwoGyms();
+
+        $this->switchWithReturnPath($owner, $munich, '/members?page=4&saved_filter=12')
+            ->assertRedirect(route('members.index'));
+
+        $this->switchWithReturnPath($owner, $munich, '/settings?tab=%3Cscript%3E')
+            ->assertRedirect(route('settings.index'));
+    }
+
+    #[Test]
+    public function a_foreign_return_path_is_never_followed(): void
+    {
+        [$owner, $munich] = $this->makeOwnerWithTwoGyms();
+
+        foreach (['https://evil.example.com/settings', '//evil.example.com/settings', '/does-not-exist', '/user/switch-organization'] as $returnTo) {
+            $this->switchWithReturnPath($owner, $munich, $returnTo)
+                ->assertRedirect(route('dashboard'));
+        }
+    }
 }

@@ -16,6 +16,18 @@
     </p>
 
     <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
+        <strong style="color: #2d3748;">Ihre K&uuml;ndigung im &Uuml;berblick:</strong><br>
+        @if ($membership->cancellation_received_at)
+            Eingegangen am: {{ $membership->cancellation_received_at->format('d.m.Y, H:i') }} Uhr<br>
+        @endif
+        Vertrag: {{ $membership->membershipPlan?->name }} (Vertragsnummer {{ $membership->id }})<br>
+        @if ($membership->cancellation_reason)
+            K&uuml;ndigungsgrund: {{ $membership->cancellation_reason }}<br>
+        @endif
+        Beendigungszeitpunkt: {{ $membership->cancellation_date->format('d.m.Y') }}
+    </p>
+
+    <p style="color: #718096; font-size: 16px; line-height: 1.5em;">
         Ihre Mitgliedschaft endet zum <strong style="color: #2d3748;">{{ $membership->cancellation_date->format('d.m.Y') }}</strong>.
     </p>
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\EmailTemplate;
 use App\Models\Gym;
 use App\Models\Member;
+use App\Models\Membership;
 
 class EmailTemplateService
 {
@@ -21,7 +22,7 @@ class EmailTemplateService
             ->first();
 
         // If no default found, get any active template of this type
-        if (!$template) {
+        if (! $template) {
             $template = EmailTemplate::forGym($gym->id)
                 ->ofType($type)
                 ->active()
@@ -41,6 +42,7 @@ class EmailTemplateService
         array $additionalData = []
     ): array {
         $placeholderData = $this->buildPlaceholderData($gym, $member, $additionalData);
+
         return $template->replacePlaceholders($placeholderData);
     }
 
@@ -55,7 +57,7 @@ class EmailTemplateService
     ): ?array {
         $template = $this->getTemplate($gym, $type);
 
-        if (!$template) {
+        if (! $template) {
             return null;
         }
 
@@ -99,7 +101,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'confirmation' => [
                 'name' => 'Bestätigungs-E-Mail',
@@ -121,7 +123,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'reminder' => [
                 'name' => 'Erinnerungs-E-Mail',
@@ -139,7 +141,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'cancellation' => [
                 'name' => 'Kündigungs-Bestätigung',
@@ -149,7 +151,13 @@ class EmailTemplateService
 
                     <p>wir bestätigen hiermit den Erhalt Ihrer Kündigung.</p>
 
-                    <p>Ihre Mitgliedschaft endet zum <strong>[Enddatum]</strong>.</p>
+                    <p><strong>Ihre Kündigung im Überblick:</strong><br>
+                    Eingegangen am: [Kuendigungseingang]<br>
+                    Vertrag: [Tarif-Name] (Vertragsnummer [Vertragsnummer])<br>
+                    Kündigungsgrund: [Kuendigungsgrund]<br>
+                    Beendigungszeitpunkt: [Kuendigungstermin]</p>
+
+                    <p>Ihre Mitgliedschaft endet zum <strong>[Kuendigungstermin]</strong>.</p>
 
                     <p>Bis zu diesem Datum können Sie selbstverständlich weiterhin alle Einrichtungen nutzen.</p>
 
@@ -157,7 +165,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'invoice' => [
                 'name' => 'Rechnungs-E-Mail',
@@ -176,7 +184,7 @@ class EmailTemplateService
 
                     <p>Telefon: [Telefon]<br>
                     E-Mail: Antworten Sie einfach auf diese E-Mail</p>
-                '
+                ',
             ],
             'general' => [
                 'name' => 'Allgemeine E-Mail',
@@ -196,7 +204,7 @@ class EmailTemplateService
                     <p>Kontakt:<br>
                     Telefon: [Telefon]<br>
                     Website: [Website]</p>
-                '
+                ',
             ],
             'payment_failed' => [
                 'name' => 'Zahlung fehlgeschlagen',
@@ -237,7 +245,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'login_code' => [
                 'name' => 'Anmeldecode',
@@ -291,7 +299,7 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
+                ',
             ],
             'member_app_access' => [
                 'name' => 'App-Zugangslink',
@@ -355,8 +363,8 @@ class EmailTemplateService
 
                     <p>Sportliche Grüße<br>
                     Ihr [Fitnessstudio-Name] Team</p>
-                '
-            ]
+                ',
+            ],
         ];
 
         // Remove PHP source code indentation from body strings
@@ -378,7 +386,9 @@ class EmailTemplateService
         // Find minimum indentation (ignoring empty lines)
         $minIndent = PHP_INT_MAX;
         foreach ($lines as $line) {
-            if (trim($line) === '') continue;
+            if (trim($line) === '') {
+                continue;
+            }
             $indent = strlen($line) - strlen(ltrim($line));
             $minIndent = min($minIndent, $indent);
         }
@@ -396,6 +406,29 @@ class EmailTemplateService
     }
 
     /**
+     * Placeholders of a cancellation confirmation, taken from the cancelled
+     * membership itself: after an immediate cancellation it is no longer the
+     * member's active one. Covers what § 312k (4) BGB requires the confirmation
+     * to state. [Enddatum] is overridden as well, because templates written
+     * before these placeholders existed use it for the end of the membership.
+     */
+    public function buildCancellationPlaceholders(Membership $membership): array
+    {
+        $endDate = $membership->cancellation_date?->format('d.m.Y') ?? '';
+
+        return [
+            '[Kuendigungseingang]' => $membership->cancellation_received_at
+                ? $membership->cancellation_received_at->format('d.m.Y, H:i').' Uhr'
+                : '',
+            '[Kuendigungstermin]' => $endDate,
+            '[Kuendigungsgrund]' => $membership->cancellation_reason ?? '',
+            '[Vertragsnummer]' => (string) $membership->id,
+            '[Tarif-Name]' => $membership->membershipPlan?->name ?? '',
+            '[Enddatum]' => $endDate,
+        ];
+    }
+
+    /**
      * Build placeholder data array from gym, member and additional data.
      */
     public function buildPlaceholderData(Gym $gym, ?Member $member = null, array $additionalData = []): array
@@ -409,7 +442,7 @@ class EmailTemplateService
                 '[Nachname]' => $member->last_name ?? '',
                 '[Anrede]' => $this->getAnrede($member),
                 '[E-Mail]' => $member->email ?? '',
-                '[Mitgliedsnummer]' => $member->membership_number ?? '',
+                '[Mitgliedsnummer]' => $member->member_number ?? '',
             ]);
         } else {
             $data = array_merge($data, [
@@ -426,6 +459,7 @@ class EmailTemplateService
             '[Fitnessstudio-Name]' => $gym->name ?? '',
             '[Adresse]' => $this->formatAddress($gym),
             '[Telefon]' => $gym->phone ?? '',
+            '[Studio-E-Mail]' => $gym->email ?? '',
             '[Website]' => $gym->website ?? '',
         ]);
 
@@ -450,7 +484,7 @@ class EmailTemplateService
             }
 
             $data = array_merge($data, [
-                '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months . ' Monate',
+                '[Vertragslaufzeit]' => $contract->membershipPlan->commitment_months.' Monate',
                 '[Monatsbeitrag]' => number_format($contract->membershipPlan->price, 2, ',', '.'),
                 '[Startdatum]' => $contract->start_date ? $contract->start_date->format('d.m.Y') : '',
                 '[Enddatum]' => $contract->end_date ? $contract->end_date->format('d.m.Y') : '',
@@ -469,7 +503,10 @@ class EmailTemplateService
 
     private function getAnrede(?Member $member): string
     {
-        if (!$member) return '';
+        if (! $member) {
+            return '';
+        }
+
         return $member->salutation ?? '';
     }
 
@@ -477,8 +514,9 @@ class EmailTemplateService
     {
         $parts = array_filter([
             $gym->address,
-            $gym->postal_code . ' ' . $gym->city
+            $gym->postal_code.' '.$gym->city,
         ]);
+
         return implode(', ', $parts);
     }
 

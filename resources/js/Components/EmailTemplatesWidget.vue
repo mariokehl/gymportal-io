@@ -97,6 +97,9 @@
                                 @click="insertPlaceholder(placeholder.key)"
                                 class="bg-white border border-blue-300 rounded px-2 py-1 cursor-pointer hover:bg-blue-100 transition-colors">
                                 {{ placeholder.key }} - {{ placeholder.description }}
+                                <Tooltip v-if="placeholder.hint" :text="placeholder.hint" max-width="none" class="align-middle ml-0.5">
+                                    <Info class="w-3.5 h-3.5 text-blue-600" :aria-label="placeholder.hint" />
+                                </Tooltip>
                             </span>
                         </div>
                         <p class="text-xs text-blue-600 mt-2">Klicken Sie auf einen Platzhalter, um ihn in den Editor einzufügen.</p>
@@ -393,11 +396,12 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import {
-    Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor
+    Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor, Info
 } from 'lucide-vue-next'
 import { usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/utils/formatters'
 import EmailAttachmentsDropzone from '@/Components/EmailAttachmentsDropzone.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import { useToast } from '@/composables/useToast'
 
 const { success, error: toastError } = useToast()
@@ -440,6 +444,7 @@ const availablePlaceholders = ref([
     { key: '[Fitnessstudio-Name]', description: 'Name des Fitnessstudios' },
     { key: '[Adresse]', description: 'Adresse des Studios' },
     { key: '[Telefon]', description: 'Telefonnummer' },
+    { key: '[Studio-E-Mail]', description: 'E-Mail-Adresse des Studios' },
     { key: '[Website]', description: 'Website-URL' },
     { key: '[Vertragslaufzeit]', description: 'Laufzeit des Vertrags' },
     { key: '[Monatsbeitrag]', description: 'Monatlicher Beitrag' },
@@ -447,7 +452,20 @@ const availablePlaceholders = ref([
     { key: '[Enddatum]', description: 'Vertragsende' },
     { key: '[Mitgliederbereich-Link]', description: 'Link zum Mitgliederbereich' },
     { key: '[Datum]', description: 'Aktuelles Datum' },
-    { key: '[Anmeldecode]', description: 'Einmaliger Anmeldecode' }
+    { key: '[Uhrzeit]', description: 'Aktuelle Uhrzeit' },
+    { key: '[Anmeldecode]', description: 'Einmaliger Anmeldecode' },
+    ...[
+        { key: '[Kuendigungseingang]', description: 'Datum und Uhrzeit des Kündigungseingangs' },
+        { key: '[Kuendigungstermin]', description: 'Beendigungszeitpunkt der Mitgliedschaft' },
+        { key: '[Kuendigungsgrund]', description: 'Angegebener Kündigungsgrund' },
+        { key: '[Tarif-Name]', description: 'Name des gekündigten Tarifs' },
+        { key: '[Vertragsnummer]', description: 'Nummer des gekündigten Vertrags' }
+    ].map(placeholder => ({ ...placeholder, hint: 'Funktioniert nur im Template „Kündigung“.' })),
+    {
+        key: '[Mollie-Zahlungslink]',
+        description: 'Link zur Zahlung über Mollie',
+        hint: 'Funktioniert nur im Template „Zahlung fehlgeschlagen“.'
+    }
 ])
 
 // Methods
@@ -773,6 +791,7 @@ const replacePlaceholders = (content) => {
         '[Fitnessstudio-Name]': props.currentGym?.name || 'Ihr Fitnessstudio',
         '[Adresse]': props.currentGym?.address || 'Musterstraße 123, 12345 Musterstadt',
         '[Telefon]': props.currentGym?.phone || '+49 123 456789',
+        '[Studio-E-Mail]': props.currentGym?.email || 'info@ihr-studio.de',
         '[Website]': props.currentGym?.website || 'https://ihr-studio.de',
         '[Vertragslaufzeit]': '12 Monate',
         '[Monatsbeitrag]': '49,90',
@@ -780,7 +799,15 @@ const replacePlaceholders = (content) => {
         '[Enddatum]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
         '[Mitgliederbereich-Link]': page.props.pwaUrl,
         '[Datum]': new Date().toLocaleDateString('de-DE'),
-        '[Anmeldecode]': '482916'
+        '[Uhrzeit]': new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        '[Anmeldecode]': '482916',
+        '[Kuendigungseingang]': new Date().toLocaleDateString('de-DE') + ', '
+            + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr',
+        '[Kuendigungstermin]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
+        '[Kuendigungsgrund]': 'Umzug',
+        '[Tarif-Name]': 'Premium Mitgliedschaft',
+        '[Vertragsnummer]': '12345',
+        '[Mollie-Zahlungslink]': 'https://www.mollie.com/checkout/beispiel'
     }
 
     let replacedContent = content

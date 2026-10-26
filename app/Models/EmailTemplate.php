@@ -148,6 +148,7 @@ class EmailTemplate extends Model
                 '[Fitnessstudio-Name]' => 'Name des Fitnessstudios',
                 '[Adresse]' => 'Adresse des Studios',
                 '[Telefon]' => 'Telefonnummer',
+                '[Studio-E-Mail]' => 'E-Mail-Adresse des Studios',
                 '[Website]' => 'Website-URL',
             ],
             'contract' => [
@@ -161,6 +162,16 @@ class EmailTemplate extends Model
                 '[Datum]' => 'Aktuelles Datum',
                 '[Uhrzeit]' => 'Aktuelle Uhrzeit',
                 '[Anmeldecode]' => 'Einmaliger Anmeldecode',
+            ],
+            'payment' => [
+                '[Mollie-Zahlungslink]' => 'Link zur Zahlung über Mollie (funktioniert nur im Template „Zahlung fehlgeschlagen“)',
+            ],
+            'cancellation' => [
+                '[Kuendigungseingang]' => 'Datum und Uhrzeit des Kündigungseingangs (funktioniert nur im Template „Kündigung“)',
+                '[Kuendigungstermin]' => 'Beendigungszeitpunkt der Mitgliedschaft (funktioniert nur im Template „Kündigung“)',
+                '[Kuendigungsgrund]' => 'Angegebener Kündigungsgrund (funktioniert nur im Template „Kündigung“)',
+                '[Tarif-Name]' => 'Name des gekündigten Tarifs (funktioniert nur im Template „Kündigung“)',
+                '[Vertragsnummer]' => 'Nummer des gekündigten Vertrags (funktioniert nur im Template „Kündigung“)',
             ]
         ];
     }

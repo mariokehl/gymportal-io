@@ -48,6 +48,7 @@ class Membership extends Model
         'pause_end_date',
         'cancellation_date',
         'cancellation_reason',
+        'cancellation_received_at',
         'contract_file_path',
         'metadata',
         'notes',
@@ -65,6 +66,7 @@ class Membership extends Model
         'pause_start_date' => 'date:Y-m-d',
         'pause_end_date' => 'date:Y-m-d',
         'cancellation_date' => 'date:Y-m-d',
+        'cancellation_received_at' => 'datetime',
         'metadata' => 'array',
         // Widerrufs-Felder (§ 356a BGB)
         'withdrawn_at' => 'datetime',

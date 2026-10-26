@@ -332,6 +332,7 @@ class EmailTemplateController extends Controller
             '[Fitnessstudio-Name]' => $gym->name,
             '[Adresse]' => $gym->address . ', ' . $gym->postal_code . ' ' . $gym->city,
             '[Telefon]' => $gym->phone,
+            '[Studio-E-Mail]' => $gym->email,
             '[Website]' => $gym->website ?: 'https://ihr-studio.de',
             '[Vertragslaufzeit]' => '12 Monate',
             '[Monatsbeitrag]' => '49,90',
@@ -340,6 +341,12 @@ class EmailTemplateController extends Controller
             '[Mitgliederbereich-Link]' => config('app.pwa_url') . '/' . $gym->slug,
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
+            '[Mollie-Zahlungslink]' => 'https://www.mollie.com/checkout/beispiel',
+            '[Kuendigungseingang]' => now()->format('d.m.Y, H:i').' Uhr',
+            '[Kuendigungstermin]' => now()->addYear()->format('d.m.Y'),
+            '[Kuendigungsgrund]' => 'Umzug',
+            '[Tarif-Name]' => 'Premium Mitgliedschaft',
+            '[Vertragsnummer]' => '12345',
         ];
     }
 

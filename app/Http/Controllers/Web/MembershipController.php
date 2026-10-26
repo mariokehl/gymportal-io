@@ -381,6 +381,7 @@ class MembershipController extends Controller
                     'status' => 'cancelled',
                     'cancellation_date' => now(),
                     'cancellation_reason' => $reasonText.' ('.$qualifier.')',
+                    'cancellation_received_at' => now(),
                     'end_date' => now(),
                 ]);
             } else {
@@ -390,6 +391,7 @@ class MembershipController extends Controller
                     'cancellation_reason' => $isExtraordinary || $reasonNote !== ''
                         ? $reasonText.' ('.$qualifier.')'
                         : $reasonText,
+                    'cancellation_received_at' => now(),
                 ]);
 
                 // The status only turns 'cancelled' on the cancellation date;
@@ -477,6 +479,7 @@ class MembershipController extends Controller
                 'status' => $previousStatus,
                 'cancellation_date' => null,
                 'cancellation_reason' => null,
+                'cancellation_received_at' => null,
             ]);
 
             $membershipService->restoreAddonsCancelledWithMembership($membership);

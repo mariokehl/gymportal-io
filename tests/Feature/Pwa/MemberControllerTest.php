@@ -208,6 +208,33 @@ class MemberControllerTest extends TestCase
     }
 
     #[Test]
+    public function cancel_contract_records_when_the_cancellation_was_received(): void
+    {
+        Mail::fake();
+        Carbon::setTestNow('2026-10-26 14:35:12');
+
+        [$gym, $member, $token] = $this->fullMember();
+        $plan = MembershipPlan::factory()->create(['gym_id' => $gym->id]);
+        $membership = Membership::factory()->create([
+            'member_id' => $member->id,
+            'membership_plan_id' => $plan->id,
+            'status' => 'active',
+            'start_date' => now()->subMonth()->toDateString(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/pwa/member/contract')
+            ->assertOk();
+
+        $this->assertSame(
+            '2026-10-26 14:35:12',
+            $membership->fresh()->cancellation_received_at->format('Y-m-d H:i:s'),
+        );
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
     public function cancel_contract_cancels_the_booked_recurring_addons_to_the_contract_end(): void
     {
         Mail::fake();
