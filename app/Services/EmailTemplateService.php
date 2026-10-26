@@ -409,7 +409,7 @@ class EmailTemplateService
                 '[Nachname]' => $member->last_name ?? '',
                 '[Anrede]' => $this->getAnrede($member),
                 '[E-Mail]' => $member->email ?? '',
-                '[Mitgliedsnummer]' => $member->membership_number ?? '',
+                '[Mitgliedsnummer]' => $member->member_number ?? '',
             ]);
         } else {
             $data = array_merge($data, [
