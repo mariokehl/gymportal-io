@@ -34,7 +34,7 @@ class CancellationConfirmationMail extends Mailable implements MemberMail
             $this->gym,
             'cancellation',
             $this->member,
-            $this->additionalData
+            $this->placeholderData($emailTemplateService)
         );
 
         $subject = $renderedTemplate
@@ -58,7 +58,7 @@ class CancellationConfirmationMail extends Mailable implements MemberMail
             $this->gym,
             'cancellation',
             $this->member,
-            $this->additionalData
+            $this->placeholderData($emailTemplateService)
         );
 
         if ($renderedTemplate) {
@@ -82,6 +82,18 @@ class CancellationConfirmationMail extends Mailable implements MemberMail
                 ]
             );
         }
+    }
+
+    /**
+     * Cancellation placeholders of the confirmed membership; explicitly passed
+     * data still takes precedence.
+     */
+    private function placeholderData(EmailTemplateService $emailTemplateService): array
+    {
+        return array_merge(
+            $emailTemplateService->buildCancellationPlaceholders($this->membership),
+            $this->additionalData
+        );
     }
 
     /**

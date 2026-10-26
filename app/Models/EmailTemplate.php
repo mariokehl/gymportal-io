@@ -165,6 +165,13 @@ class EmailTemplate extends Model
             ],
             'payment' => [
                 '[Mollie-Zahlungslink]' => 'Link zur Zahlung über Mollie (funktioniert nur im Template „Zahlung fehlgeschlagen“)',
+            ],
+            'cancellation' => [
+                '[Kuendigungseingang]' => 'Datum und Uhrzeit des Kündigungseingangs (funktioniert nur im Template „Kündigung“)',
+                '[Kuendigungstermin]' => 'Beendigungszeitpunkt der Mitgliedschaft (funktioniert nur im Template „Kündigung“)',
+                '[Kuendigungsgrund]' => 'Angegebener Kündigungsgrund (funktioniert nur im Template „Kündigung“)',
+                '[Tarif-Name]' => 'Name des gekündigten Tarifs (funktioniert nur im Template „Kündigung“)',
+                '[Vertragsnummer]' => 'Nummer des gekündigten Vertrags (funktioniert nur im Template „Kündigung“)',
             ]
         ];
     }

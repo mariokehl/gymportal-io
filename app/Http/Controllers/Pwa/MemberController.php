@@ -212,6 +212,7 @@ class MemberController extends Controller
         $membership->update([
             'cancellation_date' => $membership->nextPossibleCancellationDate(),
             'cancellation_reason' => 'Sonstiges (Ordentliche Kündigung über PWA)',
+            'cancellation_received_at' => now(),
             'notes' => 'Gekündigt am '.now()->format('d.m.Y H:i'),
         ]);
 

@@ -452,7 +452,15 @@ const availablePlaceholders = ref([
     { key: '[Enddatum]', description: 'Vertragsende' },
     { key: '[Mitgliederbereich-Link]', description: 'Link zum Mitgliederbereich' },
     { key: '[Datum]', description: 'Aktuelles Datum' },
+    { key: '[Uhrzeit]', description: 'Aktuelle Uhrzeit' },
     { key: '[Anmeldecode]', description: 'Einmaliger Anmeldecode' },
+    ...[
+        { key: '[Kuendigungseingang]', description: 'Datum und Uhrzeit des Kündigungseingangs' },
+        { key: '[Kuendigungstermin]', description: 'Beendigungszeitpunkt der Mitgliedschaft' },
+        { key: '[Kuendigungsgrund]', description: 'Angegebener Kündigungsgrund' },
+        { key: '[Tarif-Name]', description: 'Name des gekündigten Tarifs' },
+        { key: '[Vertragsnummer]', description: 'Nummer des gekündigten Vertrags' }
+    ].map(placeholder => ({ ...placeholder, hint: 'Funktioniert nur im Template „Kündigung“.' })),
     {
         key: '[Mollie-Zahlungslink]',
         description: 'Link zur Zahlung über Mollie',
@@ -791,7 +799,14 @@ const replacePlaceholders = (content) => {
         '[Enddatum]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
         '[Mitgliederbereich-Link]': page.props.pwaUrl,
         '[Datum]': new Date().toLocaleDateString('de-DE'),
+        '[Uhrzeit]': new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
         '[Anmeldecode]': '482916',
+        '[Kuendigungseingang]': new Date().toLocaleDateString('de-DE') + ', '
+            + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr',
+        '[Kuendigungstermin]': new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('de-DE'),
+        '[Kuendigungsgrund]': 'Umzug',
+        '[Tarif-Name]': 'Premium Mitgliedschaft',
+        '[Vertragsnummer]': '12345',
         '[Mollie-Zahlungslink]': 'https://www.mollie.com/checkout/beispiel'
     }
 

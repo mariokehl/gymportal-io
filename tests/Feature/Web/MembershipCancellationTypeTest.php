@@ -372,4 +372,31 @@ class MembershipCancellationTypeTest extends TestCase
 
         $this->assertSame('2026-10-31', $membership->fresh()->cancellation_date->toDateString());
     }
+
+    #[Test]
+    public function a_cancellation_records_when_it_was_received_until_it_is_revoked(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-15 10:20:30'));
+
+        [$owner, $member, $membership] = $this->makeCancellableMembership();
+
+        $this->cancel($owner, $member, $membership, [
+            'cancellation_date' => '2027-08-31',
+            'cancellation_reason' => 'move',
+            'cancellation_type' => 'ordinary',
+            'immediate' => false,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            '2026-09-15 10:20:30',
+            $membership->fresh()->cancellation_received_at->format('Y-m-d H:i:s'),
+        );
+
+        $this->actingAs($owner)->put(route('members.memberships.revoke-cancellation', [
+            'member' => $member->id,
+            'membership' => $membership->id,
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertNull($membership->fresh()->cancellation_received_at);
+    }
 }

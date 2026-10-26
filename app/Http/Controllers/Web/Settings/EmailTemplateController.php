@@ -342,6 +342,11 @@ class EmailTemplateController extends Controller
             '[Datum]' => now()->format('d.m.Y'),
             '[Uhrzeit]' => now()->format('H:i'),
             '[Mollie-Zahlungslink]' => 'https://www.mollie.com/checkout/beispiel',
+            '[Kuendigungseingang]' => now()->format('d.m.Y, H:i').' Uhr',
+            '[Kuendigungstermin]' => now()->addYear()->format('d.m.Y'),
+            '[Kuendigungsgrund]' => 'Umzug',
+            '[Tarif-Name]' => 'Premium Mitgliedschaft',
+            '[Vertragsnummer]' => '12345',
         ];
     }
 
