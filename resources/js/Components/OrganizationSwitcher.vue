@@ -137,7 +137,10 @@ const switchOrganization = async (organizationId) => {
     try {
         // Make the API call to switch organization
         await router.post(route('user.switch-organization'), {
-            gym_id: organizationId
+            gym_id: organizationId,
+            // Stay on the current page (and tab) when the target organization
+            // allows it; the server falls back to the dashboard otherwise.
+            return_to: window.location.pathname + window.location.search
         }, {
             preserveState: false, // This will reload the page with new data
             preserveScroll: true,

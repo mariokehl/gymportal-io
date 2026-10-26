@@ -86,6 +86,7 @@ import GoogleSheetSettings from '@/Components/AccessControl/GoogleSheetSettings.
 import CrossLocationSettings from '@/Components/AccessControl/CrossLocationSettings.vue'
 import CheckinStationSettings from '@/Components/AccessControl/CheckinStationSettings.vue'
 import { useToast } from '@/composables/useToast'
+import { useTabQuery } from '@/composables/useTabQuery'
 
 const { success, error: toastError } = useToast()
 
@@ -190,7 +191,7 @@ const tabs = computed(() => {
     return allTabs.filter(tab => !tab.requiresAdmin)
 })
 
-const activeTab = ref('live-log')
+const activeTab = useTabQuery(tabs, 'live-log')
 const scannersData = ref([...props.scanners])
 
 const handleSuccess = (message) => {

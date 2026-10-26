@@ -487,6 +487,7 @@ import ContractSettingsWidget from '@/Components/ContractSettingsWidget.vue'
 import PaymentExecutionSettingsWidget from '@/Components/PaymentExecutionSettingsWidget.vue'
 import OrganizationSymbolCard from '@/Components/OrganizationSymbolCard.vue'
 import { useToast } from '@/composables/useToast'
+import { useTabQuery } from '@/composables/useTabQuery'
 
 const { success, error: toastError } = useToast()
 
@@ -506,7 +507,6 @@ const props = defineProps({
 })
 
 // Reactive data
-const activeTab = ref('gym')
 const showMollieSetup = ref(false)
 const isSubmittingGym = ref(false)
 const executionSettingsWidget = ref(null)
@@ -532,6 +532,8 @@ const tabs = [
     { key: 'pwa', label: 'App (PWA)', icon: Smartphone },
     { key: 'guests', label: 'Gästeportal', icon: Ticket },
 ]
+
+const activeTab = useTabQuery(tabs, 'gym')
 
 // Computed property to check if SEPA Direct Debit is enabled
 const sepaDirectDebitEnabled = computed(() => {
