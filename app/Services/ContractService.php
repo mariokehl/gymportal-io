@@ -227,6 +227,7 @@ class ContractService
                 '[Fitnessstudio-Name]' => 'Name des Fitnessstudios',
                 '[Adresse]' => 'Vollständige Adresse des Studios',
                 '[Telefon]' => 'Telefonnummer',
+                '[Studio-E-Mail]' => 'E-Mail-Adresse des Studios',
                 '[Website]' => 'Website-URL',
             ],
             'contract' => [

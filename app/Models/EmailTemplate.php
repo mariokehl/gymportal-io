@@ -148,6 +148,7 @@ class EmailTemplate extends Model
                 '[Fitnessstudio-Name]' => 'Name des Fitnessstudios',
                 '[Adresse]' => 'Adresse des Studios',
                 '[Telefon]' => 'Telefonnummer',
+                '[Studio-E-Mail]' => 'E-Mail-Adresse des Studios',
                 '[Website]' => 'Website-URL',
             ],
             'contract' => [

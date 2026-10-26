@@ -445,6 +445,7 @@ class SettingController extends Controller
             '[Fitnessstudio-Name]' => $gym->name,
             '[Adresse]' => ($gym->address ?? '').', '.($gym->postal_code ?? '').' '.($gym->city ?? ''),
             '[Telefon]' => $gym->phone ?? '',
+            '[Studio-E-Mail]' => $gym->email ?? '',
             '[Website]' => $gym->website ?? '',
             '[Vertragslaufzeit]' => '12 Monate',
             '[Monatsbeitrag]' => '49,90',

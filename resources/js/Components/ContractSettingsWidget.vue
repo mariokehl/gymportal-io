@@ -383,6 +383,7 @@ const placeholderGroups = {
         { key: '[Fitnessstudio-Name]', description: 'Name des Fitnessstudios' },
         { key: '[Adresse]', description: 'Vollständige Adresse des Studios' },
         { key: '[Telefon]', description: 'Telefonnummer' },
+        { key: '[Studio-E-Mail]', description: 'E-Mail-Adresse des Studios' },
         { key: '[Website]', description: 'Website-URL' },
     ],
     contract: [

@@ -429,6 +429,7 @@ class EmailTemplateService
             '[Fitnessstudio-Name]' => $gym->name ?? '',
             '[Adresse]' => $this->formatAddress($gym),
             '[Telefon]' => $gym->phone ?? '',
+            '[Studio-E-Mail]' => $gym->email ?? '',
             '[Website]' => $gym->website ?? '',
         ]);
 
