@@ -15,6 +15,18 @@ class MemberIndexRequest extends FormRequest
             && $this->user()->can('viewAny', Member::class);
     }
 
+    /**
+     * The requested page size, else the one remembered in the cookie, else
+     * the default. The cookie is encrypted by Laravel and checked against
+     * the options like the parameter.
+     */
+    public function perPage(): int
+    {
+        $perPage = (int) ($this->validated('perPage') ?? $this->cookie(MemberListService::PER_PAGE_COOKIE));
+
+        return in_array($perPage, MemberListService::PER_PAGE_OPTIONS, true) ? $perPage : MemberListService::DEFAULT_PER_PAGE;
+    }
+
     public function rules(): array
     {
         return [

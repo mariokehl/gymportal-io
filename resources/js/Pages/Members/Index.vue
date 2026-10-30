@@ -399,6 +399,7 @@ const activeSavedId = ref(props.savedFilters.some(saved => saved.id === initialS
 const sortBy = ref(props.sorting.sortBy)
 const sortDirection = ref(props.sorting.sortDirection)
 const perPage = ref(props.perPage)
+const perPageChosen = ref(false)
 const isLoading = ref(false)
 const isExporting = ref(false)
 
@@ -416,7 +417,9 @@ const listParams = () => {
     params.sortBy = sortBy.value
     params.sortDirection = sortDirection.value
   }
-  if (perPage.value !== DEFAULT_PER_PAGE) params.perPage = perPage.value
+  // The server remembers the last chosen size in a cookie, so once the user
+  // picks one it is always sent — even the default, to overwrite the cookie.
+  if (perPageChosen.value || perPage.value !== DEFAULT_PER_PAGE) params.perPage = perPage.value
 
   return params
 }
@@ -463,6 +466,7 @@ const sortIcon = column => {
 
 const changePerPage = value => {
   perPage.value = value
+  perPageChosen.value = true
   reload()
 }
 

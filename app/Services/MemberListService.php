@@ -14,9 +14,16 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class MemberListService
 {
-    public const PER_PAGE_OPTIONS = [10, 25, 50];
+    public const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public const DEFAULT_PER_PAGE = 25;
+
+    /**
+     * Cookie remembering the page size a user picked last, per browser.
+     */
+    public const PER_PAGE_COOKIE = 'members_per_page';
+
+    public const PER_PAGE_COOKIE_MINUTES = 60 * 24 * 365;
 
     public const SORTABLE_COLUMNS = ['name', 'member_number', 'check_in_count', 'last_check_in', 'outstanding_balance'];
 

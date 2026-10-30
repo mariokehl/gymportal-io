@@ -29,6 +29,7 @@ use Exception;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -55,7 +56,11 @@ class MemberController extends Controller
         $definition = $memberList->definition($gym, $request->validated('filter'));
         $sortBy = $request->validated('sortBy') ?? 'member_number';
         $sortDirection = $request->validated('sortDirection') ?? 'asc';
-        $perPage = (int) ($request->validated('perPage') ?? MemberListService::DEFAULT_PER_PAGE);
+        $perPage = $request->perPage();
+
+        if ($request->filled('perPage')) {
+            Cookie::queue(MemberListService::PER_PAGE_COOKIE, (string) $perPage, MemberListService::PER_PAGE_COOKIE_MINUTES);
+        }
 
         return Inertia::render('Members/Index', [
             'members' => $memberList->paginate($gym, $definition, $sortBy, $sortDirection, $perPage),

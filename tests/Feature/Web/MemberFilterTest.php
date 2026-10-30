@@ -220,6 +220,39 @@ class MemberFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_remembers_the_chosen_page_size_in_a_cookie(): void
+    {
+        $this->actingAs($this->owner)
+            ->get(route('members.index', ['perPage' => 100]))
+            ->assertCookie('members_per_page', '100')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('perPage', 100)
+                ->where('perPageOptions', [10, 25, 50, 100])
+            );
+
+        $this->actingAs($this->owner)
+            ->withCookie('members_per_page', '100')
+            ->get(route('members.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('perPage', 100));
+
+        // An explicit size wins over the cookie and replaces it.
+        $this->actingAs($this->owner)
+            ->withCookie('members_per_page', '100')
+            ->get(route('members.index', ['perPage' => 25]))
+            ->assertCookie('members_per_page', '25')
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('perPage', 25));
+
+        $this->actingAs($this->owner)
+            ->withCookie('members_per_page', '500')
+            ->get(route('members.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('perPage', 25));
+
+        $this->actingAs($this->owner)
+            ->get(route('members.index', ['perPage' => 500]))
+            ->assertSessionHasErrors('perPage');
+    }
+
+    #[Test]
     public function it_hides_the_total_and_the_export_from_staff(): void
     {
         $staffRoleId = Role::factory()->create(['name' => 'Staff', 'slug' => 'staff'])->id;
