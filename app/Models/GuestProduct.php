@@ -72,12 +72,13 @@ class GuestProduct extends Model
     }
 
     /**
-     * Whether the member may buy this product.
+     * Whether the member may buy this product. Solarium minutes need the
+     * minimum age and the on-site age verification.
      */
     public function isAvailableTo(Member $member): bool
     {
         return $this->type !== self::TYPE_SOLARIUM_MINUTES
-            || $member->hasReachedAge(self::SOLARIUM_MIN_AGE);
+            || ($member->isAgeVerified() && $member->hasReachedAge(self::SOLARIUM_MIN_AGE));
     }
 
     public function getTypeLabelAttribute(): string

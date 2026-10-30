@@ -159,8 +159,8 @@ Route::group(['prefix' => 'guests'], function () {
         Route::get('purchases', [GuestProfileController::class, 'purchases']);
         Route::get('entitlements', [GuestProfileController::class, 'entitlements']);
 
-        // Solarium minutes
-        Route::post('solarium/redeem', [GuestSolariumController::class, 'redeem']);
+        // Solarium minutes (redeeming requires age verification)
+        Route::post('solarium/redeem', [GuestSolariumController::class, 'redeem'])->middleware('age.verified');
         Route::get('solarium/redemption/{id}/status', [GuestSolariumController::class, 'status']);
         Route::delete('solarium/redemption/{id}', [GuestSolariumController::class, 'cancel']);
 
@@ -168,13 +168,11 @@ Route::group(['prefix' => 'guests'], function () {
         Route::get('wallet/apple-pass', [GuestWalletController::class, 'applePass']);
         Route::get('wallet/google-pass', [GuestWalletController::class, 'googlePass']);
 
-        // Shop (requires age verification)
-        Route::middleware(['age.verified'])->group(function () {
-            Route::get('shop/products', [GuestShopController::class, 'products']);
-            Route::get('shop/payment-methods', [GuestShopController::class, 'paymentMethods']);
-            Route::post('shop/checkout', [GuestShopController::class, 'checkout']);
-            Route::get('shop/payment-status/{paymentId}', [GuestShopController::class, 'paymentStatus']);
-        });
+        // Shop (solarium minutes are only sold after age verification, see GuestProduct::isAvailableTo)
+        Route::get('shop/products', [GuestShopController::class, 'products']);
+        Route::get('shop/payment-methods', [GuestShopController::class, 'paymentMethods']);
+        Route::post('shop/checkout', [GuestShopController::class, 'checkout']);
+        Route::get('shop/payment-status/{paymentId}', [GuestShopController::class, 'paymentStatus']);
     });
 });
 

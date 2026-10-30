@@ -167,13 +167,40 @@ class GuestShopCheckoutTest extends TestCase
     }
 
     #[Test]
-    public function the_shop_requires_a_verified_age(): void
+    public function unverified_guests_can_buy_other_products_right_away(): void
     {
+        $dayPass = GuestProduct::create([
+            'gym_id' => $this->gym->id,
+            'type' => GuestProduct::TYPE_DAY_PASS,
+            'name' => 'Tageskarte',
+            'price' => 12.00,
+            'quantity' => 1,
+        ]);
+        $this->topUp(2000);
+        $this->guest->update(['age_verified' => false]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->guestToken())
+            ->getJson('/api/guests/shop/products')
+            ->assertOk()
+            ->assertJsonMissingPath('data.solarium_minutes')
+            ->assertJsonCount(1, 'data.day_pass');
+
+        $this->checkout(['product_id' => $dayPass->id])
+            ->assertOk()
+            ->assertJsonPath('data.payment_status', 'paid');
+    }
+
+    #[Test]
+    public function solarium_minutes_require_a_verified_age(): void
+    {
+        $this->topUp(5000);
         $this->guest->update(['age_verified' => false]);
 
         $this->checkout(['product_id' => $this->minutes->id])
-            ->assertForbidden()
-            ->assertJsonPath('error_code', 'AGE_VERIFICATION_REQUIRED');
+            ->assertStatus(422);
+
+        $this->assertSame(5000, $this->balance());
+        $this->assertSame(0, Payment::count());
     }
 
     #[Test]
