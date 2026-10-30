@@ -17,25 +17,6 @@
       </div>
 
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <!-- Flash Message -->
-        <Transition
-          enter-active-class="transition ease-out duration-200"
-          enter-from-class="opacity-0 transform -translate-y-2"
-          enter-to-class="opacity-100 transform translate-y-0"
-          leave-active-class="transition ease-in duration-150"
-          leave-from-class="opacity-100"
-          leave-to-class="opacity-0"
-        >
-          <div v-if="$page.props.flash.message" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-            <div class="flex">
-              <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-              </svg>
-              <p class="ml-3 text-sm text-green-800">{{ $page.props.flash.message }}</p>
-            </div>
-          </div>
-        </Transition>
-
         <div class="space-y-6">
           <div class="text-sm text-gray-600">
             <p class="mb-4">

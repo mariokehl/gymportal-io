@@ -1259,7 +1259,6 @@ const createPayment = () => {
     onSuccess: () => {
       // No reload needed: the controller redirects back, so the response
       // already carries fresh props including the recalculated credit balance.
-      // Reloading here would remount the layout and replay the flash toast.
       closeAddPayment()
     }
   })

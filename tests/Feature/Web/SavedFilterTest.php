@@ -57,7 +57,7 @@ class SavedFilterTest extends TestCase
         $this->actingAs($owner)
             ->post(route('saved-filters.store'), ['context' => 'members', 'name' => 'Aktive', 'definition' => $definition])
             ->assertRedirect()
-            ->assertSessionHas('message');
+            ->assertSessionHas('success');
 
         $saved = SavedFilter::sole();
         $this->assertSame($gym->id, $saved->gym_id);

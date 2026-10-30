@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use App\Models\Gym;
 use App\Models\User;
+use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -17,6 +19,60 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    /**
+     * Session flash keys that become toasts, with their toast type. Redirect
+     * with one of them, e.g. back()->with('success', '…'); 'message' is the
+     * legacy key for a success message.
+     */
+    public const TOAST_FLASH_KEYS = [
+        'success' => 'success',
+        'message' => 'success',
+        'info' => 'info',
+        'warning' => 'warning',
+        'error' => 'error',
+    ];
+
+    public function handle(Request $request, Closure $next)
+    {
+        $this->flashToasts($request);
+
+        return parent::handle($request, $next);
+    }
+
+    /**
+     * Hands the flashed messages of the previous request to Inertia's flash
+     * data as "toasts". Unlike a shared prop, flash data is sent with exactly
+     * one response and never stored in the browser history, so the frontend
+     * shows every message once — partial reloads and back navigation do not
+     * replay it. Also accepts ->with('flash', ['type' => …, 'message' => …]).
+     */
+    protected function flashToasts(Request $request): void
+    {
+        if (! $request->hasSession()) {
+            return;
+        }
+
+        $session = $request->session();
+        $toasts = [];
+
+        foreach (self::TOAST_FLASH_KEYS as $key => $type) {
+            if (is_string($message = $session->get($key)) && $message !== '') {
+                $toasts[] = ['type' => $type, 'message' => $message];
+            }
+        }
+
+        $flash = $session->get('flash');
+
+        if (is_array($flash) && is_string($flash['message'] ?? null)) {
+            $type = in_array($flash['type'] ?? null, self::TOAST_FLASH_KEYS, true) ? $flash['type'] : 'success';
+            $toasts[] = ['type' => $type, 'message' => $flash['message']];
+        }
+
+        if ($toasts !== []) {
+            Inertia::flash('toasts', $toasts);
+        }
+    }
 
     /**
      * Determines the current asset version.
@@ -81,10 +137,6 @@ class HandleInertiaRequests extends Middleware
                 'impersonator_name' => session('impersonator_name'),
                 'impersonated_user_name' => session('impersonated_user_name'),
                 'impersonated_user_email' => session('impersonated_user_email'),
-            ],
-            'flash' => [
-                'message' => fn () => $request->session()->get('message'),
-                'error' => fn () => $request->session()->get('error'),
             ],
             // Root of the member PWA, so the admin UI can build member-facing
             // links (portal preview, e-mail template previews) without hard-

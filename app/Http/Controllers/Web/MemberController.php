@@ -919,10 +919,7 @@ class MemberController extends Controller
 
         $result = $checkinService->toggle($gym, $member, $user);
 
-        // 'message' rather than 'success': that is the session key
-        // HandleInertiaRequests shares as flash.message, which AppLayout turns
-        // into a toast. A 'success' key never reaches the frontend.
-        return back()->with('message', $result['message']);
+        return back()->with('success', $result['message']);
     }
 
     /**
