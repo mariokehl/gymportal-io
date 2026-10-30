@@ -49,7 +49,7 @@ export function useInertiaPayments(memberId) {
             resolve({
               success: true,
               payments: responsePage.props.updatedPayments,
-              message: responsePage.props.flash.message
+              message: responsePage.flash?.toasts?.[0]?.message
             })
           } else {
             // Fallback: Partial reload
@@ -93,7 +93,7 @@ export function useInertiaPayments(memberId) {
             resolve({
               success: true,
               payments: responsePage.props.updatedPayments,
-              message: responsePage.props.flash.message,
+              message: responsePage.flash?.toasts?.[0]?.message,
               count: count
             })
           } else {

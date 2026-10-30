@@ -23,20 +23,20 @@ class SavedFilterController extends Controller
             $request->validated('definition'),
         );
 
-        return back()->with('message', 'Filter „'.$savedFilter->name.'“ gespeichert');
+        return back()->with('success', 'Filter „'.$savedFilter->name.'“ gespeichert');
     }
 
     public function update(UpdateSavedFilterRequest $request, SavedFilter $savedFilter): RedirectResponse
     {
         $this->savedFilters->update($savedFilter, $request->validated('name'), $request->validated('definition'));
 
-        return back()->with('message', 'Filter „'.$savedFilter->name.'“ aktualisiert');
+        return back()->with('success', 'Filter „'.$savedFilter->name.'“ aktualisiert');
     }
 
     public function destroy(SavedFilter $savedFilter): RedirectResponse
     {
         $savedFilter->delete();
 
-        return back()->with('message', 'Filter „'.$savedFilter->name.'“ gelöscht');
+        return back()->with('success', 'Filter „'.$savedFilter->name.'“ gelöscht');
     }
 }

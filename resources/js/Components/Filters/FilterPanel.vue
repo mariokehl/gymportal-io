@@ -211,7 +211,8 @@ const loadSaved = saved => {
   emit('update:activeSavedId', saved.id)
 }
 
-const reloadOptions = { preserveScroll: true, preserveState: true, only: ['savedFilters', 'flash'] }
+// Flash messages arrive with every response, independent of "only".
+const reloadOptions = { preserveScroll: true, preserveState: true, only: ['savedFilters'] }
 
 const removeSaved = saved => {
   if (!confirm(`Möchten Sie den Filter „${saved.name}“ wirklich löschen? Er wird für alle Mitarbeiter entfernt.`)) return

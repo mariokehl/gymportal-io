@@ -45,7 +45,7 @@ class MemberStaffCheckInTest extends TestCase
         $this->actingAs($owner)
             ->post(route('members.toggle-checkin', $member->id))
             ->assertRedirect()
-            ->assertSessionHas('message', 'Mitglied wurde eingecheckt.');
+            ->assertSessionHas('success', 'Mitglied wurde eingecheckt.');
 
         $this->assertDatabaseHas('check_ins', [
             'member_id' => $member->id,
@@ -72,7 +72,7 @@ class MemberStaffCheckInTest extends TestCase
         $this->actingAs($owner)
             ->post(route('members.toggle-checkin', $member->id))
             ->assertRedirect()
-            ->assertSessionHas('message', 'Mitglied wurde ausgecheckt.');
+            ->assertSessionHas('success', 'Mitglied wurde ausgecheckt.');
 
         $this->assertNotNull($checkin->fresh()->check_out_time);
         $this->assertSame(1, CheckIn::where('member_id', $member->id)->count());
@@ -95,7 +95,7 @@ class MemberStaffCheckInTest extends TestCase
 
         $this->actingAs($owner)
             ->post(route('members.toggle-checkin', $member->id))
-            ->assertSessionHas('message', 'Mitglied wurde eingecheckt.');
+            ->assertSessionHas('success', 'Mitglied wurde eingecheckt.');
 
         $this->assertNull($stale->fresh()->check_out_time);
         $this->assertSame(2, CheckIn::where('member_id', $member->id)->count());
@@ -110,7 +110,7 @@ class MemberStaffCheckInTest extends TestCase
 
         $this->actingAs($owner)
             ->post(route('members.toggle-checkin', $member->id))
-            ->assertSessionHas('message', 'Mitglied wurde eingecheckt.');
+            ->assertSessionHas('success', 'Mitglied wurde eingecheckt.');
 
         $this->assertDatabaseHas('check_ins', [
             'member_id' => $member->id,
@@ -150,20 +150,19 @@ class MemberStaffCheckInTest extends TestCase
     }
 
     #[Test]
-    public function it_flashes_the_result_in_the_shape_the_toast_bridge_reads(): void
+    public function it_flashes_the_result_as_a_toast(): void
     {
-        // AppLayout turns page.props.flash.message into a toast, and
-        // HandleInertiaRequests fills that from the session key 'message'.
-        // Flashing 'success' instead would leave the operator without feedback.
         [$owner, , $member] = $this->ownerGymMember();
 
         $this->actingAs($owner)
             ->post(route('members.toggle-checkin', $member->id))
-            ->assertSessionHas('message');
+            ->assertSessionHas('success');
 
         $this->actingAs($owner)
             ->get(route('members.show', $member->id))
-            ->assertInertia(fn ($page) => $page->where('flash.message', 'Mitglied wurde eingecheckt.'));
+            ->assertInertia(fn ($page) => $page->hasFlash('toasts', [
+                ['type' => 'success', 'message' => 'Mitglied wurde eingecheckt.'],
+            ]));
     }
 
     #[Test]

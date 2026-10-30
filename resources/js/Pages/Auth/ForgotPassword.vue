@@ -7,11 +7,6 @@
       Haben Sie Ihr Passwort vergessen? Kein Problem. Teilen Sie uns einfach Ihre E-Mail-Adresse mit und wir senden Ihnen einen Link zum Zurücksetzen des Passworts zu, mit dem Sie ein neues wählen können.
     </div>
 
-    <!-- Status Message -->
-    <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
-      {{ status }}
-    </div>
-
     <form @submit.prevent="submit" class="space-y-6">
       <div>
         <label for="email" class="block text-sm font-medium text-gray-700">
@@ -60,7 +55,6 @@ import { Link } from '@inertiajs/vue3'
 import AuthLayout from '@/Layouts/AuthLayout.vue'
 
 defineProps({
-  status: String,
   errors: Object,
 })
 
@@ -69,7 +63,9 @@ const form = useForm({
 })
 
 const submit = () => {
-  form.post('/forgot-password')
+  form.post('/forgot-password', {
+    onSuccess: () => form.reset('email'),
+  })
 }
 
 const processing = computed(() => form.processing)

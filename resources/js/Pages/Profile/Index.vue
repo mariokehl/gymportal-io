@@ -247,15 +247,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { ref, reactive } from 'vue'
+import { useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 defineProps({
     user: Object,
 })
 
-const page = usePage()
 const showDeleteModal = ref(false)
 
 // Toast state
@@ -274,13 +273,6 @@ const showToast = (message, type = 'success') => {
         toast.show = false
     }, 5000)
 }
-
-// Watch for flash messages
-watch(() => page.props.flash?.success, (newVal) => {
-    if (newVal) {
-        showToast(newVal, 'success')
-    }
-}, { immediate: true })
 
 // Password change form
 const passwordForm = useForm({

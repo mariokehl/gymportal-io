@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/AuthController.php
 
 namespace App\Http\Controllers;
@@ -6,18 +7,18 @@ namespace App\Http\Controllers;
 use App\Models\Gym;
 use App\Models\User;
 use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Validation\Rules;
-use Inertia\Inertia;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules;
+use Inertia\Inertia;
 
 class AuthController extends Controller
 {
@@ -42,10 +43,11 @@ class AuthController extends Controller
             if ($user->isBlocked()) {
                 $request->session()->put('blocked_user_id', $user->id);
                 Auth::logout();
+
                 return redirect()->route('blocked');
             }
 
-            if (!$user->hasVerifiedEmail()) {
+            if (! $user->hasVerifiedEmail()) {
                 return redirect()->route('verification.notice');
             }
 
@@ -66,7 +68,7 @@ class AuthController extends Controller
     {
         // E-Mail zu Kleinbuchstaben konvertieren
         $request->merge([
-            'email' => strtolower($request->email)
+            'email' => strtolower($request->email),
         ]);
 
         $request->validate([
@@ -118,11 +120,11 @@ class AuthController extends Controller
             DB::rollback();
 
             // Log the error for debugging
-            Log::error('Registration failed: ' . $e->getMessage());
+            Log::error('Registration failed: '.$e->getMessage());
 
             // Return back with error message
             return back()->withInput()->withErrors([
-                'registration' => 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.'
+                'registration' => 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
             ]);
         }
     }
@@ -174,13 +176,13 @@ class AuthController extends Controller
     public function sendResetLinkEmail(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-        $status = Password::sendResetLink(
+        Password::sendResetLink(
             $request->only('email')
         );
 
-        return $status === Password::RESET_LINK_SENT
-                    ? back()->with(['status' => 'Wir haben Ihnen einen Link zum Zurücksetzen des Passworts per E-Mail gesendet!'])
-                    : back()->withErrors(['email' => 'Wir können keinen Benutzer mit dieser E-Mail-Adresse finden.']);
+        // Same answer whether or not an account exists (or the request was
+        // throttled), so the form cannot be used to enumerate e-mail addresses.
+        return back()->with('success', 'Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum Zurücksetzen des Passworts gesendet.');
     }
 
     public function showResetPassword(Request $request, $token)
@@ -203,7 +205,7 @@ class AuthController extends Controller
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
                 $user->forceFill([
-                    'password' => Hash::make($password)
+                    'password' => Hash::make($password),
                 ])->setRememberToken(Str::random(60));
 
                 $user->save();
@@ -213,7 +215,7 @@ class AuthController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-                    ? redirect()->route('login')->with('status', 'Ihr Passwort wurde erfolgreich zurückgesetzt!')
+                    ? redirect()->route('login')->with('success', 'Ihr Passwort wurde erfolgreich zurückgesetzt!')
                     : back()->withErrors(['email' => [__($status)]]);
     }
 
