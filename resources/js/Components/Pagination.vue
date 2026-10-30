@@ -109,7 +109,7 @@
 <script setup>
 import { computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight } from '@lucide/vue'
 
 // Props
 const props = defineProps({

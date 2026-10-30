@@ -367,7 +367,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet, MoreVertical, LogIn, LogOut } from 'lucide-vue-next'
+import { Plus, Edit, ShieldX, Check, AlertTriangle, Trash2, Wallet, MoreVertical, LogIn, LogOut } from '@lucide/vue'
 import MemberAvatar from '@/Components/MemberAvatar.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import AggregatorBadge from '@/Components/Aggregators/AggregatorBadge.vue'

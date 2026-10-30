@@ -74,7 +74,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { CheckIcon, LoaderIcon, AlertCircleIcon } from 'lucide-vue-next'
+import { CheckIcon, LoaderIcon, AlertCircleIcon } from '@lucide/vue'
 import { debounce } from 'lodash'
 import axios from 'axios'
 

@@ -100,7 +100,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { Package, Plus } from 'lucide-vue-next'
+import { Package, Plus } from '@lucide/vue'
 import { formatCents, toCents } from '@/utils/discountProjection'
 
 const props = defineProps({

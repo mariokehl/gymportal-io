@@ -72,7 +72,7 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
-import { Paperclip, Upload, Trash2, FileText, Loader2 } from 'lucide-vue-next'
+import { Paperclip, Upload, Trash2, FileText, Loader2 } from '@lucide/vue'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps({

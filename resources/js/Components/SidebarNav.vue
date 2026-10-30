@@ -184,7 +184,7 @@ import {
   Users, Bell, DollarSign,
   BarChart, Settings, LogOut,
   FilePlus, DoorOpen, ArrowDownUp, X
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import SidebarItem from '@/Components/SidebarItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import Logo from '@/Components/Logo.vue'

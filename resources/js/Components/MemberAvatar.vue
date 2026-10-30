@@ -27,7 +27,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Check } from 'lucide-vue-next'
+import { Check } from '@lucide/vue'
 
 const props = defineProps({
   initials: {

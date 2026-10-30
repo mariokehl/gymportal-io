@@ -115,7 +115,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plus, Trash2, Pencil, FileText, Scale, Shield, BookOpen, CreditCard, FileSignature } from 'lucide-vue-next'
+import { Plus, Trash2, Pencil, FileText, Scale, Shield, BookOpen, CreditCard, FileSignature } from '@lucide/vue'
 
 const props = defineProps({
     currentGym: {

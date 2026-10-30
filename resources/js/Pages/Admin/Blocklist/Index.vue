@@ -176,7 +176,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { ShieldX, ShieldCheck, Plus } from 'lucide-vue-next'
+import { ShieldX, ShieldCheck, Plus } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import UnblockModal from './UnblockModal.vue'
 import ManualBlockModal from './ManualBlockModal.vue'

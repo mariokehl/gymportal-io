@@ -543,7 +543,7 @@ import { ref, computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import {
   Plus, AlertCircle, UserX, ChevronDown, Gift, EyeOff, Puzzle, FileText, CheckCircle, StopCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatBillingCycle, formatCurrency, formatDate, formatDateForInput, todayInDisplayTimezone } from '@/utils/formatters'
 import { cappedBillingDate, monthlyMembershipTotal, nextMonthlyBillingDate } from '@/utils/addons'
 import { membershipStatusOption } from '@/utils/membershipStatus'

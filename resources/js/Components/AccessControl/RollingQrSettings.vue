@@ -105,7 +105,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { AlertTriangle } from 'lucide-vue-next'
+import { AlertTriangle } from '@lucide/vue'
 
 const props = defineProps({
     rollingQrEnabled: {

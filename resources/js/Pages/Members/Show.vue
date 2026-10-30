@@ -328,7 +328,7 @@ import {
   User, FileText, Clock, CreditCard,
   ArrowLeft, AlertCircle, History, Key, FolderOpen,
   MoreVertical
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { getStatusText, getStatusColor } from '@/utils/memberStatus'
 
 const props = defineProps({

@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { Check, Minus } from 'lucide-vue-next'
+import { Check, Minus } from '@lucide/vue'
 
 defineProps({
   // 'none' | 'some' | 'all'

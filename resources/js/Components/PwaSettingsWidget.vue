@@ -478,9 +478,9 @@ import { usePage } from '@inertiajs/vue3'
 import {
     Settings, Palette, FileText, Image, Clock, Share2,
     Smartphone, Code, Save, ExternalLink, Globe,
-    Instagram, Facebook, Youtube, Twitter, Linkedin,
     ShieldOff, Store, Apple, Play
-} from 'lucide-vue-next'
+} from '@lucide/vue'
+import { Instagram, Facebook, Youtube, Twitter, Linkedin } from '@/Components/Common/brandIcons'
 
 // Props
 const props = defineProps({

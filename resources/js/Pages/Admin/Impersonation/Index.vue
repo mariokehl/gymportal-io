@@ -198,7 +198,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatDateShort as formatDate } from '@/utils/formatters'
 
 const props = defineProps({

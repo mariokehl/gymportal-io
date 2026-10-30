@@ -172,7 +172,7 @@ import { computed } from 'vue'
 import {
   Clock, CheckCircle, XCircle, PlayCircle, StopCircle,
   RotateCcw, AlertCircle, Gift, Undo2
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { membershipStatusOption } from '@/utils/membershipStatus'
 import MembershipStatusEditor from '@/Components/Members/MembershipStatusEditor.vue'

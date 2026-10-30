@@ -208,7 +208,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { Plus, PackagePlus, AlertTriangle, BadgeCheck, CupSoda } from 'lucide-vue-next'
+import { Plus, PackagePlus, AlertTriangle, BadgeCheck, CupSoda } from '@lucide/vue'
 import { formatPrice } from '@/utils/formatters'
 
 const page = usePage()

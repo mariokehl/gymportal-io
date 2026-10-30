@@ -83,7 +83,7 @@ import {
   Shield,
   User,
   AlertCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 const page = usePage()
 const showDetails = ref(false)

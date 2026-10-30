@@ -613,7 +613,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import {
     Plus, Scan, Settings, Download, Trash2, Key, Eye, EyeOff,
     Copy, RefreshCw, X, CheckCircle, AlertTriangle, AlertCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatDistanceToNow } from 'date-fns'
 import { de } from 'date-fns/locale'
 import Tooltip from '@/Components/Tooltip.vue'

@@ -393,7 +393,7 @@ import {
   Loader2,
   Info,
   FolderArchive
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import axios from 'axios'
 
 defineProps({

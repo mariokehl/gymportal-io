@@ -77,7 +77,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { ChevronDown, ArrowRight, Info } from 'lucide-vue-next'
+import { ChevronDown, ArrowRight, Info } from '@lucide/vue'
 import { MEMBERSHIP_STATUSES } from '@/utils/membershipStatus'
 
 const props = defineProps({

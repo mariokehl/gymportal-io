@@ -101,7 +101,7 @@
 import { ref, computed, onBeforeUnmount, useId } from 'vue'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { Search, X, Loader2 } from 'lucide-vue-next'
+import { Search, X, Loader2 } from '@lucide/vue'
 import { getStatusBadgeClass, getStatusText } from '@/utils/memberStatus'
 import { formatViewedAt } from '@/utils/memberSearchHistory'
 import { useMemberSearchHistory } from '@/composables/useMemberSearchHistory'

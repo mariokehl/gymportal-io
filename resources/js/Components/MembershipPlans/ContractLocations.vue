@@ -153,7 +153,7 @@
 import { ref, computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import axios from 'axios'
-import { AlertTriangle, Lock, Check, X } from 'lucide-vue-next'
+import { AlertTriangle, Lock, Check, X } from '@lucide/vue'
 
 const props = defineProps({
   planId: {

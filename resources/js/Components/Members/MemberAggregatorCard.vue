@@ -148,7 +148,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
-import { AlertTriangle, Loader2, Pencil, Trash2 } from 'lucide-vue-next'
+import { AlertTriangle, Loader2, Pencil, Trash2 } from '@lucide/vue'
 import {
   AGGREGATOR_STATUS_LINKED, aggregators, aggregatorStatusLabel, findAggregator,
 } from '@/utils/aggregators'

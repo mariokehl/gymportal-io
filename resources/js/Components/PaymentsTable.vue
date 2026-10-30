@@ -432,7 +432,7 @@ import {
   FileText,
   WalletCards,
   Wallet
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import {
   getCreditRedemption,

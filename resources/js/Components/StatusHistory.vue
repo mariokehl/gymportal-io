@@ -196,7 +196,7 @@ import { ref, computed } from 'vue'
 import {
   History, Info, Clock, Globe, Tag,
   CheckCircle, Pause, PlayCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 // Importiere die gemeinsamen Utilities
 import {

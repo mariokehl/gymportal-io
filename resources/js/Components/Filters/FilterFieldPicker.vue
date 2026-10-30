@@ -33,7 +33,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { Search } from '@lucide/vue'
 import { TYPE_LABELS } from '@/utils/filterBuilder'
 
 const props = defineProps({

@@ -192,7 +192,7 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import { AlertCircle, Clock } from 'lucide-vue-next'
+import { AlertCircle, Clock } from '@lucide/vue'
 import { formatDate, formatDateForInput } from '@/utils/formatters'
 
 const props = defineProps({

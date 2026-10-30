@@ -49,7 +49,7 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3'
-import { X } from 'lucide-vue-next'
+import { X } from '@lucide/vue'
 
 const props = defineProps({ entry: Object })
 const emit  = defineEmits(['close'])

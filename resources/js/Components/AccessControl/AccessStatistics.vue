@@ -224,7 +224,7 @@ import { ref, computed, onMounted } from 'vue'
 import {
     Activity, CheckCircle, XCircle, TrendingUp,
     QrCode, CreditCard, Scan, AlertTriangle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 const props = defineProps({
     initialStatistics: {

@@ -149,7 +149,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Bookmark, Check, ChevronDown, Filter, Plus, RotateCcw, Trash2, X } from 'lucide-vue-next'
+import { Bookmark, Check, ChevronDown, Filter, Plus, RotateCcw, Trash2, X } from '@lucide/vue'
 import FilterBuilder from '@/Components/Filters/FilterBuilder.vue'
 import {
   activeConditionCount, describeDefinition, emptyDefinition, normalizeDefinition, sameDefinition, serializeDefinition,

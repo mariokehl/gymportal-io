@@ -83,7 +83,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
     ChevronDown, Settings, DollarSign, Plus, Check, Loader2
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { router, usePage, Link } from '@inertiajs/vue3'
 import { resolveSymbol, symbolTileStyle } from '@/utils/organizationSymbol'
 

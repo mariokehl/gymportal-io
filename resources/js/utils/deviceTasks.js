@@ -1,4 +1,4 @@
-import { DoorOpen, LogIn, LogOut, CupSoda, ShieldCheck, ClipboardCheck, Sun } from 'lucide-vue-next'
+import { DoorOpen, LogIn, LogOut, CupSoda, ShieldCheck, ClipboardCheck, Sun } from '@lucide/vue'
 
 /**
  * The job a device does. Mirrors App\Models\GymScanner::DEVICE_TASKS.

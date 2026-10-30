@@ -107,7 +107,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { router, usePage, Head, Link } from '@inertiajs/vue3'
-import { Shield, Menu, Search } from 'lucide-vue-next'
+import { Shield, Menu, Search } from '@lucide/vue'
 import SidebarNav from '@/Components/SidebarNav.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'

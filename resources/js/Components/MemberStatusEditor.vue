@@ -118,7 +118,7 @@ import { router } from '@inertiajs/vue3'
 import {
   ChevronDown, CheckCircle, Lock, ArrowRight, Info,
   UserCheck, UserX, Pause, Clock, AlertTriangle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 // Importiere gemeinsame Utilities
 import {

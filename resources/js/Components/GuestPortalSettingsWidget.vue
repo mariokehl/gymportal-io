@@ -132,7 +132,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { Ticket, Plus, Pencil, Loader2, AlertTriangle } from 'lucide-vue-next'
+import { Ticket, Plus, Pencil, Loader2, AlertTriangle } from '@lucide/vue'
 import { formatCurrency } from '@/utils/formatters'
 
 const emit = defineEmits(['success', 'error'])

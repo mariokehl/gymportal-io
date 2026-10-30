@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { AlertCircle } from 'lucide-vue-next'
+import { AlertCircle } from '@lucide/vue'
 import { formatDate } from '@/utils/formatters'
 
 defineProps({

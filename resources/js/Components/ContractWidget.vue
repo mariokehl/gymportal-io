@@ -569,7 +569,7 @@ import {
     ToyBrick, RefreshCw, Type, ExternalLink,
     ListOrdered, Package, MousePointerClick,
     GripVertical, X, Info
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import draggable from 'vuedraggable'
 import { useToast } from '@/composables/useToast'
 

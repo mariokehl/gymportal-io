@@ -99,7 +99,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { ArrowUpDown, ArrowRight, Check } from 'lucide-vue-next'
+import { ArrowUpDown, ArrowRight, Check } from '@lucide/vue'
 
 const props = defineProps({
     /**

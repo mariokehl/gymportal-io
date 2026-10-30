@@ -190,7 +190,7 @@
 import { ref, computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import axios from 'axios'
-import { Info, Pencil, MapPin, AlertTriangle } from 'lucide-vue-next'
+import { Info, Pencil, MapPin, AlertTriangle } from '@lucide/vue'
 
 const props = defineProps({
     crossLocation: {

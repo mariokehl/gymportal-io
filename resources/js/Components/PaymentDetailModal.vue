@@ -307,7 +307,7 @@ import {
   Loader2,
   BanknoteArrowUp,
   BanknoteArrowDown
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatters'
 import {
   hasCreditRedemption,

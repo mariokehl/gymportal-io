@@ -45,7 +45,9 @@ class GuestCheckoutService
     public function checkout(Member $member, GuestProduct $product, ?string $paymentMethod, string $redirectUrl): array
     {
         if (! $product->isAvailableTo($member)) {
-            throw new GuestActionException('Solarium-Minuten sind erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren erhältlich.');
+            throw new GuestActionException($member->isAgeVerified()
+                ? 'Solarium-Minuten sind erst ab '.GuestProduct::SOLARIUM_MIN_AGE.' Jahren erhältlich.'
+                : 'Solarium-Minuten gibt es erst nach der Altersverifizierung vor Ort.');
         }
 
         $gym = $member->gym;

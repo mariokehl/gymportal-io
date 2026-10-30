@@ -959,7 +959,7 @@ import {
   CreditCard, Plus, Wallet, AlertCircle, CheckCircle, XCircle,
   Download, Building2, Banknote, PlayCircle, WalletCards,
   FileText, AlertTriangle, ChevronDown, Send, Check, Info, Link2, Unlink, RefreshCw
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
 import { sortByScheduledDate } from '@/utils/payments'

@@ -97,7 +97,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { FileText, Download, Plus, FolderOpen, Loader2, MoveHorizontal } from 'lucide-vue-next'
+import { FileText, Download, Plus, FolderOpen, Loader2, MoveHorizontal } from '@lucide/vue'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps({

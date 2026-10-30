@@ -37,7 +37,11 @@ class GuestSolariumRedemptionTest extends TestCase
             'device_task' => GymScanner::TASK_SOLARIUM,
         ]);
 
-        $this->guest = Member::factory()->create(['gym_id' => $this->gym->id, 'status' => 'extern']);
+        $this->guest = Member::factory()->create([
+            'gym_id' => $this->gym->id,
+            'status' => 'extern',
+            'age_verified' => true,
+        ]);
         MemberAccessConfig::create([
             'member_id' => $this->guest->id,
             'qr_code_enabled' => true,
@@ -151,6 +155,19 @@ class GuestSolariumRedemptionTest extends TestCase
         $this->scannedAtSolarium();
 
         $this->redeem(10)->assertStatus(409);
+
+        $this->assertSame(30, $this->minutes());
+    }
+
+    #[Test]
+    public function redeeming_requires_a_verified_age(): void
+    {
+        $this->guest->update(['age_verified' => false]);
+        $this->scannedAtSolarium();
+
+        $this->redeem(10)
+            ->assertForbidden()
+            ->assertJsonPath('error_code', 'AGE_VERIFICATION_REQUIRED');
 
         $this->assertSame(30, $this->minutes());
     }

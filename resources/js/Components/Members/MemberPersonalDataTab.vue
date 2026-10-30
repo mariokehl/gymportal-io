@@ -324,7 +324,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useForm, router, Link } from '@inertiajs/vue3'
-import { AlertCircle, Edit, Mail, Phone } from 'lucide-vue-next'
+import { AlertCircle, Edit, Mail, Phone } from '@lucide/vue'
 import { earliestBirthDate, formatDate, formatDateForInput } from '@/utils/formatters'
 
 const props = defineProps({

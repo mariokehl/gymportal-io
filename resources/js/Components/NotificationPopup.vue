@@ -91,7 +91,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import { Bell } from 'lucide-vue-next'
+import { Bell } from '@lucide/vue'
 import { Link, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { useNotifications } from '@/composables/useNotifications'

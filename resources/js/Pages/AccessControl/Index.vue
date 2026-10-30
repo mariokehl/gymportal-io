@@ -75,7 +75,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { ScanLine, Radio, BarChart3, Settings } from 'lucide-vue-next'
+import { ScanLine, Radio, BarChart3, Settings } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
 import ScannerManagement from '@/Components/AccessControl/ScannerManagement.vue'

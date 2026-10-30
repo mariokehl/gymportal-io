@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { GitBranch } from 'lucide-vue-next'
+import { GitBranch } from '@lucide/vue'
 
 // __APP_VERSION__ / __GITHUB_REPO_URL__ werden von Vite zur Build-Zeit ersetzt
 // (siehe vite.config.js → define). Fallbacks für den Fall, dass sie fehlen.
