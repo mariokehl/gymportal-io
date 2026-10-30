@@ -50,6 +50,7 @@
 
 <script setup>
 import { ref, computed, useSlots, onMounted, onBeforeUnmount } from 'vue'
+import { hasTruncatedText } from '@/utils/truncation'
 
 // Props
 const props = defineProps({
@@ -76,6 +77,12 @@ const props = defineProps({
   teleport: {
     type: Boolean,
     default: false
+  },
+  // Show only while text inside the trigger is cut off with an ellipsis
+  // (an element with Tailwind's `truncate` class), e.g. in narrow table cells.
+  onlyWhenTruncated: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -89,6 +96,10 @@ const triggerRect = ref(null)
 
 // Methods
 const showTooltip = () => {
+  if (props.onlyWhenTruncated && !hasTruncatedText(triggerRef.value)) {
+    return
+  }
+
   // Measure the trigger before showing, so the teleported panel is placed
   // against the viewport on its very first frame instead of jumping there.
   if (props.teleport) {

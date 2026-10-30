@@ -157,7 +157,10 @@
                      what does not fit is truncated and shown in full as a tooltip. -->
                 <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
                   <template v-if="member.plans.length">
-                    <span class="inline-block max-w-[160px] truncate align-middle" :title="member.plans[0]">{{ member.plans[0] }}</span>
+                    <Tooltip position="top" teleport only-when-truncated class="align-middle">
+                      <span class="block max-w-[160px] truncate">{{ member.plans[0] }}</span>
+                      <template #content>{{ member.plans[0] }}</template>
+                    </Tooltip>
                     <Tooltip v-if="member.plans.length > 1" position="top" teleport class="ml-1 align-middle">
                       <span class="cursor-default rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
                         +{{ member.plans.length - 1 }}
@@ -173,7 +176,7 @@
                   <span v-else class="text-gray-400">–</span>
                 </td>
                 <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
-                  <Tooltip v-if="member.payment_method" position="top" teleport>
+                  <Tooltip v-if="member.payment_method" position="top" teleport only-when-truncated>
                     <span class="flex items-center">
                       <span
                         v-if="member.payment_method.provider"
@@ -196,7 +199,7 @@
                 <td class="whitespace-nowrap px-3 py-2.5 text-right text-[13px] tabular-nums text-gray-700">{{ member.check_in_count }}</td>
                 <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-500">{{ member.last_check_in_at ? formatDate(member.last_check_in_at) : 'nie' }}</td>
                 <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
-                  <Tooltip v-if="member.postal_code || member.city" position="top" teleport>
+                  <Tooltip v-if="member.postal_code || member.city" position="top" teleport only-when-truncated>
                     <span class="block max-w-[170px] truncate">{{ [member.postal_code, member.city].filter(Boolean).join(' ') }}</span>
                     <template #content>{{ [member.postal_code, member.city].filter(Boolean).join(' ') }}</template>
                   </Tooltip>
