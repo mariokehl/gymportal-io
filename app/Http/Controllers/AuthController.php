@@ -176,13 +176,13 @@ class AuthController extends Controller
     public function sendResetLinkEmail(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-        $status = Password::sendResetLink(
+        Password::sendResetLink(
             $request->only('email')
         );
 
-        return $status === Password::RESET_LINK_SENT
-                    ? back()->with(['status' => 'Wir haben Ihnen einen Link zum Zurücksetzen des Passworts per E-Mail gesendet!'])
-                    : back()->withErrors(['email' => 'Wir können keinen Benutzer mit dieser E-Mail-Adresse finden.']);
+        // Same answer whether or not an account exists (or the request was
+        // throttled), so the form cannot be used to enumerate e-mail addresses.
+        return back()->with('success', 'Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum Zurücksetzen des Passworts gesendet.');
     }
 
     public function showResetPassword(Request $request, $token)
@@ -215,7 +215,7 @@ class AuthController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-                    ? redirect()->route('login')->with('status', 'Ihr Passwort wurde erfolgreich zurückgesetzt!')
+                    ? redirect()->route('login')->with('success', 'Ihr Passwort wurde erfolgreich zurückgesetzt!')
                     : back()->withErrors(['email' => [__($status)]]);
     }
 
