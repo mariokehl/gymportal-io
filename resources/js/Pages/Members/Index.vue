@@ -150,19 +150,58 @@
                     </template>
                   </MemberIdentity>
                 </td>
-                <td class="px-3 py-2.5">
+                <td class="whitespace-nowrap px-3 py-2.5">
                   <MemberStatusBadge :status="member.status" :outstanding-balance="member.outstanding_balance" />
                 </td>
-                <td class="max-w-[220px] px-3 py-2.5 text-[13px] text-gray-700">{{ member.plans.length ? member.plans.join(', ') : '–' }}</td>
-                <td class="px-3 py-2.5 text-[13px] text-gray-700">{{ member.payment_method ?? '–' }}</td>
+                <!-- Data cells stay on one line so every row has the same height;
+                     what does not fit is truncated and shown in full as a tooltip. -->
+                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
+                  <template v-if="member.plans.length">
+                    <span class="inline-block max-w-[160px] truncate align-middle" :title="member.plans[0]">{{ member.plans[0] }}</span>
+                    <Tooltip v-if="member.plans.length > 1" position="top" teleport class="ml-1 align-middle">
+                      <span class="cursor-default rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
+                        +{{ member.plans.length - 1 }}
+                      </span>
+                      <template #content>
+                        <div class="mb-1 font-semibold">Laufende Tarife</div>
+                        <ul class="space-y-0.5">
+                          <li v-for="plan in member.plans" :key="plan">{{ plan }}</li>
+                        </ul>
+                      </template>
+                    </Tooltip>
+                  </template>
+                  <span v-else class="text-gray-400">–</span>
+                </td>
+                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
+                  <Tooltip v-if="member.payment_method" position="top" teleport>
+                    <span class="flex items-center">
+                      <span
+                        v-if="member.payment_method.provider"
+                        :class="['mr-1.5 rounded px-1.5 py-0.5 text-[11px] font-medium', providerBadgeClass(member.payment_method.provider)]"
+                      >{{ member.payment_method.provider }}</span>
+                      <span class="max-w-[150px] truncate">{{ member.payment_method.label }}</span>
+                    </span>
+                    <template #content>
+                      <div class="font-semibold">{{ member.payment_method.label }}</div>
+                      <div v-if="member.payment_method.provider" class="text-gray-300">über {{ member.payment_method.provider }}</div>
+                    </template>
+                  </Tooltip>
+                  <span v-else class="text-gray-400">–</span>
+                </td>
                 <td class="whitespace-nowrap px-3 py-2.5 text-right text-[13px]">
                   <span v-if="member.outstanding_balance" class="font-medium text-amber-600">{{ formatCurrency(member.outstanding_balance) }}</span>
                   <span v-else class="text-gray-400">–</span>
                   <span v-if="member.failed_payment_count > 0" class="block text-[11px] text-red-700">{{ member.failed_payment_count }}× fehlgeschlagen</span>
                 </td>
-                <td class="px-3 py-2.5 text-right text-[13px] tabular-nums text-gray-700">{{ member.check_in_count }}</td>
+                <td class="whitespace-nowrap px-3 py-2.5 text-right text-[13px] tabular-nums text-gray-700">{{ member.check_in_count }}</td>
                 <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-500">{{ member.last_check_in_at ? formatDate(member.last_check_in_at) : 'nie' }}</td>
-                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">{{ [member.postal_code, member.city].filter(Boolean).join(' ') || '–' }}</td>
+                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
+                  <Tooltip v-if="member.postal_code || member.city" position="top" teleport>
+                    <span class="block max-w-[170px] truncate">{{ [member.postal_code, member.city].filter(Boolean).join(' ') }}</span>
+                    <template #content>{{ [member.postal_code, member.city].filter(Boolean).join(' ') }}</template>
+                  </Tooltip>
+                  <span v-else class="text-gray-400">–</span>
+                </td>
                 <td class="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-gray-700">
                   {{ member.nfc_tag ?? '–' }}<span v-if="member.nfc_tag_count > 1" class="ml-1 font-sans text-gray-400">+{{ member.nfc_tag_count - 1 }}</span>
                 </td>
@@ -339,6 +378,12 @@ const columns = [
   { label: 'PLZ / Ort' },
   { label: 'NFC-Tag' }
 ]
+
+// Payment providers in their brand colours (Mollie: black logo, white type);
+// unknown providers stay neutral.
+const PROVIDER_BADGE_CLASSES = { Mollie: 'bg-black text-white' }
+
+const providerBadgeClass = provider => PROVIDER_BADGE_CLASSES[provider] ?? 'bg-gray-100 text-gray-500'
 
 // Mirror the defaults of App\Services\MemberListService.
 const DEFAULT_SORT = { sortBy: 'member_number', sortDirection: 'asc' }

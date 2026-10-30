@@ -111,7 +111,7 @@ class MemberListService
             'postal_code' => $member->postal_code,
             'city' => $member->city,
             'plans' => $member->memberships->map(fn ($membership) => $membership->membershipPlan?->name)->filter()->unique()->values()->all(),
-            'payment_method' => $this->paymentMethod($member)?->type_text,
+            'payment_method' => $this->paymentMethodLabel($this->paymentMethod($member)),
             'outstanding_balance' => (float) $member->outstanding_balance ?: null,
             'failed_payment_count' => (int) $member->failed_payment_count,
             'check_in_count' => (int) $member->check_in_count,
@@ -127,6 +127,25 @@ class MemberListService
     public function paymentMethod(Member $member): ?PaymentMethod
     {
         return $member->activePaymentMethods->sortByDesc('is_default')->first();
+    }
+
+    /**
+     * Splits a label like "Mollie: SEPA-Lastschrift" into the method and its
+     * provider, so the list can show the method and mark the provider apart.
+     *
+     * @return array{label: string, provider: ?string}|null
+     */
+    public function paymentMethodLabel(?PaymentMethod $paymentMethod): ?array
+    {
+        if (! $paymentMethod) {
+            return null;
+        }
+
+        $parts = explode(': ', $paymentMethod->type_text, 2);
+
+        return count($parts) === 2
+            ? ['label' => $parts[1], 'provider' => $parts[0]]
+            : ['label' => $parts[0], 'provider' => null];
     }
 
     /**

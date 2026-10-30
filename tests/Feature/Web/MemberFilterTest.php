@@ -180,7 +180,7 @@ class MemberFilterTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('members.data.0.outstanding_balance', 49.9)
                 ->where('members.data.0.failed_payment_count', 1)
-                ->where('members.data.0.payment_method', 'Mollie: SEPA-Lastschrift')
+                ->where('members.data.0.payment_method', ['label' => 'SEPA-Lastschrift', 'provider' => 'Mollie'])
             );
     }
 
