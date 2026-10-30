@@ -112,7 +112,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { AlertTriangle, Check as CheckIcon, Copy, RefreshCw } from 'lucide-vue-next'
+import { AlertTriangle, Check as CheckIcon, Copy, RefreshCw } from '@lucide/vue'
 
 const props = defineProps({
     checkinStation: {

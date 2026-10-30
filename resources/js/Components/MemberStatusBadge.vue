@@ -19,7 +19,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { AlertTriangle } from 'lucide-vue-next'
+import { AlertTriangle } from '@lucide/vue'
 import { getStatusText, getStatusBadgeClass, getStatusIcon } from '@/utils/memberStatus'
 import Tooltip from '@/Components/Tooltip.vue'
 

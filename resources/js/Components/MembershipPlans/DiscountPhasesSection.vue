@@ -242,7 +242,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { AlertTriangle, Check, Plus, Tag, Tags, Trash2 } from 'lucide-vue-next'
+import { AlertTriangle, Check, Plus, Tag, Tags, Trash2 } from '@lucide/vue'
 import { formatCents, projectDiscounts, toCents } from '@/utils/discountProjection'
 
 const props = defineProps({

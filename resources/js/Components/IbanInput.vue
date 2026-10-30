@@ -43,7 +43,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { CheckCircle, XCircle } from 'lucide-vue-next'
+import { CheckCircle, XCircle } from '@lucide/vue'
 import { formatIbanDisplay } from '@/utils/formatters'
 
 // Props

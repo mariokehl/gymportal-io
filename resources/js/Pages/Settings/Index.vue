@@ -471,7 +471,7 @@ import { router } from '@inertiajs/vue3'
 import {
     Building2, Users, Plus, Signature, CreditCard,
     Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature, Ticket
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'

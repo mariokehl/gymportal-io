@@ -3,7 +3,7 @@
 
 import {
   UserCheck, UserX, Pause, Clock, AlertTriangle, ShieldX, UserRound
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatDate, formatDateTime, formatTime, formatRelativeTime } from './formatters'
 
 /**

@@ -81,7 +81,7 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3'
-import { X } from 'lucide-vue-next'
+import { X } from '@lucide/vue'
 import { earliestBirthDate } from '@/utils/formatters'
 
 const emit = defineEmits(['close'])

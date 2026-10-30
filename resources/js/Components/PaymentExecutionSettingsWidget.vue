@@ -205,7 +205,7 @@
 
 <script setup>
 import { ref, computed, onMounted, h } from 'vue'
-import { CalendarClock, Info, Lock, Save } from 'lucide-vue-next'
+import { CalendarClock, Info, Lock, Save } from '@lucide/vue'
 import { executionOffsetText, shiftExecutionDate } from '@/utils/payments'
 import { useToast } from '@/composables/useToast'
 

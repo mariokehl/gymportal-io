@@ -816,7 +816,7 @@ import { useForm, router } from '@inertiajs/vue3'
 import {
   QrCode, Nfc, Sun, Package, Armchair, Coffee, Ticket, Hash, WalletCards, Info, Mail, Loader2, Radio,
   Smartphone, X, XCircle, Plus, CheckCircle, Key, MoveHorizontal, KeyRound, ShieldAlert, ChevronDown, ChevronUp,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatCurrency, formatDate, formatDateForInput, formatDateTime, todayInDisplayTimezone } from '@/utils/formatters'
 import MemberAggregatorCard from '@/Components/Members/MemberAggregatorCard.vue'
 

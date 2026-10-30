@@ -349,7 +349,7 @@ import FilterPanel from '@/Components/Filters/FilterPanel.vue'
 import SelectionBox from '@/Components/Filters/SelectionBox.vue'
 import {
   Users, Plus, Trash2, AlertTriangle, AlertCircle, CheckCircle, Loader2, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, Download
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { activeConditionCount, effectiveKey, normalizeDefinition, serializeDefinition } from '@/utils/filterBuilder'
 import { useToast } from '@/composables/useToast'

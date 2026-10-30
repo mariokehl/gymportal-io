@@ -109,7 +109,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Bell } from 'lucide-vue-next'
+import { Bell } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'

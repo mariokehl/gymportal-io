@@ -515,7 +515,7 @@ import { Link, usePage } from '@inertiajs/vue3'
 import {
     Play, Pause, RotateCcw, Radio, CheckCircle, Copy, AlertTriangle,
     Loader2, MapPin, SlidersHorizontal, X, ChevronRight
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import SwitchLocationModal from '@/Components/AccessControl/SwitchLocationModal.vue'
 import AggregatorBadge from '@/Components/Aggregators/AggregatorBadge.vue'
 import { useScannerAccessLogs } from '@/composables/useScannerAccessLogs'

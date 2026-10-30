@@ -222,7 +222,7 @@ import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
   BadgeCheck, Ban, CalendarSync, CalendarX, CheckCircle, CupSoda, Gift, RotateCcw, X
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { formatPrice, formatDate, formatDateTime } from '@/utils/formatters'
 import { cappedBillingDate, endOfBookingMonth, isTrialActive, nextMonthlyBillingDate } from '@/utils/addons'
 import CancelAddonModal from '@/Components/Members/CancelAddonModal.vue'

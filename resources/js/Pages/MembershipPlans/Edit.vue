@@ -432,7 +432,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import TabRail from '@/Components/TabRail.vue'
 import ContractLocations from '@/Components/MembershipPlans/ContractLocations.vue'
 import AddonAssignmentSection from '@/Components/MembershipPlans/AddonAssignmentSection.vue'
-import { Save, X, Eye, AlertTriangle, MapPin, FileText } from 'lucide-vue-next'
+import { Save, X, Eye, AlertTriangle, MapPin, FileText } from '@lucide/vue'
 import { useToast } from '@/composables/useToast'
 import DiscountPhasesSection from '@/Components/MembershipPlans/DiscountPhasesSection.vue'
 

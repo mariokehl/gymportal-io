@@ -397,7 +397,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import {
     Plus, Eye, Save, Edit, Copy, Trash2, X, List, ListOrdered, Link, Monitor, Info
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/utils/formatters'
 import EmailAttachmentsDropzone from '@/Components/EmailAttachmentsDropzone.vue'

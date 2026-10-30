@@ -583,7 +583,7 @@ import {
   X,
   Loader2,
   Info
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import MigrationImportCard from '@/Components/DataTransfer/MigrationImportCard.vue'
 import axios from 'axios'

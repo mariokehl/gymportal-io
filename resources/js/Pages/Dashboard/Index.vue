@@ -182,7 +182,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
     Plus, Edit, ChevronRight, Eye
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'

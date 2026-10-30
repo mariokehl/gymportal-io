@@ -257,7 +257,7 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import axios from 'axios'
-import { FileSignature, Save, Eye, Info } from 'lucide-vue-next'
+import { FileSignature, Save, Eye, Info } from '@lucide/vue'
 import { useToast } from '@/composables/useToast'
 
 // Props

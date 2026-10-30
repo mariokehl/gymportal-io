@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Percent } from 'lucide-vue-next'
+import { Percent } from '@lucide/vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatCurrency } from '@/utils/formatters'
 

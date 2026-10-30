@@ -120,7 +120,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import { ChevronDown } from 'lucide-vue-next'
+import { ChevronDown } from '@lucide/vue'
 import { useToast } from '@/composables/useToast'
 import {
     DEFAULT_SYMBOL_COLOR,

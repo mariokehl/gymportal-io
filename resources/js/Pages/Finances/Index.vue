@@ -197,7 +197,7 @@ import {
   Search,
   Filter,
   ChevronDown
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { debounce } from 'lodash'
 import { formatCurrency } from '@/utils/formatters'
 

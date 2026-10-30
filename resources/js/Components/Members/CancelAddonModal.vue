@@ -78,7 +78,7 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3'
-import { AlertCircle } from 'lucide-vue-next'
+import { AlertCircle } from '@lucide/vue'
 import { todayInDisplayTimezone } from '@/utils/formatters'
 import { endOfCurrentMonth } from '@/utils/addons'
 

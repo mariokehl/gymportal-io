@@ -750,7 +750,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
-import { ArrowLeft, CheckIcon } from 'lucide-vue-next'
+import { ArrowLeft, CheckIcon } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EmailInput from '@/Components/EmailInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'

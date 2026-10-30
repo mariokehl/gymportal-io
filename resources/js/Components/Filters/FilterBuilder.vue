@@ -110,7 +110,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { ArrowUpDown, Layers, Plus, Trash2 } from 'lucide-vue-next'
+import { ArrowUpDown, Layers, Plus, Trash2 } from '@lucide/vue'
 import FilterConditionRow from '@/Components/Filters/FilterConditionRow.vue'
 import {
   LOGIC_LABELS, createCondition, createGroup, describeDefinition, toggleLogic, uid,

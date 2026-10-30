@@ -220,7 +220,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Plus, Trash2, Send, Pencil, Check, X } from 'lucide-vue-next'
+import { Plus, Trash2, Send, Pencil, Check, X } from '@lucide/vue'
 import { formatDate } from '@/utils/formatters'
 
 // Props

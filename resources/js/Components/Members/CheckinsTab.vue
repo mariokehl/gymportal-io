@@ -87,7 +87,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Clock, CreditCard, Edit, House, Loader2, MapPin, QrCode, MoveHorizontal } from 'lucide-vue-next'
+import { Clock, CreditCard, Edit, House, Loader2, MapPin, QrCode, MoveHorizontal } from '@lucide/vue'
 import { formatDate, formatTime } from '@/utils/formatters'
 import Tooltip from '@/Components/Tooltip.vue'
 

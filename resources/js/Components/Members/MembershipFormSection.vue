@@ -144,7 +144,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import { AlertTriangle } from 'lucide-vue-next'
+import { AlertTriangle } from '@lucide/vue'
 import { formatBillingCycle, formatCurrency, formatDate, todayInDisplayTimezone } from '@/utils/formatters'
 
 const props = defineProps({

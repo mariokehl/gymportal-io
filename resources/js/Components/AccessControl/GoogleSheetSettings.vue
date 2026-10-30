@@ -172,7 +172,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { CheckCircle2, ChevronDown, Copy, HelpCircle } from 'lucide-vue-next'
+import { CheckCircle2, ChevronDown, Copy, HelpCircle } from '@lucide/vue'
 
 const props = defineProps({
     googleSheet: {

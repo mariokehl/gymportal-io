@@ -1,5 +1,5 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { CircleAlert, TriangleAlert } from 'lucide-vue-next'
+import { CircleAlert, TriangleAlert } from '@lucide/vue'
 
 /**
  * Derives the attention badges shown on the member detail tab rail.

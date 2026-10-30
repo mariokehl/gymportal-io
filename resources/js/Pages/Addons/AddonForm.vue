@@ -499,7 +499,7 @@ import { computed, ref, watch } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import {
   ArrowRight, BadgeCheck, Calculator, CheckCircle2, CupSoda, Gauge, Info, Save, Search, Tag, X
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { weeklyPriceOf } from '@/utils/addons'
 
 const props = defineProps({

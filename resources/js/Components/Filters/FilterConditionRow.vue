@@ -115,7 +115,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Check, ChevronDown, Copy, X } from 'lucide-vue-next'
+import { Check, ChevronDown, Copy, X } from '@lucide/vue'
 import FilterFieldPicker from '@/Components/Filters/FilterFieldPicker.vue'
 import {
   DAY_OPERATORS, LOGIC_LABELS, applyField, isComplete, isIsoDate, needsValue, operatorOptions,
