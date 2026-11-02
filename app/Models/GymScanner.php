@@ -338,6 +338,7 @@ class GymScanner extends Model
         return $this->device_task === self::TASK_SOLARIUM;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.104')]
     public function isDispenser(): bool
     {
         return $this->device_task === self::TASK_DISPENSER;

@@ -6,6 +6,9 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
+/**
+ * @deprecated Not used since v0.0.4; never referenced since it was introduced.
+ */
 class EmailVerificationController extends Controller
 {
     public function notice()

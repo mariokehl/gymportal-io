@@ -324,6 +324,7 @@ class MemberStatusHistory extends Model
     /**
      * Get formatted history for display
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.4')]
     public static function getFormattedHistory(int $memberId, int $limit = 20): Collection
     {
         return self::forMember($memberId)

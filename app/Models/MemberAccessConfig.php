@@ -89,6 +89,7 @@ class MemberAccessConfig extends Model
     /**
      * Get the user who invalidated the QR code
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function qrInvalidatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'qr_code_invalidated_by');
@@ -217,6 +218,7 @@ class MemberAccessConfig extends Model
     /**
      * Check if NFC is properly configured
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function hasValidNfc(): bool
     {
         return $this->nfc_enabled && ! empty($this->nfc_uid);
@@ -320,6 +322,7 @@ class MemberAccessConfig extends Model
     /**
      * Consume service credits
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function consumeService(string $service, float $amount = 1): bool
     {
         switch ($service) {
@@ -362,6 +365,7 @@ class MemberAccessConfig extends Model
     /**
      * Add service credits
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function addCredit(string $service, float $amount): void
     {
         switch ($service) {

@@ -94,6 +94,9 @@ export const sortByScheduledDate = (payments) => {
   })
 }
 
+/**
+ * @deprecated Not used by application code since v0.0.99; only referenced by tests.
+ */
 export const getMemberInitials = (member) => {
   if (!member) return '??'
   const first = member.first_name?.charAt(0) || ''

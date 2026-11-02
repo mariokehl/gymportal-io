@@ -434,6 +434,7 @@ class CssSanitizer
      *
      * @return array<string>
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.41')]
     public static function getAllowedProperties(): array
     {
         return self::ALLOWED_PROPERTIES;

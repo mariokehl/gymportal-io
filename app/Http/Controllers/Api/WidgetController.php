@@ -728,6 +728,7 @@ class WidgetController extends Controller
      * Atomically update widget session data using a callback.
      * Useful for read-modify-write operations.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.41')]
     private function updateWidgetSessionData(string $sessionId, string $key, callable $callback): bool
     {
         $cacheKey = "widget_session:{$sessionId}:{$key}";
@@ -905,6 +906,7 @@ class WidgetController extends Controller
     /**
      * Analytics-Statistiken abrufen
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getAnalyticsStats(Request $request, $gymId = null)
     {
         $gymId = $gymId ?: $this->getGymIdFromRequest($request);

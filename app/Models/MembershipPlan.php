@@ -170,6 +170,7 @@ class MembershipPlan extends Model
         return $this->addons()->wherePivot('mode', 'included');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.87')]
     public function optionalAddons()
     {
         return $this->addons()->wherePivot('mode', 'optional');

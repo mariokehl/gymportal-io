@@ -176,16 +176,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role->slug === 'owner';
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function isStaff()
     {
         return $this->role->slug === 'staff';
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function isTrainer()
     {
         return $this->role->slug === 'trainer';
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function isMember()
     {
         return $this->role->slug === 'member';
@@ -201,6 +204,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Course::class, 'instructor_id');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function courseSchedules()
     {
         return $this->hasMany(CourseSchedule::class, 'instructor_id');

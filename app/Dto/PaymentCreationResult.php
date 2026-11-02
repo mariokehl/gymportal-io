@@ -52,6 +52,7 @@ class PaymentCreationResult
     /**
      * IDs aller erstellten Payments
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function getPaymentIds(): array
     {
         return $this->getAllPayments()->pluck('id')->toArray();
@@ -68,6 +69,7 @@ class PaymentCreationResult
     /**
      * Hat wiederkehrende Payments?
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function hasRecurringPayments(): bool
     {
         return count($this->recurringPayments) > 0;

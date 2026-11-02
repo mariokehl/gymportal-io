@@ -34,6 +34,7 @@ final class MailDispatchResult
         return new self('failed', $reason);
     }
 
+    #[\Deprecated(message: 'only referenced by tests', since: 'v0.0.77')]
     public function wasSent(): bool
     {
         return $this->status === 'sent';

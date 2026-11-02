@@ -276,6 +276,7 @@ class ScannerAccessLog extends Model
     /**
      * Check if access was granted
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function wasGranted(): bool
     {
         return $this->access_granted === true;
@@ -284,6 +285,7 @@ class ScannerAccessLog extends Model
     /**
      * Check if access was denied
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function wasDenied(): bool
     {
         return $this->access_granted === false;
@@ -292,6 +294,7 @@ class ScannerAccessLog extends Model
     /**
      * Check if scan was QR code
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function isQrCode(): bool
     {
         return $this->scan_type === self::SCAN_TYPE_QR;
@@ -300,6 +303,7 @@ class ScannerAccessLog extends Model
     /**
      * Check if scan was NFC card
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function isNfcCard(): bool
     {
         return $this->scan_type === self::SCAN_TYPE_NFC;
@@ -407,6 +411,7 @@ class ScannerAccessLog extends Model
     /**
      * Get denial category based on reason
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function getDenialCategory(): ?string
     {
         if ($this->access_granted) {
@@ -434,6 +439,7 @@ class ScannerAccessLog extends Model
     /**
      * Get Bootstrap color class based on status
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function getStatusColorClass(): string
     {
         return $this->access_granted ? 'success' : 'danger';
@@ -442,6 +448,7 @@ class ScannerAccessLog extends Model
     /**
      * Get icon based on scan type
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function getScanTypeIcon(): string
     {
         return match ($this->scan_type) {
@@ -454,6 +461,7 @@ class ScannerAccessLog extends Model
     /**
      * Check if log is suspicious (multiple denials in short time)
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function isSuspicious(): bool
     {
         if ($this->access_granted) {
@@ -544,6 +552,7 @@ class ScannerAccessLog extends Model
     /**
      * Get member access history
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public static function getMemberHistory(string $memberId, int $limit = 10): Collection
     {
         return self::forMember($memberId)
@@ -556,6 +565,7 @@ class ScannerAccessLog extends Model
     /**
      * Clean old logs (GDPR compliance)
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public static function cleanOldLogs(int $daysToKeep = 90): int
     {
         return self::where('created_at', '<', now()->subDays($daysToKeep))->delete();

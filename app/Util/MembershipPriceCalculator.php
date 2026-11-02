@@ -221,6 +221,7 @@ class MembershipPriceCalculator
     /**
      * Erstellt eine formatierte Preisübersicht
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public static function generatePriceSummary(array $calculation): string
     {
         $summary = '=== PREISÜBERSICHT ==='.PHP_EOL;

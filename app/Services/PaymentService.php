@@ -742,6 +742,7 @@ class PaymentService
      *
      * @deprecated Diese Funktion wird aktuell nicht verwendet, da die Logik in PaymentController->markAsPaid ausgelagert wurde
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function markPaymentAsPaid(Payment $payment, array $metadata = []): bool
     {
         try {

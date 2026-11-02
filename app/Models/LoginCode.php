@@ -89,6 +89,7 @@ class LoginCode extends Model
         return $this->expires_at->diffInSeconds(now());
     }
 
+    #[\Deprecated(message: 'the last call was removed in f6c6c7f', since: 'v0.0.58')]
     public function getFormattedExpiryTime(): string
     {
         if ($this->isExpired()) {

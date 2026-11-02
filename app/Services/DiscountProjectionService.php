@@ -42,6 +42,7 @@ class DiscountProjectionService
      *     exceeds_term: bool
      * }
      */
+    #[\Deprecated(message: 'only referenced by tests', since: 'v0.0.111')]
     public function project(MembershipPlan $plan, ?Collection $phaseOverrides = null): array
     {
         $regularPriceCents = $this->toCents($plan->price);

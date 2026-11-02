@@ -176,6 +176,7 @@ export function weeklyPriceOf(monthlyPrice) {
  *
  * @param {Array<{id: number, mode: 'included'|'optional', checked?: boolean}>} addons
  * @returns {number[]} the selected add-on ids
+ * @deprecated Not used by application code since v0.0.87; only referenced by tests.
  */
 export function resolveSelectedAddonIds(addons) {
   if (!Array.isArray(addons)) {

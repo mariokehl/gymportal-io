@@ -610,6 +610,7 @@ class MemberService
     /**
      * Export-fähige Statistiken für Reports
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.15')]
     public function getExportableStats(int $gymId, ?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
         $startDate = $startDate ?? Carbon::now()->startOfMonth();
@@ -675,6 +676,7 @@ class MemberService
     /**
      * Mitglieder-Performance für einen bestimmten Zeitraum
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.15')]
     public function getMemberPerformanceStats(int $gymId, int $days = 30): array
     {
         $startDate = Carbon::now()->subDays($days);

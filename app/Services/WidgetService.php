@@ -957,6 +957,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getWidgetStats(Gym $gym): array
     {
         $totalRegistrations = Member::where('gym_id', $gym->id)
@@ -1001,6 +1002,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function validateWidgetConfig(Gym $gym): array
     {
         $errors = [];
@@ -1032,6 +1034,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function generatePreview(Gym $gym): string
     {
         $plans = $gym->membershipPlans()
@@ -1048,6 +1051,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function validatePlanSelection(Gym $gym, int $planId): bool
     {
         return $gym->membershipPlans()
@@ -1061,6 +1065,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function validateVoucherCode(Gym $gym, string $code): array
     {
         if (empty($code)) {
@@ -1119,6 +1124,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getPerformanceMetrics(Gym $gym, int $days = 30): array
     {
         $startDate = Carbon::now()->subDays($days);
@@ -1170,6 +1176,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function exportConfig(Gym $gym): array
     {
         return [
@@ -1191,6 +1198,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function importConfig(Gym $gym, array $config): bool
     {
         try {
@@ -1230,6 +1238,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getWidgetLogs(Gym $gym, int $limit = 100): array
     {
         $registrations = WidgetRegistration::where('gym_id', $gym->id)
@@ -1254,6 +1263,7 @@ class WidgetService
      *
      * @deprecated Diese Funktion wird nicht mehr verwendet.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function healthCheck(Gym $gym): array
     {
         $checks = [

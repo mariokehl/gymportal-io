@@ -6,6 +6,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @deprecated Not used since v0.0.1; never referenced since it was introduced.
+ */
 class ForceJsonResponse
 {
     /**

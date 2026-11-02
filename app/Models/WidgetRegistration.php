@@ -88,6 +88,7 @@ class WidgetRegistration extends Model
     /**
      * Registrierung als abgeschlossen markieren
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function markAsCompleted($memberId = null)
     {
         $this->update([

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 
 /**
  * @deprecated v0.0.53 Use {@see AccessControlController} instead.
+ * @deprecated Not used since v0.0.9; never referenced since it was introduced.
  */
 class ScannerManagementController extends Controller
 {

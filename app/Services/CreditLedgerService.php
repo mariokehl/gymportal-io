@@ -52,6 +52,7 @@ class CreditLedgerService
     /**
      * Verified balance formatted as a German currency string, e.g. "3,00 €".
      */
+    #[\Deprecated(message: 'only referenced by tests', since: 'v0.0.97')]
     public function getFormattedBalance(Member $member): string
     {
         return $this->formatCents($this->getBalance($member));

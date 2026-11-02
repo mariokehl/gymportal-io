@@ -15,6 +15,9 @@ use App\Listeners\SendContractWithdrawnNotification;
 use App\Listeners\SendMemberRegisteredNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
+/**
+ * @deprecated Not used since v0.0.13; never referenced since it was introduced.
+ */
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [

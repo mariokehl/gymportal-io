@@ -38,6 +38,7 @@ class Refund extends Model
     /**
      * Get the user who created this refund.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.50')]
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

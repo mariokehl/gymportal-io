@@ -21,6 +21,7 @@ class FraudCheckResult
         return $this->action === 'flagged';
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.65')]
     public function isAllowed(): bool
     {
         return $this->action === 'allowed';

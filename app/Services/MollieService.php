@@ -1275,6 +1275,7 @@ class MollieService
     /**
      * Check if payment is refundable
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function isRefundable(Gym $gym, string $paymentId): bool
     {
         $molliePayment = $this->getPayment($gym, $paymentId);
@@ -1285,6 +1286,7 @@ class MollieService
     /**
      * Get payment statistics for Gym
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getPaymentStatistics(Gym $gym, ?Carbon $from = null, ?Carbon $to = null): array
     {
         $query = Payment::where('gym_id', $gym->id);
@@ -1333,6 +1335,7 @@ class MollieService
     /**
      * Check if payment has chargebacks
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.50')]
     public function hasChargebacks(Gym $gym, string $paymentId): bool
     {
         $chargebacks = $this->getChargebacks($gym, $paymentId);

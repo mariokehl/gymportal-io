@@ -176,6 +176,7 @@ class MembershipDiscountService
     /**
      * Whether this membership carries a frozen discount at all.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.111')]
     public function hasSnapshot(Membership $membership): bool
     {
         return $this->phasesFor($membership)->isNotEmpty();

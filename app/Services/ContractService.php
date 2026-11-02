@@ -197,6 +197,7 @@ class ContractService
     /**
      * Vollständiger Pfad für einen Vertrag-Download.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.56')]
     public function getContractContents(Membership $membership): ?string
     {
         if (! $membership->contract_file_path) {

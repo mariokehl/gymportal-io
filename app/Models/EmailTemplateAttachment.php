@@ -25,6 +25,7 @@ class EmailTemplateAttachment extends Model
         'formatted_file_size',
     ];
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.56')]
     public function emailTemplate(): BelongsTo
     {
         return $this->belongsTo(EmailTemplate::class);

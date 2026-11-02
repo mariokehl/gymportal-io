@@ -40,6 +40,7 @@ class Course extends Model
         return $this->hasMany(CourseSchedule::class);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function upcomingSchedules()
     {
         return $this->schedules()
@@ -48,6 +49,7 @@ class Course extends Model
             ->orderBy('start_time');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function futureSchedules()
     {
         return $this->schedules()

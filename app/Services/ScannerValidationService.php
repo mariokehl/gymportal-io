@@ -13,6 +13,7 @@ class ScannerValidationService
     /**
      * Generiert einen sicheren QR-Code für ein Mitglied
      */
+    #[\Deprecated(message: 'only referenced by tests', since: 'v0.0.9')]
     public function generateSecureQrCode(Member $member): array
     {
         $gym = $member->gym;
