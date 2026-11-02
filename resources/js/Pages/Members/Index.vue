@@ -80,7 +80,10 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- relative: absolutely positioned descendants (e.g. the sr-only
+             "Aktionen" heading) must be clipped by this scroll container,
+             otherwise they are placed against the page and widen the window. -->
+        <div class="relative overflow-x-auto">
           <table class="min-w-[1180px] w-full">
             <thead class="border-b border-gray-200 bg-gray-50">
               <tr>
