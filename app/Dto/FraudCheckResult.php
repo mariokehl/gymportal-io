@@ -6,9 +6,9 @@ class FraudCheckResult
 {
     public function __construct(
         public readonly string $action, // 'allowed' | 'flagged' | 'blocked'
-        public readonly int    $score,  // 0–100
-        public readonly array  $matched, // Felder die getroffen haben
-        public readonly ?int   $fraudCheckId = null, // ID des erstellten FraudCheck-Records
+        public readonly int $score,  // 0–100
+        public readonly array $matched, // Felder die getroffen haben
+        public readonly ?int $fraudCheckId = null, // ID des erstellten FraudCheck-Records
     ) {}
 
     public function isBlocked(): bool

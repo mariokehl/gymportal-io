@@ -12,11 +12,11 @@ class MembershipPriceCalculator
     /**
      * Berechnet den Gesamtpreis über die Vertragsdauer
      *
-     * @param float $regularPrice Regulärer Preis (monatlich oder jährlich)
-     * @param string $billingCycle 'monthly' oder 'yearly'
-     * @param int $minimumDurationMonths Mindestlaufzeit in Monaten
-     * @param float $activationFee Einmalige Aktivierungsgebühr
-     * @param int $customDurationMonths Optionale benutzerdefinierte Laufzeit (falls länger als Mindestlaufzeit)
+     * @param  float  $regularPrice  Regulärer Preis (monatlich oder jährlich)
+     * @param  string  $billingCycle  'monthly' oder 'yearly'
+     * @param  int  $minimumDurationMonths  Mindestlaufzeit in Monaten
+     * @param  float  $activationFee  Einmalige Aktivierungsgebühr
+     * @param  int  $customDurationMonths  Optionale benutzerdefinierte Laufzeit (falls länger als Mindestlaufzeit)
      * @return array Detaillierte Preisberechnung
      */
     public static function calculateTotalPrice(
@@ -39,7 +39,7 @@ class MembershipPriceCalculator
             throw new InvalidArgumentException('Mindestlaufzeit darf nicht negativ sein');
         }
 
-        if (!in_array($billingCycle, ['monthly', 'quarterly', 'biannual', 'yearly'])) {
+        if (! in_array($billingCycle, ['monthly', 'quarterly', 'biannual', 'yearly'])) {
             throw new InvalidArgumentException('Abrechnungszyklus muss "monthly", "quarterly", "biannual" oder "yearly" sein');
         }
 
@@ -89,7 +89,7 @@ class MembershipPriceCalculator
             'total_price' => round($totalPrice, 2),
             'average_monthly_price' => round($averageMonthlyPrice, 2),
             'savings_vs_monthly' => $billingCycle !== 'monthly' ?
-                self::calculateSavingsVsMonthly($regularPrice, $billingCycle, $actualDurationMonths) : 0
+                self::calculateSavingsVsMonthly($regularPrice, $billingCycle, $actualDurationMonths) : 0,
         ];
     }
 
@@ -104,7 +104,7 @@ class MembershipPriceCalculator
             'type' => 'monthly',
             'unit_price' => $monthlyPrice,
             'number_of_payments' => $durationMonths,
-            'total' => round($total, 2)
+            'total' => round($total, 2),
         ];
     }
 
@@ -131,9 +131,10 @@ class MembershipPriceCalculator
             'full_quarters_cost' => round($fullQuartersCost, 2),
             'remaining_months_cost' => round($remainingMonthsCost, 2),
             'monthly_equivalent' => round($monthlyEquivalent, 2),
-            'total' => round($total, 2)
+            'total' => round($total, 2),
         ];
     }
+
     /**
      * Berechnet wiederkehrende Kosten für halbjährliche Abrechnung
      */
@@ -157,7 +158,7 @@ class MembershipPriceCalculator
             'full_half_years_cost' => round($fullHalfYearsCost, 2),
             'remaining_months_cost' => round($remainingMonthsCost, 2),
             'monthly_equivalent' => round($monthlyEquivalent, 2),
-            'total' => round($total, 2)
+            'total' => round($total, 2),
         ];
     }
 
@@ -181,7 +182,7 @@ class MembershipPriceCalculator
             'full_years_cost' => round($fullYearsCost, 2),
             'remaining_months_cost' => round($remainingMonthsCost, 2),
             'monthly_equivalent' => round($monthlyEquivalent, 2),
-            'total' => round($total, 2)
+            'total' => round($total, 2),
         ];
     }
 
@@ -195,7 +196,7 @@ class MembershipPriceCalculator
         }
 
         // Berechne monatliches Äquivalent des aktuellen Plans
-        $monthlyEquivalent = match($billingCycle) {
+        $monthlyEquivalent = match ($billingCycle) {
             'quarterly' => $price / 3,
             'biannual' => $price / 6,
             'yearly' => $price / 12,
@@ -203,7 +204,7 @@ class MembershipPriceCalculator
         };
 
         // Typische Preisaufschläge für kürzere Abrechnungszyklen
-        $monthlyPriceMultiplier = match($billingCycle) {
+        $monthlyPriceMultiplier = match ($billingCycle) {
             'quarterly' => 1.05, // 5% Aufschlag für monatliche vs. quartalsweise Zahlung
             'biannual' => 1.10,  // 10% Aufschlag für monatliche vs. halbjährliche Zahlung
             'yearly' => 1.15,    // 15% Aufschlag für monatliche vs. jährliche Zahlung
@@ -222,37 +223,37 @@ class MembershipPriceCalculator
      */
     public static function generatePriceSummary(array $calculation): string
     {
-        $summary = "=== PREISÜBERSICHT ===" . PHP_EOL;
-        $summary .= "Vertragsdauer: {$calculation['actual_duration_months']} Monate" . PHP_EOL;
-        $summary .= "Mindestlaufzeit: {$calculation['minimum_duration_months']} Monate" . PHP_EOL;
+        $summary = '=== PREISÜBERSICHT ==='.PHP_EOL;
+        $summary .= "Vertragsdauer: {$calculation['actual_duration_months']} Monate".PHP_EOL;
+        $summary .= "Mindestlaufzeit: {$calculation['minimum_duration_months']} Monate".PHP_EOL;
         $summary .= PHP_EOL;
 
-        $summary .= "KOSTEN:" . PHP_EOL;
-        $summary .= "Aktivierungsgebühr: {$calculation['activation_fee']} EUR (einmalig)" . PHP_EOL;
+        $summary .= 'KOSTEN:'.PHP_EOL;
+        $summary .= "Aktivierungsgebühr: {$calculation['activation_fee']} EUR (einmalig)".PHP_EOL;
 
         if ($calculation['billing_cycle'] === 'monthly') {
-            $summary .= "Monatsbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;
-            $summary .= "Anzahl Zahlungen: {$calculation['recurring_costs']['number_of_payments']}" . PHP_EOL;
+            $summary .= "Monatsbeitrag: {$calculation['regular_price']} EUR".PHP_EOL;
+            $summary .= "Anzahl Zahlungen: {$calculation['recurring_costs']['number_of_payments']}".PHP_EOL;
         } elseif ($calculation['billing_cycle'] === 'quarterly') {
-            $summary .= "Quartalsbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;
-            $summary .= "Volle Quartale: {$calculation['recurring_costs']['full_quarters']}" . PHP_EOL;
-            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}" . PHP_EOL;
+            $summary .= "Quartalsbeitrag: {$calculation['regular_price']} EUR".PHP_EOL;
+            $summary .= "Volle Quartale: {$calculation['recurring_costs']['full_quarters']}".PHP_EOL;
+            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}".PHP_EOL;
         } elseif ($calculation['billing_cycle'] === 'biannual') {
-            $summary .= "Halbjahresbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;
-            $summary .= "Volle Halbjahre: {$calculation['recurring_costs']['full_half_years']}" . PHP_EOL;
-            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}" . PHP_EOL;
+            $summary .= "Halbjahresbeitrag: {$calculation['regular_price']} EUR".PHP_EOL;
+            $summary .= "Volle Halbjahre: {$calculation['recurring_costs']['full_half_years']}".PHP_EOL;
+            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}".PHP_EOL;
         } else {
-            $summary .= "Jahresbeitrag: {$calculation['regular_price']} EUR" . PHP_EOL;
-            $summary .= "Volle Jahre: {$calculation['recurring_costs']['full_years']}" . PHP_EOL;
-            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}" . PHP_EOL;
+            $summary .= "Jahresbeitrag: {$calculation['regular_price']} EUR".PHP_EOL;
+            $summary .= "Volle Jahre: {$calculation['recurring_costs']['full_years']}".PHP_EOL;
+            $summary .= "Restmonate: {$calculation['recurring_costs']['remaining_months']}".PHP_EOL;
         }
 
         $summary .= PHP_EOL;
-        $summary .= "GESAMT: {$calculation['total_price']} EUR" . PHP_EOL;
-        $summary .= "Durchschnittlich pro Monat: {$calculation['average_monthly_price']} EUR" . PHP_EOL;
+        $summary .= "GESAMT: {$calculation['total_price']} EUR".PHP_EOL;
+        $summary .= "Durchschnittlich pro Monat: {$calculation['average_monthly_price']} EUR".PHP_EOL;
 
         if ($calculation['savings_vs_monthly'] > 0) {
-            $summary .= "Ersparnis gegenüber monatlicher Zahlung: {$calculation['savings_vs_monthly']} EUR" . PHP_EOL;
+            $summary .= "Ersparnis gegenüber monatlicher Zahlung: {$calculation['savings_vs_monthly']} EUR".PHP_EOL;
         }
 
         return $summary;

@@ -81,15 +81,14 @@ class PaymentCreationResult
         return [
             'setup_payment' => $this->setupPayment?->only(['id', 'amount', 'due_date', 'status']),
             'initial_payment' => $this->initialPayment?->only(['id', 'amount', 'due_date', 'status']),
-            'recurring_payments' => collect($this->recurringPayments)->map(fn($p) =>
-                $p->only(['id', 'amount', 'due_date', 'status'])
+            'recurring_payments' => collect($this->recurringPayments)->map(fn ($p) => $p->only(['id', 'amount', 'due_date', 'status'])
             )->toArray(),
             'summary' => [
                 'total_count' => $this->getTotalCount(),
                 'total_amount' => $this->getTotalAmount(),
                 'has_setup_fee' => $this->hasSetupPayment(),
-                'recurring_count' => count($this->recurringPayments)
-            ]
+                'recurring_count' => count($this->recurringPayments),
+            ],
         ];
     }
 }

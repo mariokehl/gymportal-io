@@ -275,6 +275,7 @@ class CssSanitizer
             if (preg_match('/<\s*script|<\s*style|javascript:/i', $match[0])) {
                 return '';
             }
+
             return $match[0];
         }, $css);
 

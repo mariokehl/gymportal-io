@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class MemberStatusHistory extends Model
@@ -19,13 +20,13 @@ class MemberStatusHistory extends Model
         'new_status',
         'reason',
         'changed_by',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     protected $appends = ['old_status_text', 'new_status_text', 'changed_by_name'];
@@ -67,7 +68,7 @@ class MemberStatusHistory extends Model
      */
     public function getChangedByNameAttribute(): string
     {
-        if (!$this->changedBy) {
+        if (! $this->changedBy) {
             return 'System';
         }
 
@@ -80,7 +81,7 @@ class MemberStatusHistory extends Model
      */
     public function getChangedByRoleAttribute(): ?string
     {
-        if (!$this->changedBy || !$this->changedBy->role) {
+        if (! $this->changedBy || ! $this->changedBy->role) {
             return null;
         }
 
@@ -97,7 +98,7 @@ class MemberStatusHistory extends Model
             'inactive' => 'Inaktiv',
             'paused' => 'Pausiert',
             'overdue' => 'Überfällig',
-            'pending' => 'Ausstehend'
+            'pending' => 'Ausstehend',
         ][$status] ?? $status;
     }
 
@@ -128,21 +129,21 @@ class MemberStatusHistory extends Model
                 'id' => $this->changedBy->id,
                 'name' => $this->changedBy->fullName(),
                 'email' => $this->changedBy->email,
-                'role' => $this->changed_by_role
+                'role' => $this->changed_by_role,
             ] : null,
             'from_status' => [
                 'value' => $this->old_status,
-                'text' => $this->old_status_text
+                'text' => $this->old_status_text,
             ],
             'to_status' => [
                 'value' => $this->new_status,
-                'text' => $this->new_status_text
+                'text' => $this->new_status_text,
             ],
             'reason' => $this->reason,
             'metadata' => $this->metadata,
             'timestamp' => $this->created_at->toISOString(),
             'formatted_date' => $this->created_at->format('d.m.Y H:i'),
-            'relative_time' => $this->created_at->diffForHumans()
+            'relative_time' => $this->created_at->diffForHumans(),
         ];
     }
 
@@ -151,14 +152,14 @@ class MemberStatusHistory extends Model
      */
     public function getIsAutomaticAttribute(): bool
     {
-        return !$this->changed_by ||
+        return ! $this->changed_by ||
                ($this->metadata['action_type'] ?? null) === 'auto_activation' ||
                in_array($this->metadata['triggered_by'] ?? null, [
                    'payment_overdue',
                    'payment_resolved',
                    'member_inactivation',
                    'auto_activation',
-                   'system'
+                   'system',
                ]);
     }
 
@@ -167,7 +168,7 @@ class MemberStatusHistory extends Model
      */
     public function getIsManualAttribute(): bool
     {
-        return !$this->is_automatic;
+        return ! $this->is_automatic;
     }
 
     /**
@@ -200,10 +201,10 @@ class MemberStatusHistory extends Model
     public function scopeManual($query)
     {
         return $query->whereNotNull('changed_by')
-                    ->where(function($q) {
-                        $q->whereNull('metadata->triggered_by')
-                          ->orWhere('metadata->action_source', 'manual_update');
-                    });
+            ->where(function ($q) {
+                $q->whereNull('metadata->triggered_by')
+                    ->orWhere('metadata->action_source', 'manual_update');
+            });
     }
 
     /**
@@ -211,9 +212,9 @@ class MemberStatusHistory extends Model
      */
     public function scopeAutomatic($query)
     {
-        return $query->where(function($q) {
+        return $query->where(function ($q) {
             $q->whereNull('changed_by')
-              ->orWhereNotNull('metadata->triggered_by');
+                ->orWhereNotNull('metadata->triggered_by');
         });
     }
 
@@ -231,7 +232,7 @@ class MemberStatusHistory extends Model
     public function scopeTransition($query, string $from, string $to)
     {
         return $query->where('old_status', $from)
-                    ->where('new_status', $to);
+            ->where('new_status', $to);
     }
 
     /**
@@ -257,8 +258,8 @@ class MemberStatusHistory extends Model
                 'timestamp' => now()->toISOString(),
                 'action_source' => $metadata['action_source'] ?? 'manual_update',
                 'user_role' => $user && $user->role ? $user->role->slug : null,
-                'user_name' => $user ? $user->fullName() : null
-            ])
+                'user_name' => $user ? $user->fullName() : null,
+            ]),
         ]);
     }
 
@@ -282,8 +283,8 @@ class MemberStatusHistory extends Model
             'metadata' => array_merge($additionalMetadata ?? [], [
                 'triggered_by' => $triggeredBy,
                 'timestamp' => now()->toISOString(),
-                'action_source' => 'system'
-            ])
+                'action_source' => 'system',
+            ]),
         ]);
     }
 
@@ -296,33 +297,34 @@ class MemberStatusHistory extends Model
 
         return [
             'total_changes' => $history->count(),
-            'manual_changes' => $history->filter(fn($h) => $h->is_manual)->count(),
-            'automatic_changes' => $history->filter(fn($h) => $h->is_automatic)->count(),
+            'manual_changes' => $history->filter(fn ($h) => $h->is_manual)->count(),
+            'automatic_changes' => $history->filter(fn ($h) => $h->is_automatic)->count(),
             'last_change' => $history->first()?->change_details,
             'most_common_status' => $history->groupBy('new_status')
                 ->map->count()
                 ->sortDesc()
                 ->keys()
                 ->first(),
-            'changes_by_user' => $history->filter(fn($h) => $h->changed_by)
+            'changes_by_user' => $history->filter(fn ($h) => $h->changed_by)
                 ->groupBy('changed_by')
                 ->map(function ($group) {
                     $user = $group->first()->changedBy;
+
                     return [
                         'user_id' => $user->id,
                         'user_name' => $user->fullName(),
                         'user_role' => $user->role ? $user->role->name : null,
-                        'changes_count' => $group->count()
+                        'changes_count' => $group->count(),
                     ];
                 })
-                ->values()
+                ->values(),
         ];
     }
 
     /**
      * Get formatted history for display
      */
-    public static function getFormattedHistory(int $memberId, int $limit = 20): \Illuminate\Support\Collection
+    public static function getFormattedHistory(int $memberId, int $limit = 20): Collection
     {
         return self::forMember($memberId)
             ->with(['changedBy.role'])
@@ -336,7 +338,7 @@ class MemberStatusHistory extends Model
                     'change_details' => $history->change_details,
                     'is_automatic' => $history->is_automatic,
                     'created_at' => $history->created_at,
-                    'relative_time' => $history->created_at->diffForHumans()
+                    'relative_time' => $history->created_at->diffForHumans(),
                 ];
             });
     }

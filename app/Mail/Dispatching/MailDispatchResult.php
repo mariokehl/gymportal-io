@@ -17,8 +17,7 @@ final class MailDispatchResult
         public readonly string $status,
         public readonly ?string $reason = null,
         public readonly ?string $errorCode = null,
-    ) {
-    }
+    ) {}
 
     public static function sent(): self
     {

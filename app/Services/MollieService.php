@@ -15,15 +15,15 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Mollie\Api\Exceptions\ApiException;
 use Mollie\Api\MollieApiClient;
-use Mollie\Api\Resources\Customer;
-use Mollie\Api\Resources\Mandate;
-use Mollie\Api\Resources\Payment as MolliePayment;
-use Mollie\Api\Resources\MethodCollection;
-use Mollie\Api\Resources\Refund as MollieRefund;
-use Mollie\Api\Resources\RefundCollection;
 use Mollie\Api\Resources\Chargeback as MollieChargeback;
 use Mollie\Api\Resources\ChargebackCollection;
+use Mollie\Api\Resources\Customer;
+use Mollie\Api\Resources\Mandate;
+use Mollie\Api\Resources\MethodCollection;
+use Mollie\Api\Resources\Payment as MolliePayment;
 use Mollie\Api\Resources\PaymentLink as MolliePaymentLink;
+use Mollie\Api\Resources\Refund as MollieRefund;
+use Mollie\Api\Resources\RefundCollection;
 use Mollie\Api\Types\MandateMethod;
 
 class MollieService
@@ -36,7 +36,7 @@ class MollieService
 
     public function __construct()
     {
-        $this->client = new MollieApiClient();
+        $this->client = new MollieApiClient;
     }
 
     /**
@@ -67,7 +67,7 @@ class MollieService
     {
         $config = $this->getConfig($gym);
 
-        if (!isset($config['api_key'])) {
+        if (! isset($config['api_key'])) {
             throw new Exception('Mollie API-Schlüssel nicht konfiguriert');
         }
 
@@ -78,9 +78,6 @@ class MollieService
 
     /**
      * Validate OAuth token and check required permissions
-     *
-     * @param string $oauthToken
-     * @return array
      */
     public function validateOAuthToken(string $oauthToken): array
     {
@@ -99,19 +96,20 @@ class MollieService
             $availablePermissions = [];
 
             foreach ($permissions as $permission) {
-                if ($permission->granted)
+                if ($permission->granted) {
                     $availablePermissions[] = $permission->id;
+                }
             }
 
             // Check if all required permissions are available
             $missingPermissions = array_diff($requiredPermissions, $availablePermissions);
 
-            if (!empty($missingPermissions)) {
+            if (! empty($missingPermissions)) {
                 return [
                     'valid' => false,
-                    'message' => 'Fehlende Berechtigungen: ' . implode(', ', $missingPermissions),
+                    'message' => 'Fehlende Berechtigungen: '.implode(', ', $missingPermissions),
                     'missing_permissions' => $missingPermissions,
-                    'available_permissions' => $availablePermissions
+                    'available_permissions' => $availablePermissions,
                 ];
             }
 
@@ -124,12 +122,12 @@ class MollieService
         } catch (ApiException $e) {
             return [
                 'valid' => false,
-                'message' => 'API-Fehler bei Token-Validierung: ' . $e->getMessage()
+                'message' => 'API-Fehler bei Token-Validierung: '.$e->getMessage(),
             ];
         } catch (Exception $e) {
             return [
                 'valid' => false,
-                'message' => 'Unerwarteter Fehler bei Token-Validierung: ' . $e->getMessage()
+                'message' => 'Unerwarteter Fehler bei Token-Validierung: '.$e->getMessage(),
             ];
         }
     }
@@ -152,8 +150,6 @@ class MollieService
     /**
      * Get customer
      *
-     * @param Gym $gym
-     * @param string $customerId
      * @return Customer
      */
     public function getCustomer(Gym $gym, string $customerId)
@@ -195,7 +191,7 @@ class MollieService
         $mollieParams = [
             'amount' => [
                 'currency' => $paymentData['currency'] ?? 'EUR',
-                'value' => number_format($paymentData['amount'], 2, '.', '')
+                'value' => number_format($paymentData['amount'], 2, '.', ''),
             ],
             'description' => $this->formatDescription($config, $paymentData['description'], $member),
             'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
@@ -203,7 +199,7 @@ class MollieService
             'method' => str_starts_with($paymentData['method'], 'mollie_')
                 ? substr($paymentData['method'], 7)
                 : $paymentData['method'],
-            'metadata' => $paymentData['metadata'] ?? []
+            'metadata' => $paymentData['metadata'] ?? [],
         ];
 
         // Optionale Parameter hinzufügen (für wiederkehrende Zahlungen)
@@ -247,8 +243,8 @@ class MollieService
                 'payment_id' => $payment->id,
                 'member_id' => $member->id,
                 'membership_id' => $payment->membership_id,
-                'gym_id' => $member->gym_id
-            ]
+                'gym_id' => $member->gym_id,
+            ],
         ];
 
         // Validate payment details
@@ -319,11 +315,6 @@ class MollieService
         return null;
     }
 
-    /**
-     * @param array $paymentData
-     * @param array $config
-     * @return array
-     */
     private function getMollieParamsBy(array $paymentData, array $config): array
     {
         $member = $this->resolveMemberFromPaymentData($paymentData);
@@ -331,7 +322,7 @@ class MollieService
         $mollieParams = [
             'amount' => [
                 'currency' => $paymentData['currency'] ?? 'EUR',
-                'value' => number_format($paymentData['amount'], 2, '.', '')
+                'value' => number_format($paymentData['amount'], 2, '.', ''),
             ],
             'description' => $this->formatDescription($config, $paymentData['description'], $member),
             'redirectUrl' => $paymentData['redirectUrl'] ?? $config['redirect_url'],
@@ -339,7 +330,7 @@ class MollieService
             'method' => str_starts_with($paymentData['method'], 'mollie_')
                 ? substr($paymentData['method'], 7)
                 : $paymentData['method'],
-            'metadata' => $paymentData['metadata'] ?? []
+            'metadata' => $paymentData['metadata'] ?? [],
         ];
 
         // Optionale Parameter hinzufügen (für wiederkehrende Zahlungen)
@@ -418,15 +409,15 @@ class MollieService
         $config = $this->getConfig($gym);
         $apiKey = $config['api_key'] ?? null;
 
-        if (!$apiKey) {
+        if (! $apiKey) {
             throw new Exception('Mollie API-Schlüssel nicht konfiguriert');
         }
 
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
+            'Authorization' => 'Bearer '.$apiKey,
         ])->get("https://api.mollie.com/v2/payment-links/{$paymentLinkId}/payments");
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Mollie: Failed to fetch payment link payments', [
                 'payment_link_id' => $paymentLinkId,
                 'status' => $response->status(),
@@ -451,10 +442,6 @@ class MollieService
 
     /**
      * Get a mandate from Mollie
-     *
-     * @param Gym $gym
-     * @param string $customerId
-     * @return Mandate|null
      */
     public function getMandate(Gym $gym, string $customerId): ?Mandate
     {
@@ -480,11 +467,9 @@ class MollieService
     /**
      * Create a mandate for a specific customer
      *
-     * @param Gym $gym
-     * @param Customer $customer Provide the related customer.
-     * @param PaymentMethod $paymentMethod Payment method of the mandate. SEPA Direct Debit and PayPal mandates can be created directly. Possible values: creditcard directdebit paypal
-     * @param string $consumerName The customer's name.
-     * @return Mandate
+     * @param  Customer  $customer  Provide the related customer.
+     * @param  PaymentMethod  $paymentMethod  Payment method of the mandate. SEPA Direct Debit and PayPal mandates can be created directly. Possible values: creditcard directdebit paypal
+     * @param  string  $consumerName  The customer's name.
      */
     public function createMandate(Gym $gym, Customer $customer, PaymentMethod $paymentMethod, string $consumerName): Mandate
     {
@@ -504,11 +489,6 @@ class MollieService
 
     /**
      * Revoke a mandate
-     *
-     * @param Gym $gym
-     * @param Customer $customer
-     * @param string $mandateId
-     * @return void
      */
     public function revokeMandate(Gym $gym, Customer $customer, string $mandateId): void
     {
@@ -518,10 +498,6 @@ class MollieService
 
     /**
      * Delete a customer at Mollie
-     *
-     * @param Gym $gym
-     * @param string $customerId
-     * @return void
      */
     public function deleteCustomer(Gym $gym, string $customerId): void
     {
@@ -539,11 +515,12 @@ class MollieService
         try {
             $molliePayment = $this->getPayment($gym, $paymentId);
             $localPayment = Payment::where('gym_id', $gym->id)
-                                  ->where('mollie_payment_id', $paymentId)
-                                  ->first();
+                ->where('mollie_payment_id', $paymentId)
+                ->first();
 
-            if (!$localPayment) {
+            if (! $localPayment) {
                 Log::warning("Lokale Zahlung nicht gefunden für Mollie Payment ID: {$paymentId}");
+
                 return;
             }
 
@@ -555,7 +532,7 @@ class MollieService
                 'failed_at' => $molliePayment->isFailed() ? now() : null,
                 'canceled_at' => $molliePayment->isCanceled() ? now() : null,
                 'expired_at' => $molliePayment->isExpired() ? now() : null,
-                'webhook_processed_at' => now()
+                'webhook_processed_at' => now(),
             ]);
 
             // Perform additional actions based on status
@@ -564,7 +541,7 @@ class MollieService
             Log::info("Webhook erfolgreich verarbeitet für Payment ID: {$paymentId}");
 
         } catch (Exception $e) {
-            Log::error("Fehler beim Verarbeiten des Webhooks: " . $e->getMessage());
+            Log::error('Fehler beim Verarbeiten des Webhooks: '.$e->getMessage());
             throw $e;
         }
     }
@@ -585,20 +562,16 @@ class MollieService
      * In test mode a query parameter is appended: it makes the URL unique for Mollie
      * while still hitting the very same route and controller on our side, since
      * Laravel matches routes on the path only.
-     *
-     * @param string $webhookUrl
-     * @param boolean $testMode
-     * @return string
      */
     public static function resolveWebhookUrl(string $webhookUrl, bool $testMode = false): string
     {
-        $url = !app()->environment('local')
+        $url = ! app()->environment('local')
             ? $webhookUrl
-            : request()->getSchemeAndHttpHost() . '/api/v1/public/mollie/webhook';
+            : request()->getSchemeAndHttpHost().'/api/v1/public/mollie/webhook';
 
-        $marker = self::WEBHOOK_TEST_MODE_PARAM . '=' . self::WEBHOOK_TEST_MODE_VALUE;
+        $marker = self::WEBHOOK_TEST_MODE_PARAM.'='.self::WEBHOOK_TEST_MODE_VALUE;
 
-        if (!$testMode) {
+        if (! $testMode) {
             return $url;
         }
 
@@ -610,19 +583,16 @@ class MollieService
         // Keep any query string that is already present on the configured URL
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url . $separator . $marker;
+        return $url.$separator.$marker;
     }
 
     /**
      * Build the name Mollie webhooks are registered under.
      * Mollie enforces uniqueness on this name, so it doubles as our lookup key.
-     *
-     * @param boolean $testMode
-     * @return string
      */
     public static function webhookName(bool $testMode): string
     {
-        return 'Webhook #1 (autogenerated by gymportal.io)' . ($testMode ? ' TEST' : null);
+        return 'Webhook #1 (autogenerated by gymportal.io)'.($testMode ? ' TEST' : null);
     }
 
     /**
@@ -632,23 +602,21 @@ class MollieService
      * (e.g. a changing tunnel host in local development), while Mollie still rejects a second
      * webhook using the same name.
      *
-     * @param string $oauthToken
-     * @param string $webhookUrl
-     * @param boolean $testMode
      * @return array|null The matching webhook or null if none is registered
+     *
      * @throws Exception If the webhooks could not be fetched
      */
     public static function findWebhookByUrl(string $oauthToken, string $webhookUrl, bool $testMode): ?array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $oauthToken
+            'Authorization' => 'Bearer '.$oauthToken,
         ])->get('https://api.mollie.com/v2/webhooks', [
             'testmode' => $testMode ? 'true' : 'false',
             'limit' => 250,
         ]);
 
-        if (!$response->successful()) {
-            throw new Exception('Webhooks konnten nicht abgerufen werden: ' . $response->body());
+        if (! $response->successful()) {
+            throw new Exception('Webhooks konnten nicht abgerufen werden: '.$response->body());
         }
 
         $expectedUrl = rtrim(self::resolveWebhookUrl($webhookUrl, $testMode), '/');
@@ -675,42 +643,35 @@ class MollieService
     /**
      * Update the URL of an existing webhook
      *
-     * @param string $oauthToken
-     * @param string $webhookId
-     * @param string $webhookUrl
-     * @param boolean $testMode
-     * @return void
      * @throws Exception If the webhook could not be updated
      */
     public static function updateWebhookUrl(string $oauthToken, string $webhookId, string $webhookUrl, bool $testMode): void
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $oauthToken,
-            'Content-Type' => 'application/json'
+            'Authorization' => 'Bearer '.$oauthToken,
+            'Content-Type' => 'application/json',
         ])->patch("https://api.mollie.com/v2/webhooks/{$webhookId}", [
             'url' => self::resolveWebhookUrl($webhookUrl, $testMode),
             'testmode' => $testMode,
         ]);
 
-        if (!$response->successful()) {
-            throw new Exception('Webhook konnte nicht aktualisiert werden: ' . $response->body());
+        if (! $response->successful()) {
+            throw new Exception('Webhook konnte nicht aktualisiert werden: '.$response->body());
         }
     }
 
     /**
      * Create webhook in Mollie
      *
-     * @param string $oauthToken
-     * @param string $webhookUrl
-     * @param boolean $testMode
      * @return string The webhooks idenitifier
+     *
      * @throws Exception If webhook could not be created
      */
     public static function createWebhook(string $oauthToken, string $webhookUrl, bool $testMode): string
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $oauthToken,
-            'Content-Type' => 'application/json'
+            'Authorization' => 'Bearer '.$oauthToken,
+            'Content-Type' => 'application/json',
         ])->post('https://api.mollie.com/v2/webhooks', [
             'url' => self::resolveWebhookUrl($webhookUrl, $testMode),
             'name' => self::webhookName($testMode),
@@ -722,7 +683,7 @@ class MollieService
             return $response->json()['id'];
         }
 
-        throw new Exception('Webhook konnte nicht erstellt werden: ' . $response->body());
+        throw new Exception('Webhook konnte nicht erstellt werden: '.$response->body());
     }
 
     /**
@@ -730,10 +691,8 @@ class MollieService
      * A single Mollie account can only hold one webhook per URL and name, so a second gym
      * that is set up under the same account adopts the existing one.
      *
-     * @param string $oauthToken
-     * @param string $webhookUrl
-     * @param boolean $testMode
      * @return array{id: string, reused: bool}
+     *
      * @throws Exception If the webhook could neither be found nor created
      */
     public static function findOrCreateWebhook(string $oauthToken, string $webhookUrl, bool $testMode): array
@@ -759,9 +718,7 @@ class MollieService
      * The Mollie config is stored encrypted, so this cannot be filtered in SQL
      * and has to be resolved in PHP.
      *
-     * @param string $webhookId
-     * @param integer|null $exceptGymId Gym whose config is currently being replaced
-     * @return boolean
+     * @param  int|null  $exceptGymId  Gym whose config is currently being replaced
      */
     public static function isWebhookSharedByOtherGyms(string $webhookId, ?int $exceptGymId = null): bool
     {
@@ -777,9 +734,7 @@ class MollieService
      * Skipped when another gym still uses the same webhook, otherwise removing the
      * configuration of one gym would silently break payments of another one.
      *
-     * @param array $config
-     * @param integer|null $exceptGymId Gym whose config is currently being removed or replaced
-     * @return void
+     * @param  int|null  $exceptGymId  Gym whose config is currently being removed or replaced
      */
     public static function deleteWebhookIfAny(array $config = [], ?int $exceptGymId = null): void
     {
@@ -795,7 +750,7 @@ class MollieService
 
             try {
                 $httpRequest = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $config['oauth_token']
+                    'Authorization' => 'Bearer '.$config['oauth_token'],
                 ]);
 
                 // Add testmode to body if configured
@@ -816,9 +771,7 @@ class MollieService
     /**
      * List payment methods
      *
-     * @param Gym $gym
-     * @param string|null $sequenceType oneoff, first, or recurring
-     * @return array
+     * @param  string|null  $sequenceType  oneoff, first, or recurring
      */
     public function getAvailableMethods(Gym $gym, ?string $sequenceType = null): array
     {
@@ -838,7 +791,7 @@ class MollieService
         if ($sequenceType === 'recurring') {
             $enabledMethods = $config['enabled_methods'] ?? [];
 
-            return $methods->filter(function($method) use ($enabledMethods) {
+            return $methods->filter(function ($method) use ($enabledMethods) {
                 return in_array($method->id, $enabledMethods);
             })->getArrayCopy();
         }
@@ -851,7 +804,7 @@ class MollieService
      */
     protected function validatePaymentData(array $paymentData): void
     {
-        if (!isset($paymentData['description']) || empty($paymentData['description'])) {
+        if (! isset($paymentData['description']) || empty($paymentData['description'])) {
             throw new \InvalidArgumentException('Zahlungsbeschreibung ist erforderlich');
         }
 
@@ -860,9 +813,11 @@ class MollieService
         if (
             strpos($paymentData['method'], 'creditcard') &&
             isset($paymentData['sequenceType']) && $paymentData['sequenceType'] === 'first'
-        ) return;
+        ) {
+            return;
+        }
 
-        if (!isset($paymentData['amount']) || $paymentData['amount'] <= 0) {
+        if (! isset($paymentData['amount']) || $paymentData['amount'] <= 0) {
             throw new \InvalidArgumentException('Ungültiger Zahlungsbetrag');
         }
 
@@ -884,8 +839,8 @@ class MollieService
     {
         $prefix = $config['description_prefix'] ?? '';
 
-        if ($prefix && !str_starts_with($description, $prefix)) {
-            $description = $prefix . ' - ' . $description;
+        if ($prefix && ! str_starts_with($description, $prefix)) {
+            $description = $prefix.' - '.$description;
         }
 
         $suffix = $this->buildMemberSuffix($member);
@@ -900,7 +855,7 @@ class MollieService
             return mb_substr($suffix, 0, self::MOLLIE_DESCRIPTION_MAX_LENGTH);
         }
 
-        return mb_substr($description, 0, $maxBaseLength) . $suffix;
+        return mb_substr($description, 0, $maxBaseLength).$suffix;
     }
 
     /**
@@ -925,7 +880,7 @@ class MollieService
      */
     protected function buildMemberSuffix(?Member $member): string
     {
-        if (!$member) {
+        if (! $member) {
             return '';
         }
 
@@ -939,7 +894,7 @@ class MollieService
             return '';
         }
 
-        return ' - ' . implode(' ', $parts);
+        return ' - '.implode(' ', $parts);
     }
 
     /**
@@ -970,11 +925,6 @@ class MollieService
 
     /**
      * Update existing payment
-     *
-     * @param MolliePayment $molliePayment
-     * @param Payment $payment
-     * @param PaymentMethod $paymentMethod
-     * @return void
      */
     protected function updatePayment(MolliePayment $molliePayment, Payment $payment, PaymentMethod $paymentMethod): void
     {
@@ -1003,7 +953,7 @@ class MollieService
             'member_id' => $member->id,
             'mollie_customer_id' => $customerId,
             'mollie_mandate_id' => $mollieMandate->id ?? null,
-            'type' => 'mollie_' . str_replace('mollie_', '', $type),
+            'type' => 'mollie_'.str_replace('mollie_', '', $type),
             'status' => 'pending',
             'is_default' => true,
         ]);
@@ -1015,17 +965,19 @@ class MollieService
      * This method is fail-safe: after execution, there will be both a customer and (where applicable) a mandate.
      * For mandate types that require asynchronous creation, the mandate will be dispatched to a queue job.
      */
-    public function handleMolliePaymentMethod(Member $member, PaymentMethod $paymentMethod): bool|null
+    public function handleMolliePaymentMethod(Member $member, PaymentMethod $paymentMethod): ?bool
     {
         $mandateType = $member->gym->getMollieMandateType(str_replace('mollie_', '', $paymentMethod->type));
 
         if (
-            !str_starts_with($paymentMethod->type, 'mollie_') ||
-            !$mandateType
-        ) return null;
+            ! str_starts_with($paymentMethod->type, 'mollie_') ||
+            ! $mandateType
+        ) {
+            return null;
+        }
 
         // Ensure customer exists - create if not present
-        if (!$paymentMethod->mollie_customer_id) {
+        if (! $paymentMethod->mollie_customer_id) {
             /** @var Customer $customer */
             $customer = $this->createCustomer($member->gym, $member->fullName(), $member->email);
             $customerId = $customer->id;
@@ -1039,7 +991,7 @@ class MollieService
         }, 2000);
 
         // Fail-safe check: customer must exist
-        if (!$customer) {
+        if (! $customer) {
             throw new Exception("Failed to create or retrieve Mollie customer for member {$member->id}");
         }
 
@@ -1114,8 +1066,8 @@ class MollieService
                     'description' => '1. Zahlung zur Authorisierung',
                     'metadata' => [
                         'membership_id' => $member->pendingPaidMembership()?->id,
-                        'member_id' => $member->id
-                    ]
+                        'member_id' => $member->id,
+                    ],
                 ];
                 $this->createFirstPayment($member->gym, $customer->id, $paymentData);
             }
@@ -1130,7 +1082,7 @@ class MollieService
                     ->exists();
 
                 // Only pending members may be activated
-                if (!$hasFraudFlag && $member->status === 'pending') {
+                if (! $hasFraudFlag && $member->status === 'pending') {
                     $member->update(['status' => 'active']);
                     app(MemberStatusService::class)->handleStatusChangeActions(
                         $member,
@@ -1145,7 +1097,7 @@ class MollieService
                     'status' => $status,
                     'mollie_customer_id' => $customer->id,
                     'mollie_mandate_id' => $mandateId,
-                    'iban' => ''
+                    'iban' => '',
                 ]);
                 $paymentMethod->activateSepaMandate();
             } else {
@@ -1160,12 +1112,12 @@ class MollieService
 
             // Fail-safe verification: ensure customer is stored in payment method
             $paymentMethod->refresh();
-            if (!$paymentMethod->mollie_customer_id) {
+            if (! $paymentMethod->mollie_customer_id) {
                 throw new Exception("Payment method customer ID not saved for member {$member->id}");
             }
 
             // For mandate types that require synchronous creation, verify mandate exists
-            if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && !$mandateId && !$mandate) {
+            if (in_array($mandateType, [MandateMethod::DIRECTDEBIT, MandateMethod::PAYPAL]) && ! $mandateId && ! $mandate) {
                 Log::warning('Mandate was dispatched to queue for asynchronous creation', [
                     'member_id' => $member->id,
                     'customer_id' => $customer->id,
@@ -1179,7 +1131,7 @@ class MollieService
             DB::rollback();
 
             // Log the error for debugging
-            Log::error('Handling of mollie payment method failed: ' . $e->getMessage(), [
+            Log::error('Handling of mollie payment method failed: '.$e->getMessage(), [
                 'member_id' => $member->id,
                 'customer_id' => $customer->id ?? null,
                 'payment_method_id' => $paymentMethod->id,
@@ -1196,10 +1148,10 @@ class MollieService
     public function activateMolliePaymentMethod(Gym $gym, string $memberId, string $type): ?PaymentMethod
     {
         $paymentMethod = PaymentMethod::where('member_id', $memberId)
-            ->where('type', 'mollie_' . str_replace('mollie_', '', $type))
+            ->where('type', 'mollie_'.str_replace('mollie_', '', $type))
             ->first();
 
-        if (!$paymentMethod) {
+        if (! $paymentMethod) {
             return null;
         }
 
@@ -1222,7 +1174,7 @@ class MollieService
      */
     protected function mapMollieStatus(string $mollieStatus): string
     {
-        return match($mollieStatus) {
+        return match ($mollieStatus) {
             'open' => 'pending',
             'canceled' => 'canceled',
             'pending' => 'pending',
@@ -1266,7 +1218,7 @@ class MollieService
             if ($invoice && $invoice->status !== 'paid') {
                 $invoice->update([
                     'status' => 'paid',
-                    'paid_date' => now()
+                    'paid_date' => now(),
                 ]);
             }
         }
@@ -1299,7 +1251,7 @@ class MollieService
         if ($amount) {
             $refundData['amount'] = [
                 'currency' => $molliePayment->amount->currency,
-                'value' => number_format($amount, 2, '.', '')
+                'value' => number_format($amount, 2, '.', ''),
             ];
         }
 
@@ -1354,7 +1306,7 @@ class MollieService
             'failed_payments' => $payments->where('status', 'failed')->count(),
             'pending_payments' => $payments->where('status', 'pending')->count(),
             'success_rate' => $payments->count() > 0 ?
-                round(($payments->where('status', 'paid')->count() / $payments->count()) * 100, 2) : 0
+                round(($payments->where('status', 'paid')->count() / $payments->count()) * 100, 2) : 0,
         ];
     }
 
