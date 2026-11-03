@@ -14,15 +14,14 @@ class WidgetAuthMiddleware
     /**
      * Handle an incoming request.
      *
+     * CORS headers and preflight requests are handled globally by Laravel's
+     * HandleCors (config/cors.php); which origins may use the widget is
+     * enforced below via WidgetOriginService.
+     *
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
-        // CORS Preflight Request behandeln
-        if ($request->getMethod() === 'OPTIONS') {
-            return $this->handlePreflight($request);
-        }
-
         $apiKey = $request->header('X-API-Key');
         $studioId = $request->header('X-Studio-ID');
 
@@ -90,36 +89,6 @@ class WidgetAuthMiddleware
             cache()->put($cacheKey, 1, 60);
         }
 
-        $response = $next($request);
-
-        // CORS Headers zu allen Responses hinzufügen
-        return $this->addCorsHeaders($response, $request);
-    }
-
-    /**
-     * @return void
-     */
-    private function handlePreflight(Request $request)
-    {
-        $response = response('', 200);
-
-        return $this->addCorsHeaders($response, $request);
-    }
-
-    /**
-     * @param  mixed  $response
-     * @return void
-     */
-    private function addCorsHeaders($response, Request $request)
-    {
-        $origin = $request->headers->get('Origin');
-
-        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-API-Key, X-Studio-ID, X-Widget-Session');
-        $response->headers->set('Access-Control-Allow-Credentials', 'false'); // Wichtig: keine Credentials
-        $response->headers->set('Access-Control-Max-Age', '86400');
-
-        return $response;
+        return $next($request);
     }
 }
