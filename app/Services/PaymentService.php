@@ -306,8 +306,8 @@ class PaymentService
      * The method stored on the payment wins, so a charge booked with a method
      * other than the member's default (e.g. an add-on with its own method) is
      * collected the way it was booked. The default only steps in when the
-     * payment names no method, or when the member has none or several methods
-     * of that type, so the booked one can no longer be told apart.
+     * payment names no method, or when the member has none or several active
+     * methods of that type, so the booked one can no longer be told apart.
      */
     public function resolveCollectionPaymentMethod(Payment $payment): ?PaymentMethod
     {
@@ -317,7 +317,11 @@ class PaymentService
         // 'credit' only marks a charge settled from the member's credit
         // balance; any remainder is collected over the default method.
         if ($type !== null && $type !== 'credit') {
-            $matching = $member->paymentMethods->where('type', $type);
+            // Expired or pending methods (e.g. a replaced mandate) can't be
+            // collected and must neither win nor make the booked one ambiguous.
+            $matching = $member->paymentMethods
+                ->where('type', $type)
+                ->where('status', 'active');
 
             if ($matching->count() === 1) {
                 return $matching->first();

@@ -180,6 +180,30 @@ class PaymentRunPaymentMethodTest extends TestCase
     }
 
     #[Test]
+    public function it_ignores_inactive_methods_of_the_booked_type(): void
+    {
+        // A replaced mandate stays behind as expired next to the active one.
+        $this->createPaymentMethod('mollie_creditcard', ['status' => 'expired']);
+        $creditCard = $this->createPaymentMethod('mollie_creditcard');
+        $payment = $this->createDuePayment('mollie_creditcard');
+
+        $this->runPaymentRun();
+
+        $this->assertSame($creditCard->id, $this->charged[$payment->id]);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_default_when_the_booked_method_is_no_longer_active(): void
+    {
+        $this->createPaymentMethod('mollie_creditcard', ['status' => 'expired']);
+        $payment = $this->createDuePayment('mollie_creditcard');
+
+        $this->runPaymentRun();
+
+        $this->assertSame($this->defaultMethod->id, $this->charged[$payment->id]);
+    }
+
+    #[Test]
     public function it_collects_with_the_default_when_the_payment_names_no_method(): void
     {
         $payment = $this->createDuePayment(null);
