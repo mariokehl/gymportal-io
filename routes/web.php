@@ -31,6 +31,8 @@ use App\Http\Controllers\Web\Settings\EmailTemplateController;
 use App\Http\Controllers\Web\Settings\GuestPortalController;
 use App\Http\Controllers\Web\Settings\PaymentMethodsController;
 use App\Models\MembershipPlan;
+use App\Rules\WidgetOrigin;
+use App\Services\WidgetOriginService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
@@ -369,12 +371,26 @@ Route::prefix('admin/widget')->name('admin.widget.')->middleware('auth')->group(
             'widget_settings.texts' => 'required|array',
             'widget_settings.texts.title' => 'required|string|max:255',
             'widget_settings.features.min_age' => 'sometimes|integer|min:0|max:120',
+            'widget_settings.security' => 'sometimes|array',
+            'widget_settings.security.allowed_origins' => 'sometimes|required|array|min:1|max:'.WidgetOriginService::MAX_ORIGINS,
+            'widget_settings.security.allowed_origins.*' => ['required', 'string', 'max:255', new WidgetOrigin],
+        ], [
+            'widget_settings.security.allowed_origins.required' => 'Bitte hinterlegen Sie mindestens eine Domain oder lassen Sie alle Domains zu.',
+            'widget_settings.security.allowed_origins.min' => 'Bitte hinterlegen Sie mindestens eine Domain oder lassen Sie alle Domains zu.',
+            'widget_settings.security.allowed_origins.max' => 'Sie können höchstens '.WidgetOriginService::MAX_ORIGINS.' Domains hinterlegen.',
         ]);
+
+        $widgetSettings = $request->widget_settings;
+
+        if (isset($widgetSettings['security']['allowed_origins'])) {
+            $widgetSettings['security']['allowed_origins'] = app(WidgetOriginService::class)
+                ->normalizeList($widgetSettings['security']['allowed_origins']);
+        }
 
         try {
             $currentGym->update([
                 'widget_enabled' => $request->widget_enabled,
-                'widget_settings' => $request->widget_settings,
+                'widget_settings' => $widgetSettings,
             ]);
 
             return response()->json([
