@@ -118,7 +118,7 @@ class PaymentMethod extends Model
      * Payment method types the member settles on their own. A payment booked
      * with one of them is never collected by the payment run.
      */
-    public const MANUAL_TYPES = ['cash', 'banktransfer', 'invoice', 'standingorder'];
+    public const MANUAL_TYPES = ['cash', 'banktransfer', 'mollie_banktransfer', 'invoice', 'standingorder'];
 
     protected function iban(): Attribute
     {

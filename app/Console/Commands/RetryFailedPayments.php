@@ -70,19 +70,23 @@ class RetryFailedPayments extends Command
         // Get failed payments
         $query = Payment::whereIn('status', ['failed', 'expired'])
             ->where('created_at', '>=', Carbon::now()->subDays($daysBack))
-            ->whereRaw('COALESCE(JSON_EXTRACT(metadata, "$.retry_count"), 0) < ?', [$maxRetries])
-            // Manual methods (cash, bank transfer, ...) are settled by the member.
+            // Payment links and manual methods (cash, bank transfer, ...) are
+            // settled by the member and must never be charged by a retry.
             ->where(function ($q) {
                 $q->whereNull('payment_method')
-                    ->orWhereNotIn('payment_method', PaymentMethod::MANUAL_TYPES);
+                    ->orWhereNotIn('payment_method', ['mollie_paymentlink', ...PaymentMethod::MANUAL_TYPES]);
             });
 
         if ($gymId) {
             $query->where('gym_id', $gymId);
         }
 
+        // The retry limit is checked in PHP: JSON path syntax differs between
+        // MariaDB and PostgreSQL, and the date window keeps the set small.
         $failedPayments = $query->with(['member', 'membership', 'member.defaultPaymentMethod', 'member.paymentMethods'])
-            ->get();
+            ->get()
+            ->filter(fn (Payment $payment) => ($payment->metadata['retry_count'] ?? 0) < $maxRetries)
+            ->values();
 
         $stats['total'] = $failedPayments->count();
         $this->info("Found {$stats['total']} failed payments to retry\n");
