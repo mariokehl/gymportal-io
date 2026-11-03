@@ -123,6 +123,7 @@ class GymController extends Controller
     /**
      * PWA Theme Settings Page
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function themeSettings(Gym $gym)
     {
         $this->authorize('update', $gym);
@@ -137,6 +138,7 @@ class GymController extends Controller
     /**
      * Update PWA Theme Settings
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function updateTheme(Request $request, Gym $gym)
     {
         $this->authorize('update', $gym);

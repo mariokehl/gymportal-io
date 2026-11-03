@@ -44,6 +44,7 @@ class GymInvitation extends Model
         return $this->belongsTo(Gym::class);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.83')]
     public function invitedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');

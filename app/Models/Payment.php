@@ -122,6 +122,7 @@ class Payment extends Model
     /**
      * Get the original payment (for refunds/chargebacks linked via transaction_id).
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.50')]
     public function originalPayment()
     {
         return $this->belongsTo(Payment::class, 'transaction_id', 'id');
@@ -130,6 +131,7 @@ class Payment extends Model
     /**
      * Get related payments (refunds/chargebacks) that reference this payment via transaction_id.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.50')]
     public function relatedPayments()
     {
         return $this->hasMany(Payment::class, 'transaction_id', 'id');
@@ -232,6 +234,7 @@ class Payment extends Model
     /**
      * Check if payment can be canceled
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.5')]
     public function canBeCanceled(): bool
     {
         return $this->status === 'pending';
@@ -240,6 +243,7 @@ class Payment extends Model
     /**
      * Check if payment can be marked as paid
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.5')]
     public function canBeMarkedAsPaid(): bool
     {
         return $this->status === 'pending';
@@ -248,6 +252,7 @@ class Payment extends Model
     /**
      * Check if payment can be refunded
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.5')]
     public function canBeRefunded(): bool
     {
         return $this->status === 'paid';

@@ -22,6 +22,9 @@ use App\Policies\PaymentPolicy;
 use App\Policies\SavedFilterPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
+/**
+ * @deprecated Not used since v0.0.1; never referenced since it was introduced.
+ */
 class AuthServiceProvider extends ServiceProvider
 {
     /**

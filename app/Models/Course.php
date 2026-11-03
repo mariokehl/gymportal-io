@@ -40,24 +40,26 @@ class Course extends Model
         return $this->hasMany(CourseSchedule::class);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function upcomingSchedules()
     {
         return $this->schedules()
-                    ->where('date', '>=', now()->format('Y-m-d'))
-                    ->orderBy('date')
-                    ->orderBy('start_time');
+            ->where('date', '>=', now()->format('Y-m-d'))
+            ->orderBy('date')
+            ->orderBy('start_time');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function futureSchedules()
     {
         return $this->schedules()
-                    ->where('date', '>', now()->format('Y-m-d'))
-                    ->orWhere(function ($query) {
-                        $query->where('date', '=', now()->format('Y-m-d'))
-                              ->where('start_time', '>', now()->format('H:i:s'));
-                    })
-                    ->orderBy('date')
-                    ->orderBy('start_time');
+            ->where('date', '>', now()->format('Y-m-d'))
+            ->orWhere(function ($query) {
+                $query->where('date', '=', now()->format('Y-m-d'))
+                    ->where('start_time', '>', now()->format('H:i:s'));
+            })
+            ->orderBy('date')
+            ->orderBy('start_time');
     }
 
     public function getDurationFormattedAttribute()
@@ -66,7 +68,7 @@ class Course extends Model
         $minutes = $this->duration_minutes % 60;
 
         if ($hours > 0) {
-            return "{$hours}h" . ($minutes > 0 ? " {$minutes}min" : "");
+            return "{$hours}h".($minutes > 0 ? " {$minutes}min" : '');
         }
 
         return "{$minutes}min";

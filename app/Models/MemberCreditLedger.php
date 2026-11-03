@@ -77,6 +77,7 @@ class MemberCreditLedger extends Model
         return $this->belongsTo(Payment::class);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.97')]
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

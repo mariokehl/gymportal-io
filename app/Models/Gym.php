@@ -226,6 +226,7 @@ class Gym extends Model
         return $this->belongsToMany(User::class, 'gym_users')->wherePivot('role', 'staff');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function trainers()
     {
         return $this->belongsToMany(User::class, 'gym_users')->wherePivot('role', 'trainer');
@@ -651,6 +652,7 @@ class Gym extends Model
     /**
      * Get opening hours in a formatted way for display
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function getFormattedOpeningHours(): array
     {
         if (! $this->opening_hours) {
@@ -686,6 +688,7 @@ class Gym extends Model
     /**
      * Update PWA theme colors
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.9')]
     public function updateThemeColors(array $colors): bool
     {
         $validColors = ['primary_color', 'secondary_color', 'accent_color', 'background_color', 'text_color'];
@@ -948,6 +951,7 @@ class Gym extends Model
     /**
      * Offset in days applied to the first payment of a membership.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.102')]
     public function getInitialPaymentExecutionOffset(?string $methodKey): int
     {
         return $this->getPaymentExecutionOffsets($methodKey)['initial'];
@@ -956,6 +960,7 @@ class Gym extends Model
     /**
      * Offset in days applied to every recurring payment.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.102')]
     public function getRecurringPaymentExecutionOffset(?string $methodKey): int
     {
         return $this->getPaymentExecutionOffsets($methodKey)['recurring'];
@@ -1047,6 +1052,7 @@ class Gym extends Model
         return true;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function hasPaymentMethodForType(string $type): bool
     {
         $enabledMethods = $this->getEnabledPaymentMethods();
@@ -1091,6 +1097,7 @@ class Gym extends Model
         return $this->trial_ends_at && now()->lt($this->trial_ends_at);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function trialDaysLeft(): int
     {
         if (! $this->isInTrial()) {
@@ -1139,6 +1146,7 @@ class Gym extends Model
         return $query->whereNotIn('id', static::withActiveAccess()->select('id'));
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function getSubscriptionStatusLabel(): string
     {
         if ($this->hasActiveSubscription()) {
@@ -1152,6 +1160,7 @@ class Gym extends Model
         return 'Abgelaufen';
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function extendTrial(int $days = 30): void
     {
         $this->update([
@@ -1159,16 +1168,19 @@ class Gym extends Model
         ]);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getActiveMembersCount()
     {
         return $this->members()->where('status', 'active')->count();
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getInactiveMembersCount()
     {
         return $this->members()->where('status', '!=', 'active')->count();
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getSubscriptionIsActive()
     {
         return $this->hasActiveSubscription();
@@ -1206,6 +1218,7 @@ class Gym extends Model
                count($this->mollie_config['enabled_methods']) > 0;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getMollieApiKey(): ?string
     {
         return $this->mollie_config['api_key'] ?? null;
@@ -1231,16 +1244,19 @@ class Gym extends Model
         return $this->mollie_config['test_mode'] ?? false;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getSuccessfulPaymentsCount(): int
     {
         return $this->payments()->where('status', 'paid')->count();
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getTotalPaymentsAmount(): float
     {
         return $this->payments()->where('status', 'paid')->sum('amount');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function getPendingPaymentsCount(): int
     {
         return $this->payments()->where('status', 'pending')->count();

@@ -275,6 +275,7 @@ class CssSanitizer
             if (preg_match('/<\s*script|<\s*style|javascript:/i', $match[0])) {
                 return '';
             }
+
             return $match[0];
         }, $css);
 
@@ -433,6 +434,7 @@ class CssSanitizer
      *
      * @return array<string>
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.41')]
     public static function getAllowedProperties(): array
     {
         return self::ALLOWED_PROPERTIES;

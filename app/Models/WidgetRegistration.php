@@ -81,12 +81,14 @@ class WidgetRegistration extends Model
         if ($this->started_at && $this->completed_at) {
             return $this->completed_at->diffInMinutes($this->started_at);
         }
+
         return null;
     }
 
     /**
      * Registrierung als abgeschlossen markieren
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function markAsCompleted($memberId = null)
     {
         $this->update([

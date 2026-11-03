@@ -52,6 +52,7 @@ class PaymentCreationResult
     /**
      * IDs aller erstellten Payments
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function getPaymentIds(): array
     {
         return $this->getAllPayments()->pluck('id')->toArray();
@@ -68,6 +69,7 @@ class PaymentCreationResult
     /**
      * Hat wiederkehrende Payments?
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function hasRecurringPayments(): bool
     {
         return count($this->recurringPayments) > 0;
@@ -81,15 +83,14 @@ class PaymentCreationResult
         return [
             'setup_payment' => $this->setupPayment?->only(['id', 'amount', 'due_date', 'status']),
             'initial_payment' => $this->initialPayment?->only(['id', 'amount', 'due_date', 'status']),
-            'recurring_payments' => collect($this->recurringPayments)->map(fn($p) =>
-                $p->only(['id', 'amount', 'due_date', 'status'])
+            'recurring_payments' => collect($this->recurringPayments)->map(fn ($p) => $p->only(['id', 'amount', 'due_date', 'status'])
             )->toArray(),
             'summary' => [
                 'total_count' => $this->getTotalCount(),
                 'total_amount' => $this->getTotalAmount(),
                 'has_setup_fee' => $this->hasSetupPayment(),
-                'recurring_count' => count($this->recurringPayments)
-            ]
+                'recurring_count' => count($this->recurringPayments),
+            ],
         ];
     }
 }

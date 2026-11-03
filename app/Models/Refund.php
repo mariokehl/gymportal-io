@@ -38,6 +38,7 @@ class Refund extends Model
     /**
      * Get the user who created this refund.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.50')]
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -65,7 +66,7 @@ class Refund extends Model
 
     public function getFormattedAmountAttribute()
     {
-        return number_format($this->amount, 2, ',', '.') . ' €';
+        return number_format($this->amount, 2, ',', '.').' €';
     }
 
     public function scopePending($query)

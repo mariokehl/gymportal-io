@@ -301,6 +301,33 @@ class PaymentService
     }
 
     /**
+     * Resolves the member's payment method a payment is collected with.
+     *
+     * The method stored on the payment wins, so a charge booked with a method
+     * other than the member's default (e.g. an add-on with its own method) is
+     * collected the way it was booked. The default only steps in when the
+     * payment names no method, or when the member has none or several methods
+     * of that type, so the booked one can no longer be told apart.
+     */
+    public function resolveCollectionPaymentMethod(Payment $payment): ?PaymentMethod
+    {
+        $member = $payment->member;
+        $type = $payment->payment_method;
+
+        // 'credit' only marks a charge settled from the member's credit
+        // balance; any remainder is collected over the default method.
+        if ($type !== null && $type !== 'credit') {
+            $matching = $member->paymentMethods->where('type', $type);
+
+            if ($matching->count() === 1) {
+                return $matching->first();
+            }
+        }
+
+        return $member->defaultPaymentMethod;
+    }
+
+    /**
      * Erstellt die nächste wiederkehrende Zahlung
      */
     public function createNextRecurringPayment(
@@ -742,6 +769,7 @@ class PaymentService
      *
      * @deprecated Diese Funktion wird aktuell nicht verwendet, da die Logik in PaymentController->markAsPaid ausgelagert wurde
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function markPaymentAsPaid(Payment $payment, array $metadata = []): bool
     {
         try {

@@ -114,6 +114,12 @@ class PaymentMethod extends Model
 
     public const MAX_EXECUTION_OFFSET = 30;
 
+    /**
+     * Payment method types the member settles on their own. A payment booked
+     * with one of them is never collected by the payment run.
+     */
+    public const MANUAL_TYPES = ['cash', 'banktransfer', 'invoice', 'standingorder'];
+
     protected function iban(): Attribute
     {
         return Attribute::make(
@@ -226,6 +232,7 @@ class PaymentMethod extends Model
         return $this->requires_mandate ?? false;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function hasActiveSepaMandateRequired(): bool
     {
         return $this->requiresSepaMandate() &&
@@ -238,6 +245,7 @@ class PaymentMethod extends Model
                in_array($this->sepa_mandate_status, ['signed', 'active']);
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function markSepaMandateAsAcknowledged(): bool
     {
         if (! $this->requiresSepaMandate() || $this->sepa_mandate_status !== 'pending') {
@@ -296,6 +304,7 @@ class PaymentMethod extends Model
         return true;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function revokeSepaMandate(?string $reason = null): bool
     {
         if (! $this->requiresSepaMandate() || ! in_array($this->sepa_mandate_status, ['signed', 'active'])) {

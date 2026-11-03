@@ -20,6 +20,7 @@ class CourseBooking extends Model
         'cancelled_at' => 'datetime',
     ];
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public function courseSchedule()
     {
         return $this->belongsTo(CourseSchedule::class);

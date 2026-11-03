@@ -153,11 +153,11 @@ class ProcessMembershipPayments extends Command
 
         $query = Payment::ofGymsWithActiveAccess()
             ->where('status', 'pending')
-            // Payment links are settled externally by the member and must
-            // never be charged by the scheduler.
+            // Payment links and manual methods (cash, bank transfer, ...) are
+            // settled by the member and must never be charged by the scheduler.
             ->where(function ($q) {
                 $q->whereNull('payment_method')
-                    ->orWhere('payment_method', '!=', 'mollie_paymentlink');
+                    ->orWhereNotIn('payment_method', ['mollie_paymentlink', ...PaymentMethod::MANUAL_TYPES]);
             })
             ->where(function ($q) {
                 // Zahlung wird verarbeitet wenn:
@@ -177,7 +177,7 @@ class ProcessMembershipPayments extends Command
             $query->where('member_id', $memberId);
         }
 
-        $duePayments = $query->with(['member', 'membership', 'member.defaultPaymentMethod'])
+        $duePayments = $query->with(['member', 'membership', 'member.defaultPaymentMethod', 'member.paymentMethods'])
             ->get();
 
         $this->info("Found {$duePayments->count()} due payments to process");
@@ -225,10 +225,10 @@ class ProcessMembershipPayments extends Command
         }
 
         $member = $payment->member;
-        $paymentMethod = $member->defaultPaymentMethod;
+        $paymentMethod = $this->paymentService->resolveCollectionPaymentMethod($payment);
 
         if (! $paymentMethod) {
-            throw new \Exception("No default payment method for member #{$member->id}");
+            throw new \Exception("No payment method to collect payment #{$payment->id} for member #{$member->id}");
         }
 
         if ($paymentMethod->status !== 'active') {

@@ -25,6 +25,7 @@ class EmailTemplateAttachment extends Model
         'formatted_file_size',
     ];
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.56')]
     public function emailTemplate(): BelongsTo
     {
         return $this->belongsTo(EmailTemplate::class);
@@ -37,8 +38,9 @@ class EmailTemplateAttachment extends Model
     {
         $bytes = $this->file_size;
         if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 1, ',', '.') . ' MB';
+            return number_format($bytes / 1048576, 1, ',', '.').' MB';
         }
-        return number_format($bytes / 1024, 0, ',', '.') . ' KB';
+
+        return number_format($bytes / 1024, 0, ',', '.').' KB';
     }
 }

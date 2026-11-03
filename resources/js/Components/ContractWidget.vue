@@ -311,6 +311,47 @@
                     </div>
                 </div>
 
+                <!-- Erlaubte Domains -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <component :is="ShieldCheck" class="w-5 h-5 mr-2" />
+                        Erlaubte Domains
+                    </h4>
+                    <div class="space-y-3">
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">Alle Domains zulassen (*)</span>
+                                <p class="text-xs text-gray-500">Das Widget kann auf jeder Website eingebunden werden</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                v-model="allowAllOrigins"
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            >
+                        </label>
+                        <div v-if="!allowAllOrigins" class="p-3 bg-gray-50 rounded-lg">
+                            <label for="widget-allowed-origins" class="block text-sm font-medium text-gray-900">
+                                Domains Ihrer Website
+                            </label>
+                            <p class="text-xs text-gray-500 mb-2">
+                                Eine Domain pro Zeile, z. B. https://www.ihr-studio.de. Ohne Protokoll wird https:// verwendet.
+                                Tragen Sie Varianten mit und ohne „www“ jeweils separat ein.
+                            </p>
+                            <textarea
+                                id="widget-allowed-origins"
+                                v-model="allowedOriginsText"
+                                rows="4"
+                                placeholder="https://www.ihr-studio.de"
+                                class="w-full rounded border-gray-300 text-sm font-mono focus:ring-indigo-500 focus:border-indigo-500"
+                            ></textarea>
+                        </div>
+                        <div v-else class="p-2 bg-amber-50 rounded text-xs text-amber-800">
+                            <component :is="Info" class="w-3 h-3 inline mr-1" />
+                            Wir empfehlen, das Widget auf die Domains Ihrer Website zu beschränken.
+                        </div>
+                    </div>
+                </div>
+
                 <div class="pt-4 border-t border-gray-200 space-y-3">
                     <button
                         type="button"
@@ -568,7 +609,7 @@ import {
     EyeOff, Palette, ToggleLeft, Save, Key,
     ToyBrick, RefreshCw, Type, ExternalLink,
     ListOrdered, Package, MousePointerClick,
-    GripVertical, X, Info
+    GripVertical, X, Info, ShieldCheck
 } from '@lucide/vue'
 import draggable from 'vuedraggable'
 import { useToast } from '@/composables/useToast'
@@ -614,8 +655,30 @@ const settings = ref({
     integrations: {
         google_recaptcha: false
     },
+    // Gyms without a stored list keep accepting every origin (see WidgetOriginService).
+    security: {
+        allowed_origins: ['*']
+    },
     ...(props.currentGym.widget_settings || {})
 })
+
+// Origins are edited as free text and only split into a list on save, so
+// typing a new line is not swallowed by the normalization.
+const allowAllOrigins = ref((settings.value.security?.allowed_origins ?? ['*']).includes('*'))
+const allowedOriginsText = ref(
+    (settings.value.security?.allowed_origins ?? []).filter(origin => origin !== '*').join('\n')
+)
+
+const buildAllowedOrigins = () => {
+    if (allowAllOrigins.value) {
+        return ['*']
+    }
+
+    return allowedOriginsText.value
+        .split('\n')
+        .map(origin => origin.trim())
+        .filter(origin => origin !== '')
+}
 
 // Minimum age with a default of 18 when not explicitly set by the gym.
 const minAge = computed({
@@ -811,23 +874,42 @@ const openWidgetPreview = () => {
 }
 
 const saveWidgetConfig = async () => {
+    const allowedOrigins = buildAllowedOrigins()
+
+    if (allowedOrigins.length === 0) {
+        toastError('Bitte hinterlegen Sie mindestens eine Domain oder lassen Sie alle Domains zu.')
+        return
+    }
+
     isSaving.value = true
     try {
-        await axios.put(route('admin.widget.update'), {
+        const response = await axios.put(route('admin.widget.update'), {
             widget_enabled: settings.value.widget_enabled,
             widget_settings: {
                 ...settings.value,
                 contracts: {
                     selected_ids: selectedContracts.value.map(c => c.id),
                     auto_sort: settings.value.contracts.auto_sort
+                },
+                security: {
+                    ...settings.value.security,
+                    allowed_origins: allowedOrigins
                 }
             }
         })
 
+        // Show the origins as the server normalized them (scheme added, paths stripped).
+        const savedOrigins = response.data?.gym?.widget_settings?.security?.allowed_origins ?? allowedOrigins
+        settings.value.security = { ...settings.value.security, allowed_origins: savedOrigins }
+        allowAllOrigins.value = savedOrigins.includes('*')
+        allowedOriginsText.value = savedOrigins.filter(origin => origin !== '*').join('\n')
+
         success('Einstellungen erfolgreich gespeichert!')
     } catch (error) {
         console.error('Fehler beim Speichern:', error)
-        toastError('Fehler beim Speichern der Einstellungen')
+        toastError(error.response?.status === 422 && error.response.data?.message
+            ? error.response.data.message
+            : 'Fehler beim Speichern der Einstellungen')
     } finally {
         isSaving.value = false
     }

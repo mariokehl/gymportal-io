@@ -80,6 +80,7 @@ class WidgetAnalytics extends Model
     /**
      * Event-Typen definieren
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public static function getEventTypes()
     {
         return [
@@ -99,6 +100,7 @@ class WidgetAnalytics extends Model
     /**
      * Schritte definieren
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.1')]
     public static function getSteps()
     {
         return [

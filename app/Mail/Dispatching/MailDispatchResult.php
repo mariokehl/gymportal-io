@@ -17,8 +17,7 @@ final class MailDispatchResult
         public readonly string $status,
         public readonly ?string $reason = null,
         public readonly ?string $errorCode = null,
-    ) {
-    }
+    ) {}
 
     public static function sent(): self
     {
@@ -35,6 +34,7 @@ final class MailDispatchResult
         return new self('failed', $reason);
     }
 
+    #[\Deprecated(message: 'only referenced by tests', since: 'v0.0.77')]
     public function wasSent(): bool
     {
         return $this->status === 'sent';

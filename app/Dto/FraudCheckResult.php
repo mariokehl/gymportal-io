@@ -6,9 +6,9 @@ class FraudCheckResult
 {
     public function __construct(
         public readonly string $action, // 'allowed' | 'flagged' | 'blocked'
-        public readonly int    $score,  // 0–100
-        public readonly array  $matched, // Felder die getroffen haben
-        public readonly ?int   $fraudCheckId = null, // ID des erstellten FraudCheck-Records
+        public readonly int $score,  // 0–100
+        public readonly array $matched, // Felder die getroffen haben
+        public readonly ?int $fraudCheckId = null, // ID des erstellten FraudCheck-Records
     ) {}
 
     public function isBlocked(): bool
@@ -21,6 +21,7 @@ class FraudCheckResult
         return $this->action === 'flagged';
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.65')]
     public function isAllowed(): bool
     {
         return $this->action === 'allowed';

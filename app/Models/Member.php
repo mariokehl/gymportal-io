@@ -123,6 +123,7 @@ class Member extends Authenticatable
         return $this->belongsTo(User::class, 'age_verified_by');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.52')]
     public function guestAccessGrantedByUser()
     {
         return $this->belongsTo(User::class, 'guest_access_granted_by');
@@ -139,6 +140,7 @@ class Member extends Authenticatable
     /**
      * Mitglieder, für die dieses Mitglied der gesetzliche Vertreter ist
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.52')]
     public function dependents()
     {
         return $this->hasMany(Member::class, 'legal_guardian_member_id');
@@ -164,6 +166,7 @@ class Member extends Authenticatable
     /**
      * Prüft ob ein gesetzlicher Vertreter hinterlegt ist
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.52')]
     public function hasLegalGuardian(): bool
     {
         return $this->legal_guardian_member_id !== null ||
@@ -451,6 +454,7 @@ class Member extends Authenticatable
     /**
      * Encrypted, tamper-evident credit ledger entries ("Guthaben").
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.97')]
     public function creditLedgers(): HasMany
     {
         return $this->hasMany(MemberCreditLedger::class)->orderBy('id');
@@ -539,6 +543,7 @@ class Member extends Authenticatable
             ->where('sepa_mandate_status', 'active');
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function pendingSepaPaymentMethod(): HasOne
     {
         return $this->hasOne(PaymentMethod::class)
@@ -547,6 +552,7 @@ class Member extends Authenticatable
     }
 
     // SEPA-spezifische Methoden
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function hasActiveSepaMandate(): bool
     {
         return $this->activeSepaPaymentMethod !== null;
@@ -575,6 +581,7 @@ class Member extends Authenticatable
         return $sepaPayment ? $sepaPayment->sepa_mandate_status_text : null;
     }
 
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.2')]
     public function hasPendingSepaMandate(): bool
     {
         return $this->sepaPaymentMethods()
@@ -786,6 +793,7 @@ class Member extends Authenticatable
     /**
      * Get recent status history (last 30 days)
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.4')]
     public function recentStatusHistory()
     {
         return $this->statusHistory()->where('created_at', '>=', now()->subDays(30));
@@ -794,6 +802,7 @@ class Member extends Authenticatable
     /**
      * Check if member was recently activated
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.4')]
     public function wasRecentlyActivated(): bool
     {
         return $this->statusHistory()
@@ -843,6 +852,7 @@ class Member extends Authenticatable
     /**
      * Check if member was paused due to overdue payment
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.4')]
     public function isPausedDueToOverdue(): bool
     {
         if ($this->status !== 'paused') {
@@ -1214,6 +1224,7 @@ class Member extends Authenticatable
     /**
      * Führt einen Status-Wechsel durch (wenn erlaubt)
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.4')]
     public function changeStatusTo(string $newStatus, ?string $reason = null): bool
     {
         $validation = $this->validateStatusChange($newStatus);
@@ -1385,6 +1396,7 @@ class Member extends Authenticatable
     /**
      * Check if member has any active access method
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function hasActiveAccessMethod(): bool
     {
         $config = $this->accessConfig;
@@ -1431,6 +1443,7 @@ class Member extends Authenticatable
      *
      * @deprecated v0.0.53 Use {@see MemberController::generateQrCode()} instead.
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function generateQrCodeData(): string
     {
         $timestamp = time();
@@ -1449,6 +1462,7 @@ class Member extends Authenticatable
     /**
      * Get recent access attempts
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function getRecentAccessAttempts(int $limit = 10)
     {
         return $this->accessLogs()
@@ -1461,6 +1475,7 @@ class Member extends Authenticatable
     /**
      * Get access statistics
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function getAccessStatistics(?string $period = '30d'): array
     {
         return MemberAccessLog::getMemberStatistics($this->id, $period);
@@ -1469,6 +1484,7 @@ class Member extends Authenticatable
     /**
      * Log successful access
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function logSuccessfulAccess(string $service, string $method, ?string $deviceId = null): void
     {
         MemberAccessLog::create([
@@ -1497,6 +1513,7 @@ class Member extends Authenticatable
     /**
      * Log failed access attempt
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function logFailedAccess(string $service, string $method, string $reason, ?string $deviceId = null): void
     {
         MemberAccessLog::create([
@@ -1518,6 +1535,7 @@ class Member extends Authenticatable
     /**
      * Check if member has NFC configured
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.13')]
     public function hasNfcConfigured(): bool
     {
         return $this->accessConfig &&
@@ -1632,6 +1650,7 @@ class Member extends Authenticatable
     /**
      * Gibt Status-Statistiken zurück
      */
+    #[\Deprecated(message: 'never called since it was introduced', since: 'v0.0.4')]
     public function getStatusStatistics(): array
     {
         return [
