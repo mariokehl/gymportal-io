@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Payment;
 use App\Models\PaymentMethod;
-use App\Services\PaymentService;
 use App\Services\MollieService;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +32,7 @@ class RetryFailedPayments extends Command
     protected $description = 'Retry failed membership payments';
 
     protected PaymentService $paymentService;
+
     protected MollieService $mollieService;
 
     public function __construct(PaymentService $paymentService, MollieService $mollieService)
@@ -51,9 +52,9 @@ class RetryFailedPayments extends Command
         $dryRun = $this->option('dry-run');
         $gymId = $this->option('gym-id');
 
-        $this->info("===========================================");
-        $this->info("Retrying Failed Payments");
-        $this->info("Mode: " . ($dryRun ? 'DRY RUN' : 'PRODUCTION'));
+        $this->info('===========================================');
+        $this->info('Retrying Failed Payments');
+        $this->info('Mode: '.($dryRun ? 'DRY RUN' : 'PRODUCTION'));
         $this->info("Max retries: {$maxRetries}");
         $this->info("Days back: {$daysBack}");
         $this->info("===========================================\n");
@@ -83,15 +84,17 @@ class RetryFailedPayments extends Command
 
         foreach ($failedPayments as $payment) {
             try {
-                if (!$this->shouldRetryPayment($payment)) {
+                if (! $this->shouldRetryPayment($payment)) {
                     $stats['skipped']++;
                     $this->line("⊘ Skipped payment #{$payment->id} - conditions not met");
+
                     continue;
                 }
 
                 if ($dryRun) {
                     $this->info("[DRY RUN] Would retry payment #{$payment->id}");
                     $stats['retried']++;
+
                     continue;
                 }
 
@@ -108,16 +111,17 @@ class RetryFailedPayments extends Command
 
             } catch (\Exception $e) {
                 $stats['failed']++;
-                $this->error("✗ Error retrying payment #{$payment->id}: " . $e->getMessage());
+                $this->error("✗ Error retrying payment #{$payment->id}: ".$e->getMessage());
 
                 Log::error('Payment retry failed', [
                     'payment_id' => $payment->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
 
         $this->printSummary($stats);
+
         return 0;
     }
 
@@ -138,12 +142,12 @@ class RetryFailedPayments extends Command
 
         // Don't retry if no valid payment method
         $paymentMethod = $payment->member->defaultPaymentMethod;
-        if (!$paymentMethod || $paymentMethod->status !== 'active') {
+        if (! $paymentMethod || $paymentMethod->status !== 'active') {
             return false;
         }
 
         // Check payment method specific conditions
-        if ($paymentMethod->type === 'sepa_direct_debit' && !$paymentMethod->isSepaMandateValid()) {
+        if ($paymentMethod->type === 'sepa_direct_debit' && ! $paymentMethod->isSepaMandateValid()) {
             return false;
         }
 
@@ -172,7 +176,7 @@ class RetryFailedPayments extends Command
                     'retry_count' => $retryCount + 1,
                     'last_retry_at' => now()->toDateTimeString(),
                     'retry_method' => 'scheduled',
-                ])
+                ]),
             ]);
 
             // Process based on payment method
@@ -191,7 +195,7 @@ class RetryFailedPayments extends Command
                     // For manual payment methods, just reset status
                     $payment->update([
                         'status' => 'pending',
-                        'notes' => $payment->notes . ' | Retry attempt #' . ($retryCount + 1)
+                        'notes' => $payment->notes.' | Retry attempt #'.($retryCount + 1),
                     ]);
             }
 
@@ -218,7 +222,7 @@ class RetryFailedPayments extends Command
     {
         $payment->update([
             'status' => 'unknown',
-            'notes' => $payment->notes . ' | SEPA retry initiated at ' . now()->toDateTimeString(),
+            'notes' => $payment->notes.' | SEPA retry initiated at '.now()->toDateTimeString(),
         ]);
     }
 
@@ -239,7 +243,7 @@ class RetryFailedPayments extends Command
         $payment->update([
             'status' => 'unknown',
             'mollie_payment_id' => $molliePayment->id,
-            'notes' => $payment->notes . ' | Mollie retry initiated',
+            'notes' => $payment->notes.' | Mollie retry initiated',
         ]);
     }
 
@@ -249,11 +253,11 @@ class RetryFailedPayments extends Command
     protected function printSummary(array $stats): void
     {
         $this->info("\n===========================================");
-        $this->info("Retry Summary");
-        $this->info("===========================================");
+        $this->info('Retry Summary');
+        $this->info('===========================================');
         $this->info("Total failed payments: {$stats['total']}");
         $this->info("Payments retried: {$stats['retried']}");
-        if (!$this->option('dry-run')) {
+        if (! $this->option('dry-run')) {
             $this->info("Successful retries: {$stats['successful']}");
             $this->info("Failed retries: {$stats['failed']}");
         }
