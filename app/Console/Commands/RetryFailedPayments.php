@@ -70,13 +70,18 @@ class RetryFailedPayments extends Command
         // Get failed payments
         $query = Payment::whereIn('status', ['failed', 'expired'])
             ->where('created_at', '>=', Carbon::now()->subDays($daysBack))
-            ->whereRaw('COALESCE(JSON_EXTRACT(metadata, "$.retry_count"), 0) < ?', [$maxRetries]);
+            ->whereRaw('COALESCE(JSON_EXTRACT(metadata, "$.retry_count"), 0) < ?', [$maxRetries])
+            // Manual methods (cash, bank transfer, ...) are settled by the member.
+            ->where(function ($q) {
+                $q->whereNull('payment_method')
+                    ->orWhereNotIn('payment_method', PaymentMethod::MANUAL_TYPES);
+            });
 
         if ($gymId) {
             $query->where('gym_id', $gymId);
         }
 
-        $failedPayments = $query->with(['member', 'membership', 'member.defaultPaymentMethod'])
+        $failedPayments = $query->with(['member', 'membership', 'member.defaultPaymentMethod', 'member.paymentMethods'])
             ->get();
 
         $stats['total'] = $failedPayments->count();
@@ -141,7 +146,7 @@ class RetryFailedPayments extends Command
         }
 
         // Don't retry if no valid payment method
-        $paymentMethod = $payment->member->defaultPaymentMethod;
+        $paymentMethod = $this->paymentService->resolveCollectionPaymentMethod($payment);
         if (! $paymentMethod || $paymentMethod->status !== 'active') {
             return false;
         }
@@ -166,8 +171,7 @@ class RetryFailedPayments extends Command
     {
         DB::beginTransaction();
         try {
-            $member = $payment->member;
-            $paymentMethod = $member->defaultPaymentMethod;
+            $paymentMethod = $this->paymentService->resolveCollectionPaymentMethod($payment);
 
             // Update retry count
             $retryCount = $payment->metadata['retry_count'] ?? 0;
