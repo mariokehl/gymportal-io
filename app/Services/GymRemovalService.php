@@ -33,8 +33,6 @@ class GymRemovalService
      */
     public function remove(User $owner, Gym $gym): void
     {
-        $mollieConfig = $gym->mollie_config ?? [];
-
         DB::transaction(function () use ($owner, $gym) {
             // Member data first: also removes the members' Mollie customers,
             // which needs the payment methods and the Mollie config of the gym
@@ -51,13 +49,11 @@ class GymRemovalService
                 $owner->update(['current_gym_id' => $nextGym?->id]);
             }
 
-            // The gym row is only soft-deleted, so wipe credentials and bank data
+            // The gym row is only soft-deleted, so wipe credentials and bank data.
+            // The Mollie webhook is kept on purpose, other gyms may still use it
             $gym->update(array_fill_keys(self::SENSITIVE_ATTRIBUTES, null));
 
             $gym->delete();
         });
-
-        // Only after the commit: a rolled back removal must keep a working webhook
-        MollieService::deleteWebhookIfAny($mollieConfig, $gym->id);
     }
 }
