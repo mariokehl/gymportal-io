@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Aggregator;
+use App\Models\Addon;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Membership;
@@ -97,6 +98,16 @@ class MemberFilterFields
                     $condition['op'] === 'any',
                 ),
                 options: $this->planOptions($gym),
+            ),
+            $this->boolean('has_addon', 'Mitgliedschaft', 'Nutzt Add-ons', $this->bookedAddons(...)),
+            new FilterField('addon', 'Mitgliedschaft', 'Add-on (gebucht)', FilterType::Enum,
+                fn (Builder $query, array $condition) => FilterConstraints::exists(
+                    $query,
+                    fn (QueryBuilder $subQuery) => $this->bookedAddons($subQuery)
+                        ->whereIn('addon_membership.addon_id', array_map('intval', $condition['values'])),
+                    $condition['op'] === 'any',
+                ),
+                options: $this->addonOptions($gym),
             ),
             new FilterField('contract_end', 'Mitgliedschaft', 'Vertragsende (gekündigt zum)', FilterType::Date,
                 fn (Builder $query, array $condition) => $this->constrainAggregatedDate(
@@ -193,6 +204,22 @@ class MemberFilterFields
             ->whereNull('memberships.deleted_at')
             ->where('memberships.status', 'active')
             ->whereNotNull('memberships.cancellation_date');
+    }
+
+    /**
+     * Add-on bookings on a running membership that have not ended yet. A
+     * cancelled add-on still counts until its cancellation takes effect —
+     * the same boundary the billing applies.
+     */
+    private function bookedAddons(QueryBuilder $query): QueryBuilder
+    {
+        return $this->runningMemberships($query)
+            ->join('addon_membership', 'addon_membership.membership_id', '=', 'memberships.id')
+            ->join('addons', 'addons.id', '=', 'addon_membership.addon_id')
+            ->whereNull('addons.deleted_at')
+            ->where(fn (QueryBuilder $open) => $open
+                ->whereNull('addon_membership.cancellation_effective_at')
+                ->orWhereDate('addon_membership.cancellation_effective_at', '>=', CarbonImmutable::today()->toDateString()));
     }
 
     private function failedPayments(QueryBuilder $query): QueryBuilder
@@ -301,6 +328,27 @@ class MemberFilterFields
 
         return MembershipPlan::query()
             ->where(fn (Builder $query) => $query->where('gym_id', $gym->id)->orWhereIn('id', $memberPlanIds))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->mapWithKeys(fn (string $name, int $id) => [(string) $id => $name])
+            ->all();
+    }
+
+    /**
+     * Add-ons of the gym plus every add-on its members have booked (add-ons
+     * of location-wide plans may belong to a sibling gym).
+     *
+     * @return array<string, string>
+     */
+    private function addonOptions(Gym $gym): array
+    {
+        $bookedAddonIds = DB::table('addon_membership')
+            ->select('addon_membership.addon_id')
+            ->join('memberships', 'memberships.id', '=', 'addon_membership.membership_id')
+            ->whereIn('memberships.member_id', Member::query()->select('id')->where('gym_id', $gym->id));
+
+        return Addon::query()
+            ->where(fn (Builder $query) => $query->where('gym_id', $gym->id)->orWhereIn('id', $bookedAddonIds))
             ->orderBy('name')
             ->pluck('name', 'id')
             ->mapWithKeys(fn (string $name, int $id) => [(string) $id => $name])

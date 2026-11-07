@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\Addon;
 use App\Models\CheckIn;
 use App\Models\Gym;
 use App\Models\Member;
@@ -182,6 +183,54 @@ class MemberFilterTest extends TestCase
                 ->where('members.data.0.failed_payment_count', 1)
                 ->where('members.data.0.payment_method', ['label' => 'SEPA-Lastschrift', 'provider' => 'Mollie'])
             );
+    }
+
+    #[Test]
+    public function it_filters_by_booked_add_ons(): void
+    {
+        $plan = MembershipPlan::factory()->create(['gym_id' => $this->gym->id]);
+        $drinks = Addon::factory()->recurring()->create(['gym_id' => $this->gym->id, 'name' => 'Getränke-Flat']);
+        $sauna = Addon::factory()->create(['gym_id' => $this->gym->id, 'name' => 'Sauna']);
+        $foreignAddon = Addon::factory()->create(['name' => 'Fremdes Add-on']);
+
+        $book = function (Member $member, Addon $addon, array $pivot = [], bool $cancelled = false) use ($plan) {
+            $factory = $cancelled ? Membership::factory()->cancelled() : Membership::factory();
+            $membership = $factory->create(['member_id' => $member->id, 'membership_plan_id' => $plan->id]);
+            $membership->addons()->attach($addon->id, ['mode' => 'optional', 'price' => 10, ...$pivot]);
+        };
+
+        $drinker = $this->member();
+        $book($drinker, $drinks);
+        $saunaUser = $this->member();
+        $book($saunaUser, $sauna, ['cancellation_effective_at' => now()->addDays(10)->toDateString()]);
+        $endedAddon = $this->member();
+        $book($endedAddon, $drinks, ['cancellation_effective_at' => now()->subDay()->toDateString()]);
+        $cancelledContract = $this->member();
+        $book($cancelledContract, $drinks, cancelled: true);
+        $without = $this->member();
+
+        $this->assertSame([$drinker->id, $saunaUser->id], $this->idsFor($this->filterFor('has_addon', 'yes')));
+        $this->assertSame(
+            [$endedAddon->id, $cancelledContract->id, $without->id],
+            $this->idsFor($this->filterFor('has_addon', 'no'))
+        );
+        $this->assertSame([$drinker->id], $this->idsFor($this->filterFor('addon', 'any', ['values' => [(string) $drinks->id]])));
+        $this->assertSame(
+            [$drinker->id, $endedAddon->id, $cancelledContract->id, $without->id],
+            $this->idsFor($this->filterFor('addon', 'none', ['values' => [(string) $sauna->id]]))
+        );
+
+        $this->actingAs($this->owner)
+            ->get(route('members.index'))
+            ->assertInertia(function (AssertableInertia $page) use ($drinks, $sauna) {
+                $field = collect($page->toArray()['props']['filterFields'])->firstWhere('key', 'addon');
+
+                $this->assertSame('Mitgliedschaft', $field['entity']);
+                $this->assertSame([
+                    ['value' => (string) $drinks->id, 'label' => 'Getränke-Flat'],
+                    ['value' => (string) $sauna->id, 'label' => 'Sauna'],
+                ], $field['options']);
+            });
     }
 
     #[Test]
