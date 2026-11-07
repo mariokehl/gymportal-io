@@ -230,9 +230,9 @@ class GymDataImportService
     }
 
     /**
-     * Delete all existing data for the gym (replace mode)
+     * Delete all existing data for the gym (replace mode, gym removal)
      */
-    private function deleteExistingData(int $gymId): void
+    public function deleteExistingData(int $gymId): void
     {
         // Delete in reverse dependency order
 
