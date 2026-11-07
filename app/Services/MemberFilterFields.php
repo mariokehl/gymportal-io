@@ -114,6 +114,17 @@ class MemberFilterFields
                     ? $query->where($this->constrainCancelled(...))
                     : $query->whereNot($this->constrainCancelled(...)),
             ),
+            $this->boolean('is_paused', 'Mitgliedschaft', 'Vertrag ruht / pausiert', $this->currentlyPausedMemberships(...)),
+            new FilterField('pause_start', 'Mitgliedschaft', 'Ruhezeit von', FilterType::Date,
+                fn (Builder $query, array $condition) => $this->constrainAggregatedDate(
+                    $query, $this->pausedMemberships(...), 'memberships.pause_start_date', $condition
+                ),
+            ),
+            new FilterField('pause_end', 'Mitgliedschaft', 'Ruhezeit bis', FilterType::Date,
+                fn (Builder $query, array $condition) => $this->constrainAggregatedDate(
+                    $query, $this->pausedMemberships(...), 'memberships.pause_end_date', $condition
+                ),
+            ),
             new FilterField('contract_end', 'Mitgliedschaft', 'Vertragsende (gekündigt zum)', FilterType::Date,
                 fn (Builder $query, array $condition) => $this->constrainAggregatedDate(
                     $query, $this->cancelledActiveMemberships(...), 'memberships.cancellation_date', $condition
@@ -212,6 +223,32 @@ class MemberFilterFields
             ->whereNull('memberships.deleted_at')
             ->where('memberships.status', 'active')
             ->whereNotNull('memberships.cancellation_date');
+    }
+
+    /**
+     * Running memberships with a current or scheduled pause period.
+     */
+    private function pausedMemberships(QueryBuilder $query): QueryBuilder
+    {
+        return $this->runningMemberships($query)
+            ->whereNotNull('memberships.pause_start_date')
+            ->whereNotNull('memberships.pause_end_date');
+    }
+
+    /**
+     * Memberships paused today: either already switched to "paused" or
+     * inside their pause period before the status job has run.
+     */
+    private function currentlyPausedMemberships(QueryBuilder $query): QueryBuilder
+    {
+        $today = CarbonImmutable::today()->toDateString();
+
+        return $this->runningMemberships($query)->where(fn (QueryBuilder $paused) => $paused
+            ->where('memberships.status', 'paused')
+            ->orWhere(fn (QueryBuilder $period) => $period
+                ->where('memberships.status', 'active')
+                ->whereDate('memberships.pause_start_date', '<=', $today)
+                ->whereDate('memberships.pause_end_date', '>=', $today)));
     }
 
     /**

@@ -208,6 +208,35 @@ class MemberFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_filters_by_pause_status_and_period(): void
+    {
+        $paused = $this->member();
+        Membership::factory()->create([
+            'member_id' => $paused->id, 'status' => 'paused',
+            'pause_start_date' => now()->subDays(5)->toDateString(), 'pause_end_date' => now()->addDays(20)->toDateString(),
+        ]);
+        $pauseStartedToday = $this->member();
+        Membership::factory()->create([
+            'member_id' => $pauseStartedToday->id,
+            'pause_start_date' => now()->toDateString(), 'pause_end_date' => now()->addMonths(2)->toDateString(),
+        ]);
+        $scheduled = $this->member();
+        Membership::factory()->create([
+            'member_id' => $scheduled->id,
+            'pause_start_date' => now()->addMonth()->toDateString(), 'pause_end_date' => now()->addMonths(3)->toDateString(),
+        ]);
+        $regular = $this->member();
+        Membership::factory()->create(['member_id' => $regular->id]);
+        Membership::factory()->create(['member_id' => Member::factory()->create()->id, 'status' => 'paused']);
+
+        $this->assertSame([$paused->id, $pauseStartedToday->id], $this->idsFor($this->filterFor('is_paused', 'yes')));
+        $this->assertSame([$scheduled->id, $regular->id], $this->idsFor($this->filterFor('is_paused', 'no')));
+        $this->assertSame([$scheduled->id], $this->idsFor($this->filterFor('pause_start', 'after', ['value' => now()->addDays(7)->toDateString()])));
+        $this->assertSame([$paused->id], $this->idsFor($this->filterFor('pause_end', 'nextDays', ['value' => '30'])));
+        $this->assertSame([$regular->id], $this->idsFor($this->filterFor('pause_start', 'empty')));
+    }
+
+    #[Test]
     public function it_filters_by_guest_access(): void
     {
         $guest = $this->member(['guest_access' => true]);
