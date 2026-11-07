@@ -186,6 +186,17 @@ class MemberFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_filters_by_guest_access(): void
+    {
+        $guest = $this->member(['guest_access' => true]);
+        $regular = $this->member(['guest_access' => false]);
+        Member::factory()->create(['guest_access' => true]);
+
+        $this->assertSame([$guest->id], $this->idsFor($this->filterFor('guest_access', 'yes')));
+        $this->assertSame([$regular->id], $this->idsFor($this->filterFor('guest_access', 'no')));
+    }
+
+    #[Test]
     public function it_filters_by_booked_add_ons(): void
     {
         $plan = MembershipPlan::factory()->create(['gym_id' => $this->gym->id]);

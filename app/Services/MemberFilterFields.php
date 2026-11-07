@@ -149,6 +149,9 @@ class MemberFilterFields
                 ),
             ),
 
+            new FilterField('guest_access', 'Zugang', 'Hat Gastzugang', FilterType::Boolean,
+                fn (Builder $query, array $condition) => $query->where('members.guest_access', $condition['op'] === 'yes'),
+            ),
             $this->boolean('has_nfc_tag', 'Zugang', 'Hat NFC-Tag', $this->nfcAccessConfigs(...)),
             new FilterField('nfc_tag', 'Zugang', 'NFC-Tag ID', FilterType::Text,
                 fn (Builder $query, array $condition) => $this->constrainNfcTag($query, $condition),
