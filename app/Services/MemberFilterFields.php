@@ -109,6 +109,11 @@ class MemberFilterFields
                 ),
                 options: $this->addonOptions($gym),
             ),
+            new FilterField('is_cancelled', 'Mitgliedschaft', 'Gekündigt', FilterType::Boolean,
+                fn (Builder $query, array $condition) => $condition['op'] === 'yes'
+                    ? $query->where($this->constrainCancelled(...))
+                    : $query->whereNot($this->constrainCancelled(...)),
+            ),
             new FilterField('contract_end', 'Mitgliedschaft', 'Vertragsende (gekündigt zum)', FilterType::Date,
                 fn (Builder $query, array $condition) => $this->constrainAggregatedDate(
                     $query, $this->cancelledActiveMemberships(...), 'memberships.cancellation_date', $condition
@@ -223,6 +228,23 @@ class MemberFilterFields
             ->where(fn (QueryBuilder $open) => $open
                 ->whereNull('addon_membership.cancellation_effective_at')
                 ->orWhereDate('addon_membership.cancellation_effective_at', '>=', CarbonImmutable::today()->toDateString()));
+    }
+
+    /**
+     * A member counts as cancelled when a contract of theirs was cancelled —
+     * running out or already ended — and no running contract without a
+     * cancellation keeps them on. Withdrawn contracts are no cancellation.
+     */
+    private function constrainCancelled(Builder $query): void
+    {
+        FilterConstraints::exists($query, fn (QueryBuilder $subQuery) => $subQuery->from('memberships')
+            ->whereColumn('memberships.member_id', 'members.id')
+            ->whereNull('memberships.deleted_at')
+            ->whereNotNull('memberships.cancellation_date')
+            ->whereIn('memberships.status', [...self::RUNNING_MEMBERSHIP_STATUSES, 'cancelled']));
+
+        FilterConstraints::exists($query, fn (QueryBuilder $subQuery) => $this->runningMemberships($subQuery)
+            ->whereNull('memberships.cancellation_date'), false);
     }
 
     private function failedPayments(QueryBuilder $query): QueryBuilder

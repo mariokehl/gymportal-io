@@ -186,6 +186,28 @@ class MemberFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_filters_by_cancellation_status(): void
+    {
+        $runningOut = $this->member();
+        Membership::factory()->create(['member_id' => $runningOut->id, 'cancellation_date' => now()->addMonth()->toDateString()]);
+        $ended = $this->member();
+        Membership::factory()->cancelled()->create(['member_id' => $ended->id]);
+        $renewed = $this->member();
+        Membership::factory()->cancelled()->create(['member_id' => $renewed->id]);
+        Membership::factory()->create(['member_id' => $renewed->id]);
+        $regular = $this->member();
+        Membership::factory()->create(['member_id' => $regular->id]);
+        $withoutContract = $this->member();
+        Membership::factory()->cancelled()->create(['member_id' => Member::factory()->create()->id]);
+
+        $this->assertSame([$runningOut->id, $ended->id], $this->idsFor($this->filterFor('is_cancelled', 'yes')));
+        $this->assertSame(
+            [$renewed->id, $regular->id, $withoutContract->id],
+            $this->idsFor($this->filterFor('is_cancelled', 'no'))
+        );
+    }
+
+    #[Test]
     public function it_filters_by_guest_access(): void
     {
         $guest = $this->member(['guest_access' => true]);
