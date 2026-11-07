@@ -96,11 +96,11 @@
         <span v-if="summary.length === 0" class="text-gray-500">keine Einschränkung gilt (alle {{ subject }})</span>
         <template v-for="(token, index) in summary" :key="index">
           <span v-if="token.kind === 'logic'" class="mr-1 rounded-full bg-indigo-50 px-[7px] py-0.5 text-[11px] font-semibold tracking-wider text-indigo-700">{{ token.text }}</span>
-          <span v-else-if="token.kind === 'paren'" class="font-semibold text-gray-400">{{ token.text }} </span>
+          <span v-else-if="token.kind === 'paren'" class="mr-1 font-semibold text-gray-400">{{ token.text }}</span>
           <template v-else>
-            <span class="font-semibold text-gray-900">{{ token.field }} </span>
-            <span v-if="token.operator" class="text-gray-500">{{ token.operator }} </span>
-            <span v-if="token.value" class="font-medium text-indigo-700">{{ token.value }} </span>
+            <span class="mr-1 font-semibold text-gray-900">{{ token.field }}</span>
+            <span v-if="token.operator" class="mr-1 text-gray-500">{{ token.operator }}</span>
+            <span v-if="token.value" class="mr-1 font-medium text-indigo-700">{{ token.value }}</span>
           </template>
         </template>
       </span>
