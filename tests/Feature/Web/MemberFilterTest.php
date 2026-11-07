@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\Addon;
 use App\Models\CheckIn;
 use App\Models\Gym;
 use App\Models\Member;
@@ -182,6 +183,116 @@ class MemberFilterTest extends TestCase
                 ->where('members.data.0.failed_payment_count', 1)
                 ->where('members.data.0.payment_method', ['label' => 'SEPA-Lastschrift', 'provider' => 'Mollie'])
             );
+    }
+
+    #[Test]
+    public function it_filters_by_cancellation_status(): void
+    {
+        $runningOut = $this->member();
+        Membership::factory()->create(['member_id' => $runningOut->id, 'cancellation_date' => now()->addMonth()->toDateString()]);
+        $ended = $this->member();
+        Membership::factory()->cancelled()->create(['member_id' => $ended->id]);
+        $renewed = $this->member();
+        Membership::factory()->cancelled()->create(['member_id' => $renewed->id]);
+        Membership::factory()->create(['member_id' => $renewed->id]);
+        $regular = $this->member();
+        Membership::factory()->create(['member_id' => $regular->id]);
+        $withoutContract = $this->member();
+        Membership::factory()->cancelled()->create(['member_id' => Member::factory()->create()->id]);
+
+        $this->assertSame([$runningOut->id, $ended->id], $this->idsFor($this->filterFor('is_cancelled', 'yes')));
+        $this->assertSame(
+            [$renewed->id, $regular->id, $withoutContract->id],
+            $this->idsFor($this->filterFor('is_cancelled', 'no'))
+        );
+    }
+
+    #[Test]
+    public function it_filters_by_pause_status_and_period(): void
+    {
+        $paused = $this->member();
+        Membership::factory()->create([
+            'member_id' => $paused->id, 'status' => 'paused',
+            'pause_start_date' => now()->subDays(5)->toDateString(), 'pause_end_date' => now()->addDays(20)->toDateString(),
+        ]);
+        $pauseStartedToday = $this->member();
+        Membership::factory()->create([
+            'member_id' => $pauseStartedToday->id,
+            'pause_start_date' => now()->toDateString(), 'pause_end_date' => now()->addMonths(2)->toDateString(),
+        ]);
+        $scheduled = $this->member();
+        Membership::factory()->create([
+            'member_id' => $scheduled->id,
+            'pause_start_date' => now()->addMonth()->toDateString(), 'pause_end_date' => now()->addMonths(3)->toDateString(),
+        ]);
+        $regular = $this->member();
+        Membership::factory()->create(['member_id' => $regular->id]);
+        Membership::factory()->create(['member_id' => Member::factory()->create()->id, 'status' => 'paused']);
+
+        $this->assertSame([$paused->id, $pauseStartedToday->id], $this->idsFor($this->filterFor('is_paused', 'yes')));
+        $this->assertSame([$scheduled->id, $regular->id], $this->idsFor($this->filterFor('is_paused', 'no')));
+        $this->assertSame([$scheduled->id], $this->idsFor($this->filterFor('pause_start', 'after', ['value' => now()->addDays(7)->toDateString()])));
+        $this->assertSame([$paused->id], $this->idsFor($this->filterFor('pause_end', 'nextDays', ['value' => '30'])));
+        $this->assertSame([$regular->id], $this->idsFor($this->filterFor('pause_start', 'empty')));
+    }
+
+    #[Test]
+    public function it_filters_by_guest_access(): void
+    {
+        $guest = $this->member(['guest_access' => true]);
+        $regular = $this->member(['guest_access' => false]);
+        Member::factory()->create(['guest_access' => true]);
+
+        $this->assertSame([$guest->id], $this->idsFor($this->filterFor('guest_access', 'yes')));
+        $this->assertSame([$regular->id], $this->idsFor($this->filterFor('guest_access', 'no')));
+    }
+
+    #[Test]
+    public function it_filters_by_booked_add_ons(): void
+    {
+        $plan = MembershipPlan::factory()->create(['gym_id' => $this->gym->id]);
+        $drinks = Addon::factory()->recurring()->create(['gym_id' => $this->gym->id, 'name' => 'Getränke-Flat']);
+        $sauna = Addon::factory()->create(['gym_id' => $this->gym->id, 'name' => 'Sauna']);
+        $foreignAddon = Addon::factory()->create(['name' => 'Fremdes Add-on']);
+
+        $book = function (Member $member, Addon $addon, array $pivot = [], bool $cancelled = false) use ($plan) {
+            $factory = $cancelled ? Membership::factory()->cancelled() : Membership::factory();
+            $membership = $factory->create(['member_id' => $member->id, 'membership_plan_id' => $plan->id]);
+            $membership->addons()->attach($addon->id, ['mode' => 'optional', 'price' => 10, ...$pivot]);
+        };
+
+        $drinker = $this->member();
+        $book($drinker, $drinks);
+        $saunaUser = $this->member();
+        $book($saunaUser, $sauna, ['cancellation_effective_at' => now()->addDays(10)->toDateString()]);
+        $endedAddon = $this->member();
+        $book($endedAddon, $drinks, ['cancellation_effective_at' => now()->subDay()->toDateString()]);
+        $cancelledContract = $this->member();
+        $book($cancelledContract, $drinks, cancelled: true);
+        $without = $this->member();
+
+        $this->assertSame([$drinker->id, $saunaUser->id], $this->idsFor($this->filterFor('has_addon', 'yes')));
+        $this->assertSame(
+            [$endedAddon->id, $cancelledContract->id, $without->id],
+            $this->idsFor($this->filterFor('has_addon', 'no'))
+        );
+        $this->assertSame([$drinker->id], $this->idsFor($this->filterFor('addon', 'any', ['values' => [(string) $drinks->id]])));
+        $this->assertSame(
+            [$drinker->id, $endedAddon->id, $cancelledContract->id, $without->id],
+            $this->idsFor($this->filterFor('addon', 'none', ['values' => [(string) $sauna->id]]))
+        );
+
+        $this->actingAs($this->owner)
+            ->get(route('members.index'))
+            ->assertInertia(function (AssertableInertia $page) use ($drinks, $sauna) {
+                $field = collect($page->toArray()['props']['filterFields'])->firstWhere('key', 'addon');
+
+                $this->assertSame('Mitgliedschaft', $field['entity']);
+                $this->assertSame([
+                    ['value' => (string) $drinks->id, 'label' => 'Getränke-Flat'],
+                    ['value' => (string) $sauna->id, 'label' => 'Sauna'],
+                ], $field['options']);
+            });
     }
 
     #[Test]

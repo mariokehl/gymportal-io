@@ -7,6 +7,7 @@ use App\Models\Gym;
 use App\Models\User;
 use App\Rules\SafeCss;
 use App\Services\CssSanitizer;
+use App\Services\GymRemovalService;
 use App\Services\OrganizationSwitchRedirectService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -73,23 +74,14 @@ class GymController extends Controller
         }
     }
 
-    public function remove(Gym $gym)
+    public function remove(Gym $gym, GymRemovalService $gymRemovalService)
     {
         $this->authorize('delete', $gym);
 
         /** @var User $user */
         $user = Auth::user();
 
-        /** @var Gym|null $gym */
-        $gym = $user->ownedGyms()->find($gym->id);
-
-        // Set next possible gym in user
-        $nextGym = $user->ownedGyms()->first();
-
-        $user->update(['current_gym_id' => $nextGym->id]);
-
-        // Remove entity
-        $gym->delete();
+        $gymRemovalService->remove($user, $gym);
 
         return redirect()
             ->route('dashboard')
