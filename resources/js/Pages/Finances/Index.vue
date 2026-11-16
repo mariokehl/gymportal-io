@@ -61,7 +61,7 @@
 
       <!-- Filters -->
       <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div class="flex flex-wrap gap-4 mb-4">
+        <div class="flex flex-wrap items-end gap-4 mb-4">
           <div class="flex-1 min-w-64">
             <label class="block text-sm font-medium text-gray-700 mb-1">Suchen</label>
             <div class="relative">
@@ -104,9 +104,19 @@
             </select>
           </div>
 
+          <label class="flex h-[42px] cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <input
+              v-model="localFilters.due"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              @change="applyFilters"
+            />
+            Nur fällige
+          </label>
+
           <button
             @click="showAdvancedFilters = !showAdvancedFilters"
-            class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="flex h-[42px] items-center px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <Filter class="w-4 h-4 mr-2" />
             Erweiterte Filter
@@ -179,7 +189,20 @@
         :columns="tableColumns"
         v-model:selectedIds="selectedPayments"
         @sort="handleSort"
-      />
+      >
+        <template #toolbar>
+          <label class="flex items-center gap-1.5 text-sm text-gray-500">
+            Pro Seite
+            <select
+              :value="perPage"
+              class="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+              @change="changePerPage(Number($event.target.value))"
+            >
+              <option v-for="option in perPageOptions" :key="option" :value="option">{{ option }}</option>
+            </select>
+          </label>
+        </template>
+      </PaymentsTable>
     </div>
   </AppLayout>
 </template>
@@ -207,11 +230,17 @@ const props = defineProps({
   filters: Object,
   statusOptions: Object,
   paymentMethodOptions: Object,
-  statistics: Object
+  statistics: Object,
+  perPage: Number,
+  perPageOptions: Array
 })
+
+const DEFAULT_PER_PAGE = 25
 
 // Reactive data
 const selectedPayments = ref([])
+const perPage = ref(props.perPage)
+const perPageChosen = ref(false)
 const showAdvancedFilters = ref(false)
 const localFilters = ref({
   search: props.filters.search || '',
@@ -220,7 +249,9 @@ const localFilters = ref({
   date_from: props.filters.date_from || '',
   date_to: props.filters.date_to || '',
   amount_from: props.filters.amount_from || '',
-  amount_to: props.filters.amount_to || ''
+  amount_to: props.filters.amount_to || '',
+  // Pending payments whose execution or due date has been reached
+  due: props.filters.due === true
 })
 
 // Table columns configuration
@@ -238,8 +269,17 @@ const tableColumns = ref([
 ])
 
 // Methods
+
+// The server remembers the last chosen size in a cookie, so once the user
+// picks one it is always sent — even the default, to overwrite the cookie.
+const perPageParams = () =>
+  perPageChosen.value || perPage.value !== DEFAULT_PER_PAGE ? { per_page: perPage.value } : {}
+
+// The due flag is only sent when set; "false" would not pass validation.
+const filterParams = () => ({ ...localFilters.value, due: localFilters.value.due ? 1 : undefined })
+
 const applyFilters = () => {
-  router.get(route('finances.index'), localFilters.value, {
+  router.get(route('finances.index'), { ...filterParams(), ...perPageParams() }, {
     preserveState: true,
     preserveScroll: true
   })
@@ -257,7 +297,8 @@ const clearFilters = () => {
     date_from: '',
     date_to: '',
     amount_from: '',
-    amount_to: ''
+    amount_to: '',
+    due: false
   }
   applyFilters()
 }
@@ -272,9 +313,27 @@ const handleSort = (column) => {
   }
 
   router.get(route('finances.index'), {
-    ...localFilters.value,
+    ...filterParams(),
     sort_by: column,
-    sort_order: newOrder
+    sort_order: newOrder,
+    ...perPageParams()
+  }, {
+    preserveState: true,
+    preserveScroll: true
+  })
+}
+
+// Keeps filters and sorting; a new page size starts again on page 1.
+const changePerPage = value => {
+  perPage.value = value
+  perPageChosen.value = true
+  selectedPayments.value = []
+
+  router.get(route('finances.index'), {
+    ...filterParams(),
+    sort_by: props.filters.sort_by,
+    sort_order: props.filters.sort_order,
+    ...perPageParams()
   }, {
     preserveState: true,
     preserveScroll: true

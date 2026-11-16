@@ -225,6 +225,24 @@ class Payment extends Model
         return $query->where('status', 'canceled');
     }
 
+    /**
+     * Pending payments the payment run would collect today: the execution
+     * date has been reached, or the due date when no execution date is set.
+     */
+    public function scopeDue($query)
+    {
+        $today = Carbon::today()->toDateString();
+
+        return $query->where('status', 'pending')
+            ->where(function ($q) use ($today) {
+                $q->where('execution_date', '<=', $today)
+                    ->orWhere(function ($q) use ($today) {
+                        $q->whereNull('execution_date')
+                            ->where('due_date', '<=', $today);
+                    });
+            });
+    }
+
     public function scopeOverdue($query)
     {
         return $query->where('status', 'pending')
