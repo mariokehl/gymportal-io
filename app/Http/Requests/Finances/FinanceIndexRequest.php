@@ -40,6 +40,7 @@ class FinanceIndexRequest extends FormRequest
     {
         return [
             'per_page' => ['nullable', 'integer', Rule::in(self::PER_PAGE_OPTIONS)],
+            'due' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -40,6 +40,10 @@ class FinancesController extends Controller
             $query->where('status', $request->input('status'));
         }
 
+        if ($request->boolean('due')) {
+            $query->due();
+        }
+
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->input('payment_method'));
         }
@@ -120,7 +124,7 @@ class FinancesController extends Controller
                 $request->only(['search', 'status', 'payment_method', 'date_from', 'date_to', 'amount_from', 'amount_to']),
                 // Report the applied sorting, not the raw input, so the table
                 // reflects the default on the first load as well.
-                ['sort_by' => $sortBy, 'sort_order' => $sortOrder],
+                ['sort_by' => $sortBy, 'sort_order' => $sortOrder, 'due' => $request->boolean('due')],
             ),
             'perPage' => $perPage,
             'perPageOptions' => FinanceIndexRequest::PER_PAGE_OPTIONS,
