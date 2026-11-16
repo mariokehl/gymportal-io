@@ -30,6 +30,9 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <!-- Extra controls of the parent page, e.g. the page size -->
+          <slot name="toolbar" />
+
           <button
             v-if="selectedPayments.length > 0 && showCsvExport"
             @click="handleExport('csv')"

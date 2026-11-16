@@ -179,7 +179,20 @@
         :columns="tableColumns"
         v-model:selectedIds="selectedPayments"
         @sort="handleSort"
-      />
+      >
+        <template #toolbar>
+          <label class="flex items-center gap-1.5 text-sm text-gray-500">
+            Pro Seite
+            <select
+              :value="perPage"
+              class="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+              @change="changePerPage(Number($event.target.value))"
+            >
+              <option v-for="option in perPageOptions" :key="option" :value="option">{{ option }}</option>
+            </select>
+          </label>
+        </template>
+      </PaymentsTable>
     </div>
   </AppLayout>
 </template>
@@ -207,11 +220,17 @@ const props = defineProps({
   filters: Object,
   statusOptions: Object,
   paymentMethodOptions: Object,
-  statistics: Object
+  statistics: Object,
+  perPage: Number,
+  perPageOptions: Array
 })
+
+const DEFAULT_PER_PAGE = 25
 
 // Reactive data
 const selectedPayments = ref([])
+const perPage = ref(props.perPage)
+const perPageChosen = ref(false)
 const showAdvancedFilters = ref(false)
 const localFilters = ref({
   search: props.filters.search || '',
@@ -238,8 +257,14 @@ const tableColumns = ref([
 ])
 
 // Methods
+
+// The server remembers the last chosen size in a cookie, so once the user
+// picks one it is always sent — even the default, to overwrite the cookie.
+const perPageParams = () =>
+  perPageChosen.value || perPage.value !== DEFAULT_PER_PAGE ? { per_page: perPage.value } : {}
+
 const applyFilters = () => {
-  router.get(route('finances.index'), localFilters.value, {
+  router.get(route('finances.index'), { ...localFilters.value, ...perPageParams() }, {
     preserveState: true,
     preserveScroll: true
   })
@@ -274,7 +299,25 @@ const handleSort = (column) => {
   router.get(route('finances.index'), {
     ...localFilters.value,
     sort_by: column,
-    sort_order: newOrder
+    sort_order: newOrder,
+    ...perPageParams()
+  }, {
+    preserveState: true,
+    preserveScroll: true
+  })
+}
+
+// Keeps filters and sorting; a new page size starts again on page 1.
+const changePerPage = value => {
+  perPage.value = value
+  perPageChosen.value = true
+  selectedPayments.value = []
+
+  router.get(route('finances.index'), {
+    ...localFilters.value,
+    sort_by: props.filters.sort_by,
+    sort_order: props.filters.sort_order,
+    ...perPageParams()
   }, {
     preserveState: true,
     preserveScroll: true

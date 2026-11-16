@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Finances\FinanceIndexRequest;
 use App\Models\Gym;
 use App\Models\Member;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FinancesController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(FinanceIndexRequest $request): Response
     {
         $gymId = Auth::user()->current_gym_id;
 
@@ -83,7 +85,13 @@ class FinancesController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
-        $payments = $query->paginate(20)->withQueryString();
+        $perPage = $request->perPage();
+
+        if ($request->filled('per_page')) {
+            Cookie::queue(FinanceIndexRequest::PER_PAGE_COOKIE, (string) $perPage, FinanceIndexRequest::PER_PAGE_COOKIE_MINUTES);
+        }
+
+        $payments = $query->paginate($perPage)->withQueryString();
 
         // Get filter options
         $statusOptions = [
@@ -114,6 +122,8 @@ class FinancesController extends Controller
                 // reflects the default on the first load as well.
                 ['sort_by' => $sortBy, 'sort_order' => $sortOrder],
             ),
+            'perPage' => $perPage,
+            'perPageOptions' => FinanceIndexRequest::PER_PAGE_OPTIONS,
             'statusOptions' => $statusOptions,
             'paymentMethodOptions' => $paymentMethodOptions,
             'statistics' => [
