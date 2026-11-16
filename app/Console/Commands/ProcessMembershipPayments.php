@@ -155,8 +155,11 @@ class ProcessMembershipPayments extends Command
             ->where('status', 'pending')
             // Payment links and manual methods (cash, bank transfer, ...) are
             // settled by the member and must never be charged by the scheduler.
+            // Zero-amount payments are included regardless of the method, since
+            // they are marked as paid without any collection.
             ->where(function ($q) {
-                $q->whereNull('payment_method')
+                $q->where('amount', 0)
+                    ->orWhereNull('payment_method')
                     ->orWhereNotIn('payment_method', ['mollie_paymentlink', ...PaymentMethod::MANUAL_TYPES]);
             })
             ->where(function ($q) {
@@ -224,6 +227,12 @@ class ProcessMembershipPayments extends Command
             return;
         }
 
+        // Nothing to collect: a zero-amount payment is settled right away,
+        // no matter which payment method it was booked with.
+        if ($this->markZeroAmountPaymentAsPaid($payment)) {
+            return;
+        }
+
         $member = $payment->member;
         $paymentMethod = $this->paymentService->resolveCollectionPaymentMethod($payment);
 
@@ -260,14 +269,7 @@ class ProcessMembershipPayments extends Command
                     $this->info("→ Payment #{$payment->id} fully covered by credit");
                 }
 
-                if ($payment->membership_id) {
-                    $membership = $payment->membership;
-                    if ($membership && $membership->status !== 'active') {
-                        if (! $membership->activateMembership()) {
-                            $membership->update(['status' => 'active']);
-                        }
-                    }
-                }
+                $this->activateMembershipOfPayment($payment);
 
                 DB::commit();
 
@@ -309,6 +311,74 @@ class ProcessMembershipPayments extends Command
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    /**
+     * Mark a payment with an amount of zero as paid.
+     *
+     * There is nothing to collect, so neither a payment method nor a pause
+     * check is needed. This applies to every payment method, including
+     * payment links and manual methods the scheduler never collects.
+     *
+     * @return bool True when the payment was handled and must not be collected.
+     */
+    protected function markZeroAmountPaymentAsPaid(Payment $payment): bool
+    {
+        if (round((float) $payment->amount, 2) !== 0.0) {
+            return false;
+        }
+
+        if ($this->testMode) {
+            $this->logTestAction('payment_mark_paid_zero_amount', [
+                'payment_id' => $payment->id,
+                'member_id' => $payment->member_id,
+                'method' => $payment->payment_method,
+            ]);
+
+            return true;
+        }
+
+        DB::transaction(function () use ($payment) {
+            $payment->update([
+                'status' => 'paid',
+                'paid_date' => now(),
+                'metadata' => array_merge($payment->metadata ?? [], [
+                    'paid_reason' => 'zero_amount',
+                ]),
+            ]);
+
+            $this->activateMembershipOfPayment($payment);
+        });
+
+        if ($this->verboseLog) {
+            $this->info("→ Marked zero-amount payment #{$payment->id} as paid");
+        }
+
+        Log::info('Zero-amount payment marked as paid', [
+            'payment_id' => $payment->id,
+            'member_id' => $payment->member_id,
+            'payment_method' => $payment->payment_method,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Activate the membership a settled payment belongs to, if it is not active yet.
+     */
+    protected function activateMembershipOfPayment(Payment $payment): void
+    {
+        if (! $payment->membership_id) {
+            return;
+        }
+
+        $membership = $payment->membership;
+
+        if ($membership && $membership->status !== 'active') {
+            if (! $membership->activateMembership()) {
+                $membership->update(['status' => 'active']);
+            }
         }
     }
 
