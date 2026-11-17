@@ -30,7 +30,20 @@ class MollieService
 {
     private const MOLLIE_DESCRIPTION_MAX_LENGTH = 255;
 
-    public const CHARGEBACK_FEE = 10.00;
+    /** No fee when the chargeback cannot be classified (method or reason code unknown). */
+    public const CHARGEBACK_FEE_UNKNOWN = 0.00;
+
+    /** SEPA direct debit reversed by the account holder (reason code MD06). */
+    public const CHARGEBACK_FEE_DIRECTDEBIT_REVERSAL = 10.00;
+
+    /** Any other failed SEPA direct debit (e.g. AM04, AC01, MS03). */
+    public const CHARGEBACK_FEE_DIRECTDEBIT_FAILED = 0.95;
+
+    /** Disputed credit card payment. */
+    public const CHARGEBACK_FEE_CREDITCARD = 25.00;
+
+    /** SEPA reason code for a refund requested by the account holder. */
+    public const SEPA_REASON_CODE_REVERSAL = 'MD06';
 
     protected $client;
 
@@ -1320,6 +1333,24 @@ class MollieService
         $client = $this->initializeClient($gym);
 
         return $client->payments->get($paymentId)->chargebacks();
+    }
+
+    /**
+     * Determine the Mollie chargeback fee based on the payment method and reason code.
+     *
+     * Mollie charges by reason code, not by webhook type: a failed direct debit
+     * without MD06 can still arrive as a chargeback once it has been settled.
+     */
+    public function getChargebackFee(?string $method, ?string $reasonCode): float
+    {
+        $reasonCode = $reasonCode !== null ? strtoupper(trim($reasonCode)) : null;
+
+        return match (true) {
+            $method === 'creditcard' => self::CHARGEBACK_FEE_CREDITCARD,
+            $method === 'directdebit' && $reasonCode === self::SEPA_REASON_CODE_REVERSAL => self::CHARGEBACK_FEE_DIRECTDEBIT_REVERSAL,
+            $method === 'directdebit' && ! empty($reasonCode) => self::CHARGEBACK_FEE_DIRECTDEBIT_FAILED,
+            default => self::CHARGEBACK_FEE_UNKNOWN,
+        };
     }
 
     /**
