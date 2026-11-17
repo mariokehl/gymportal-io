@@ -413,6 +413,22 @@ class MollieWebhookController extends Controller
     }
 
     /**
+     * Format the Mollie chargeback reason as "CODE: description".
+     */
+    private function formatChargebackReason(?object $reason): ?string
+    {
+        if ($reason === null) {
+            return null;
+        }
+
+        $formatted = collect([$reason->code ?? null, $reason->description ?? null])
+            ->filter()
+            ->implode(': ');
+
+        return $formatted !== '' ? $formatted : null;
+    }
+
+    /**
      * Process chargebacks from Mollie webhook
      */
     private function processChargebacks(Gym $gym, Payment $localPayment, $molliePayment, MollieService $mollieService): void
@@ -428,6 +444,8 @@ class MollieWebhookController extends Controller
                     continue;
                 }
 
+                $reason = $this->formatChargebackReason($mollieChargeback->reason ?? null);
+
                 // Neuen Chargeback anlegen
                 $chargeback = Chargeback::create([
                     'payment_id' => $localPayment->id,
@@ -436,6 +454,7 @@ class MollieWebhookController extends Controller
                     'currency' => $mollieChargeback->amount->currency,
                     'status' => 'received',
                     'mollie_status' => 'chargeback',
+                    'reason' => $reason,
                     'chargeback_date' => $mollieChargeback->createdAt ? Carbon::parse($mollieChargeback->createdAt) : now(),
                 ]);
 
@@ -453,6 +472,7 @@ class MollieWebhookController extends Controller
                     'payment_method' => $localPayment->payment_method,
                     'due_date' => now()->format('Y-m-d'),
                     'paid_date' => now(),
+                    'notes' => $reason,
                 ]);
 
                 // Ausgleichszahlung mit Mollie-Zahlungslink erstellen
