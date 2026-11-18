@@ -69,12 +69,13 @@ return [
         // Enable BIC validation (optional for SEPA)
         'validate_bic' => env('SEPA_VALIDATE_BIC', false),
 
-        // Allowed country codes for IBAN
+        // Allowed country codes for IBAN (SEPA countries; PM uses FR, GG/JE/IM use GB IBANs)
+        // Keep in sync with resources/js/utils/iban.js
         'allowed_countries' => [
             'AD', 'AT', 'BE', 'BG', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES',
-            'FI', 'FR', 'GB', 'GI', 'GR', 'HR', 'HU', 'IE', 'IS', 'IT', 'LI',
-            'LT', 'LU', 'LV', 'MC', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SE',
-            'SI', 'SK', 'SM', 'VA'
+            'FI', 'FR', 'GB', 'GR', 'HR', 'IE', 'IS', 'IT', 'LI', 'LT', 'LU',
+            'LV', 'MC', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK',
+            'SM', 'VA',
         ],
     ],
 
