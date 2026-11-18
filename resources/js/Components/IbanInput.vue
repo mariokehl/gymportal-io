@@ -45,6 +45,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { CheckCircle, XCircle } from '@lucide/vue'
 import { formatIbanDisplay } from '@/utils/formatters'
+import { MAX_FORMATTED_IBAN_LENGTH, cleanIban, validateIban as validateSepaIban } from '@/utils/iban'
 
 // Props
 const props = defineProps({
@@ -80,19 +81,10 @@ const emit = defineEmits(['update:modelValue', 'validation-change'])
 // Refs
 const inputRef = ref(null)
 
-// DACH Country formats
-const supportedCountries = {
-  'DE': { length: 22, name: 'Deutschland' },
-  'AT': { length: 20, name: 'Österreich' },
-  'CH': { length: 21, name: 'Schweiz' }
-}
+// Longest SEPA IBAN (Malta) including group spaces
+const maxDisplayLength = MAX_FORMATTED_IBAN_LENGTH
 
 // Computed
-const maxDisplayLength = computed(() => {
-  // Längste IBAN (DE) mit Leerzeichen: 22 + 5 Leerzeichen = 27
-  return 27
-})
-
 const inputClasses = computed(() => {
   const baseClasses = 'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors'
 
@@ -121,107 +113,7 @@ const formattedValue = computed(() => {
   return formatIbanDisplay(props.modelValue)
 })
 
-/**
- * Entfernt alle Leerzeichen aus einer IBAN
- */
-const cleanIban = (iban) => {
-  if (!iban) return ''
-  return iban.replace(/\s/g, '').toUpperCase()
-}
-
-/**
- * MOD-97 Algorithmus für IBAN Prüfziffer-Validierung
- */
-const calculateIbanChecksum = (iban) => {
-  const cleanedIban = cleanIban(iban)
-
-  // Verschiebe die ersten 4 Zeichen ans Ende
-  const rearranged = cleanedIban.slice(4) + cleanedIban.slice(0, 4)
-
-  // Ersetze Buchstaben durch Zahlen (A=10, B=11, ..., Z=35)
-  let numericString = ''
-  for (let char of rearranged) {
-    if (char >= 'A' && char <= 'Z') {
-      numericString += (char.charCodeAt(0) - 'A'.charCodeAt(0) + 10).toString()
-    } else {
-      numericString += char
-    }
-  }
-
-  // MOD-97 Berechnung
-  let remainder = 0
-  for (let i = 0; i < numericString.length; i++) {
-    remainder = (remainder * 10 + parseInt(numericString[i])) % 97
-  }
-
-  return remainder
-}
-
-/**
- * Validiert eine IBAN für DACH-Region
- */
-const validateIban = (iban) => {
-  const result = {
-    isValid: false,
-    errors: [],
-    country: '',
-    countryName: ''
-  }
-
-  if (!iban) {
-    if (props.required) {
-      result.errors.push('IBAN ist erforderlich')
-    }
-    return result
-  }
-
-  const cleanedIban = cleanIban(iban)
-
-  // Mindestlänge prüfen
-  if (cleanedIban.length < 15) {
-    result.errors.push('IBAN ist zu kurz')
-    return result
-  }
-
-  // Grundformat prüfen
-  const formatRegex = /^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/
-  if (!formatRegex.test(cleanedIban)) {
-    result.errors.push('Ungültiges IBAN-Format')
-    return result
-  }
-
-  // Ländercode extrahieren
-  const countryCode = cleanedIban.slice(0, 2)
-  result.country = countryCode
-
-  // Nur DACH-Länder unterstützen
-  if (!supportedCountries[countryCode]) {
-    result.errors.push(`Nur Deutschland (DE), Österreich (AT) und Schweiz (CH) werden unterstützt`)
-    return result
-  }
-
-  const countryFormat = supportedCountries[countryCode]
-  result.countryName = countryFormat.name
-
-  // Länderspezifische Länge prüfen
-  if (cleanedIban.length !== countryFormat.length) {
-    result.errors.push(
-      `IBAN für ${countryFormat.name} muss ${countryFormat.length} Zeichen haben (aktuell: ${cleanedIban.length})`
-    )
-    return result
-  }
-
-  // Prüfziffer validieren
-  const checksum = calculateIbanChecksum(cleanedIban)
-  if (checksum !== 1) {
-    result.errors.push('Ungültige Prüfziffer')
-    return result
-  }
-
-  // Alles OK
-  result.isValid = true
-  return result
-}
+const validateIban = (iban) => validateSepaIban(iban, { required: props.required })
 
 /**
  * Behandelt Eingabe mit automatischer Formatierung
