@@ -157,9 +157,9 @@
                       29,00 € (exkl. MwSt.) / Monat / Fitnessstudio
                     </p>
                     <p class="text-sm text-ink-muted mt-2">
-                        Unsere Plattform ist Open Source und kostenlos nutzbar – doch mit einem Abo profitierst du von exklusiven Features,
-                        regelmäßigen Updates und persönlichem Support. So unterstützt du nicht nur die Weiterentwicklung, sondern sicherst
-                        dir auch einen echten Vorsprung für dein Studio.
+                        Unsere Plattform ist Open Source und kostenlos nutzbar – doch mit einem Abo profitieren Sie von exklusiven Features,
+                        regelmäßigen Updates und persönlichem Support. So unterstützen Sie nicht nur die Weiterentwicklung, sondern sichern
+                        sich auch einen echten Vorsprung für Ihr Studio.
                     </p>
                   </div>
                   <div v-if="!trial.is_active" class="text-right">

@@ -112,7 +112,6 @@
         @toggle-checkin="toggleCheckin"
         @topup="handleTopup"
         @status-changed="handleStatusChanged"
-        @status-changing="handleStatusChanging"
       />
 
       <!-- Fraud-Warnbanner -->
