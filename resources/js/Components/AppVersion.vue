@@ -32,7 +32,7 @@ const releaseUrl = `${repoUrl}/releases`
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  color: var(--color-gray-400, #9ca3af);
+  color: var(--color-ink-muted);
   font-size: 0.6875rem;
   line-height: 1;
   font-weight: 500;
@@ -42,6 +42,6 @@ const releaseUrl = `${repoUrl}/releases`
 }
 
 .version-link:hover {
-  color: var(--color-gray-600, #4b5563);
+  color: var(--color-ink-secondary);
 }
 </style>

@@ -17,10 +17,7 @@
                         </div>
                         <template v-else>
                             <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
-                            <span :class="[
-                                'text-sm',
-                                `text-${stat.color}-500`
-                            ]">
+                            <span :class="['text-sm', trendClass(stat.color)]">
                                 {{ stat.change }} gegenüber letztem Monat
                             </span>
                         </template>
@@ -210,6 +207,16 @@ const REDACTED_STAT_KEYS = ['active_members', 'monthly_revenue']
 const isRedacted = (stat) => REDACTED_STAT_KEYS.includes(stat.key) && !props.canViewStatistics
 
 // Methods
+// The server picks a color per KPI; map it to text shades that keep 4.5:1
+// on white (the -500 shades did not) and that Tailwind can see statically.
+const TREND_CLASSES = {
+    green: 'text-success',
+    blue: 'text-info',
+    red: 'text-danger',
+    gray: 'text-ink-muted',
+}
+const trendClass = (color) => TREND_CLASSES[color] ?? 'text-ink-muted'
+
 const getIcon = (iconName) => {
     const icons = {
         users: Users,

@@ -88,7 +88,7 @@
           <span v-else class="font-semibold text-gray-400">{{ token.text }}</span>
         </template>
       </div>
-      <span v-else-if="!open" class="flex-[1_1_240px] pl-1 text-[13px] text-gray-400">
+      <span v-else-if="!open" class="flex-[1_1_240px] pl-1 text-[13px] text-ink-muted">
         Keine Filter aktiv – alle {{ subject }} werden angezeigt.
       </span>
 

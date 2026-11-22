@@ -89,10 +89,26 @@
               <tr>
                 <th v-if="canExport" class="relative w-[52px] pl-4">
                   <div ref="selectMenuWrapper" class="flex items-center">
-                    <button type="button" title="Aktuelle Seite auswählen" class="flex" @click="togglePage">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      title="Aktuelle Seite auswählen"
+                      aria-label="Alle Mitglieder dieser Seite auswählen"
+                      :aria-checked="pageSelectionState === 'some' ? 'mixed' : pageSelectionState === 'all'"
+                      class="flex"
+                      @click="togglePage"
+                    >
                       <SelectionBox :state="pageSelectionState" />
                     </button>
-                    <button type="button" title="Auswahloptionen" class="flex rounded p-0.5 text-gray-500 hover:bg-gray-200" @click="selectMenuOpen = !selectMenuOpen">
+                    <button
+                      type="button"
+                      title="Auswahloptionen"
+                      aria-label="Auswahloptionen"
+                      aria-haspopup="menu"
+                      :aria-expanded="selectMenuOpen"
+                      class="flex rounded p-0.5 text-gray-500 hover:bg-gray-200"
+                      @click="selectMenuOpen = !selectMenuOpen"
+                    >
                       <ChevronDown class="h-3.5 w-3.5" />
                     </button>
                     <div v-if="selectMenuOpen" class="absolute left-2 top-full z-40 mt-0.5 w-[260px] rounded-lg border border-gray-200 bg-white py-1 text-left font-normal normal-case tracking-normal shadow-lg">
@@ -139,7 +155,15 @@
                 :class="isSelected(member.id) ? 'bg-indigo-50/60' : 'hover:bg-gray-50'"
               >
                 <td v-if="canExport" class="pl-4">
-                  <button type="button" title="Auswählen" class="-ml-1 flex p-1" @click="toggleRow(member.id)">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    title="Auswählen"
+                    :aria-label="`${member.first_name} ${member.last_name} auswählen`"
+                    :aria-checked="isSelected(member.id)"
+                    class="-ml-1 flex p-1"
+                    @click="toggleRow(member.id)"
+                  >
                     <SelectionBox :state="isSelected(member.id) ? 'all' : 'none'" />
                   </button>
                 </td>
@@ -209,7 +233,7 @@
                   <span v-else class="text-gray-400">–</span>
                 </td>
                 <td class="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-gray-700">
-                  {{ member.nfc_tag ?? '–' }}<span v-if="member.nfc_tag_count > 1" class="ml-1 font-sans text-gray-400">+{{ member.nfc_tag_count - 1 }}</span>
+                  {{ member.nfc_tag ?? '–' }}<span v-if="member.nfc_tag_count > 1" class="ml-1 font-sans text-ink-muted">+{{ member.nfc_tag_count - 1 }}</span>
                 </td>
                 <td class="pr-5 text-right">
                   <button
@@ -217,6 +241,7 @@
                     type="button"
                     class="rounded p-1 text-red-600 transition-colors hover:text-red-900"
                     title="Löschen"
+                    :aria-label="`${member.first_name} ${member.last_name} löschen`"
                     @click="confirmDelete(member)"
                   >
                     <Trash2 class="h-4 w-4" />
@@ -225,7 +250,15 @@
                        clip the panel and widen the scroll area. -->
                   <Tooltip v-else position="left" teleport>
                     <template #default>
-                      <button disabled class="cursor-not-allowed rounded p-1 text-gray-300 opacity-50">
+                      <!-- aria-disabled instead of disabled keeps the button
+                           focusable, so keyboard users reach the tooltip. -->
+                      <button
+                        type="button"
+                        aria-disabled="true"
+                        :aria-label="`${member.first_name} ${member.last_name} kann nicht gelöscht werden: ${member.delete_block_reason}`"
+                        class="cursor-not-allowed rounded p-1 text-gray-300 opacity-50"
+                        @click.prevent
+                      >
                         <Trash2 class="h-4 w-4" />
                       </button>
                     </template>

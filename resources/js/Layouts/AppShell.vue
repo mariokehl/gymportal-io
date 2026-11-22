@@ -1,40 +1,58 @@
 <template>
-  <div class="flex h-screen bg-gray-100">
+  <div class="flex h-screen bg-canvas">
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-strong focus:shadow-md focus:outline-none focus:ring-2 focus:ring-focus"
+    >
+      Zum Inhalt springen
+    </a>
+
     <!-- Sidebar (static on large screens) -->
     <!-- relative/z-20 lets the member search dropdown overlap the content area -->
-    <div class="hidden lg:flex relative z-20 w-64 bg-white shadow-md flex-col">
+    <aside class="hidden lg:flex relative z-20 w-64 bg-surface shadow-md flex-col" aria-label="Seitenleiste">
       <SidebarNav ref="desktopNav" />
-    </div>
+    </aside>
 
     <!-- Mobile drawer (sidebar as slide-in overlay) -->
-    <div class="lg:hidden" :class="drawerOpen ? '' : 'pointer-events-none'">
+    <div ref="drawerRoot" class="lg:hidden" :class="drawerOpen ? '' : 'pointer-events-none'">
       <!-- Backdrop -->
       <div
+        aria-hidden="true"
         class="fixed inset-0 z-40 bg-gray-900/45 transition-opacity duration-300"
         :class="drawerOpen ? 'opacity-100' : 'opacity-0'"
         @click="drawerOpen = false"
       />
-      <!-- Panel -->
-      <aside
-        class="fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85%] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out"
-        :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
+      <!-- Panel. Closed, it is inert (out of the tab order and hidden from
+           assistive tech) and drops its shadow so nothing bleeds into view. -->
+      <div
+        id="mobile-drawer"
+        ref="drawerPanel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hauptmenü"
+        :inert="drawerOpen ? null : true"
+        class="fixed top-0 bottom-0 left-0 z-50 w-72 max-w-[85%] bg-surface flex flex-col transition-[translate,box-shadow] duration-300 ease-out"
+        :class="drawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'"
       >
-        <SidebarNav ref="drawerNav" dismissible @close="drawerOpen = false" />
-      </aside>
+        <SidebarNav ref="drawerNav" dismissible @close="closeDrawer" />
+      </div>
     </div>
 
     <!-- Main Content. `scroll-region` lets Inertia reset and restore this
          container's scroll position, since the shell outlives page visits. -->
-    <div class="flex-1 overflow-y-auto" scroll-region>
+    <div class="flex-1 min-w-0 overflow-y-auto" scroll-region>
       <!-- Header -->
-      <header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+      <header class="bg-surface shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
         <div class="flex items-center min-w-0 flex-1">
           <!-- Hamburger (mobile only) -->
           <button
+            ref="hamburger"
             type="button"
-            class="lg:hidden -ml-1 mr-2 p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0"
+            class="lg:hidden -ml-1 mr-2 p-2 rounded-xl text-ink-secondary hover:bg-gray-100 transition-colors flex-shrink-0"
             aria-label="Menü öffnen"
-            @click="drawerOpen = true"
+            aria-controls="mobile-drawer"
+            :aria-expanded="drawerOpen"
+            @click="openDrawer"
           >
             <Menu class="w-6 h-6" />
           </button>
@@ -47,7 +65,7 @@
           <button
             v-if="memberSearchAvailable"
             type="button"
-            class="lg:hidden p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
+            class="lg:hidden p-2 rounded-xl text-ink-secondary hover:bg-gray-100 transition-colors"
             aria-label="Mitglied suchen"
             @click="openMobileSearch"
           >
@@ -74,18 +92,18 @@
             <NotificationPopup />
 
             <!-- User Profile -->
-            <Link :href="route('profile.index')" class="flex items-center hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors cursor-pointer">
-              <div class="w-8 h-8 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-semibold">
+            <Link :href="route('profile.index')" :aria-label="`Profil von ${user.first_name} ${user.last_name}`" class="flex items-center hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors cursor-pointer">
+              <div class="w-8 h-8 bg-brand rounded-full text-white flex items-center justify-center text-xs font-semibold">
                 {{ userInitials }}
               </div>
-              <span class="hidden sm:inline ml-2 text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
+              <span class="hidden sm:inline ml-2 max-w-48 truncate text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
             </Link>
           </div>
         </div>
       </header>
 
       <!-- Page Content -->
-      <main class="p-4 sm:p-6 mb-20">
+      <main id="main-content" tabindex="-1" class="p-4 sm:p-6 mb-20 focus:outline-none">
         <ImpersonationBanner />
         <slot />
       </main>
@@ -109,7 +127,7 @@ export const APP_HEADER_ACTIONS_ID = 'app-header-actions'
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, inject, provide } from 'vue'
-import { router, usePage, Link } from '@inertiajs/vue3'
+import { usePage, Link } from '@inertiajs/vue3'
 import { Shield, Menu, Search } from '@lucide/vue'
 import SidebarNav from '@/Components/SidebarNav.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
@@ -117,6 +135,8 @@ import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
 import { useMemberSearchHistory } from '@/composables/useMemberSearchHistory'
 import { APP_SHELL_KEY, createAppShellState } from '@/composables/useAppShell'
+import { useDismissable } from '@/composables/useDismissable'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 // Persistent application shell (sidebar, header, drawer, Chatwoot). Pages opt
 // in with `defineOptions({ layout: AppShell })` and render their content via
@@ -128,10 +148,34 @@ provide(APP_SHELL_KEY, shell)
 
 const page = usePage()
 
-// Mobile drawer state — auto-closes after Inertia navigates to a new page.
+// Mobile drawer: a modal dialog that traps focus and closes on Escape, on a
+// press outside (the backdrop) and after every Inertia visit.
 const drawerOpen = ref(false)
-const stopNavListener = router.on('navigate', () => { drawerOpen.value = false })
-onBeforeUnmount(() => stopNavListener())
+const drawerRoot = ref(null)
+const drawerPanel = ref(null)
+const hamburger = ref(null)
+// The root includes the backdrop: closing on its pointerdown would turn the
+// wrapper click-through before pointerup and leak the tap to the page below.
+// The backdrop closes on click instead.
+useDismissable(drawerRoot, drawerOpen, { triggerRef: hamburger })
+useFocusTrap(drawerPanel, drawerOpen)
+
+function openDrawer() {
+  // Lift inert synchronously: callers may focus inside the panel within the
+  // same tap (mobile search), before Vue re-renders the attribute away.
+  if (drawerPanel.value) drawerPanel.value.inert = false
+  drawerOpen.value = true
+}
+
+// Chatwoot's launcher sits on a max z-index and would cover the modal drawer.
+watch(drawerOpen, (isOpen) => {
+  window.$chatwoot?.toggleBubbleVisibility(isOpen ? 'hide' : 'show')
+})
+
+function closeDrawer() {
+  drawerOpen.value = false
+  hamburger.value?.focus()
+}
 
 // Global member search lives in the sidebar (desktop) and the drawer (mobile).
 const desktopNav = ref(null)
@@ -145,7 +189,7 @@ const memberSearchAvailable = computed(() => {
 })
 
 function openMobileSearch() {
-  drawerOpen.value = true
+  openDrawer()
   // Focus synchronously within the tap so mobile browsers show the keyboard.
   drawerNav.value?.focusSearch()
 }
@@ -158,11 +202,13 @@ function onGlobalKeydown(event) {
   if (target?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName)) return
 
   const isDesktop = window.matchMedia('(min-width: 1024px)').matches
+  if (!isDesktop) openDrawer()
   const focused = isDesktop ? desktopNav.value?.focusSearch() : drawerNav.value?.focusSearch()
 
   if (focused) {
     event.preventDefault()
-    if (!isDesktop) drawerOpen.value = true
+  } else if (!isDesktop) {
+    drawerOpen.value = false
   }
 }
 

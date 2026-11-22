@@ -5,7 +5,7 @@
        fallback wraps the page in its own (non-persistent) shell. -->
   <component :is="persistent ? Passthrough : AppShell">
     <Teleport defer :to="`#${APP_HEADER_TITLE_ID}`">
-      <slot name="header" />
+      <slot name="header">{{ pageTitle }}</slot>
     </Teleport>
     <Teleport v-if="$slots['header-actions']" defer :to="`#${APP_HEADER_ACTIONS_ID}`">
       <slot name="header-actions" />

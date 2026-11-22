@@ -4,34 +4,41 @@
       :is="getComponentType"
       :href="getHref"
       @click="handleClick"
-      :disabled="disabled"
+      :aria-current="isCurrentPage ? 'page' : undefined"
+      :aria-disabled="disabled ? 'true' : undefined"
+      :title="disabled ? lockedHint : undefined"
       :class="[
         'w-full flex items-center px-4 py-3 text-sm font-medium text-left transition-colors',
         {
-          'bg-indigo-50 text-indigo-600 border-r-2 border-indigo-600': active && !disabled,
-          'text-gray-600 hover:bg-gray-50 hover:text-gray-900': !active && !disabled,
-          'text-gray-400 cursor-not-allowed opacity-50': disabled,
+          'bg-brand-subtle text-brand border-r-2 border-brand': active && !disabled,
+          'text-ink-secondary hover:bg-surface-muted hover:text-ink': !active && !disabled,
+          'text-ink-disabled cursor-not-allowed': disabled,
         }
       ]"
     >
       <component
         :is="icon"
+        aria-hidden="true"
         :class="[
           'w-5 h-5 mr-3',
           {
-            'text-indigo-600': active && !disabled,
-            'text-gray-600': !active && !disabled,
-            'text-gray-300': disabled,
+            'text-brand': active && !disabled,
+            'text-ink-secondary': !active && !disabled,
+            'text-ink-disabled': disabled,
           }
         ]"
       />
 
-      <span class="flex-1">{{ label }}</span>
+      <span class="flex-1">
+        {{ label }}
+        <span v-if="disabled" class="sr-only">, gesperrt: {{ lockedHint }}</span>
+      </span>
 
-      <!-- Lock Icon für disabled Items -->
+      <!-- Lock icon for gated items -->
       <svg
         v-if="disabled"
-        class="h-4 w-4 text-gray-300 ml-2"
+        aria-hidden="true"
+        class="h-4 w-4 text-ink-disabled ml-2"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -40,8 +47,8 @@
       </svg>
     </component>
 
-    <!-- Untermenü (nur sichtbar wenn active) -->
-    <div v-if="active && $slots.children" class="bg-indigo-50/50">
+    <!-- Submenu (only visible while active) -->
+    <div v-if="active && $slots.children" class="bg-brand-subtle/50">
       <slot name="children" />
     </div>
   </div>
@@ -71,7 +78,20 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  // Whether this item is the page being shown. Defaults to `active`; parents
+  // with sub-pages pass false while one of their children is the current page.
+  current: {
+    type: Boolean,
+    default: null
   }
+})
+
+const lockedHint = 'Nur mit aktivem Abo oder in der Testphase verfügbar'
+
+const isCurrentPage = computed(() => {
+  if (props.disabled || !props.href) return false
+  return props.current ?? props.active
 })
 
 const emit = defineEmits(['click'])

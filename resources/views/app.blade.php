@@ -2,7 +2,14 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+        // iOS keeps pinch-zoom despite maximum-scale but stops auto-zooming into
+        // inputs below 16px. Elsewhere (Android) it would block zooming (WCAG 1.4.4).
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            document.querySelector('meta[name=viewport]').content += ', maximum-scale=1';
+        }
+    </script>
 
     <title inertia>{{ config('app.name', 'gymportal.io') }}</title>
 
