@@ -752,9 +752,12 @@ import { ref, computed } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
 import { ArrowLeft, CheckIcon } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import EmailInput from '@/Components/EmailInput.vue'
 import MemberNumberInput from '@/Components/MemberNumberInput.vue'
 import { earliestBirthDate, formatCurrency, formatDate, getDisplayTimezone } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
     membershipPlans: {

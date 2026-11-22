@@ -346,9 +346,12 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import AddonAssignmentSection from '@/Components/MembershipPlans/AddonAssignmentSection.vue'
 import DiscountPhasesSection from '@/Components/MembershipPlans/DiscountPhasesSection.vue'
 import { Save, X } from '@lucide/vue'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   addons: { type: Array, default: () => [] },

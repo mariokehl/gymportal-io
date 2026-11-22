@@ -211,6 +211,7 @@
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
 import {
   DollarSign,
@@ -223,6 +224,8 @@ import {
 } from '@lucide/vue'
 import { debounce } from 'lodash'
 import { formatCurrency } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 // Props
 const props = defineProps({

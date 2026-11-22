@@ -585,8 +585,11 @@ import {
   Info
 } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import MigrationImportCard from '@/Components/DataTransfer/MigrationImportCard.vue'
 import axios from 'axios'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   currentGym: Object,

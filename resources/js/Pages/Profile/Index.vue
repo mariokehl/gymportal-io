@@ -250,6 +250,9 @@
 import { ref, reactive } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
+
+defineOptions({ layout: AppShell })
 
 defineProps({
     user: Object,

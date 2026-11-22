@@ -30,7 +30,10 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import AddonForm from './AddonForm.vue'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   membershipPlans: { type: Array, default: () => [] },

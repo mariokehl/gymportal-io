@@ -308,6 +308,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
 import PaymentsTab from '@/Components/Members/PaymentsTab.vue'
@@ -330,6 +331,8 @@ import {
   MoreVertical
 } from '@lucide/vue'
 import { getStatusText, getStatusColor } from '@/utils/memberStatus'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   member: Object,

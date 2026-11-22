@@ -429,12 +429,15 @@
 import { ref, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import TabRail from '@/Components/TabRail.vue'
 import ContractLocations from '@/Components/MembershipPlans/ContractLocations.vue'
 import AddonAssignmentSection from '@/Components/MembershipPlans/AddonAssignmentSection.vue'
 import { Save, X, Eye, AlertTriangle, MapPin, FileText } from '@lucide/vue'
 import { useToast } from '@/composables/useToast'
 import DiscountPhasesSection from '@/Components/MembershipPlans/DiscountPhasesSection.vue'
+
+defineOptions({ layout: AppShell })
 
 // Props
 const props = defineProps({

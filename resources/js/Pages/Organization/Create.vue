@@ -178,6 +178,9 @@ import { ref, reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { ArrowLeft, Building, Info, Loader2 } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
+
+defineOptions({ layout: AppShell })
 
 // Form data
 const form = reactive({

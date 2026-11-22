@@ -179,6 +179,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import {
     Users, FilePlus, DollarSign, BarChart,
     Plus, Edit, ChevronRight, Eye
@@ -187,6 +188,8 @@ import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { formatDate } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 // Props
 const props = defineProps({

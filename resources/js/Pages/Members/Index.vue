@@ -343,6 +343,7 @@ import { router, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import Pagination from '@/Components/Pagination.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
@@ -356,6 +357,8 @@ import {
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { activeConditionCount, effectiveKey, normalizeDefinition, serializeDefinition } from '@/utils/filterBuilder'
 import { useToast } from '@/composables/useToast'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   members: Object,

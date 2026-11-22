@@ -208,8 +208,11 @@
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import { Plus, FilePlus, AlertTriangle, History } from '@lucide/vue'
 import { formatPrice, formatBillingCycle, formatDate } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 const page = usePage()
 

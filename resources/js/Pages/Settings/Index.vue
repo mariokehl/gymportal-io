@@ -473,6 +473,7 @@ import {
     Wallet, DollarSign, FileText, HandCoins, Mail, Smartphone, FileSignature, Ticket
 } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import TabRail from '@/Components/TabRail.vue'
 import LogoUpload from '@/Components/LogoUpload.vue'
 import ContractWidget from '@/Components/ContractWidget.vue'
@@ -488,6 +489,8 @@ import PaymentExecutionSettingsWidget from '@/Components/PaymentExecutionSetting
 import OrganizationSymbolCard from '@/Components/OrganizationSymbolCard.vue'
 import { useToast } from '@/composables/useToast'
 import { useTabQuery } from '@/composables/useTabQuery'
+
+defineOptions({ layout: AppShell })
 
 const { success, error: toastError } = useToast()
 

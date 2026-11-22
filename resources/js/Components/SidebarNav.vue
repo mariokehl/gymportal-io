@@ -27,13 +27,13 @@
       <SidebarItem
         :icon="BarChart"
         label="Dashboard"
-        :active="route().current('dashboard')"
+        :active="isCurrent('dashboard')"
         :href="route('dashboard')"
       />
       <SidebarItem
         :icon="Users"
         label="Mitglieder"
-        :active="route().current('members.*') || route().current('blocklist.*')"
+        :active="isCurrent('members.*') || isCurrent('blocklist.*')"
         :href="route('members.index')"
         :disabled="!canAccessPremiumFeatures"
       >
@@ -43,7 +43,7 @@
             :href="route('blocklist.index')"
             :class="[
               'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-              route().current('blocklist.*')
+              isCurrent('blocklist.*')
                 ? 'text-indigo-700'
                 : 'text-gray-500 hover:text-gray-700'
             ]"
@@ -58,7 +58,7 @@
       <SidebarItem
         :icon="FilePlus"
         label="Verträge"
-        :active="route().current('contracts.*')"
+        :active="isCurrent('contracts.*')"
         :href="route('contracts.index')"
         :disabled="!canAccessPremiumFeatures"
       >
@@ -68,7 +68,7 @@
             :href="route('contracts.addons.index')"
             :class="[
               'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-              route().current('contracts.addons.*')
+              isCurrent('contracts.addons.*')
                 ? 'text-indigo-700'
                 : 'text-gray-500 hover:text-gray-700'
             ]"
@@ -84,7 +84,7 @@
         v-if="isOwnerOrAdmin"
         :icon="DollarSign"
         label="Finanzen"
-        :active="route().current('finances.index')"
+        :active="isCurrent('finances.index')"
         :href="route('finances.index')"
         :disabled="!canAccessPremiumFeatures"
       />
@@ -92,14 +92,14 @@
         v-if="isOwnerOrAdmin"
         :icon="Bell"
         label="Benachrichtigungen"
-        :active="route().current('notifications.index')"
+        :active="isCurrent('notifications.index')"
         :href="route('notifications.index')"
         :disabled="!canAccessPremiumFeatures"
       />
       <SidebarItem
         :icon="DoorOpen"
         label="Zugangskontrolle"
-        :active="route().current('access-control.*')"
+        :active="isCurrent('access-control.*')"
         :href="route('access-control.index')"
         :disabled="!canAccessPremiumFeatures"
       />
@@ -107,14 +107,14 @@
         v-if="isOwnerOrAdmin"
         :icon="ArrowDownUp"
         label="Import/Export"
-        :active="route().current('data-transfer.*')"
+        :active="isCurrent('data-transfer.*')"
         :href="route('data-transfer.index')"
       />
       <SidebarItem
         v-if="isOwnerOrAdmin"
         :icon="Settings"
         label="Einstellungen"
-        :active="route().current('settings.index')"
+        :active="isCurrent('settings.index')"
         :href="route('settings.index')"
       />
       <SidebarItem
@@ -204,6 +204,14 @@ defineEmits(['close'])
 const page = usePage()
 
 const user = computed(() => page.props.auth.user)
+
+// Ziggy's route().current() reads window.location and is not reactive. The
+// sidebar lives in the persistent AppShell, so tie the check to page.url to
+// re-render the active state after every Inertia visit.
+const isCurrent = (name) => {
+  void page.url
+  return route().current(name)
+}
 
 const subscriptionStatus = computed(() => {
   return page.props.subscription_status || null

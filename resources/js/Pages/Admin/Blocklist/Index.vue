@@ -178,8 +178,11 @@ import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { ShieldX, ShieldCheck, Plus } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import UnblockModal from './UnblockModal.vue'
 import ManualBlockModal from './ManualBlockModal.vue'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   entries: Object,

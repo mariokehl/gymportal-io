@@ -112,9 +112,12 @@ import { computed } from 'vue'
 import { Bell } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import Pagination from '@/Components/Pagination.vue'
 import axios from 'axios'
 import { formatDateRelative as formatDate } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   notifications: {
