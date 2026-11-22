@@ -4,11 +4,11 @@
     <div class="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
       <div class="flex flex-col gap-3 lg:gap-2.5 min-w-0">
         <div class="flex items-center justify-between gap-2.5">
-          <h3 class="text-xs lg:text-lg font-medium lg:font-bold uppercase lg:normal-case tracking-wider lg:tracking-normal text-gray-500 lg:text-gray-900">
+          <h3 class="text-xs lg:text-lg font-medium lg:font-semibold uppercase lg:normal-case tracking-wider lg:tracking-normal text-ink-muted lg:text-ink">
             Mitgliedschaften<span class="lg:hidden"> · {{ membershipEntries.length }}</span>
             <span
               v-if="membershipEntries.length > 0"
-              class="hidden lg:inline-flex ml-1.5 align-middle text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] justify-center bg-indigo-100 text-indigo-700"
+              class="hidden lg:inline-flex ml-1.5 align-middle text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] justify-center bg-brand-soft text-brand-strong"
             >{{ membershipEntries.length }}</span>
           </h3>
           <div class="flex gap-1 lg:gap-1.5">
@@ -16,7 +16,7 @@
               @click="openFreePeriodModal()"
               type="button"
               title="Gratis-Zeitraum ohne Mitgliedschaft"
-              class="inline-flex items-center justify-center gap-1 h-9 px-2 text-[13px] font-medium text-green-700 transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:border lg:border-gray-300 lg:bg-white lg:hover:bg-gray-50"
+              class="inline-flex items-center justify-center gap-1 h-9 px-2 text-compact font-medium text-success transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:border lg:border-line-strong lg:bg-surface lg:hover:bg-surface-muted"
             >
               <Gift class="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-none" />
               <span class="lg:hidden">Gratis</span>
@@ -25,7 +25,7 @@
               @click="openAddMembershipModal"
               type="button"
               title="Neue Mitgliedschaft"
-              class="inline-flex items-center justify-center gap-1 h-9 pl-2 text-[13px] font-medium text-indigo-600 transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:bg-indigo-600 lg:text-white lg:hover:bg-indigo-700"
+              class="inline-flex items-center justify-center gap-1 h-9 pl-2 text-compact font-medium text-brand transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:bg-brand lg:text-white lg:hover:bg-brand-strong"
             >
               <Plus class="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-none" />
               <span class="lg:hidden">Neu</span>
@@ -43,37 +43,37 @@
             type="button"
             :aria-pressed="entry === selectedEntry"
             :class="[
-              'flex-none w-[250px] lg:w-auto snap-start text-left rounded-lg border bg-white px-3.5 lg:px-4 py-3 lg:py-3.5 flex flex-col gap-2 cursor-pointer transition-colors',
-              entry === selectedEntry ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'
+              'flex-none w-[250px] lg:w-auto snap-start text-left rounded-lg border bg-surface px-3.5 lg:px-4 py-3 lg:py-3.5 flex flex-col gap-2 cursor-pointer transition-colors',
+              entry === selectedEntry ? 'border-brand ring-1 ring-focus' : 'border-line hover:border-line-strong'
             ]"
           >
             <span class="flex items-center justify-between gap-2">
-              <span class="text-[15px] font-semibold text-gray-900 truncate">{{ entry.membership.membership_plan?.name || 'Unbekannter Vertrag' }}</span>
+              <span class="text-base font-semibold text-ink truncate">{{ entry.membership.membership_plan?.name || 'Unbekannter Vertrag' }}</span>
               <span :class="['flex-none px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(entry.membership.status).badgeClass]">
                 {{ membershipStatusOption(entry.membership.status).label }}
               </span>
             </span>
-            <span class="text-xs text-gray-500">{{ formatTerm(entry.membership) }}</span>
-            <span v-if="entry.freeTrial" class="flex items-center gap-1.5 text-xs font-medium text-green-700">
+            <span class="text-xs text-ink-muted">{{ formatTerm(entry.membership) }}</span>
+            <span v-if="entry.freeTrial" class="flex items-center gap-1.5 text-xs font-medium text-success">
               <Gift class="w-3.5 h-3.5" /> bis {{ formatDate(entry.freeTrial.end_date) }} kostenfrei
             </span>
-            <span class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
-              <span class="flex items-center gap-1.5 text-xs lg:text-[13px] text-gray-600">
+            <span class="flex items-center justify-between gap-2 pt-2 border-t border-line-subtle">
+              <span class="flex items-center gap-1.5 text-xs lg:text-compact text-ink-secondary">
                 <Puzzle class="w-3.5 h-3.5" /> {{ addonCountLabel(entry.membership) }}
               </span>
-              <span class="text-sm lg:text-[15px] font-bold text-gray-900">{{ formatCurrency(entryTotal(entry.membership)) }}</span>
+              <span class="text-sm lg:text-base font-bold text-ink">{{ formatCurrency(entryTotal(entry.membership)) }}</span>
             </span>
           </button>
 
           <!-- Free periods that are not linked to a membership -->
           <template v-if="standaloneFreeTrials.length > 0">
             <div class="lg:hidden flex-none self-stretch flex items-center gap-1.5 px-1" aria-hidden="true">
-              <span class="w-px self-stretch bg-gray-300"></span>
-              <span class="flex flex-col items-center text-[10px] font-semibold leading-[1.15] text-gray-400">
+              <span class="w-px self-stretch bg-line-strong"></span>
+              <span class="flex flex-col items-center text-2xs font-semibold leading-[1.15] text-ink-muted">
                 <span v-for="(letter, index) in 'OHNE'" :key="index">{{ letter }}</span>
               </span>
             </div>
-            <div class="hidden lg:block mt-1.5 text-xs font-medium uppercase tracking-wider text-gray-500">Ohne Mitgliedschaft</div>
+            <div class="hidden lg:block mt-1.5 text-xs font-medium uppercase tracking-wider text-ink-muted">Ohne Mitgliedschaft</div>
             <div
               v-for="freeTrial in standaloneFreeTrials"
               :key="freeTrial.id"
@@ -84,27 +84,27 @@
               @keydown.enter.self.prevent="selectedMembershipId = freeTrial.id"
               @keydown.space.self.prevent="selectedMembershipId = freeTrial.id"
               :class="[
-                'flex-none w-[250px] lg:w-auto snap-start rounded-lg border bg-white shadow-sm px-3.5 py-3 flex flex-col gap-2 cursor-pointer transition-colors',
-                selectedEntry?.membership.id === freeTrial.id ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'
+                'flex-none w-[250px] lg:w-auto snap-start rounded-lg border bg-surface shadow-sm px-3.5 py-3 flex flex-col gap-2 cursor-pointer transition-colors',
+                selectedEntry?.membership.id === freeTrial.id ? 'border-brand ring-1 ring-focus' : 'border-line hover:border-line-strong'
               ]"
             >
               <div class="flex items-center justify-between gap-2">
-                <span class="flex items-center gap-2 min-w-0 text-[15px] font-semibold text-gray-900">
-                  <Gift class="w-4 h-4 flex-none text-green-700" />
+                <span class="flex items-center gap-2 min-w-0 text-base font-semibold text-ink">
+                  <Gift class="w-4 h-4 flex-none text-success" />
                   <span class="truncate">{{ freeTrial.membership_plan?.name || 'Gratis-Zeitraum' }}</span>
                 </span>
                 <span :class="['flex-none px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(freeTrial.status).badgeClass]">
                   {{ membershipStatusOption(freeTrial.status).label }}
                 </span>
               </div>
-              <div class="text-xs text-gray-500">{{ formatTerm(freeTrial) }}</div>
-              <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+              <div class="text-xs text-ink-muted">{{ formatTerm(freeTrial) }}</div>
+              <div class="flex items-center justify-between gap-2 pt-2 border-t border-line-subtle">
                 <button
                   v-if="freeTrial.status === 'pending'"
                   @click.stop="$emit('activate', freeTrial)"
                   type="button"
                   :disabled="activatingMembership === freeTrial.id"
-                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-compact font-medium text-success hover:text-success-strong disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle class="w-3.5 h-3.5" />
                   {{ activatingMembership === freeTrial.id ? 'Wird aktiviert...' : 'Aktivieren' }}
@@ -114,13 +114,13 @@
                   @click.stop="$emit('abort', freeTrial)"
                   type="button"
                   :disabled="abortingMembership === freeTrial.id"
-                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-compact font-medium text-danger hover:text-danger-strong disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <StopCircle class="w-3.5 h-3.5" />
                   {{ abortingMembership === freeTrial.id ? 'Wird gestoppt...' : 'Stoppen' }}
                 </button>
                 <span v-else></span>
-                <span class="text-sm lg:text-[15px] font-bold text-gray-900">{{ formatCurrency(0) }}</span>
+                <span class="text-sm lg:text-base font-bold text-ink">{{ formatCurrency(0) }}</span>
               </div>
             </div>
           </template>
@@ -128,8 +128,8 @@
           <!-- Past contracts: always in the picker (mobile) / collapsed by default (desktop) -->
           <template v-if="pastEntries.length > 0">
             <div class="lg:hidden flex-none self-stretch flex items-center gap-1.5 px-1" aria-hidden="true">
-              <span class="w-px self-stretch bg-gray-300"></span>
-              <span class="flex flex-col items-center text-[10px] font-semibold leading-[1.15] text-gray-400">
+              <span class="w-px self-stretch bg-line-strong"></span>
+              <span class="flex flex-col items-center text-2xs font-semibold leading-[1.15] text-ink-muted">
                 <span v-for="(letter, index) in 'FRÜHER'" :key="index">{{ letter }}</span>
               </span>
             </div>
@@ -137,7 +137,7 @@
               @click="showPastMemberships = !showPastMemberships"
               type="button"
               :aria-expanded="showPastMemberships"
-              class="hidden lg:flex items-center justify-between gap-2 mt-1.5 py-1 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+              class="hidden lg:flex items-center justify-between gap-2 mt-1.5 py-1 text-xs font-medium uppercase tracking-wider text-ink-muted hover:text-ink cursor-pointer transition-colors"
             >
               <span>Frühere Mitgliedschaften</span>
               <ChevronDown :class="['w-4 h-4 transition-transform', showPastMemberships ? 'rotate-180' : '']" />
@@ -150,18 +150,18 @@
               :aria-pressed="entry === selectedEntry"
               :class="[
                 'flex-none w-[250px] lg:w-auto snap-start text-left rounded-lg border px-3.5 lg:px-4 py-3 flex flex-col gap-1.5 cursor-pointer transition-colors',
-                entry === selectedEntry ? 'bg-white border-indigo-600 ring-1 ring-indigo-600' : 'bg-gray-50 border-gray-200 hover:border-gray-300',
+                entry === selectedEntry ? 'bg-surface border-brand ring-1 ring-focus' : 'bg-surface-muted border-line hover:border-line-strong',
                 showPastMemberships ? '' : 'lg:hidden'
               ]"
             >
               <span class="flex items-center justify-between gap-2">
-                <span class="text-sm font-semibold text-gray-600 truncate">{{ entry.membership.membership_plan?.name || 'Unbekannter Vertrag' }}</span>
+                <span class="text-sm font-semibold text-ink-secondary truncate">{{ entry.membership.membership_plan?.name || 'Unbekannter Vertrag' }}</span>
                 <span :class="['flex-none px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(entry.membership.status).badgeClass]">
                   {{ membershipStatusOption(entry.membership.status).label }}
                 </span>
               </span>
-              <span class="text-xs text-gray-500">{{ formatTerm(entry.membership) }}</span>
-              <span v-if="addonCount(entry.membership) > 0" class="flex items-center gap-1.5 text-xs text-gray-500">
+              <span class="text-xs text-ink-muted">{{ formatTerm(entry.membership) }}</span>
+              <span v-if="addonCount(entry.membership) > 0" class="flex items-center gap-1.5 text-xs text-ink-muted">
                 <Puzzle class="w-3.5 h-3.5" /> {{ addonCountLabel(entry.membership) }}
               </span>
             </button>
@@ -170,7 +170,7 @@
       </div>
 
       <!-- Selected contract -->
-      <div v-if="selectedEntry" class="flex flex-col rounded-lg border border-gray-200 bg-white sm:overflow-hidden min-w-0">
+      <div v-if="selectedEntry" class="flex flex-col rounded-lg border border-line bg-surface sm:overflow-hidden min-w-0">
         <MembershipCard
           :membership="selectedEntry.membership"
           :is-secondary="selectedIsPast"
@@ -196,7 +196,7 @@
               @click="$emit('ignore', selectedEntry.membership)"
               type="button"
               :disabled="ignoringMembership === selectedEntry.membership.id"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm font-medium text-red-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-line-strong bg-surface text-sm font-medium text-danger hover:bg-surface-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <EyeOff class="w-4 h-4" />
               <span>{{ ignoringMembership === selectedEntry.membership.id ? 'Ignorieren...' : 'Ignorieren' }}</span>
@@ -207,13 +207,13 @@
         <!-- Services: free period, base fee and add-ons of this contract -->
         <div v-if="!selectedEntry.membership.is_free_trial" class="sm:px-6 pt-4 sm:pt-5 pb-4 sm:pb-5 flex flex-col sm:gap-3">
           <div class="flex items-center justify-between gap-3 flex-wrap px-4 sm:px-0 pb-1.5 sm:pb-0">
-            <h4 class="text-xs sm:text-base font-medium sm:font-semibold uppercase sm:normal-case tracking-wider sm:tracking-normal text-gray-500 sm:text-gray-900">Leistungen</h4>
+            <h4 class="text-xs sm:text-base font-medium sm:font-semibold uppercase sm:normal-case tracking-wider sm:tracking-normal text-ink-muted sm:text-ink">Leistungen</h4>
             <div class="hidden sm:flex gap-2 flex-wrap">
               <button
                 v-if="canPrependFreePeriod(selectedEntry.membership)"
                 @click="openFreePeriodModal(selectedEntry.membership.id)"
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-gray-300 bg-white text-green-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line-strong bg-surface text-success text-sm font-medium hover:bg-surface-muted transition-colors"
               >
                 <Gift class="w-4 h-4" /> Gratis-Zeitraum vorschalten
               </button>
@@ -221,45 +221,45 @@
                 v-if="!selectedIsPast && selectedBookableAddons.length > 0"
                 @click="memberAddons?.openBookingDialog()"
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:bg-brand-strong transition-colors"
               >
                 <Plus class="w-4 h-4" /> Add-on hinzufügen
               </button>
             </div>
           </div>
 
-          <div class="sm:rounded-lg sm:border border-gray-200 overflow-hidden">
-            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem] gap-3 px-4 py-2.5 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
+          <div class="sm:rounded-lg sm:border border-line overflow-hidden">
+            <div class="hidden sm:grid grid-cols-[minmax(0,1fr)_7rem] gap-3 px-4 py-2.5 bg-surface-muted text-xs font-medium uppercase tracking-wider text-ink-muted">
               <span>Leistung</span><span class="text-right">Betrag</span>
             </div>
 
             <!-- Linked free period in front of the contract -->
             <div
               v-if="selectedEntry.freeTrial"
-              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+              class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-line-subtle"
             >
               <div class="flex gap-3 items-center min-w-0">
-                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-green-100 text-green-700">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-success-soft text-success">
                   <Gift class="w-4 h-4" />
                 </span>
                 <div class="min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-semibold text-gray-900">{{ selectedEntry.freeTrial.membership_plan?.name || 'Gratis-Zeitraum' }}</span>
+                    <span class="text-sm font-semibold text-ink">{{ selectedEntry.freeTrial.membership_plan?.name || 'Gratis-Zeitraum' }}</span>
                     <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', membershipStatusOption(selectedEntry.freeTrial.status).badgeClass]">
                       {{ membershipStatusOption(selectedEntry.freeTrial.status).label }}
                     </span>
                   </div>
-                  <div class="text-xs text-gray-500 mt-0.5">vorgeschaltet · {{ formatTerm(selectedEntry.freeTrial) }}</div>
+                  <div class="text-xs text-ink-muted mt-0.5">vorgeschaltet · {{ formatTerm(selectedEntry.freeTrial) }}</div>
                 </div>
               </div>
-              <span class="text-right text-sm font-semibold text-gray-900">{{ formatCurrency(0) }}</span>
+              <span class="text-right text-sm font-semibold text-ink">{{ formatCurrency(0) }}</span>
               <div v-if="['pending', 'active'].includes(selectedEntry.freeTrial.status)" class="col-span-2 flex pl-11">
                 <button
                   v-if="selectedEntry.freeTrial.status === 'pending'"
                   @click="$emit('activate', selectedEntry.freeTrial)"
                   type="button"
                   :disabled="activatingMembership === selectedEntry.freeTrial.id"
-                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-green-700 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-compact font-medium text-success hover:text-success-strong disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle class="w-3.5 h-3.5" />
                   {{ activatingMembership === selectedEntry.freeTrial.id ? 'Wird aktiviert...' : 'Aktivieren' }}
@@ -269,7 +269,7 @@
                   @click="$emit('abort', selectedEntry.freeTrial)"
                   type="button"
                   :disabled="abortingMembership === selectedEntry.freeTrial.id"
-                  class="inline-flex items-center gap-1.5 text-[13px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center gap-1.5 text-compact font-medium text-danger hover:text-danger-strong disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <StopCircle class="w-3.5 h-3.5" />
                   {{ abortingMembership === selectedEntry.freeTrial.id ? 'Wird gestoppt...' : 'Stoppen' }}
@@ -278,21 +278,21 @@
             </div>
 
             <!-- Base fee -->
-            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-center px-4 py-3.5 border-t border-gray-100">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-center px-4 py-3.5 border-t border-line-subtle">
               <div class="flex gap-3 items-center min-w-0">
-                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-gray-100 text-gray-600">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-none bg-fill text-ink-secondary">
                   <FileText class="w-4 h-4" />
                 </span>
                 <div class="min-w-0">
-                  <div class="text-sm font-semibold text-gray-900">Grundbeitrag {{ selectedEntry.membership.membership_plan?.name }}</div>
-                  <div class="text-xs text-gray-500 mt-0.5">
+                  <div class="text-sm font-semibold text-ink">Grundbeitrag {{ selectedEntry.membership.membership_plan?.name }}</div>
+                  <div class="text-xs text-ink-muted mt-0.5">
                     Tarif · seit {{ formatDate(selectedEntry.membership.start_date) }}<template v-if="selectedNextBillingAt"> · nächste Abrechnung {{ formatDate(selectedNextBillingAt) }}</template>
                   </div>
                 </div>
               </div>
               <div class="text-right">
-                <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(selectedEntry.membership.membership_plan?.price || 0) }}</div>
-                <div class="text-xs text-gray-500">pro {{ formatBillingCycle(selectedEntry.membership.membership_plan?.billing_cycle || 'monthly') }}</div>
+                <div class="text-sm font-semibold text-ink">{{ formatCurrency(selectedEntry.membership.membership_plan?.price || 0) }}</div>
+                <div class="text-xs text-ink-muted">pro {{ formatBillingCycle(selectedEntry.membership.membership_plan?.billing_cycle || 'monthly') }}</div>
               </div>
             </div>
 
@@ -309,17 +309,17 @@
             <!-- Monthly total -->
             <div
               v-if="!selectedIsPast && selectedTotal !== null"
-              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-gray-200 bg-gray-50"
+              class="hidden sm:grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 items-baseline px-4 py-3.5 border-t border-line bg-surface-muted"
             >
-              <span class="text-sm font-semibold text-gray-900">
+              <span class="text-sm font-semibold text-ink">
                 Summe pro Monat
-                <span class="font-normal text-gray-500">· {{ totalBreakdown(selectedEntry.membership) }}</span>
+                <span class="font-normal text-ink-muted">· {{ totalBreakdown(selectedEntry.membership) }}</span>
               </span>
-              <span class="text-right text-lg font-bold text-gray-900">{{ formatCurrency(selectedTotal) }}</span>
+              <span class="text-right text-lg font-bold text-ink">{{ formatCurrency(selectedTotal) }}</span>
             </div>
           </div>
 
-          <p class="hidden sm:block text-[13px] text-gray-500">Add-ons laufen synchron zum Beitrag und enden spätestens mit diesem Vertrag.</p>
+          <p class="hidden sm:block text-compact text-ink-muted">Add-ons laufen synchron zum Beitrag und enden spätestens mit diesem Vertrag.</p>
 
           <!-- Add actions below the services (mobile) -->
           <div
@@ -330,7 +330,7 @@
               v-if="selectedBookableAddons.length > 0"
               @click="memberAddons?.openBookingDialog()"
               type="button"
-              class="w-full h-11 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-indigo-300 bg-indigo-50 text-indigo-700 text-sm font-medium"
+              class="w-full h-11 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-line bg-brand-subtle text-brand-strong text-sm font-medium"
             >
               <Plus class="w-4 h-4" /> Add-on zu {{ selectedEntry.membership.membership_plan?.name }} hinzufügen
             </button>
@@ -338,7 +338,7 @@
               v-if="canPrependFreePeriod(selectedEntry.membership)"
               @click="openFreePeriodModal(selectedEntry.membership.id)"
               type="button"
-              class="min-h-10 inline-flex items-center gap-1.5 text-green-700 text-sm font-medium"
+              class="min-h-10 inline-flex items-center gap-1.5 text-success text-sm font-medium"
             >
               <Gift class="w-4 h-4" /> Gratis-Zeitraum vorschalten
             </button>
@@ -349,14 +349,14 @@
         <div
           ref="mobileTotalBar"
           v-if="showMobileTotal"
-          class="sm:hidden fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
+          class="sm:hidden fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-surface border-t border-line shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
         >
-          <div class="min-w-0 text-xs text-gray-500">
+          <div class="min-w-0 text-xs text-ink-muted">
             <div>{{ selectedEntry.membership.membership_plan?.name }} gesamt</div>
             <div>{{ totalBreakdown(selectedEntry.membership) }}</div>
           </div>
-          <div class="flex-none text-xl font-bold text-gray-900">
-            {{ formatCurrency(selectedTotal) }}<span class="text-xs font-normal text-gray-500"> / Monat</span>
+          <div class="flex-none text-xl font-bold text-ink">
+            {{ formatCurrency(selectedTotal) }}<span class="text-xs font-normal text-ink-muted"> / Monat</span>
           </div>
         </div>
 
@@ -364,93 +364,93 @@
 
       <!-- No Memberships -->
       <div v-else class="text-center py-8">
-        <UserX class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p class="text-gray-500">Keine aktiven Mitgliedschaften vorhanden</p>
+        <UserX class="w-12 h-12 text-ink-muted mx-auto mb-4" />
+        <p class="text-ink-muted">Keine aktiven Mitgliedschaften vorhanden</p>
       </div>
     </div>
 
     <!-- Free Period Modal -->
     <teleport to="body">
       <div v-if="showFreePeriodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeFreePeriodModal">
-        <div class="relative top-10 mx-auto p-5 border border-gray-50 w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+        <div class="relative top-10 mx-auto p-5 border border-line-subtle w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-surface" @click.stop>
           <form @submit.prevent="addFreePeriod">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="bg-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
+                <h3 class="text-lg font-semibold text-ink">
                   Gratis-Zeitraum hinzufügen
                 </h3>
-                <p class="text-sm text-gray-500 mt-1">
+                <p class="text-sm text-ink-muted mt-1">
                   Erstelle einen kostenlosen Zeitraum, z.B. für Probetraining oder Überbrückung.
                 </p>
               </div>
 
               <!-- Error message -->
-              <div v-if="freePeriodForm.errors.error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div v-if="freePeriodForm.errors.error" class="mb-4 p-4 bg-danger-subtle border border-danger-line rounded-lg">
                 <div class="flex">
-                  <AlertCircle class="h-5 w-5 text-red-400 flex-shrink-0" />
-                  <p class="ml-3 text-sm text-red-800">{{ freePeriodForm.errors.error }}</p>
+                  <AlertCircle class="h-5 w-5 text-danger flex-shrink-0" />
+                  <p class="ml-3 text-sm text-danger-strong">{{ freePeriodForm.errors.error }}</p>
                 </div>
               </div>
 
               <div class="space-y-4">
                 <!-- Start Date -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label class="block text-sm font-medium text-ink-secondary mb-1">
                     Startdatum
                   </label>
                   <input
                     type="date"
                     v-model="freePeriodForm.start_date"
-                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
-                    :class="{ 'border-red-500': freePeriodForm.errors.start_date }"
+                    class="field w-full px-3 py-2"
+                    :class="{ 'border-danger': freePeriodForm.errors.start_date }"
                   />
-                  <p v-if="freePeriodForm.errors.start_date" class="mt-1 text-sm text-red-600">
+                  <p v-if="freePeriodForm.errors.start_date" class="mt-1 text-sm text-danger">
                     {{ freePeriodForm.errors.start_date }}
                   </p>
                 </div>
 
                 <!-- End Date -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label class="block text-sm font-medium text-ink-secondary mb-1">
                     Enddatum
                   </label>
                   <input
                     type="date"
                     v-model="freePeriodForm.end_date"
-                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
-                    :class="{ 'border-red-500': freePeriodForm.errors.end_date }"
+                    class="field w-full px-3 py-2"
+                    :class="{ 'border-danger': freePeriodForm.errors.end_date }"
                   />
-                  <p v-if="freePeriodForm.errors.end_date" class="mt-1 text-sm text-red-600">
+                  <p v-if="freePeriodForm.errors.end_date" class="mt-1 text-sm text-danger">
                     {{ freePeriodForm.errors.end_date }}
                   </p>
                 </div>
 
                 <!-- Link to Membership (optional) -->
                 <div v-if="linkableMemberships.length > 0">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label class="block text-sm font-medium text-ink-secondary mb-1">
                     Mit Mitgliedschaft verknüpfen (optional)
                   </label>
                   <select
                     v-model="freePeriodForm.linked_membership_id"
-                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-green-500 focus:border-green-500"
+                    class="field w-full px-3 py-2"
                   >
                     <option :value="null">Keine Verknüpfung</option>
                     <option v-for="m in linkableMemberships" :key="m.id" :value="m.id">
                       {{ m.membership_plan?.name || 'Unbekannt' }} (ab {{ formatDate(m.start_date) }})
                     </option>
                   </select>
-                  <p class="mt-1 text-xs text-gray-500">
+                  <p class="mt-1 text-xs text-ink-muted">
                     Verknüpfe diesen Gratis-Zeitraum mit einer bestehenden oder neuen Mitgliedschaft.
                   </p>
                 </div>
 
                 <!-- Preview -->
-                <div v-if="freePeriodForm.start_date && freePeriodForm.end_date" class="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div v-if="freePeriodForm.start_date && freePeriodForm.end_date" class="bg-success-subtle border border-success-line rounded-lg p-3">
                   <div class="flex items-start gap-2">
-                    <Gift class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <Gift class="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                     <div class="text-sm">
-                      <p class="font-medium text-green-800">Vorschau</p>
-                      <p class="text-green-700">
+                      <p class="font-medium text-success-strong">Vorschau</p>
+                      <p class="text-success">
                         Gratis-Zeitraum vom {{ formatDate(freePeriodForm.start_date) }}
                         bis {{ formatDate(freePeriodForm.end_date) }}
                         ({{ freePeriodDays }} Tage)
@@ -464,18 +464,18 @@
               </div>
             </div>
 
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <div class="bg-surface-muted px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
                 :disabled="freePeriodForm.processing || !freePeriodForm.start_date || !freePeriodForm.end_date"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-success-solid text-base font-medium text-white hover:bg-success-solid-strong sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ freePeriodForm.processing ? 'Wird erstellt...' : 'Gratis-Zeitraum erstellen' }}
               </button>
               <button
                 type="button"
                 @click="closeFreePeriodModal"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-line-strong shadow-sm px-4 py-2 bg-surface text-base font-medium text-ink-secondary hover:bg-surface-muted sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               >
                 Abbrechen
               </button>
@@ -488,20 +488,20 @@
     <!-- Add Membership Modal -->
     <teleport to="body">
       <div v-if="showAddMembershipModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddMembershipModal">
-        <div class="relative top-10 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-lg rounded-md bg-white" @click.stop>
+        <div class="relative top-10 mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-lg rounded-md bg-surface" @click.stop>
           <form @submit.prevent="addMembership">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="bg-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
+                <h3 class="text-lg font-semibold text-ink">
                   Neue Mitgliedschaft hinzufügen
                 </h3>
               </div>
 
               <!-- Error message -->
-              <div v-if="addMembershipForm.errors.membership" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div v-if="addMembershipForm.errors.membership" class="mb-4 p-4 bg-danger-subtle border border-danger-line rounded-lg">
                 <div class="flex">
-                  <AlertCircle class="h-5 w-5 text-red-400 flex-shrink-0" />
-                  <p class="ml-3 text-sm text-red-800">{{ addMembershipForm.errors.membership }}</p>
+                  <AlertCircle class="h-5 w-5 text-danger flex-shrink-0" />
+                  <p class="ml-3 text-sm text-danger-strong">{{ addMembershipForm.errors.membership }}</p>
                 </div>
               </div>
 
@@ -515,18 +515,18 @@
               <GuestAccessRevokeWarning v-if="showGuestAccessWarning" class="mt-4" />
             </div>
 
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <div class="bg-surface-muted px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
                 :disabled="addMembershipForm.processing || !membershipFormData.membership_plan_id"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand text-base font-medium text-white hover:bg-brand-strong sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ addMembershipForm.processing ? 'Wird erstellt...' : 'Mitgliedschaft erstellen' }}
               </button>
               <button
                 type="button"
                 @click="closeAddMembershipModal"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-line-strong shadow-sm px-4 py-2 bg-surface text-base font-medium text-ink-secondary hover:bg-surface-muted sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               >
                 Abbrechen
               </button>

@@ -2,8 +2,8 @@
   <div>
     <!-- Header card -->
     <div
-      class="bg-white rounded-lg shadow p-5 sm:p-6"
-      :class="editMode ? 'ring-1 ring-indigo-200' : ''"
+      class="bg-surface rounded-lg shadow p-5 sm:p-6"
+      :class="editMode ? 'ring-1 ring-brand-line' : ''"
     >
       <!-- Top row: identity + actions -->
       <div class="flex flex-row items-start justify-between gap-3 lg:gap-5">
@@ -17,7 +17,7 @@
             size="xl"
           />
           <div class="min-w-0">
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight truncate">
+            <h2 class="text-xl sm:text-2xl font-bold text-ink leading-tight truncate">
               {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }}
             </h2>
 
@@ -34,7 +34,7 @@
                 :validate-on-mount="false"
               />
             </div>
-            <p v-else class="text-sm text-gray-500 mt-1">Mitgliedsnummer: #{{ member.member_number }}</p>
+            <p v-else class="text-sm text-ink-muted mt-1">Mitgliedsnummer: #{{ member.member_number }}</p>
 
             <div class="mt-2.5 flex items-center gap-2 flex-wrap">
               <!-- Edit mode: editable status component -->
@@ -62,7 +62,7 @@
               />
 
               <!-- Age -->
-              <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+              <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-subtle text-brand-strong">
                 {{ memberAge }} Jahre
               </span>
             </div>
@@ -76,7 +76,7 @@
             <button
               type="button"
               @click="requestCancelEdit"
-              class="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              class="px-4 py-2 rounded-md border border-line-strong text-ink-secondary hover:bg-surface-muted flex items-center gap-2"
             >
               Abbrechen
             </button>
@@ -85,7 +85,7 @@
               @click="$emit('save')"
               :disabled="!isDirty || isSaving"
               class="px-4 py-2 rounded-md flex items-center gap-2 text-white"
-              :class="(!isDirty || isSaving) ? 'bg-gray-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
+              :class="(!isDirty || isSaving) ? 'bg-line-strong cursor-not-allowed' : 'bg-brand hover:bg-brand-strong'"
             >
               <Check class="w-4 h-4" />
               {{ isSaving ? 'Speichern...' : 'Speichern' }}
@@ -95,7 +95,7 @@
             <button
               type="button"
               @click="$emit('edit')"
-              class="px-4 py-2 rounded-lg flex items-center gap-2 bg-gray-700 text-white hover:bg-gray-800"
+              class="px-4 py-2 rounded-lg flex items-center gap-2 bg-gray-700 text-white hover:bg-inverse"
             >
               <Edit class="w-4 h-4" />
               Bearbeiten
@@ -106,8 +106,8 @@
               <button
                 type="button"
                 @click="showActionMenu = !showActionMenu"
-                class="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
-                :class="showActionMenu ? 'bg-gray-50' : ''"
+                class="p-2 rounded-lg border border-line-strong text-ink-secondary hover:bg-surface-muted"
+                :class="showActionMenu ? 'bg-surface-muted' : ''"
                 aria-haspopup="menu"
                 :aria-expanded="showActionMenu"
                 aria-label="Weitere Aktionen"
@@ -122,34 +122,34 @@
               >
                 <div
                   v-if="showActionMenu"
-                  class="absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5"
+                  class="absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-lg bg-surface py-1 shadow-lg ring-1 ring-black/5"
                   role="menu"
                 >
                   <button
                     type="button"
                     @click="showActionMenu = false; $emit('toggle-checkin')"
                     :disabled="togglingCheckin"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-ink-secondary hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
                     role="menuitem"
                   >
                     <LogOut v-if="isCheckedIn" class="w-4 h-4 text-orange-600" />
-                    <LogIn v-else class="w-4 h-4 text-green-600" />
+                    <LogIn v-else class="w-4 h-4 text-success" />
                     {{ isCheckedIn ? 'Auschecken' : 'Einchecken' }}
                   </button>
-                  <div class="my-1 border-t border-gray-100"></div>
+                  <div class="my-1 border-t border-line-subtle"></div>
                   <Link
                     :href="route('members.create')"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-ink-secondary hover:bg-surface-muted"
                     role="menuitem"
                     @click="showActionMenu = false"
                   >
-                    <Plus class="w-4 h-4 text-indigo-600" />
+                    <Plus class="w-4 h-4 text-brand" />
                     Neues Mitglied
                   </Link>
                   <button
                     type="button"
                     @click="showActionMenu = false; $emit('block')"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-danger hover:bg-danger-subtle"
                     role="menuitem"
                   >
                     <ShieldX class="w-4 h-4" />
@@ -166,31 +166,31 @@
            right (aligned under the action buttons) -->
       <div
         v-if="!editMode"
-        class="mt-5 pt-4 border-t border-gray-100 flex flex-col lg:flex-row lg:items-center gap-x-10 gap-y-4"
+        class="mt-5 pt-4 border-t border-line-subtle flex flex-col lg:flex-row lg:items-center gap-x-10 gap-y-4"
       >
         <!-- Toggles: age verification + guest access (same two-column grid as in edit mode) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 max-w-2xl flex-1">
           <!-- Age verification toggle -->
-          <div class="flex items-center gap-3 py-2.5 border-b border-gray-100 sm:border-b-0">
+          <div class="flex items-center gap-3 py-2.5 border-b border-line-subtle sm:border-b-0">
             <button
               type="button"
               @click="$emit('toggle-age')"
               :disabled="verifyingAge"
-              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              :class="member.age_verified ? 'bg-blue-500' : 'bg-gray-300'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out"
+              :class="member.age_verified ? 'bg-info-solid' : 'bg-line-strong'"
               role="switch"
               :aria-checked="member.age_verified"
             >
               <span
                 aria-hidden="true"
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface shadow ring-0 transition duration-200 ease-in-out"
                 :class="member.age_verified ? 'translate-x-5' : 'translate-x-0'"
               />
             </button>
-            <span class="text-sm font-medium text-gray-700">Alter verifiziert</span>
+            <span class="text-sm font-medium text-ink-secondary">Alter verifiziert</span>
             <span
               v-if="member.age_verified && member.age_verified_at"
-              class="text-xs text-gray-400"
+              class="text-xs text-ink-muted"
             >
               ({{ formatDate(member.age_verified_at) }})
             </span>
@@ -202,21 +202,21 @@
               type="button"
               @click="$emit('toggle-guest')"
               :disabled="togglingGuestAccess"
-              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-              :class="member.guest_access ? 'bg-orange-500' : 'bg-gray-300'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out"
+              :class="member.guest_access ? 'bg-orange-500' : 'bg-line-strong'"
               role="switch"
               :aria-checked="member.guest_access"
             >
               <span
                 aria-hidden="true"
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface shadow ring-0 transition duration-200 ease-in-out"
                 :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
               />
             </button>
-            <span class="text-sm font-medium text-gray-700">Gastzugang</span>
+            <span class="text-sm font-medium text-ink-secondary">Gastzugang</span>
             <span
               v-if="member.guest_access && member.guest_access_granted_at"
-              class="text-xs text-gray-400"
+              class="text-xs text-ink-muted"
             >
               ({{ formatDate(member.guest_access_granted_at) }})
             </span>
@@ -224,14 +224,14 @@
         </div>
 
         <!-- Credit tile: available balance + top-up action (right, under the action buttons) -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50 to-white px-3.5 py-3 flex-none lg:ml-auto lg:max-w-md">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-brand-line bg-gradient-to-r from-indigo-50 to-white px-3.5 py-3 flex-none lg:ml-auto lg:max-w-md">
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center flex-none">
+            <div class="w-9 h-9 rounded-full bg-brand-soft text-brand flex items-center justify-center flex-none">
               <Wallet class="w-5 h-5" />
             </div>
             <div class="min-w-0">
-              <div class="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Verfügbares Guthaben</div>
-              <div class="text-2xl font-bold text-indigo-600 leading-tight">
+              <div class="text-2xs font-semibold text-ink-muted uppercase tracking-wide">Verfügbares Guthaben</div>
+              <div class="text-2xl font-bold text-brand leading-tight tabular-nums">
                 {{ member.credit_balance_formatted ?? '0,00 €' }}
               </div>
             </div>
@@ -239,7 +239,7 @@
           <button
             type="button"
             @click="$emit('topup')"
-            class="inline-flex items-center justify-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors whitespace-nowrap flex-none"
+            class="inline-flex items-center justify-center gap-1.5 rounded-md border border-brand-line bg-surface px-3.5 py-2 text-compact font-semibold text-brand hover:bg-brand-subtle transition-colors whitespace-nowrap flex-none"
           >
             <Plus class="w-[15px] h-[15px]" />
             Aufladen
@@ -259,7 +259,7 @@
         >
           <div
             v-if="showActionSheet"
-            class="fixed inset-0 z-[60] bg-gray-900/45"
+            class="fixed inset-0 z-[60] bg-inverse/45"
             @click="showActionSheet = false"
           />
         </transition>
@@ -273,49 +273,49 @@
             v-if="showActionSheet"
             class="fixed inset-x-0 bottom-0 z-[60] px-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]"
           >
-            <div class="bg-white rounded-2xl overflow-hidden shadow-[0_-2px_30px_rgba(0,0,0,0.18)]">
-              <div class="px-4 pt-3.5 pb-2.5 text-center text-xs text-gray-500 border-b border-gray-100">
+            <div class="bg-surface rounded-2xl overflow-hidden shadow-[0_-2px_30px_rgba(0,0,0,0.18)]">
+              <div class="px-4 pt-3.5 pb-2.5 text-center text-xs text-ink-muted border-b border-line-subtle">
                 {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }} · #{{ member.member_number }}
               </div>
               <button
                 type="button"
                 @click="showActionSheet = false; $emit('toggle-checkin')"
                 :disabled="togglingCheckin"
-                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-ink hover:bg-surface-muted disabled:opacity-50"
               >
                 <LogOut v-if="isCheckedIn" class="w-5 h-5 text-orange-600" />
-                <LogIn v-else class="w-5 h-5 text-green-600" />
+                <LogIn v-else class="w-5 h-5 text-success" />
                 {{ isCheckedIn ? 'Auschecken' : 'Einchecken' }}
               </button>
               <Link
                 :href="route('members.create')"
-                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-gray-900 border-t border-gray-100 hover:bg-gray-50"
+                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-ink border-t border-line-subtle hover:bg-surface-muted"
                 @click="showActionSheet = false"
               >
-                <Plus class="w-5 h-5 text-indigo-600" />
+                <Plus class="w-5 h-5 text-brand" />
                 Neues Mitglied
               </Link>
               <button
                 type="button"
                 @click="showActionSheet = false; $emit('edit')"
-                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-gray-900 border-t border-gray-100 hover:bg-gray-50"
+                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-ink border-t border-line-subtle hover:bg-surface-muted"
               >
-                <Edit class="w-5 h-5 text-gray-500" />
+                <Edit class="w-5 h-5 text-ink-muted" />
                 Bearbeiten
               </button>
               <button
                 type="button"
                 @click="showActionSheet = false; $emit('block')"
-                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-red-600 border-t border-gray-100 hover:bg-gray-50"
+                class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-danger border-t border-line-subtle hover:bg-surface-muted"
               >
-                <ShieldX class="w-5 h-5 text-red-600" />
+                <ShieldX class="w-5 h-5 text-danger" />
                 Sperren
               </button>
             </div>
             <button
               type="button"
               @click="showActionSheet = false"
-              class="w-full mt-2 py-4 rounded-2xl bg-white text-base font-semibold text-indigo-600 shadow-[0_-2px_30px_rgba(0,0,0,0.10)]"
+              class="w-full mt-2 py-4 rounded-2xl bg-surface text-base font-semibold text-brand shadow-[0_-2px_30px_rgba(0,0,0,0.10)]"
             >
               Abbrechen
             </button>
@@ -328,14 +328,14 @@
     <teleport to="body">
       <div v-if="showDiscardConfirm" class="fixed inset-0 z-[70] flex items-center justify-center p-6" @click="showDiscardConfirm = false">
         <div class="absolute inset-0 bg-gray-500/75"></div>
-        <div class="relative w-full max-w-md bg-white rounded-lg shadow-xl p-6" @click.stop>
+        <div class="relative w-full max-w-md bg-surface rounded-lg shadow-xl p-6" @click.stop>
           <div class="flex gap-4">
-            <span class="flex-none w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+            <span class="flex-none w-10 h-10 rounded-full bg-warning-soft text-warning flex items-center justify-center">
               <AlertTriangle class="w-5 h-5" />
             </span>
             <div class="min-w-0">
-              <h3 class="text-base font-semibold text-gray-900">Änderungen verwerfen?</h3>
-              <p class="mt-1 text-sm text-gray-500 leading-relaxed">
+              <h3 class="text-base font-semibold text-ink">Änderungen verwerfen?</h3>
+              <p class="mt-1 text-sm text-ink-muted leading-relaxed">
                 Nicht gespeicherte Eingaben gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.
               </p>
             </div>
@@ -344,14 +344,14 @@
             <button
               type="button"
               @click="showDiscardConfirm = false"
-              class="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+              class="px-4 py-2 rounded-md border border-line-strong text-ink-secondary hover:bg-surface-muted"
             >
               Abbrechen
             </button>
             <button
               type="button"
               @click="confirmDiscardEdit"
-              class="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
+              class="px-4 py-2 rounded-md bg-danger-solid text-white hover:bg-danger-solid-strong flex items-center gap-2"
             >
               <Trash2 class="w-4 h-4" />
               Verwerfen

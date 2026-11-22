@@ -13,21 +13,21 @@ export const statusConfig = {
   active: {
     label: 'Aktiv',
     color: 'green',
-    classes: 'bg-green-100 text-green-700',
+    classes: 'bg-success-soft text-success',
     icon: UserCheck,
     description: 'Vollzugriff auf alle Dienste'
   },
   inactive: {
     label: 'Inaktiv',
     color: 'gray',
-    classes: 'bg-gray-100 text-gray-700',
+    classes: 'bg-fill text-ink-secondary',
     icon: UserX,
     description: 'Kein Zugriff, keine laufenden Kosten'
   },
   paused: {
     label: 'Pausiert',
     color: 'yellow',
-    classes: 'bg-yellow-100 text-yellow-700',
+    classes: 'bg-warning-soft text-warning',
     icon: Pause,
     description: 'Temporär ausgesetzt'
   },
@@ -41,21 +41,21 @@ export const statusConfig = {
   overdue: {
     label: 'Überfällig',
     color: 'red',
-    classes: 'bg-red-100 text-red-700',
+    classes: 'bg-danger-soft text-danger',
     icon: AlertTriangle,
     description: 'Zahlungen ausstehend'
   },
   blocked: {
     label: 'Gesperrt',
     color: 'black',
-    classes: 'bg-gray-900 text-white',
+    classes: 'bg-inverse text-white',
     icon: ShieldX,
     description: 'Mitglied ist gesperrt'
   },
   extern: {
     label: 'Extern',
     color: 'blue',
-    classes: 'bg-blue-100 text-blue-700',
+    classes: 'bg-info-soft text-info',
     icon: UserRound,
     description: 'Laufkunde, kein reguläres Mitglied'
   }
@@ -72,7 +72,7 @@ export function getStatusText(status) {
  * Gibt die CSS-Klassen für einen Status-Badge zurück
  */
 export function getStatusBadgeClass(status) {
-  return statusConfig[status]?.classes || 'bg-gray-100 text-gray-700'
+  return statusConfig[status]?.classes || 'bg-fill text-ink-secondary'
 }
 
 /**

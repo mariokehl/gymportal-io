@@ -1,8 +1,8 @@
 <template>
-  <div class="flex h-screen bg-canvas">
+  <div class="flex h-dvh bg-canvas">
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-strong focus:shadow-md focus:outline-none focus:ring-2 focus:ring-focus"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-strong focus:shadow-md"
     >
       Zum Inhalt springen
     </a>
@@ -18,7 +18,7 @@
       <!-- Backdrop -->
       <div
         aria-hidden="true"
-        class="fixed inset-0 z-40 bg-gray-900/45 transition-opacity duration-300"
+        class="fixed inset-0 z-40 bg-inverse/45 transition-opacity duration-300"
         :class="drawerOpen ? 'opacity-100' : 'opacity-0'"
         @click="drawerOpen = false"
       />
@@ -48,7 +48,7 @@
           <button
             ref="hamburger"
             type="button"
-            class="lg:hidden -ml-1 mr-2 p-2 rounded-xl text-ink-secondary hover:bg-gray-100 transition-colors flex-shrink-0"
+            class="lg:hidden -ml-1 mr-2 p-2 rounded-xl text-ink-secondary hover:bg-fill transition-colors flex-shrink-0"
             aria-label="Menü öffnen"
             aria-controls="mobile-drawer"
             :aria-expanded="drawerOpen"
@@ -57,15 +57,15 @@
             <Menu class="w-6 h-6" />
           </button>
           <!-- Filled by the page's AppLayout `header` slot -->
-          <h1 :id="APP_HEADER_TITLE_ID" class="text-xl font-semibold min-w-0 flex-1" />
+          <h1 :id="APP_HEADER_TITLE_ID" class="text-xl font-semibold min-w-0 flex-1 truncate" />
         </div>
 
-        <div class="flex items-center gap-4 flex-shrink-0">
+        <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           <!-- Member search (mobile only): opens the drawer with the search focused -->
           <button
             v-if="memberSearchAvailable"
             type="button"
-            class="lg:hidden p-2 rounded-xl text-ink-secondary hover:bg-gray-100 transition-colors"
+            class="touch-target relative lg:hidden p-2 rounded-xl text-ink-secondary hover:bg-fill transition-colors"
             aria-label="Mitglied suchen"
             @click="openMobileSearch"
           >
@@ -79,7 +79,7 @@
           <!-- Default user cluster: admin badge, notifications, profile.
                Hidden on mobile when the page asks for it. -->
           <div
-            class="flex items-center gap-4"
+            class="flex items-center gap-2 sm:gap-4"
             :class="shell.pageOptions.hideHeaderUserOnMobile ? 'hidden lg:flex' : 'flex'"
           >
             <!-- Admin Badge -->
@@ -92,7 +92,7 @@
             <NotificationPopup />
 
             <!-- User Profile -->
-            <Link :href="route('profile.index')" :aria-label="`Profil von ${user.first_name} ${user.last_name}`" class="flex items-center hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors cursor-pointer">
+            <Link :href="route('profile.index')" :aria-label="`Profil von ${user.first_name} ${user.last_name}`" class="flex items-center hover:bg-fill rounded-lg px-2 py-1 transition-colors cursor-pointer">
               <div class="w-8 h-8 bg-brand rounded-full text-white flex items-center justify-center text-xs font-semibold">
                 {{ userInitials }}
               </div>

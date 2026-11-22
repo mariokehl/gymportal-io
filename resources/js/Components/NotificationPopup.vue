@@ -5,8 +5,8 @@
       ref="trigger"
       type="button"
       @click="togglePopup"
-      class="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
-      :class="{ 'bg-gray-100': isOpen }"
+      class="touch-target relative p-2 rounded-full hover:bg-fill transition-colors"
+      :class="{ 'bg-fill': isOpen }"
       :aria-label="bellLabel"
       :aria-expanded="isOpen"
       :aria-controls="panelId"
@@ -65,7 +65,7 @@
         <li v-for="notification in notifications" :key="notification.id">
           <button
             type="button"
-            class="w-full text-left p-4 border-b border-gray-100 hover:bg-surface-muted transition-colors"
+            class="w-full text-left p-4 border-b border-line-subtle hover:bg-surface-muted transition-colors"
             :class="{ 'bg-brand-subtle': !notification.is_read }"
             @click="handleNotificationClick(notification)"
           >

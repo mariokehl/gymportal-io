@@ -3,34 +3,34 @@
   <div
     v-for="addon in bookedAddons"
     :key="addon.key"
-    class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-gray-100"
+    class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_7rem] gap-x-3 gap-y-2 items-center px-4 py-3.5 border-t border-line-subtle"
   >
     <div class="flex gap-3 items-start min-w-0">
       <span
         class="w-8 h-8 rounded-lg flex items-center justify-center flex-none"
-        :class="addon.isUsageService ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500'"
+        :class="addon.isUsageService ? 'bg-brand-subtle text-brand' : 'bg-fill text-ink-muted'"
       >
         <component :is="addon.isUsageService ? CupSoda : BadgeCheck" class="w-4 h-4" />
       </span>
 
       <div class="min-w-0 flex flex-col gap-1">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-sm font-semibold text-gray-900">{{ addon.name }}</span>
+          <span class="text-sm font-semibold text-ink">{{ addon.name }}</span>
           <span
             v-if="addon.mode === 'included'"
-            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800"
+            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success-strong"
           >
             Inklusive
           </span>
           <span
             v-else
-            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800"
+            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-soft text-brand-strong"
           >
             Optional
           </span>
           <span
             class="px-2 py-0.5 rounded-full text-xs font-semibold"
-            :class="addon.isRecurring ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+            :class="addon.isRecurring ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'"
           >
             {{ addon.isRecurring ? 'Wiederkehrend' : 'Einmalig' }}
           </span>
@@ -43,21 +43,21 @@
           </span>
         </div>
 
-        <p class="text-xs text-gray-500">
-          Add-on<template v-if="addon.bookedAt"> · gebucht am {{ formatDate(addon.bookedAt) }}</template><template v-if="isTrialActive(addon.trialEndsAt)"> · <span class="whitespace-nowrap"><Gift class="inline w-3.5 h-3.5 mr-1 align-[-0.2em] text-green-700" />bis {{ formatDate(addon.trialEndsAt) }} kostenfrei</span></template><template v-if="addon.isRecurring"> · monatlich kündbar</template>
+        <p class="text-xs text-ink-muted">
+          Add-on<template v-if="addon.bookedAt"> · gebucht am {{ formatDate(addon.bookedAt) }}</template><template v-if="isTrialActive(addon.trialEndsAt)"> · <span class="whitespace-nowrap"><Gift class="inline w-3.5 h-3.5 mr-1 align-[-0.2em] text-success" />bis {{ formatDate(addon.trialEndsAt) }} kostenfrei</span></template><template v-if="addon.isRecurring"> · monatlich kündbar</template>
         </p>
 
         <p
           v-if="addon.isRecurring && addon.nextBillingAt"
-          class="hidden sm:inline-flex text-xs text-gray-600 items-center gap-1.5"
+          class="hidden sm:inline-flex text-xs text-ink-secondary items-center gap-1.5"
         >
-          <CalendarSync class="w-3.5 h-3.5 text-green-700" />
+          <CalendarSync class="w-3.5 h-3.5 text-success" />
           Nächste Abrechnung {{ formatDate(addon.nextBillingAt) }} – synchron zum Beitrag
         </p>
 
         <p
           v-if="addon.cancelledAt && addon.cancellationEffectiveAt"
-          class="text-xs text-red-700 inline-flex items-center gap-1.5"
+          class="text-xs text-danger inline-flex items-center gap-1.5"
         >
           <CalendarX class="w-3.5 h-3.5" />
           {{ addon.cancelledWithMembership ? 'Endet mit dem Vertrag am' : 'Gekündigt zum' }} {{ formatDate(addon.cancellationEffectiveAt) }} – danach keine Abrechnung mehr
@@ -71,12 +71,12 @@
 
     <div class="text-right self-start sm:self-center">
       <template v-if="addon.mode === 'included'">
-        <div class="text-xs text-gray-400 line-through">{{ formatPrice(addon.basePrice) }}</div>
-        <div class="text-sm font-semibold text-green-700">geschenkt</div>
+        <div class="text-xs text-ink-muted line-through">{{ formatPrice(addon.basePrice) }}</div>
+        <div class="text-sm font-semibold text-success">geschenkt</div>
       </template>
       <template v-else>
-        <div :class="['text-sm font-semibold text-gray-900', addon.cancelledAt ? 'line-through' : '']">{{ formatPrice(addon.price) }}</div>
-        <div class="text-xs text-gray-500">{{ addon.isRecurring ? 'pro Monat' : 'einmalig' }}</div>
+        <div :class="['text-sm font-semibold text-ink', addon.cancelledAt ? 'line-through' : '']">{{ formatPrice(addon.price) }}</div>
+        <div class="text-xs text-ink-muted">{{ addon.isRecurring ? 'pro Monat' : 'einmalig' }}</div>
       </template>
     </div>
 
@@ -91,8 +91,8 @@
         :disabled="togglingKey === addon.key"
         @click="toggleCancellation(addon)"
         :class="[
-          'inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-          addon.cancelledAt ? 'text-gray-700 hover:text-gray-900' : 'text-red-600 hover:text-red-800'
+          'inline-flex items-center gap-1.5 text-compact font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+          addon.cancelledAt ? 'text-ink-secondary hover:text-ink' : 'text-danger hover:text-danger-strong'
         ]"
       >
         <component :is="addon.cancelledAt ? RotateCcw : Ban" class="w-3.5 h-3.5" />
@@ -105,8 +105,8 @@
         :disabled="togglingKey === addon.key"
         @click="toggleCompletion(addon)"
         :class="[
-          'inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-          addon.completedAt ? 'text-gray-700 hover:text-gray-900' : 'text-green-700 hover:text-green-800'
+          'inline-flex items-center gap-1.5 text-compact font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+          addon.completedAt ? 'text-ink-secondary hover:text-ink' : 'text-success hover:text-success-strong'
         ]"
       >
         <component :is="addon.completedAt ? RotateCcw : CheckCircle" class="w-3.5 h-3.5 flex-none" />
@@ -130,21 +130,21 @@
       class="fixed inset-0 bg-gray-500/75 z-50 overflow-y-auto p-4 flex items-start justify-center"
       @click.self="closeBookingDialog"
     >
-      <div class="bg-white rounded-xl shadow-lg w-full max-w-lg my-auto">
-        <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+      <div class="bg-surface rounded-xl shadow-lg w-full max-w-lg my-auto">
+        <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-line-subtle">
           <div>
-            <h4 class="text-base font-semibold text-gray-900">Add-on hinzufügen</h4>
-            <p class="text-sm text-gray-600 mt-1">
-              zu Vertrag <span class="font-semibold text-gray-900">{{ planName }}</span>
+            <h4 class="text-base font-semibold text-ink">Add-on hinzufügen</h4>
+            <p class="text-sm text-ink-secondary mt-1">
+              zu Vertrag <span class="font-semibold text-ink">{{ planName }}</span>
             </p>
           </div>
-          <button type="button" class="text-gray-500 hover:text-gray-700" @click="closeBookingDialog">
+          <button type="button" class="text-ink-muted hover:text-ink" @click="closeBookingDialog">
             <X class="w-5 h-5" />
           </button>
         </div>
 
         <div class="p-5">
-          <p class="text-sm text-gray-500 mb-3">
+          <p class="text-sm text-ink-muted mb-3">
             Wählen Sie eine Leistung aus, die dem Vertrag zugeordnet ist. Es wird keine Zahlung erzeugt.
           </p>
 
@@ -155,50 +155,50 @@
               type="button"
               class="text-left border-2 rounded-lg p-3 transition-colors"
               :class="selectedAddonId === addon.id
-                ? 'border-indigo-600 bg-violet-50'
-                : 'border-gray-200 hover:border-gray-300'"
+                ? 'border-brand bg-violet-50'
+                : 'border-line hover:border-line-strong'"
               :aria-pressed="selectedAddonId === addon.id"
               @click="selectedAddonId = addon.id"
             >
               <span class="flex items-center justify-between gap-2 flex-wrap">
                 <span class="flex items-center gap-2 flex-wrap">
-                  <span class="font-semibold text-gray-900">{{ addon.name }}</span>
+                  <span class="font-semibold text-ink">{{ addon.name }}</span>
                   <span
                     class="px-2 py-0.5 rounded-full text-xs font-semibold"
                     :class="addon.mode === 'included'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-indigo-100 text-indigo-800'"
+                      ? 'bg-success-soft text-success-strong'
+                      : 'bg-brand-soft text-brand-strong'"
                   >
                     {{ addon.mode === 'included' ? 'Inklusive' : 'Optional' }}
                   </span>
                 </span>
                 <span class="text-right flex-none">
-                  <span v-if="addon.mode === 'included'" class="text-sm font-bold text-green-700">
+                  <span v-if="addon.mode === 'included'" class="text-sm font-bold text-success">
                     geschenkt
                   </span>
                   <template v-else>
-                    <span class="font-bold text-gray-900">{{ formatPrice(addon.price) }}</span>
-                    <span class="block text-xs text-gray-500">
+                    <span class="font-bold text-ink">{{ formatPrice(addon.price) }}</span>
+                    <span class="block text-xs text-ink-muted">
                       {{ addon.billing_type === 'recurring' ? 'pro Monat' : 'einmalig' }}
                     </span>
                   </template>
                 </span>
               </span>
-              <span v-if="addon.description" class="block text-[13px] text-gray-500 mt-1">
+              <span v-if="addon.description" class="block text-compact text-ink-muted mt-1">
                 {{ addon.description }}
               </span>
             </button>
           </div>
 
-          <p v-if="bookableAddons.length === 0" class="text-sm text-gray-500 text-center py-6">
+          <p v-if="bookableAddons.length === 0" class="text-sm text-ink-muted text-center py-6">
             Für diesen Vertrag sind keine weiteren Add-ons verfügbar.
           </p>
         </div>
 
-        <div class="flex justify-end gap-2.5 px-5 py-4 border-t border-gray-100">
+        <div class="flex justify-end gap-2.5 px-5 py-4 border-t border-line-subtle">
           <button
             type="button"
-            class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+            class="bg-surface border border-line-strong hover:bg-surface-muted text-ink-secondary px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
             @click="closeBookingDialog"
           >
             Abbrechen
@@ -206,7 +206,7 @@
           <button
             type="button"
             :disabled="selectedAddonId === null || booking"
-            class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+            class="bg-brand hover:bg-brand-strong disabled:bg-brand-line disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
             @click="bookAddon"
           >
             {{ booking ? 'Wird gebucht…' : 'Add-on buchen' }}

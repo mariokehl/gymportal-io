@@ -1,18 +1,18 @@
 <template>
-  <div v-if="showPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+  <div v-if="showPagination" class="bg-surface px-4 py-3 flex items-center justify-between border-t border-line sm:px-6">
     <!-- Mobile Pagination -->
     <div class="flex-1 flex justify-between sm:hidden">
       <button
         v-if="data.prev_page_url"
         @click="navigate(data.prev_page_url)"
-        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        class="relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
       >
         Zurück
       </button>
       <button
         v-if="data.next_page_url"
         @click="navigate(data.next_page_url)"
-        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        class="ml-3 relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
       >
         Weiter
       </button>
@@ -22,7 +22,7 @@
     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
       <!-- Results Info -->
       <div>
-        <p class="text-sm text-gray-700">
+        <p class="text-sm text-ink-secondary">
           <template v-if="data.total > 0">
             Zeige
             <span class="font-medium">{{ data.from || 0 }}</span>
@@ -46,7 +46,7 @@
           <button
             v-if="data.prev_page_url"
             @click="navigate(data.prev_page_url)"
-            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-line-strong bg-surface text-sm font-medium text-ink-muted hover:bg-surface-muted focus:z-10"
             :disabled="isLoading"
           >
             <span class="sr-only">Zurück</span>
@@ -54,7 +54,7 @@
           </button>
           <span
             v-else
-            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed"
+            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-line-strong bg-surface-muted text-sm font-medium text-ink-disabled cursor-not-allowed"
           >
             <ChevronLeft class="h-5 w-5" />
           </span>
@@ -64,21 +64,21 @@
             <!-- Active Page -->
             <span
               v-if="link.active"
-              class="relative inline-flex items-center px-4 py-2 border border-indigo-500 bg-indigo-50 text-sm font-medium text-indigo-600 z-10"
+              class="relative inline-flex items-center px-4 py-2 border border-brand bg-brand-subtle text-sm font-medium text-brand z-10"
               v-html="link.label"
             />
             <!-- Clickable Page -->
             <button
               v-else-if="link.url"
               @click="navigate(link.url)"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="relative inline-flex items-center px-4 py-2 border border-line-strong bg-surface text-sm font-medium text-ink-secondary hover:bg-surface-muted focus:z-10"
               :disabled="isLoading"
               v-html="link.label"
             />
             <!-- Dots -->
             <span
               v-else
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+              class="relative inline-flex items-center px-4 py-2 border border-line-strong bg-surface text-sm font-medium text-ink-secondary"
             >
               ...
             </span>
@@ -88,7 +88,7 @@
           <button
             v-if="data.next_page_url"
             @click="navigate(data.next_page_url)"
-            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-line-strong bg-surface text-sm font-medium text-ink-muted hover:bg-surface-muted focus:z-10"
             :disabled="isLoading"
           >
             <span class="sr-only">Weiter</span>
@@ -96,7 +96,7 @@
           </button>
           <span
             v-else
-            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed"
+            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-line-strong bg-surface-muted text-sm font-medium text-ink-disabled cursor-not-allowed"
           >
             <ChevronRight class="h-5 w-5" />
           </span>

@@ -2,12 +2,12 @@
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="bg-white shadow-sm sm:rounded-lg mb-6">
+        <div class="bg-surface shadow-sm sm:rounded-lg mb-6">
           <div class="p-6">
-            <h2 class="text-2xl font-semibold text-gray-900">
+            <h2 class="text-2xl font-semibold text-ink">
               Benutzer-Simulation
             </h2>
-            <p class="mt-2 text-gray-600">
+            <p class="mt-2 text-ink-secondary">
               Wählen Sie einen Benutzer aus, um sich als dieser anzumelden.
             </p>
           </div>
@@ -15,14 +15,14 @@
 
         <!-- Info-Box für Administratoren -->
         <div class="mb-6">
-          <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+          <div class="bg-info-subtle border border-info-line p-4 rounded-lg">
             <div class="flex items-center">
-              <Info class="h-5 w-5 text-blue-400 mr-3 flex-shrink-0" />
+              <Info class="h-5 w-5 text-info mr-3 flex-shrink-0" />
               <div>
-                <p class="text-sm font-medium text-blue-800">
+                <p class="text-sm font-medium text-info-strong">
                   Hinweis zur Benutzer-Simulation
                 </p>
-                <p class="text-sm text-blue-700">
+                <p class="text-sm text-info">
                   Nach dem Start einer Simulation werden Sie als der gewählte Benutzer eingeloggt.
                   Verwenden Sie das rote Banner oben auf der Seite, um zur Admin-Ansicht zurückzukehren.
                 </p>
@@ -32,48 +32,48 @@
         </div>
 
         <!-- Suchfeld -->
-        <div class="bg-white shadow-sm sm:rounded-lg mb-6">
+        <div class="bg-surface shadow-sm sm:rounded-lg mb-6">
           <div class="p-6">
             <div class="relative">
               <input
                 v-model="searchQuery"
                 type="text"
                 placeholder="Nach Namen oder E-Mail suchen..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="field w-full pl-10 pr-4 py-2"
               />
-              <Search class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              <Search class="absolute left-3 top-2.5 h-5 w-5 text-ink-muted" />
             </div>
           </div>
         </div>
 
         <!-- Benutzerliste -->
-        <div class="bg-white shadow-sm sm:rounded-lg">
+        <div class="bg-surface shadow-sm sm:rounded-lg">
           <div class="overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+            <table class="min-w-full divide-y divide-line">
+              <thead class="bg-surface-muted">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                     ID
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                     Name
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                     E-Mail
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                     Registriert am
                   </th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
                     Aktionen
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody class="bg-surface divide-y divide-line">
                 <tr v-for="user in filteredUsers"
                     :key="user.id"
-                    class="hover:bg-gray-50 transition-colors">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    class="hover:bg-surface-muted transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-ink">
                     {{ user.id }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -86,22 +86,22 @@
                         </div>
                       </div>
                       <div class="ml-4">
-                        <div class="text-sm font-medium text-gray-900">
+                        <div class="text-sm font-medium text-ink">
                           {{ user.first_name }} {{ user.last_name }}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                     {{ user.email }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                     {{ formatDate(user.created_at) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       @click="startImpersonation(user.id)"
-                      class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                      class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-info-solid hover:bg-info-solid-strong transition-colors"
                     >
                       <UserCheck class="h-4 w-4 mr-1" />
                       Simulieren
@@ -113,11 +113,11 @@
 
             <!-- Keine Ergebnisse -->
             <div v-if="filteredUsers.length === 0" class="text-center py-12">
-              <Users class="mx-auto h-12 w-12 text-gray-400" />
-              <h3 class="mt-2 text-sm font-medium text-gray-900">
+              <Users class="mx-auto h-12 w-12 text-ink-muted" />
+              <h3 class="mt-2 text-sm font-medium text-ink">
                 Keine Benutzer gefunden
               </h3>
-              <p class="mt-1 text-sm text-gray-500">
+              <p class="mt-1 text-sm text-ink-muted">
                 {{ searchQuery ? 'Versuchen Sie eine andere Suche.' : 'Es sind keine Benutzer zur Simulation verfügbar.' }}
               </p>
             </div>
@@ -131,7 +131,7 @@
               <Link
                 v-if="users.prev_page_url"
                 :href="users.prev_page_url"
-                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                class="relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
               >
                 <ChevronLeft class="h-4 w-4 mr-1" />
                 Zurück
@@ -139,7 +139,7 @@
               <Link
                 v-if="users.next_page_url"
                 :href="users.next_page_url"
-                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                class="ml-3 relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
               >
                 Weiter
                 <ChevronRight class="h-4 w-4 ml-1" />
@@ -147,7 +147,7 @@
             </div>
             <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p class="text-sm text-gray-700">
+                <p class="text-sm text-ink-secondary">
                   Zeige <span class="font-medium">{{ users.from }}</span> bis
                   <span class="font-medium">{{ users.to }}</span> von
                   <span class="font-medium">{{ users.total }}</span> Ergebnissen
@@ -161,8 +161,8 @@
                       :href="link.url"
                       :class="[
                         link.active
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                          ? 'z-10 bg-info-subtle border-info text-info'
+                          : 'bg-surface border-line-strong text-ink-muted hover:bg-surface-muted',
                         index === 0 ? 'rounded-l-md' : '',
                         index === users.links.length - 1 ? 'rounded-r-md' : '',
                         'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
@@ -174,7 +174,7 @@
                       :class="[
                         index === 0 ? 'rounded-l-md' : '',
                         index === users.links.length - 1 ? 'rounded-r-md' : '',
-                        'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed'
+                        'relative inline-flex items-center px-4 py-2 border border-line-strong bg-surface text-sm font-medium text-ink-disabled cursor-not-allowed'
                       ]"
                       v-html="link.label"
                     />

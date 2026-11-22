@@ -6,15 +6,15 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-indigo-600 hover:text-indigo-800">
+      <Link :href="route('contracts.index')" class="text-brand hover:text-brand-strong">
         Verträge
       </Link>
-      <span class="text-gray-500 mx-2">/</span>
-      <Link :href="route('contracts.addons.index')" class="text-indigo-600 hover:text-indigo-800">
+      <span class="text-ink-muted mx-2">/</span>
+      <Link :href="route('contracts.addons.index')" class="text-brand hover:text-brand-strong">
         Add-ons
       </Link>
-      <span class="text-gray-500 mx-2">/</span>
-      <span class="text-gray-900">{{ addon.name }}</span>
+      <span class="text-ink-muted mx-2">/</span>
+      <span class="text-ink">{{ addon.name }}</span>
     </nav>
 
     <AddonForm

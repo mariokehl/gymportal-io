@@ -16,7 +16,7 @@
             <div v-if="toast.show" class="fixed top-4 right-4 z-50 max-w-md">
                 <div :class="[
                     'flex items-center p-4 rounded-lg shadow-lg',
-                    toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+                    toast.type === 'error' ? 'bg-danger-solid text-white' : 'bg-success-solid text-white'
                 ]">
                     <div class="flex-shrink-0 mr-3">
                         <svg v-if="toast.type === 'error'" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -41,39 +41,39 @@
         <div class="max-w-2xl mx-auto space-y-6">
 
             <!-- Profile Information Section -->
-            <div class="bg-white shadow-sm rounded-lg">
+            <div class="bg-surface shadow-sm rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">
+                    <h3 class="text-lg leading-6 font-semibold text-ink mb-2">
                         Profilinformationen
                     </h3>
-                    <p class="text-sm text-gray-600 mb-6">
+                    <p class="text-sm text-ink-secondary mb-6">
                         Ihre persönlichen Kontoinformationen.
                     </p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label class="block text-sm font-medium text-ink-secondary">
                                 Vorname
                             </label>
-                            <div class="mt-1 block w-full rounded-md bg-gray-50 px-3 py-2 text-base text-gray-700 border border-gray-200 sm:text-sm">
+                            <div class="mt-1 block w-full rounded-md bg-surface-muted px-3 py-2 text-base text-ink-secondary border border-line sm:text-sm">
                                 {{ user.first_name }}
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label class="block text-sm font-medium text-ink-secondary">
                                 Nachname
                             </label>
-                            <div class="mt-1 block w-full rounded-md bg-gray-50 px-3 py-2 text-base text-gray-700 border border-gray-200 sm:text-sm">
+                            <div class="mt-1 block w-full rounded-md bg-surface-muted px-3 py-2 text-base text-ink-secondary border border-line sm:text-sm">
                                 {{ user.last_name }}
                             </div>
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label class="block text-sm font-medium text-ink-secondary">
                                 E-Mail-Adresse
                             </label>
-                            <div class="mt-1 block w-full rounded-md bg-gray-50 px-3 py-2 text-base text-gray-700 border border-gray-200 sm:text-sm">
+                            <div class="mt-1 block w-full rounded-md bg-surface-muted px-3 py-2 text-base text-ink-secondary border border-line sm:text-sm">
                                 {{ user.email }}
                             </div>
                         </div>
@@ -82,18 +82,18 @@
             </div>
 
             <!-- Password Change Section -->
-            <div class="bg-white shadow-sm rounded-lg">
+            <div class="bg-surface shadow-sm rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">
+                    <h3 class="text-lg leading-6 font-semibold text-ink mb-2">
                         Passwort ändern
                     </h3>
-                    <p class="text-sm text-gray-600 mb-6">
+                    <p class="text-sm text-ink-secondary mb-6">
                         Stellen Sie sicher, dass Ihr Konto ein langes, zufälliges Passwort verwendet, um sicher zu bleiben.
                     </p>
 
                     <form @submit.prevent="updatePassword" class="space-y-4">
                         <div>
-                            <label for="current_password" class="block text-sm font-medium text-gray-700">
+                            <label for="current_password" class="block text-sm font-medium text-ink-secondary">
                                 Aktuelles Passwort
                             </label>
                             <input
@@ -101,16 +101,16 @@
                                 v-model="passwordForm.current_password"
                                 type="password"
                                 autocomplete="current-password"
-                                class="mt-1 block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                                :class="{ 'outline-red-500': passwordForm.errors.current_password }"
+                                class="field mt-1 block w-full px-3 py-1.5"
+                                :class="{ 'border-danger': passwordForm.errors.current_password }"
                             />
-                            <p v-if="passwordForm.errors.current_password" class="mt-1 text-sm text-red-600">
+                            <p v-if="passwordForm.errors.current_password" class="mt-1 text-sm text-danger">
                                 {{ passwordForm.errors.current_password }}
                             </p>
                         </div>
 
                         <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700">
+                            <label for="password" class="block text-sm font-medium text-ink-secondary">
                                 Neues Passwort
                             </label>
                             <input
@@ -118,16 +118,16 @@
                                 v-model="passwordForm.password"
                                 type="password"
                                 autocomplete="new-password"
-                                class="mt-1 block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                                :class="{ 'outline-red-500': passwordForm.errors.password }"
+                                class="field mt-1 block w-full px-3 py-1.5"
+                                :class="{ 'border-danger': passwordForm.errors.password }"
                             />
-                            <p v-if="passwordForm.errors.password" class="mt-1 text-sm text-red-600">
+                            <p v-if="passwordForm.errors.password" class="mt-1 text-sm text-danger">
                                 {{ passwordForm.errors.password }}
                             </p>
                         </div>
 
                         <div>
-                            <label for="password_confirmation" class="block text-sm font-medium text-gray-700">
+                            <label for="password_confirmation" class="block text-sm font-medium text-ink-secondary">
                                 Passwort bestätigen
                             </label>
                             <input
@@ -135,7 +135,7 @@
                                 v-model="passwordForm.password_confirmation"
                                 type="password"
                                 autocomplete="new-password"
-                                class="mt-1 block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                                class="field mt-1 block w-full px-3 py-1.5"
                             />
                         </div>
 
@@ -143,7 +143,7 @@
                             <button
                                 type="submit"
                                 :disabled="passwordForm.processing"
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
+                                class="bg-brand hover:bg-brand-strong text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
                             >
                                 <span v-if="passwordForm.processing">Speichern...</span>
                                 <span v-else>Passwort ändern</span>
@@ -154,21 +154,21 @@
             </div>
 
             <!-- Account Deletion Section -->
-            <div class="bg-white shadow-sm rounded-lg">
+            <div class="bg-surface shadow-sm rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">
+                    <h3 class="text-lg leading-6 font-semibold text-ink mb-2">
                         Konto löschen
                     </h3>
 
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div class="bg-danger-subtle border border-danger-line rounded-lg p-4 mb-6">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <svg class="h-5 w-5 text-danger" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm text-red-700">
+                                <p class="text-sm text-danger">
                                     Sobald Ihr Konto gelöscht ist, werden alle zugehörigen Ressourcen und Daten endgültig gelöscht. Bitte laden Sie vor der Kontolöschung alle Daten und Informationen herunter, die Sie behalten möchten.
                                 </p>
                             </div>
@@ -178,7 +178,7 @@
                     <button
                         @click="showDeleteModal = true"
                         type="button"
-                        class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md"
+                        class="bg-danger-solid hover:bg-danger-solid-strong text-white font-medium py-2 px-4 rounded-md"
                     >
                         Konto löschen
                     </button>
@@ -188,25 +188,25 @@
 
         <!-- Delete Account Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="showDeleteModal = false">
-            <div class="relative top-20 mx-auto p-5 border border-gray-200 w-full max-w-md shadow-lg rounded-lg bg-white" @click.stop>
+            <div class="relative top-20 mx-auto p-5 border border-line w-full max-w-md shadow-lg rounded-lg bg-surface" @click.stop>
                 <div class="text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-soft mb-4">
+                        <svg class="h-6 w-6 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                         </svg>
                     </div>
 
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                    <h3 class="text-lg font-semibold text-ink mb-2">
                         Konto löschen
                     </h3>
 
-                    <p class="text-sm text-gray-600 mb-6">
+                    <p class="text-sm text-ink-secondary mb-6">
                         Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Dieser Vorgang kann nicht rückgängig gemacht werden.
                     </p>
 
                     <form @submit.prevent="deleteAccount" class="space-y-4">
                         <div class="text-left">
-                            <label for="delete_password" class="block text-sm font-medium text-gray-700">
+                            <label for="delete_password" class="block text-sm font-medium text-ink-secondary">
                                 Passwort zur Bestätigung
                             </label>
                             <input
@@ -214,10 +214,10 @@
                                 v-model="deleteForm.password"
                                 type="password"
                                 placeholder="Geben Sie Ihr Passwort ein"
-                                class="mt-1 block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                                :class="{ 'outline-red-500': deleteForm.errors.password }"
+                                class="field mt-1 block w-full px-3 py-1.5"
+                                :class="{ 'border-danger': deleteForm.errors.password }"
                             />
-                            <p v-if="deleteForm.errors.password" class="mt-1 text-sm text-red-600">
+                            <p v-if="deleteForm.errors.password" class="mt-1 text-sm text-danger">
                                 {{ deleteForm.errors.password }}
                             </p>
                         </div>
@@ -226,14 +226,14 @@
                             <button
                                 type="button"
                                 @click="showDeleteModal = false"
-                                class="bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-md border border-gray-300"
+                                class="bg-surface hover:bg-surface-muted text-ink-secondary font-medium py-2 px-4 rounded-md border border-line-strong"
                             >
                                 Abbrechen
                             </button>
                             <button
                                 type="submit"
                                 :disabled="deleteForm.processing"
-                                class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
+                                class="bg-danger-solid hover:bg-danger-solid-strong text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
                             >
                                 <span v-if="deleteForm.processing">Löschen...</span>
                                 <span v-else>Konto endgültig löschen</span>

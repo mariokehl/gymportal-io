@@ -1,12 +1,12 @@
 <template>
-    <div class="bg-white shadow-sm rounded-lg">
+    <div class="bg-surface shadow-sm rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex justify-between items-center mb-4">
                 <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    <h3 class="text-lg leading-6 font-semibold text-ink">
                         Rechtliche Dokumente
                     </h3>
-                    <p class="mt-1 text-sm text-gray-500">
+                    <p class="mt-1 text-sm text-ink-muted">
                         Hinterlegen Sie URLs zu Ihren rechtlichen Dokumenten. Diese können dann in der PWA und auf Vertragsformularen angezeigt werden.
                     </p>
                 </div>
@@ -14,35 +14,35 @@
 
             <!-- Loading State -->
             <div v-if="isLoading" class="flex justify-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
             </div>
 
             <!-- Content -->
             <div v-else class="space-y-4">
                 <!-- Existing URLs -->
                 <div v-for="legalUrl in legalUrls" :key="legalUrl.id"
-                    class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50 group hover:bg-gray-100 transition-colors">
+                    class="flex items-center justify-between p-4 border border-line rounded-lg bg-surface-muted group hover:bg-fill transition-colors">
                     <div class="flex items-center flex-1 min-w-0">
-                        <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                            <component :is="getTypeIcon(legalUrl.type)" class="w-5 h-5 text-indigo-600" />
+                        <div class="w-10 h-10 bg-brand-soft rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <component :is="getTypeIcon(legalUrl.type)" class="w-5 h-5 text-brand" />
                         </div>
                         <div class="min-w-0 flex-1">
-                            <h4 class="text-sm font-medium text-gray-900">{{ legalUrl.label }}</h4>
+                            <h4 class="text-sm font-medium text-ink">{{ legalUrl.label }}</h4>
                             <a :href="legalUrl.url" target="_blank" rel="noopener noreferrer"
-                                class="text-sm text-indigo-600 hover:text-indigo-800 truncate block max-w-md">
+                                class="text-sm text-brand hover:text-brand-strong truncate block max-w-md">
                                 {{ legalUrl.url }}
                             </a>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2 ml-4">
                         <button @click="editUrl(legalUrl)"
-                            class="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
+                            class="p-2 text-ink-muted hover:text-brand-strong transition-colors"
                             title="Bearbeiten">
                             <component :is="Pencil" class="w-4 h-4" />
                         </button>
                         <button @click="deleteUrl(legalUrl)"
                             :disabled="legalUrl.isDeleting"
-                            class="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                            class="p-2 text-ink-muted hover:text-danger-strong transition-colors disabled:opacity-50"
                             title="Löschen">
                             <component :is="Trash2" class="w-4 h-4" />
                         </button>
@@ -51,24 +51,24 @@
 
                 <!-- Empty State -->
                 <div v-if="legalUrls.length === 0 && !isAdding"
-                    class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                    <component :is="FileText" class="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">Keine URLs hinterlegt</h3>
-                    <p class="mt-1 text-sm text-gray-500">Fügen Sie URLs zu Ihren rechtlichen Dokumenten hinzu.</p>
+                    class="text-center py-8 border-2 border-dashed border-line-strong rounded-lg">
+                    <component :is="FileText" class="mx-auto h-12 w-12 text-ink-muted" />
+                    <h3 class="mt-2 text-sm font-medium text-ink">Keine URLs hinterlegt</h3>
+                    <p class="mt-1 text-sm text-ink-muted">Fügen Sie URLs zu Ihren rechtlichen Dokumenten hinzu.</p>
                 </div>
 
                 <!-- Add New URL Section -->
-                <div v-if="isAdding || isEditing" class="border border-indigo-200 rounded-lg p-4 bg-indigo-50">
-                    <h4 class="text-sm font-medium text-gray-900 mb-4">
+                <div v-if="isAdding || isEditing" class="border border-brand-line rounded-lg p-4 bg-brand-subtle">
+                    <h4 class="text-sm font-medium text-ink mb-4">
                         {{ isEditing ? 'URL bearbeiten' : 'Neue URL hinzufügen' }}
                     </h4>
                     <form @submit.prevent="saveUrl" class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Dokumenttyp</label>
+                                <label class="block text-sm font-medium text-ink-secondary mb-1">Dokumenttyp</label>
                                 <select v-model="form.type"
                                     :disabled="isEditing"
-                                    class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+                                    class="field w-full p-2 disabled:bg-fill"
                                     required>
                                     <option value="" disabled>Bitte wählen...</option>
                                     <option v-for="(label, type) in availableTypesForSelect" :key="type" :value="type">
@@ -77,19 +77,19 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                                <label class="block text-sm font-medium text-ink-secondary mb-1">URL</label>
                                 <input v-model="form.url" type="url" required
                                     placeholder="https://example.com/document.pdf"
-                                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                    class="field block w-full px-3 py-1.5" />
                             </div>
                         </div>
                         <div class="flex justify-end space-x-3">
                             <button type="button" @click="cancelForm"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                class="px-4 py-2 text-sm font-medium text-ink-secondary bg-surface border border-line-strong rounded-md hover:bg-surface-muted">
                                 Abbrechen
                             </button>
                             <button type="submit" :disabled="isSaving"
-                                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                                class="px-4 py-2 text-sm font-medium text-white bg-brand border border-transparent rounded-md hover:bg-brand-strong disabled:opacity-50">
                                 {{ isSaving ? 'Speichern...' : 'Speichern' }}
                             </button>
                         </div>
@@ -99,13 +99,13 @@
                 <!-- Add Button -->
                 <button v-if="!isAdding && !isEditing && hasAvailableTypes"
                     @click="startAdding"
-                    class="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                    class="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-line-strong rounded-lg text-sm font-medium text-ink-secondary hover:border-brand hover:text-brand-strong transition-colors">
                     <component :is="Plus" class="w-5 h-5 mr-2" />
                     URL hinzufügen
                 </button>
 
                 <!-- All types used info -->
-                <p v-if="!hasAvailableTypes && !isAdding && !isEditing" class="text-center text-sm text-gray-500 py-2">
+                <p v-if="!hasAvailableTypes && !isAdding && !isEditing" class="text-center text-sm text-ink-muted py-2">
                     Alle verfügbaren Dokumenttypen wurden bereits hinterlegt.
                 </p>
             </div>

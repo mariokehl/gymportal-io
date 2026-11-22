@@ -6,8 +6,54 @@
 @source '../**/*.js';
 @source '../views';
 
+/*
+ * Brand typeface: Instrument Sans (variable, wght 400–700), self-hosted like on
+ * the landing page, so no third-party request is made (GDPR). The latin
+ * subset is preloaded in app.blade.php.
+ */
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+        U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+        U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+        U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+        U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Metric-matched fallback shown until the web font arrives, so the swap does
+   not reflow the layout. Values derived from the font files: average width of
+   German text vs. Arial, and the vertical metrics rescaled by that factor. */
+@font-face {
+    font-family: 'Instrument Sans Fallback';
+    src: local('Arial'), local('ArialMT'), local('Helvetica');
+    size-adjust: 102.77%;
+    ascent-override: 94.39%;
+    descent-override: 24.33%;
+    line-gap-override: 0%;
+}
+
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Instrument Sans', 'Instrument Sans Fallback', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Type roles below Tailwind's `text-xs`/`text-sm` steps for dense UI:
+       compact = table cells, filters, toolbars; 2xs = badges and chips. */
+    --text-compact: 0.8125rem;
+    --text-compact--line-height: 1.125rem;
+    --text-2xs: 0.6875rem;
+    --text-2xs--line-height: 1rem;
 
     /* Elevation kept from the Tailwind v3 look the UI was built with. */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -27,45 +73,94 @@
     --color-canvas: var(--color-gray-100);
     --color-surface: var(--color-white);
     --color-surface-muted: var(--color-gray-50);
+    --color-inverse: var(--color-gray-900); /* tooltips, dark chips */
+
+    /* Neutral fills: badges, hover tints, disabled controls, tracks */
+    --color-fill: var(--color-gray-100);
+    --color-fill-strong: var(--color-gray-200);
 
     /* Lines */
+    --color-line-subtle: var(--color-gray-100);
     --color-line: var(--color-gray-200);
     --color-line-strong: var(--color-gray-300);
 
-    /* Text. ink-muted is the lightest shade allowed for readable text (4.8:1);
-       ink-disabled is for disabled controls and decoration only. */
+    /* Text. ink-muted is the lightest shade allowed for readable text: tuned
+       between gray-500 and gray-600 so it holds 4.5:1 not only on white
+       (5.5:1) but also on the canvas and fills (5.0:1). ink-disabled is for
+       disabled controls and decoration only. */
     --color-ink: var(--color-gray-900);
-    --color-ink-secondary: var(--color-gray-600);
-    --color-ink-muted: var(--color-gray-500);
+    --color-ink-secondary: var(--color-gray-700);
+    --color-ink-muted: oklch(52% 0.027 264.4);
     --color-ink-disabled: var(--color-gray-400);
 
     /* Brand: action, selection, focus */
     --color-brand: var(--color-indigo-600);
     --color-brand-strong: var(--color-indigo-700);
     --color-brand-subtle: var(--color-indigo-50);
+    --color-brand-soft: var(--color-indigo-100);
     --color-brand-line: var(--color-indigo-200);
     --color-focus: var(--color-indigo-500);
 
-    /* Status: `*` is text/icon ink (≥4.5:1 on its subtle surface), `*-subtle`
-       the tinted surface, `*-line` its border. */
+    /* Status. Per tone:
+       `*`             text/icon ink, ≥4.5:1 on white and on its tints
+       `*-strong`      text on `*-soft` badges and alert headings
+       `*-subtle`      tinted panel surface
+       `*-soft`        badge / chip fill
+       `*-line`        border on tinted surfaces
+       `*-solid`       filled controls and dots
+       `*-solid-strong` hover/pressed state of `*-solid` */
     --color-success: var(--color-green-700);
+    --color-success-strong: var(--color-green-800);
     --color-success-subtle: var(--color-green-50);
+    --color-success-soft: var(--color-green-100);
     --color-success-line: var(--color-green-200);
+    --color-success-solid: var(--color-green-600);
+    --color-success-solid-strong: var(--color-green-700);
+
     --color-warning: var(--color-amber-700);
+    --color-warning-strong: var(--color-amber-800);
     --color-warning-subtle: var(--color-amber-50);
+    --color-warning-soft: var(--color-amber-100);
     --color-warning-line: var(--color-amber-200);
+    --color-warning-solid: var(--color-amber-500);
+    --color-warning-solid-strong: var(--color-amber-600);
+
     --color-danger: var(--color-red-700);
+    --color-danger-strong: var(--color-red-800);
     --color-danger-subtle: var(--color-red-50);
+    --color-danger-soft: var(--color-red-100);
     --color-danger-line: var(--color-red-200);
-    --color-danger-solid: var(--color-red-600); /* filled badges, white text 4.6:1 */
+    --color-danger-solid: var(--color-red-600); /* white text 4.6:1 */
+    --color-danger-solid-strong: var(--color-red-700);
+
     --color-info: var(--color-blue-700);
+    --color-info-strong: var(--color-blue-800);
     --color-info-subtle: var(--color-blue-50);
+    --color-info-soft: var(--color-blue-100);
     --color-info-line: var(--color-blue-200);
+    --color-info-solid: var(--color-blue-600);
+    --color-info-solid-strong: var(--color-blue-700);
 }
 
 /* `@theme inline` roles are not emitted as CSS variables; --theme() resolves
    them at build time for use outside utilities. */
 @layer base {
+    /* Headings: brand tracking (STYLEGUIDE: headlines run slightly tight) and
+       balanced breaks. Utilities on an element still win. */
+    :where(h1, h2, h3) {
+        letter-spacing: -0.011em;
+        text-wrap: balance;
+    }
+
+    :where(p, li, dd) {
+        text-wrap: pretty;
+    }
+
+    /* Figures line up in columns of amounts, dates and IDs. */
+    :where(table) {
+        font-variant-numeric: tabular-nums;
+    }
+
     /* Native checkboxes, radios and range inputs follow the brand. */
     :root {
         accent-color: --theme(--color-brand);
@@ -76,8 +171,8 @@
         color: --theme(--color-indigo-950);
     }
 
-    /* One visible keyboard focus for everything that does not style its own
-       (components with `focus:ring-*` / `focus:outline-none` still win). */
+    /* The one keyboard focus indicator for buttons, links and custom
+       controls. Form fields draw theirs via `.field:focus`. */
     :focus-visible {
         outline: 2px solid --theme(--color-focus);
         outline-offset: 2px;
@@ -88,19 +183,91 @@
     nav :is(a, button):focus-visible {
         outline-offset: -2px;
     }
+}
 
-    /* Controls that draw their own focus ring (with a width) keep just that
-       ring instead of ring plus outline. A bare `focus:ring-<color>` sets no
-       width, so those still get the outline above. */
-    :is(
-        [class~='focus:ring'],
-        [class*='focus:ring-1'],
-        [class*='focus:ring-2'],
-        [class*='focus:ring-4'],
-        [class*='focus-visible:ring-1'],
-        [class*='focus-visible:ring-2']
-    ):focus-visible {
+/*
+ * Text inputs, selects and textareas share one look and one focus state.
+ * Layout (width, padding, height) stays in markup; utilities on the element
+ * (e.g. an error `border-danger`) still win over this component layer.
+ */
+@layer components {
+    /* 14px with a mouse; 16px on touch screens, where anything smaller makes
+       iOS zoom into the field on focus. */
+    .field {
+        font-size: --theme(--text-sm);
+        line-height: --theme(--text-sm--line-height);
+        border: 1px solid --theme(--color-line-strong);
+        border-radius: --theme(--radius-md);
+        background-color: --theme(--color-surface);
+        color: --theme(--color-ink);
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    @media (pointer: coarse) {
+        .field {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+    }
+
+    .field::placeholder {
+        color: --theme(--color-ink-muted);
+        opacity: 1;
+    }
+
+    /* Brand border plus a 1px ring: a crisp 2px edge without layout shift. */
+    .field:focus {
         outline: none;
+        border-color: --theme(--color-brand);
+        box-shadow: 0 0 0 1px --theme(--color-brand);
+    }
+
+    .field:disabled,
+    .field[readonly] {
+        background-color: --theme(--color-fill);
+        color: --theme(--color-ink-muted);
+    }
+
+    .field:disabled {
+        cursor: not-allowed;
+    }
+
+    .field[aria-invalid='true'] {
+        border-color: --theme(--color-danger);
+    }
+
+    .field[aria-invalid='true']:focus {
+        box-shadow: 0 0 0 1px --theme(--color-danger);
+    }
+}
+
+/*
+ * Touch screens: small controls (icon buttons, row checkboxes, sort headers)
+ * get a 44px hit area without changing how they look or the layout around
+ * them. Mouse users keep the dense desktop UI. The element must be positioned
+ * (add `relative` unless it already is `absolute`/`fixed`).
+ */
+@utility touch-target {
+    @media (pointer: coarse) {
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: max(100%, 44px);
+            height: max(100%, 44px);
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+/* Native checkboxes and radios cannot carry a pseudo hit area; on touch
+   screens they grow instead. Unlayered on purpose so it beats the `h-4 w-4`
+   utilities they are sized with. */
+@media (pointer: coarse) {
+    input:is([type='checkbox'], [type='radio']):not(.sr-only) {
+        width: 1.375rem;
+        height: 1.375rem;
     }
 }
 

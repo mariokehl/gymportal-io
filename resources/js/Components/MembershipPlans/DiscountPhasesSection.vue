@@ -1,13 +1,13 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+  <div class="bg-surface rounded-lg shadow-sm border border-line">
     <!-- Header with enable toggle -->
-    <div class="p-5 border-b border-gray-100 flex items-start gap-3">
-      <div class="w-10 h-10 flex-none rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+    <div class="p-5 border-b border-line-subtle flex items-start gap-3">
+      <div class="w-10 h-10 flex-none rounded-lg bg-brand-subtle text-brand flex items-center justify-center">
         <Tags class="w-5 h-5" />
       </div>
       <div class="flex-1 min-w-0">
-        <h3 class="text-base font-semibold text-gray-900">Rabatte</h3>
-        <p class="text-xs text-gray-500 leading-relaxed mt-0.5">
+        <h3 class="text-base font-semibold text-ink">Rabatte</h3>
+        <p class="text-xs text-ink-muted leading-relaxed mt-0.5">
           Aktionspreise überschreiben Preis &amp; UVP für die ersten Monate. Danach gilt der reguläre Preis.
         </p>
       </div>
@@ -17,12 +17,12 @@
         :aria-checked="enabled && supportsBillingCycle"
         :disabled="!supportsBillingCycle"
         aria-label="Rabatte aktivieren"
-        class="w-10 h-6 flex-none rounded-full p-0.5 transition-colors mt-0.5 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
-        :class="enabled && supportsBillingCycle ? 'bg-indigo-600' : 'bg-gray-300'"
+        class="w-10 h-6 flex-none rounded-full p-0.5 transition-colors mt-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+        :class="enabled && supportsBillingCycle ? 'bg-brand' : 'bg-line-strong'"
         @click="toggleEnabled"
       >
         <span
-          class="block w-5 h-5 rounded-full bg-white shadow transition-transform"
+          class="block w-5 h-5 rounded-full bg-surface shadow transition-transform"
           :class="enabled && supportsBillingCycle ? 'translate-x-4' : 'translate-x-0'"
         />
       </button>
@@ -30,16 +30,16 @@
 
     <div class="p-5">
       <!-- Billing cycle does not support phases -->
-      <div v-if="!supportsBillingCycle" class="flex gap-2.5 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
-        <AlertTriangle class="w-4 h-4 flex-none text-amber-600 mt-px" />
-        <p class="text-xs text-amber-700 leading-relaxed">
+      <div v-if="!supportsBillingCycle" class="flex gap-2.5 px-3 py-2.5 rounded-lg bg-warning-subtle border border-warning-line">
+        <AlertTriangle class="w-4 h-4 flex-none text-warning mt-px" />
+        <p class="text-xs text-warning leading-relaxed">
           Rabattphasen laufen in Monaten und lassen sich nur für den Abrechnungszyklus
           „Monatlich“ hinterlegen. Stellen Sie den Zyklus um, um Aktionspreise zu nutzen.
         </p>
       </div>
 
       <!-- Disabled state -->
-      <div v-else-if="!enabled" class="text-center py-6 px-2 text-gray-400">
+      <div v-else-if="!enabled" class="text-center py-6 px-2 text-ink-muted">
         <p class="text-sm leading-relaxed">
           Rabatte sind für diesen Vertrag deaktiviert.<br />
           Aktivieren Sie den Schalter oben, um Aktionspreise zu hinterlegen.
@@ -49,27 +49,27 @@
       <template v-else>
         <!-- Empty state with templates -->
         <template v-if="phases.length === 0">
-          <div class="border border-dashed border-gray-300 rounded-lg py-6 px-4 text-center mb-4">
-            <div class="w-10 h-10 mx-auto mb-2.5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center">
+          <div class="border border-dashed border-line-strong rounded-lg py-6 px-4 text-center mb-4">
+            <div class="w-10 h-10 mx-auto mb-2.5 rounded-full bg-fill text-ink-muted flex items-center justify-center">
               <Tag class="w-5 h-5" />
             </div>
-            <p class="text-sm font-semibold text-gray-900">Noch keine Rabattphasen</p>
-            <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">
+            <p class="text-sm font-semibold text-ink">Noch keine Rabattphasen</p>
+            <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
               Legen Sie Aktionspreise für die ersten Monate der Laufzeit fest.
             </p>
           </div>
 
-          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 mb-2">Vorlagen</p>
+          <p class="text-xs font-medium uppercase tracking-wide text-ink-muted mb-2">Vorlagen</p>
           <div class="flex flex-col gap-2 mb-4">
             <button
               v-for="template in templates"
               :key="template.key"
               type="button"
-              class="text-left text-sm px-3 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-900 hover:border-indigo-300 hover:bg-indigo-50 transition-colors flex justify-between items-center gap-3"
+              class="text-left text-sm px-3 py-2.5 border border-line rounded-lg bg-surface text-ink hover:border-brand-line hover:bg-brand-subtle transition-colors flex justify-between items-center gap-3"
               @click="applyTemplate(template)"
             >
               <span class="font-semibold">{{ template.label }}</span>
-              <span class="text-gray-500 text-xs text-right">{{ template.summary }}</span>
+              <span class="text-ink-muted text-xs text-right">{{ template.summary }}</span>
             </button>
           </div>
         </template>
@@ -79,14 +79,14 @@
           <div
             v-for="(phase, index) in phases"
             :key="index"
-            class="border border-gray-200 rounded-lg bg-gray-50 p-3.5"
+            class="border border-line rounded-lg bg-surface-muted p-3.5"
           >
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-semibold text-gray-900">{{ index + 1 }}. Phase</span>
+                <span class="text-sm font-semibold text-ink">{{ index + 1 }}. Phase</span>
                 <span
                   v-if="rangeLabel(index)"
-                  class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full"
+                  class="text-xs font-medium text-brand bg-brand-subtle px-2 py-0.5 rounded-full"
                 >
                   {{ rangeLabel(index) }}
                 </span>
@@ -95,7 +95,7 @@
                 type="button"
                 title="Phase entfernen"
                 :aria-label="`Phase ${index + 1} entfernen`"
-                class="text-gray-400 hover:text-red-600 transition-colors p-0.5 rounded"
+                class="text-ink-muted hover:text-danger-strong transition-colors p-0.5 rounded"
                 @click="removePhase(index)"
               >
                 <Trash2 class="w-4 h-4" />
@@ -104,7 +104,7 @@
 
             <div class="grid grid-cols-3 gap-3">
               <div>
-                <label :for="`phase_duration_${index}`" class="block text-xs font-medium text-gray-500 mb-1">
+                <label :for="`phase_duration_${index}`" class="block text-xs font-medium text-ink-muted mb-1">
                   Dauer (Mon.)
                 </label>
                 <input
@@ -114,14 +114,14 @@
                   min="1"
                   max="120"
                   step="1"
-                  class="w-full text-sm border border-gray-300 rounded-md px-2.5 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                  :class="{ 'border-red-500': phaseError(index, 'duration_months') }"
+                  class="field w-full px-2.5 py-2"
+                  :class="{ 'border-danger': phaseError(index, 'duration_months') }"
                   placeholder="3"
                   @input="emitChange"
                 />
               </div>
               <div>
-                <label :for="`phase_price_${index}`" class="block text-xs font-medium text-gray-500 mb-1">
+                <label :for="`phase_price_${index}`" class="block text-xs font-medium text-ink-muted mb-1">
                   Preis (€)
                 </label>
                 <input
@@ -131,14 +131,14 @@
                   min="0"
                   max="9999.99"
                   step="0.01"
-                  class="w-full text-sm border border-gray-300 rounded-md px-2.5 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                  :class="{ 'border-red-500': phaseError(index, 'price') }"
+                  class="field w-full px-2.5 py-2"
+                  :class="{ 'border-danger': phaseError(index, 'price') }"
                   placeholder="0.00"
                   @input="emitChange"
                 />
               </div>
               <div>
-                <label :for="`phase_uvp_${index}`" class="block text-xs font-medium text-gray-500 mb-1">
+                <label :for="`phase_uvp_${index}`" class="block text-xs font-medium text-ink-muted mb-1">
                   UVP (€)
                 </label>
                 <input
@@ -148,20 +148,20 @@
                   min="0"
                   max="9999.99"
                   step="0.01"
-                  class="w-full text-sm border border-gray-300 rounded-md px-2.5 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                  :class="{ 'border-red-500': phaseError(index, 'original_price') }"
+                  class="field w-full px-2.5 py-2"
+                  :class="{ 'border-danger': phaseError(index, 'original_price') }"
                   :placeholder="originalPrice || '0.00'"
                   @input="emitChange"
                 />
               </div>
             </div>
 
-            <p v-if="phaseError(index)" class="mt-2 text-xs text-red-600">
+            <p v-if="phaseError(index)" class="mt-2 text-xs text-danger">
               {{ phaseError(index) }}
             </p>
             <p
               v-else-if="phaseSavings(phase) > 0"
-              class="mt-2 text-xs text-green-700 flex items-center gap-1.5"
+              class="mt-2 text-xs text-success flex items-center gap-1.5"
             >
               <Check class="w-3.5 h-3.5" />
               {{ formatCents(phaseSavings(phase)) }} günstiger pro Monat
@@ -172,7 +172,7 @@
         <!-- Add phase -->
         <button
           type="button"
-          class="w-full text-sm font-medium py-2.5 border border-dashed border-indigo-300 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1.5"
+          class="w-full text-sm font-medium py-2.5 border border-dashed border-brand-line rounded-lg bg-brand-subtle text-brand hover:bg-brand-soft transition-colors flex items-center justify-center gap-1.5"
           :class="phases.length > 0 ? 'mt-3' : ''"
           @click="addPhase"
         >
@@ -183,10 +183,10 @@
         <!-- Warning: phases outrun the minimum commitment -->
         <div
           v-if="projection.exceedsTerm"
-          class="mt-3.5 flex gap-2.5 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200"
+          class="mt-3.5 flex gap-2.5 px-3 py-2.5 rounded-lg bg-warning-subtle border border-warning-line"
         >
-          <AlertTriangle class="w-4 h-4 flex-none text-amber-600 mt-px" />
-          <p class="text-xs text-amber-700 leading-relaxed">
+          <AlertTriangle class="w-4 h-4 flex-none text-warning mt-px" />
+          <p class="text-xs text-warning leading-relaxed">
             Die Rabattphasen umfassen {{ projection.discountedMonths }} Monate und überschreiten damit die
             Mindestlaufzeit von {{ commitmentMonths }} Monaten. Mitglieder könnten kündigen, bevor der
             reguläre Preis greift.
@@ -194,44 +194,44 @@
         </div>
 
         <!-- Preisverlauf -->
-        <div v-if="phases.length > 0" class="mt-5 pt-4 border-t border-gray-100">
-          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 mb-2.5">Preisverlauf</p>
+        <div v-if="phases.length > 0" class="mt-5 pt-4 border-t border-line-subtle">
+          <p class="text-xs font-medium uppercase tracking-wide text-ink-muted mb-2.5">Preisverlauf</p>
 
           <div class="flex gap-0.5 h-13 rounded-md overflow-hidden" style="height: 52px">
             <div
               v-for="(segment, index) in projection.segments"
               :key="index"
               class="flex flex-col items-center justify-center overflow-hidden px-0.5"
-              :class="segment.isDiscounted ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'"
+              :class="segment.isDiscounted ? 'bg-brand text-white' : 'bg-fill-strong text-ink-secondary'"
               :style="{ width: segmentWidth(segment) }"
             >
               <span class="text-xs font-bold whitespace-nowrap">{{ formatCents(segment.priceCents) }}</span>
-              <span class="text-[9px] opacity-85 whitespace-nowrap mt-px">
+              <span class="text-2xs opacity-85 whitespace-nowrap mt-px">
                 {{ segmentRangeLabel(segment) }}
               </span>
             </div>
           </div>
 
-          <dl class="mt-4 bg-gray-50 rounded-lg px-4 py-3.5">
+          <dl class="mt-4 bg-surface-muted rounded-lg px-4 py-3.5">
             <div class="flex justify-between text-sm mb-2">
-              <dt class="text-gray-600">Betrachtete Laufzeit</dt>
-              <dd class="text-gray-900 font-medium">{{ projection.termMonths }} Monate</dd>
+              <dt class="text-ink-secondary">Betrachtete Laufzeit</dt>
+              <dd class="text-ink font-medium">{{ projection.termMonths }} Monate</dd>
             </div>
             <div class="flex justify-between text-sm mb-2">
-              <dt class="text-gray-600">Regulär (ohne Rabatt)</dt>
-              <dd class="text-gray-900 font-medium">{{ formatCents(projection.regularTotalCents) }}</dd>
+              <dt class="text-ink-secondary">Regulär (ohne Rabatt)</dt>
+              <dd class="text-ink font-medium">{{ formatCents(projection.regularTotalCents) }}</dd>
             </div>
             <div class="flex justify-between text-sm mb-2.5">
-              <dt class="text-gray-600">Mit Rabatt</dt>
-              <dd class="text-gray-900 font-medium">{{ formatCents(projection.discountedTotalCents) }}</dd>
+              <dt class="text-ink-secondary">Mit Rabatt</dt>
+              <dd class="text-ink font-medium">{{ formatCents(projection.discountedTotalCents) }}</dd>
             </div>
-            <div class="flex justify-between text-sm pt-2.5 border-t border-gray-200">
-              <dt class="text-gray-900 font-semibold">Ersparnis für Mitglied</dt>
-              <dd class="text-green-700 font-bold">{{ formatCents(projection.savingsCents) }}</dd>
+            <div class="flex justify-between text-sm pt-2.5 border-t border-line">
+              <dt class="text-ink font-semibold">Ersparnis für Mitglied</dt>
+              <dd class="text-success font-bold">{{ formatCents(projection.savingsCents) }}</dd>
             </div>
           </dl>
 
-          <p class="mt-2.5 text-xs text-gray-500 leading-relaxed">
+          <p class="mt-2.5 text-xs text-ink-muted leading-relaxed">
             Vorschau auf Basis der Mindestlaufzeit. Aktivierungsgebühren sind nicht enthalten.
           </p>
         </div>

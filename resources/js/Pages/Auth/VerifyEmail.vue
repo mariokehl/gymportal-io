@@ -1,24 +1,24 @@
 <template>
   <Head title="E-Mail bestätigen" />
 
-  <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-surface-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div class="text-center">
-        <svg class="mx-auto h-12 w-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+        <h2 class="mt-6 text-3xl font-extrabold text-ink">
           E-Mail-Adresse bestätigen
         </h2>
-        <p class="mt-2 text-sm text-gray-600">
+        <p class="mt-2 text-sm text-ink-secondary">
           Fast geschafft! Überprüfen Sie Ihr E-Mail-Postfach.
         </p>
       </div>
 
-      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div class="bg-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
         <div class="space-y-6">
-          <div class="text-sm text-gray-600">
+          <div class="text-sm text-ink-secondary">
             <p class="mb-4">
               Hallo <span class="font-semibold">{{ userName }}</span>!
             </p>
@@ -27,18 +27,18 @@
               Bitte klicken Sie auf den Link in der E-Mail, um Ihre Adresse zu bestätigen.
             </p>
 
-            <div class="p-4 bg-amber-50 border border-amber-200 rounded-md">
+            <div class="p-4 bg-warning-subtle border border-warning-line rounded-md">
               <div class="flex">
-                <svg class="h-5 w-5 text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="h-5 w-5 text-warning flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd"
                         d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                         clip-rule="evenodd" />
                 </svg>
                 <div class="ml-3">
-                  <p class="text-sm text-amber-700">
+                  <p class="text-sm text-warning">
                     <strong>Wichtig:</strong> Der Link ist nur 60 Minuten gültig.
                   </p>
-                  <p class="text-xs text-amber-600 mt-1">
+                  <p class="text-xs text-warning mt-1">
                     Prüfen Sie auch Ihren Spam-Ordner.
                   </p>
                 </div>
@@ -46,8 +46,8 @@
             </div>
           </div>
 
-          <div class="border-t border-gray-200 pt-6">
-            <p class="text-sm text-gray-600 mb-4">
+          <div class="border-t border-line pt-6">
+            <p class="text-sm text-ink-secondary mb-4">
               Keine E-Mail erhalten?
             </p>
 
@@ -59,7 +59,7 @@
                   'w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-all',
                   processing
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                    : 'bg-brand hover:bg-brand-strong'
                 ]"
               >
                 <span v-if="!processing">E-Mail erneut senden</span>
@@ -79,7 +79,7 @@
               :href="route('logout')"
               method="post"
               as="button"
-              class="text-sm text-gray-500 hover:text-gray-700 underline"
+              class="text-sm text-ink-muted hover:text-ink underline"
             >
               Abmelden
             </Link>
@@ -88,7 +88,7 @@
       </div>
 
       <div class="text-center">
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-ink-muted">
           Probleme? Kontaktieren Sie uns unter support@gymportal.io
         </p>
       </div>

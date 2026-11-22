@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Actions Bar -->
-    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+    <div class="bg-surface p-4 rounded-lg shadow-sm border border-line mb-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="flex items-center">
@@ -11,20 +11,20 @@
               :checked="isAllSelected"
               @change="toggleSelectAll"
               :disabled="batchExecutingPayments"
-              class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50"
+              class="h-4 w-4 text-brand border-line-strong rounded disabled:opacity-50"
             />
-            <label for="select-all" class="ml-2 text-sm font-medium text-gray-700">
+            <label for="select-all" class="ml-2 text-sm font-medium text-ink-secondary">
               Alle auswählen
             </label>
           </div>
 
-          <span v-if="selectedPayments.length > 0" class="text-sm text-gray-600">
+          <span v-if="selectedPayments.length > 0" class="text-sm text-ink-secondary">
             {{ selectedPayments.length }} von {{ payments.data.length }} ausgewählt
           </span>
 
           <!-- Batch Progress Indicator -->
-          <div v-if="batchExecutingPayments" class="flex items-center text-sm text-indigo-600">
-            <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+          <div v-if="batchExecutingPayments" class="flex items-center text-sm text-brand">
+            <div class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin mr-2"></div>
             Zahlungen werden ausgeführt...
           </div>
         </div>
@@ -37,7 +37,7 @@
             v-if="selectedPayments.length > 0 && showCsvExport"
             @click="handleExport('csv')"
             :disabled="batchExecutingPayments"
-            class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center px-4 py-2 text-sm font-medium text-ink-secondary bg-surface border border-line-strong rounded-lg hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download class="w-4 h-4 mr-2" />
             CSV Export
@@ -47,7 +47,7 @@
             v-if="selectedSepaPayments.length > 0 && showSepaExport"
             @click="handleExport('pain008')"
             :disabled="batchExecutingPayments"
-            class="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center px-4 py-2 text-sm font-medium text-white bg-brand border border-transparent rounded-lg hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download class="w-4 h-4 mr-2" />
             PAIN.008 Export ({{ selectedSepaPayments.length }})
@@ -57,25 +57,25 @@
     </div>
 
     <!-- Payments Table -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-surface rounded-lg shadow-sm border border-line overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-line">
+          <thead class="bg-surface-muted">
             <tr>
-              <th class="px-6 py-3 text-left" v-if="showCheckboxes">
+              <th class="px-4 2xl:px-6 py-3 text-left" v-if="showCheckboxes">
                 <input
                   type="checkbox"
                   :checked="isAllSelected"
                   @change="toggleSelectAll"
-                  class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  class="h-4 w-4 text-brand border-line-strong rounded"
                 />
               </th>
               <th
                 v-for="column in visibleColumns"
                 :key="column.key"
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-4 2xl:px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider"
                 :class="{
-                  'cursor-pointer hover:bg-gray-100': column.sortable,
+                  'cursor-pointer hover:bg-fill': column.sortable,
                   'text-right': column.align === 'right'
                 }"
                 @click="column.sortable && handleSort(column.sortKey || column.key)"
@@ -85,12 +85,12 @@
                   <ArrowUpDown v-if="column.sortable" class="w-4 h-4 ml-1" />
                 </div>
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" v-if="showActions">
+              <th class="px-4 2xl:px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider" v-if="showActions">
                 Aktionen
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-surface divide-y divide-line">
             <template v-for="payment in payments.data" :key="payment.id">
             <tr
               :class="[
@@ -98,19 +98,19 @@
                 { 'opacity-60': executingPaymentId === payment.id }
               ]"
             >
-              <td class="px-6 py-4 whitespace-nowrap" v-if="showCheckboxes">
+              <td class="px-4 2xl:px-6 py-4 whitespace-nowrap" v-if="showCheckboxes">
                 <input
                   type="checkbox"
                   :value="payment.id"
                   v-model="selectedPayments"
                   :disabled="executingPaymentId === payment.id || batchExecutingPayments"
-                  class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50"
+                  class="h-4 w-4 text-brand border-line-strong rounded disabled:opacity-50"
                 />
               </td>
               <td
                 v-for="column in visibleColumns"
                 :key="column.key"
-                class="px-6 py-4"
+                class="px-4 2xl:px-6 py-4"
                 :class="{
                   'whitespace-nowrap': column.nowrap,
                   'text-right': column.align === 'right'
@@ -118,12 +118,12 @@
               >
                 <!-- ID Column -->
                 <template v-if="column.key === 'id'">
-                  <span class="text-sm font-medium text-gray-900">#{{ payment.id }}</span>
+                  <span class="text-sm font-medium text-ink">#{{ payment.id }}</span>
                 </template>
 
                 <!-- Date Column -->
                 <template v-else-if="column.key === 'created_at'">
-                  <span class="text-sm text-gray-900">{{ formatDate(payment.created_at) }}</span>
+                  <span class="text-sm text-ink">{{ formatDate(payment.created_at) }}</span>
                 </template>
 
                 <!-- Member Column -->
@@ -137,14 +137,15 @@
 
                 <!-- Description Column -->
                 <template v-else-if="column.key === 'description'">
-                  <div class="text-sm text-gray-900 text-nowrap">{{ payment.description }}</div>
-                  <div v-if="isCreditTopup(payment)" class="text-xs text-gray-500 text-nowrap font-mono">
+                  <!-- Wraps (within a readable width) so the table fits narrower screens -->
+                  <div class="min-w-48 max-w-sm text-sm text-ink">{{ payment.description }}</div>
+                  <div v-if="isCreditTopup(payment)" class="max-w-sm truncate text-xs text-ink-muted font-mono">
                     {{ creditTopupSource(payment) }}
                   </div>
-                  <div v-else-if="payment.transaction_id" class="text-xs text-gray-500 text-nowrap font-mono">
+                  <div v-else-if="payment.transaction_id" class="max-w-sm truncate text-xs text-ink-muted font-mono" :title="payment.transaction_id">
                     Tx: {{ payment.transaction_id }}
                   </div>
-                  <div v-else-if="payment.mollie_payment_id" class="text-xs text-gray-500 text-nowrap font-mono">
+                  <div v-else-if="payment.mollie_payment_id" class="max-w-sm truncate text-xs text-ink-muted font-mono" :title="payment.mollie_payment_id">
                     Tx: {{ payment.mollie_payment_id }}
                   </div>
                 </template>
@@ -178,7 +179,7 @@
                     <button
                       v-if="hasCreditRedemption(payment)"
                       @click.stop="toggleRowExpansion(payment.id)"
-                      class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer"
+                      class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand-subtle text-brand hover:bg-brand-soft transition-colors cursor-pointer"
                       :title="isRowExpanded(payment.id) ? 'Guthaben-Einlösung ausblenden' : 'Guthaben-Einlösung anzeigen'"
                     >
                       1
@@ -189,7 +190,7 @@
                     </button>
                     <div
                       v-if="executingPaymentId === payment.id"
-                      class="ml-2 w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"
+                      class="ml-2 w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"
                       title="Zahlung wird ausgeführt..."
                     ></div>
                   </div>
@@ -197,21 +198,21 @@
 
                 <!-- Payment Method Column -->
                 <template v-else-if="column.key === 'payment_method'">
-                  <span class="text-sm text-gray-900 inline-flex items-center gap-1.5">
+                  <span class="text-sm text-ink inline-flex items-center gap-1.5">
                     <BanknoteArrowUp
                       v-if="isCreditTopup(payment)"
-                      class="w-4 h-4 text-indigo-600 flex-none"
+                      class="w-4 h-4 text-brand flex-none"
                       title="Guthaben-Aufladung"
                     />
                     <BanknoteArrowDown
                       v-else-if="hasCreditRedemption(payment)"
-                      class="w-4 h-4 text-indigo-600 flex-none"
+                      class="w-4 h-4 text-brand flex-none"
                       title="Guthaben-Einlösung"
                     />
                     <component
                       :is="getPaymentMethodIcon(payment)"
                       v-else-if="getPaymentMethodIcon(payment)"
-                      class="w-4 h-4 text-gray-400 flex-none"
+                      class="w-4 h-4 text-ink-muted flex-none"
                     />
                     {{ getPaymentMethodLabel(payment) }}
                   </span>
@@ -219,9 +220,9 @@
 
                 <!-- Due Date Column -->
                 <template v-else-if="column.key === 'due_date'">
-                  <div v-if="payment.due_date" class="text-sm text-gray-900">{{ formatDate(payment.due_date) }}</div>
-                  <span v-else class="text-sm text-gray-400">-</span>
-                  <div v-if="payment.execution_date" class="text-sm text-gray-500">{{ formatDate(payment.execution_date) }}</div>
+                  <div v-if="payment.due_date" class="text-sm text-ink">{{ formatDate(payment.due_date) }}</div>
+                  <span v-else class="text-sm text-ink-muted">-</span>
+                  <div v-if="payment.execution_date" class="text-sm text-ink-muted">{{ formatDate(payment.execution_date) }}</div>
                 </template>
 
                 <!-- Custom Column Slot -->
@@ -231,12 +232,13 @@
                   </slot>
                 </template>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" v-if="showActions">
-                <div class="flex items-center justify-end space-x-2">
+              <td class="px-4 2xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium" v-if="showActions">
+                <!-- Touch: spread icons so their 44px hit areas do not overlap -->
+                <div class="flex items-center justify-end space-x-2 pointer-coarse:space-x-7">
                   <button
                     v-if="showViewDetails"
                     @click="viewPayment(payment)"
-                    class="text-gray-700 hover:text-gray-900"
+                    class="touch-target relative text-ink-secondary hover:text-ink"
                     title="Details anzeigen"
                   >
                     <Eye class="w-4 h-4" />
@@ -244,7 +246,7 @@
                   <button
                     v-if="payment.status === 'pending' && showMarkAsPaid"
                     @click="markAsPaid(payment)"
-                    class="text-green-600 hover:text-green-900"
+                    class="touch-target relative text-success hover:text-success-strong"
                     title="Als bezahlt markieren"
                   >
                     <CheckCircle class="w-4 h-4" />
@@ -252,7 +254,7 @@
                   <button
                     v-if="payment.status === 'pending' && showCancelPayment"
                     @click="cancelPayment(payment)"
-                    class="text-red-600 hover:text-red-900"
+                    class="touch-target relative text-danger hover:text-danger-strong"
                     title="Zahlung abbrechen"
                   >
                     <XCircle class="w-4 h-4" />
@@ -272,35 +274,35 @@
                 <div class="space-y-4">
                   <!-- Credit redemption -->
                   <div v-if="getCreditRedemption(payment)">
-                    <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
-                      <RotateCcw class="w-4 h-4 mr-2 text-indigo-600" />
+                    <h4 class="text-sm font-semibold text-ink flex items-center mb-2">
+                      <RotateCcw class="w-4 h-4 mr-2 text-brand" />
                       Guthaben-Einlösung (1)
                     </h4>
-                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-100">
+                    <div class="bg-surface rounded-lg border border-line overflow-hidden">
+                      <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-fill">
                           <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Restguthaben</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Datum</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Betrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Beschreibung</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Restguthaben</th>
                           </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                          <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2 text-sm text-gray-900 font-mono">{{ getCreditRedemption(payment).evId }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600">{{ formatDate(payment.paid_date || payment.due_date || payment.created_at) }}</td>
-                            <td class="px-4 py-2 text-sm font-semibold text-indigo-600">− {{ formatCentsEuro(getCreditRedemption(payment).redeemedCents) }}</td>
+                        <tbody class="divide-y divide-line">
+                          <tr class="hover:bg-surface-muted">
+                            <td class="px-4 py-2 text-sm text-ink font-mono">{{ getCreditRedemption(payment).evId }}</td>
+                            <td class="px-4 py-2 text-sm text-ink-secondary">{{ formatDate(payment.paid_date || payment.due_date || payment.created_at) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-brand">− {{ formatCentsEuro(getCreditRedemption(payment).redeemedCents) }}</td>
                             <td class="px-4 py-2">
-                              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success">
+                                <span class="w-1.5 h-1.5 rounded-full bg-success-solid"></span>
                                 Eingelöst
                               </span>
                             </td>
-                            <td class="px-4 py-2 text-sm text-gray-600">{{ payment.description }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600">{{ formatCentsEuro(getCreditRedemption(payment).balanceAfterCents) }}</td>
+                            <td class="px-4 py-2 text-sm text-ink-secondary">{{ payment.description }}</td>
+                            <td class="px-4 py-2 text-sm text-ink-secondary">{{ formatCentsEuro(getCreditRedemption(payment).balanceAfterCents) }}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -309,30 +311,30 @@
 
                   <!-- Chargebacks -->
                   <div v-if="payment.chargebacks?.length > 0">
-                    <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
-                      <AlertTriangle class="w-4 h-4 mr-2 text-red-500" />
+                    <h4 class="text-sm font-semibold text-ink flex items-center mb-2">
+                      <AlertTriangle class="w-4 h-4 mr-2 text-danger" />
                       Rückbuchungen ({{ payment.chargebacks.length }})
                     </h4>
-                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-100">
+                    <div class="bg-surface rounded-lg border border-line overflow-hidden">
+                      <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-fill">
                           <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grund</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Datum</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Betrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Grund</th>
                           </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                          <tr v-for="chargeback in payment.chargebacks" :key="chargeback.id" class="hover:bg-gray-50">
-                            <td class="px-4 py-2 text-sm text-gray-900 font-mono">{{ chargeback.mollie_chargeback_id }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-900">{{ formatDate(chargeback.chargeback_date) }}</td>
-                            <td class="px-4 py-2 text-sm font-semibold text-red-600">-{{ formatCurrency(chargeback.amount) }}</td>
+                        <tbody class="divide-y divide-line">
+                          <tr v-for="chargeback in payment.chargebacks" :key="chargeback.id" class="hover:bg-surface-muted">
+                            <td class="px-4 py-2 text-sm text-ink font-mono">{{ chargeback.mollie_chargeback_id }}</td>
+                            <td class="px-4 py-2 text-sm text-ink">{{ formatDate(chargeback.chargeback_date) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-danger">-{{ formatCurrency(chargeback.amount) }}</td>
                             <td class="px-4 py-2">
                               <PaymentStatusBadge :status="chargeback.status" type="chargeback" />
                             </td>
-                            <td class="px-4 py-2 text-sm text-gray-600">{{ chargeback.reason || '-' }}</td>
+                            <td class="px-4 py-2 text-sm text-ink-secondary">{{ chargeback.reason || '-' }}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -341,32 +343,32 @@
 
                   <!-- Refunds -->
                   <div v-if="payment.refunds?.length > 0">
-                    <h4 class="text-sm font-semibold text-gray-900 flex items-center mb-2">
-                      <RotateCcw class="w-4 h-4 mr-2 text-blue-500" />
+                    <h4 class="text-sm font-semibold text-ink flex items-center mb-2">
+                      <RotateCcw class="w-4 h-4 mr-2 text-info" />
                       Erstattungen ({{ payment.refunds.length }})
                     </h4>
-                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-100">
+                    <div class="bg-surface rounded-lg border border-line overflow-hidden">
+                      <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-fill">
                           <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grund</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Datum</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Betrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Beschreibung</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-ink-muted uppercase">Grund</th>
                           </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                          <tr v-for="refund in payment.refunds" :key="refund.id" class="hover:bg-gray-50">
-                            <td class="px-4 py-2 text-sm text-gray-900 font-mono">{{ refund.mollie_refund_id }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-900">{{ formatDate(refund.created_at) }}</td>
-                            <td class="px-4 py-2 text-sm font-semibold text-blue-600">-{{ formatCurrency(refund.amount) }}</td>
+                        <tbody class="divide-y divide-line">
+                          <tr v-for="refund in payment.refunds" :key="refund.id" class="hover:bg-surface-muted">
+                            <td class="px-4 py-2 text-sm text-ink font-mono">{{ refund.mollie_refund_id }}</td>
+                            <td class="px-4 py-2 text-sm text-ink">{{ formatDate(refund.created_at) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-info">-{{ formatCurrency(refund.amount) }}</td>
                             <td class="px-4 py-2">
                               <PaymentStatusBadge :status="refund.status" type="refund" />
                             </td>
-                            <td class="px-4 py-2 text-sm text-gray-600">{{ refund.description || '-' }}</td>
-                            <td class="px-4 py-2 text-sm text-gray-600">{{ refund.reason || '-' }}</td>
+                            <td class="px-4 py-2 text-sm text-ink-secondary">{{ refund.description || '-' }}</td>
+                            <td class="px-4 py-2 text-sm text-ink-secondary">{{ refund.reason || '-' }}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -584,20 +586,20 @@ const selectedSepaPayments = computed(() => {
  * pause is the more specific reason the charge is not collected as usual.
  */
 const rowBackgroundClass = (payment) => {
-  if (isWithinPause(payment)) return 'bg-blue-50 hover:bg-blue-100'
-  if (isScheduledInFuture(payment)) return 'bg-amber-50 hover:bg-amber-100'
+  if (isWithinPause(payment)) return 'bg-info-subtle hover:bg-info-soft'
+  if (isScheduledInFuture(payment)) return 'bg-warning-subtle hover:bg-warning-soft'
 
-  return 'hover:bg-gray-50'
+  return 'hover:bg-surface-muted'
 }
 
 /**
  * Matching background for the expanded chargeback/refund/credit sub-row.
  */
 const expandedBackgroundClass = (payment) => {
-  if (isWithinPause(payment)) return 'bg-blue-50'
-  if (isScheduledInFuture(payment)) return 'bg-amber-50'
+  if (isWithinPause(payment)) return 'bg-info-subtle'
+  if (isScheduledInFuture(payment)) return 'bg-warning-subtle'
 
-  return 'bg-gray-50'
+  return 'bg-surface-muted'
 }
 
 const toggleSelectAll = () => {

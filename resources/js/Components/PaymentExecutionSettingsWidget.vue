@@ -1,64 +1,64 @@
 <template>
-    <div class="bg-white shadow-sm rounded-lg">
+    <div class="bg-surface shadow-sm rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex items-end justify-between gap-6 flex-wrap">
                 <div class="max-w-2xl">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    <h3 class="text-lg leading-6 font-semibold text-ink">
                         Ausführungsdaten der Zahlungen
                     </h3>
-                    <p class="mt-1.5 text-sm text-gray-500">
+                    <p class="mt-1.5 text-sm text-ink-muted">
                         Legen Sie pro Zahlungsart fest, wann eine Zahlung relativ zur Fälligkeit vorgemerkt und
                         ausgeführt wird. Ohne abweichende Einstellung gelten die Systemstandards.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Beispiel-Fälligkeit</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-1.5">Beispiel-Fälligkeit</label>
                     <input
                         v-model="sampleDueDate"
                         type="date"
-                        class="block rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                        class="field block px-3 py-1.5" />
                 </div>
             </div>
 
             <!-- Hint: only enabled payment methods can be configured -->
-            <div v-if="inactiveMethods.length" class="flex gap-3 rounded-lg bg-indigo-50 border border-indigo-200 p-4 mt-5">
-                <component :is="Info" class="w-5 h-5 text-indigo-400 flex-none mt-px" />
-                <p class="text-sm text-indigo-800">
+            <div v-if="inactiveMethods.length" class="flex gap-3 rounded-lg bg-brand-subtle border border-brand-line p-4 mt-5">
+                <component :is="Info" class="w-5 h-5 text-brand flex-none mt-px" />
+                <p class="text-sm text-brand-strong">
                     Nur aktivierte Zahlungsarten sind konfigurierbar. Deaktivierte Zahlungsarten aktivieren Sie unter
                     <strong class="font-semibold">Standard Zahlungsarten</strong>.
                 </p>
             </div>
 
-            <div v-if="isLoading" class="py-10 text-center text-sm text-gray-500">
+            <div v-if="isLoading" class="py-10 text-center text-sm text-ink-muted">
                 Ausführungsdaten werden geladen …
             </div>
 
             <template v-else>
                 <!-- Column headers (desktop only; rows stack on mobile) -->
-                <div class="hidden lg:grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_104px] gap-5 pt-5 pb-2.5 border-b border-gray-200">
-                    <div class="text-xs font-medium uppercase tracking-wider text-gray-500">Zahlungsart</div>
-                    <div class="text-xs font-medium uppercase tracking-wider text-gray-500">Initiale Zahlung</div>
-                    <div class="text-xs font-medium uppercase tracking-wider text-gray-500">Wiederkehrende Zahlung</div>
-                    <div class="text-xs font-medium uppercase tracking-wider text-gray-500 text-right">Abweichend</div>
+                <div class="hidden lg:grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_104px] gap-5 pt-5 pb-2.5 border-b border-line">
+                    <div class="text-xs font-medium uppercase tracking-wider text-ink-muted">Zahlungsart</div>
+                    <div class="text-xs font-medium uppercase tracking-wider text-ink-muted">Initiale Zahlung</div>
+                    <div class="text-xs font-medium uppercase tracking-wider text-ink-muted">Wiederkehrende Zahlung</div>
+                    <div class="text-xs font-medium uppercase tracking-wider text-ink-muted text-right">Abweichend</div>
                 </div>
 
                 <!-- Configurable (enabled) payment methods -->
                 <div
                     v-for="method in methods"
                     :key="method.key"
-                    class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_104px] gap-4 lg:gap-5 items-start py-4 border-b border-gray-100">
+                    class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_104px] gap-4 lg:gap-5 items-start py-4 border-b border-line-subtle">
 
                     <!-- Method name -->
                     <div class="flex items-start gap-3 min-w-0">
-                        <div class="w-9 h-9 flex-none rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <div class="w-9 h-9 flex-none rounded-lg bg-brand-subtle text-brand flex items-center justify-center">
                             <component :is="CalendarClock" class="w-4.5 h-4.5" />
                         </div>
                         <div class="min-w-0 flex flex-col justify-center min-h-9">
-                            <p class="text-sm font-medium text-gray-900">{{ method.name }}</p>
+                            <p class="text-sm font-medium text-ink">{{ method.name }}</p>
                             <span
                                 v-if="method.type === 'mollie'"
-                                class="inline-flex self-start items-center mt-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                class="inline-flex self-start items-center mt-1.5 rounded-full bg-fill px-2 py-0.5 text-xs font-medium text-ink-muted">
                                 Via Mollie
                             </span>
                         </div>
@@ -66,7 +66,7 @@
 
                     <!-- Initial payment offset -->
                     <div class="min-w-0">
-                        <p class="lg:hidden text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">
+                        <p class="lg:hidden text-xs font-medium uppercase tracking-wider text-ink-muted mb-1.5">
                             Initiale Zahlung
                         </p>
                         <div v-if="method.is_custom" class="flex items-center gap-2">
@@ -90,12 +90,12 @@
                             </button>
                         </div>
                         <div v-else class="flex items-center gap-2 flex-wrap min-h-9">
-                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">Standard</span>
-                            <span class="text-sm text-gray-500">{{ offsetText(method.initial) }}</span>
+                            <span class="rounded-full bg-fill px-2.5 py-1 text-xs font-semibold text-ink-muted">Standard</span>
+                            <span class="text-sm text-ink-muted">{{ offsetText(method.initial) }}</span>
                         </div>
-                        <p class="text-xs mt-2" :class="isFieldDirty(method, 'initial') ? 'text-orange-600' : 'text-gray-500'">
+                        <p class="text-xs mt-2" :class="isFieldDirty(method, 'initial') ? 'text-orange-600' : 'text-ink-muted'">
                             Ausführung:
-                            <span class="font-medium" :class="isFieldDirty(method, 'initial') ? 'text-orange-700' : 'text-gray-700'">
+                            <span class="font-medium" :class="isFieldDirty(method, 'initial') ? 'text-orange-700' : 'text-ink-secondary'">
                                 {{ shiftedDate(draftValue(method, 'initial')) }}
                             </span>
                         </p>
@@ -103,7 +103,7 @@
 
                     <!-- Recurring payment offset -->
                     <div class="min-w-0">
-                        <p class="lg:hidden text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">
+                        <p class="lg:hidden text-xs font-medium uppercase tracking-wider text-ink-muted mb-1.5">
                             Wiederkehrende Zahlung
                         </p>
                         <div v-if="method.is_custom" class="flex items-center gap-2">
@@ -126,12 +126,12 @@
                             </button>
                         </div>
                         <div v-else class="flex items-center gap-2 flex-wrap min-h-9">
-                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">Standard</span>
-                            <span class="text-sm text-gray-500">{{ offsetText(method.recurring) }}</span>
+                            <span class="rounded-full bg-fill px-2.5 py-1 text-xs font-semibold text-ink-muted">Standard</span>
+                            <span class="text-sm text-ink-muted">{{ offsetText(method.recurring) }}</span>
                         </div>
-                        <p class="text-xs mt-2" :class="isFieldDirty(method, 'recurring') ? 'text-orange-600' : 'text-gray-500'">
+                        <p class="text-xs mt-2" :class="isFieldDirty(method, 'recurring') ? 'text-orange-600' : 'text-ink-muted'">
                             Ausführung:
-                            <span class="font-medium" :class="isFieldDirty(method, 'recurring') ? 'text-orange-700' : 'text-gray-700'">
+                            <span class="font-medium" :class="isFieldDirty(method, 'recurring') ? 'text-orange-700' : 'text-ink-secondary'">
                                 {{ shiftedDate(draftValue(method, 'recurring')) }}
                             </span>
                         </p>
@@ -146,14 +146,14 @@
                                 :checked="method.is_custom"
                                 :disabled="isSaving"
                                 @change="toggleCustom(method)">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-line rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
                         </label>
                         <button
                             v-if="method.is_custom"
                             type="button"
                             :disabled="isSaving"
                             @click="resetMethod(method)"
-                            class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 disabled:opacity-50">
+                            class="text-xs font-semibold text-brand hover:text-brand-strong disabled:opacity-50">
                             Zurücksetzen
                         </button>
                     </div>
@@ -163,25 +163,25 @@
                 <div
                     v-for="method in inactiveMethods"
                     :key="method.key"
-                    class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_104px] gap-4 lg:gap-5 items-center py-4 border-b border-gray-100 opacity-60">
+                    class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_104px] gap-4 lg:gap-5 items-center py-4 border-b border-line-subtle opacity-60">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-9 h-9 flex-none rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center">
+                        <div class="w-9 h-9 flex-none rounded-lg bg-fill text-ink-muted flex items-center justify-center">
                             <component :is="Lock" class="w-4 h-4" />
                         </div>
                         <div class="min-w-0">
-                            <p class="text-sm font-medium text-gray-700">{{ method.name }}</p>
+                            <p class="text-sm font-medium text-ink-secondary">{{ method.name }}</p>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-ink-muted">
                         Zahlungsart ist nicht aktiviert — keine Konfiguration möglich.
                     </p>
-                    <p class="text-xs text-gray-400 lg:text-right">Inaktiv</p>
+                    <p class="text-xs text-ink-muted lg:text-right">Inaktiv</p>
                 </div>
 
                 <!-- Summary + reset all -->
                 <div class="flex items-center justify-between gap-5 flex-wrap pt-5">
                     <div class="max-w-xl">
-                        <p class="text-sm text-gray-500">
+                        <p class="text-sm text-ink-muted">
                             {{ summary }} · Werte „vorher“ merken die Zahlung vor der Fälligkeit vor, „danach“
                             entsprechend später.
                         </p>
@@ -194,7 +194,7 @@
                         type="button"
                         :disabled="isSaving || customCount === 0"
                         @click="resetAll"
-                        class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="px-4 py-2 rounded-md border border-line-strong bg-surface text-sm font-medium text-ink-secondary hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed">
                         Alle auf Standard
                     </button>
                 </div>
@@ -308,7 +308,7 @@ const OffsetStepper = (props, { emit: emitStep }) => {
             'flex-none w-8 h-9 text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
             props.highlight
                 ? 'text-orange-600 hover:bg-orange-100 border-orange-300'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border-gray-200',
+                : 'text-ink-secondary hover:bg-surface-muted hover:text-brand-strong border-line',
             extraClass,
         ].join(' '),
     }, label)
@@ -316,14 +316,14 @@ const OffsetStepper = (props, { emit: emitStep }) => {
     // An unsaved value is highlighted in orange until the user saves it.
     const frame = props.highlight
         ? 'border-orange-400 bg-orange-50'
-        : 'border-gray-300 bg-white'
+        : 'border-line-strong bg-surface'
 
     return h('div', { class: `flex items-center rounded-md border ${frame} w-full max-w-52` }, [
         button('−', -1, 'border-r rounded-l-md'),
         h('span', {
             class: [
                 'flex-1 min-w-0 text-center text-sm font-medium px-1.5 whitespace-nowrap',
-                props.highlight ? 'text-orange-700' : 'text-gray-900',
+                props.highlight ? 'text-orange-700' : 'text-ink',
             ].join(' '),
         }, offsetText(props.modelValue)),
         button('+', 1, 'border-l rounded-r-md'),

@@ -15,7 +15,7 @@
     <span
       v-if="ageVerified"
       :class="[
-        'absolute flex items-center justify-center bg-blue-500 rounded-full border-2 border-white',
+        'absolute flex items-center justify-center bg-info-solid rounded-full border-2 border-white',
         checkmarkSizeClasses
       ]"
       :title="verifiedTooltip"

@@ -15,7 +15,7 @@
         :aria-expanded="open"
         :aria-controls="listId"
         :aria-activedescendant="open && rows[activeIndex] ? optionId(activeIndex) : undefined"
-        class="w-full h-10 lg:h-9 pl-8 pr-8 rounded-md border border-line-strong bg-surface-muted text-base lg:text-sm text-ink placeholder:text-ink-muted outline-none transition-colors focus:bg-surface focus:border-brand focus:ring-2 focus:ring-brand-line [&::-webkit-search-cancel-button]:hidden"
+        class="field w-full h-10 lg:h-9 pl-8 pr-8 bg-surface-muted focus:bg-surface [&::-webkit-search-cancel-button]:hidden"
         @focus="openDropdown"
         @blur="onBlur"
         @input="onInput"
@@ -24,7 +24,7 @@
       <button
         v-if="query"
         type="button"
-        class="absolute right-1.5 p-1 rounded text-ink-muted hover:text-ink-secondary"
+        class="touch-target absolute right-1.5 p-1 rounded text-ink-muted hover:text-ink-secondary"
         aria-label="Suche leeren"
         @mousedown.prevent
         @click="clear"
@@ -33,7 +33,7 @@
       </button>
       <kbd
         v-else
-        class="hidden lg:inline absolute right-2 px-1.5 rounded border border-line font-sans text-[11px] leading-4 text-ink-muted pointer-events-none"
+        class="hidden lg:inline absolute right-2 px-1.5 rounded border border-line font-sans text-2xs leading-4 text-ink-muted pointer-events-none"
       >/</kbd>
     </div>
 
@@ -88,7 +88,7 @@
           : 'Noch keine Mitglieder angesehen.' }}
       </div>
 
-      <div class="hidden lg:flex mt-1 px-4 pt-2 pb-0.5 border-t border-gray-100 gap-3 text-xs text-ink-muted">
+      <div class="hidden lg:flex mt-1 px-4 pt-2 pb-0.5 border-t border-line-subtle gap-3 text-xs text-ink-muted">
         <span>↑↓ auswählen</span>
         <span>↵ öffnen</span>
         <span>Esc schließen</span>

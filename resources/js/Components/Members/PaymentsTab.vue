@@ -3,11 +3,11 @@
     <!-- Payment Methods Section -->
     <div class="flex flex-col gap-3">
       <div class="flex justify-between items-center gap-3">
-        <h3 class="text-lg font-bold text-gray-900">Zahlungsmethoden</h3>
+        <h3 class="text-lg font-semibold text-ink">Zahlungsmethoden</h3>
         <button
           @click="openAddPaymentMethod"
           type="button"
-          class="hidden sm:inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold whitespace-nowrap"
+          class="hidden sm:inline-flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-strong transition-colors text-sm font-semibold whitespace-nowrap"
         >
           <Plus class="w-4 h-4" />
           Neue Zahlungsmethode
@@ -18,7 +18,7 @@
       <button
         @click="openAddPaymentMethod"
         type="button"
-        class="sm:hidden inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-3 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold"
+        class="sm:hidden inline-flex items-center justify-center gap-2 bg-brand text-white px-3 py-2.5 rounded-lg hover:bg-brand-strong transition-colors text-sm font-semibold"
       >
         <Plus class="w-[17px] h-[17px]" />
         Neue Zahlungsmethode
@@ -29,7 +29,7 @@
         <div
           v-for="paymentMethod in member.payment_methods"
           :key="paymentMethod.id"
-          class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden"
+          class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden"
         >
           <button
             type="button"
@@ -41,8 +41,8 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <h4 class="font-semibold text-gray-900">{{ paymentMethod.type_text }}</h4>
-                <span v-if="paymentMethod.is_default" class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
+                <h4 class="font-semibold text-ink">{{ paymentMethod.type_text }}</h4>
+                <span v-if="paymentMethod.is_default" class="bg-info-soft text-info-strong text-xs px-2 py-0.5 rounded-full">
                   Standard
                 </span>
                 <span :class="getStatusBadgeClass(paymentMethod.status)" class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full">
@@ -51,27 +51,27 @@
               </div>
             </div>
             <ChevronDown
-              class="w-5 h-5 text-gray-400 flex-none transition-transform"
+              class="w-5 h-5 text-ink-muted flex-none transition-transform"
               :class="expandedMethodId === paymentMethod.id ? 'rotate-180' : ''"
             />
           </button>
 
           <!-- Expanded details -->
           <div v-show="expandedMethodId === paymentMethod.id" class="px-4 pb-4 -mt-1">
-            <div class="border-t border-gray-100 pt-3 space-y-3">
+            <div class="border-t border-line-subtle pt-3 space-y-3">
               <!-- SEPA Details -->
               <div v-if="isSepaType(paymentMethod.type)" class="grid gap-x-10 gap-y-1.5 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
                 <div class="space-y-1.5 min-w-0">
                   <div class="flex items-center gap-1.5">
-                    <span class="text-gray-500">IBAN:</span>
-                    <span class="font-mono text-gray-900">{{ paymentMethod.masked_iban || '****' }}</span>
+                    <span class="text-ink-muted">IBAN:</span>
+                    <span class="font-mono text-ink">{{ paymentMethod.masked_iban || '****' }}</span>
                     <Tooltip
                       v-if="isMollieManaged(paymentMethod)"
                       position="top"
                       text="IBAN wird von Mollie verwaltet"
                     >
                       <Link2
-                        class="w-4 h-4 text-indigo-600"
+                        class="w-4 h-4 text-brand"
                         aria-label="IBAN wird von Mollie verwaltet"
                       />
                     </Tooltip>
@@ -81,17 +81,17 @@
                       text="Keine Verknüpfung zu Mollie"
                     >
                       <Unlink
-                        class="w-4 h-4 text-red-600"
+                        class="w-4 h-4 text-danger"
                         aria-label="Keine Verknüpfung zu Mollie"
                       />
                     </Tooltip>
                   </div>
                   <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
-                    <span class="text-gray-500 flex-none">Mandatsreferenz:</span>
-                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.sepa_mandate_reference }}</span>
+                    <span class="text-ink-muted flex-none">Mandatsreferenz:</span>
+                    <span class="font-mono text-ink break-all">{{ paymentMethod.sepa_mandate_reference }}</span>
                   </div>
                   <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2 flex-wrap">
-                    <span class="text-gray-500">SEPA-Mandat:</span>
+                    <span class="text-ink-muted">SEPA-Mandat:</span>
                     <span
                       :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
                       class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
@@ -105,7 +105,7 @@
                       type="button"
                       @click="syncMollieMandate(paymentMethod)"
                       :disabled="syncingMandate === paymentMethod.id"
-                      class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                      class="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-strong hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                     >
                       <RefreshCw
                         class="w-3.5 h-3.5"
@@ -115,8 +115,8 @@
                     </button>
                   </div>
                   <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
-                    <span class="text-gray-500">Unterschrieben am:</span>
-                    <span class="text-gray-900">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
+                    <span class="text-ink-muted">Unterschrieben am:</span>
+                    <span class="text-ink">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
                   </div>
                 </div>
 
@@ -124,42 +124,42 @@
                      not push the account data apart. Wraps below it on mobile. -->
                 <div v-if="hasMollieIds(paymentMethod)" class="space-y-1.5 min-w-0">
                   <div v-if="paymentMethod.mollie_customer_id" class="flex gap-1.5">
-                    <span class="text-gray-500 flex-none">Mollie-Kunde:</span>
-                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.mollie_customer_id }}</span>
+                    <span class="text-ink-muted flex-none">Mollie-Kunde:</span>
+                    <span class="font-mono text-ink break-all">{{ paymentMethod.mollie_customer_id }}</span>
                   </div>
                   <div v-if="paymentMethod.mollie_mandate_id" class="flex gap-1.5">
-                    <span class="text-gray-500 flex-none">Mollie-Mandat:</span>
-                    <span class="font-mono text-gray-900 break-all">{{ paymentMethod.mollie_mandate_id }}</span>
+                    <span class="text-ink-muted flex-none">Mollie-Mandat:</span>
+                    <span class="font-mono text-ink break-all">{{ paymentMethod.mollie_mandate_id }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- Credit Card Details -->
               <div v-else-if="isCreditCardType(paymentMethod.type)" class="space-y-1.5 text-sm">
-                <p class="text-gray-600 font-mono">**** **** **** {{ paymentMethod.last_four }}</p>
-                <p v-if="paymentMethod.cardholder_name" class="text-gray-600">{{ paymentMethod.cardholder_name }}</p>
-                <p v-if="paymentMethod.expiry_date" class="text-gray-600">
+                <p class="text-ink-secondary font-mono">**** **** **** {{ paymentMethod.last_four }}</p>
+                <p v-if="paymentMethod.cardholder_name" class="text-ink-secondary">{{ paymentMethod.cardholder_name }}</p>
+                <p v-if="paymentMethod.expiry_date" class="text-ink-secondary">
                   Gültig bis: {{ formatMonthYear(paymentMethod.expiry_date) }}
                 </p>
               </div>
 
               <!-- Bank Transfer Details -->
               <div v-else-if="isBankTransferType(paymentMethod.type) && paymentMethod.bank_name" class="text-sm">
-                <p class="text-gray-600">{{ paymentMethod.bank_name }}</p>
+                <p class="text-ink-secondary">{{ paymentMethod.bank_name }}</p>
               </div>
 
               <!-- SEPA Mandate Actions -->
-              <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'pending'" class="bg-yellow-100 border border-yellow-200 rounded-xl p-3.5">
+              <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'pending'" class="bg-warning-soft border border-warning-line rounded-xl p-3.5">
                 <div class="flex gap-2.5">
-                  <AlertCircle class="w-[18px] h-[18px] text-yellow-700 flex-none mt-0.5" />
-                  <span class="text-[13.5px] font-semibold text-yellow-700 leading-snug">SEPA-Mandat muss noch unterschrieben werden</span>
+                  <AlertCircle class="w-[18px] h-[18px] text-warning flex-none mt-0.5" />
+                  <span class="text-compact font-semibold text-warning leading-snug">SEPA-Mandat muss noch unterschrieben werden</span>
                 </div>
                 <div class="flex flex-col gap-2 mt-3">
                   <button
                     type="button"
                     @click="sendSepaMandate(paymentMethod)"
                     :disabled="sendingMandate === paymentMethod.id"
-                    class="inline-flex items-center justify-center gap-2 w-full min-h-11 px-3.5 py-2.5 rounded-[10px] bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="inline-flex items-center justify-center gap-2 w-full min-h-11 px-3.5 py-2.5 rounded-[10px] bg-brand text-white text-sm font-semibold hover:bg-brand-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send class="w-4 h-4" />
                     {{ sendingMandate === paymentMethod.id ? 'Wird verarbeitet...' : 'Mandat versenden' }}
@@ -168,7 +168,7 @@
                     type="button"
                     @click="markSepaMandateAsSigned(paymentMethod)"
                     :disabled="markingAsSigned === paymentMethod.id"
-                    class="inline-flex items-center justify-center gap-2 w-full min-h-11 px-3.5 py-2.5 rounded-[10px] bg-white border border-green-600 text-green-700 text-sm font-semibold hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="inline-flex items-center justify-center gap-2 w-full min-h-11 px-3.5 py-2.5 rounded-[10px] bg-surface border border-success text-success text-sm font-semibold hover:bg-success-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check class="w-4 h-4" />
                     {{ markingAsSigned === paymentMethod.id ? 'Wird markiert...' : 'Als unterschrieben markieren' }}
@@ -177,17 +177,17 @@
               </div>
 
               <!-- Signed mandate actions -->
-              <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'signed'" class="p-3 bg-blue-50 rounded-md">
+              <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'signed'" class="p-3 bg-info-subtle rounded-md">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div class="flex items-center">
-                    <CheckCircle class="w-5 h-5 text-blue-600 mr-2 flex-none" />
-                    <span class="text-sm text-blue-800">SEPA-Mandat wurde unterschrieben und wartet auf Aktivierung</span>
+                    <CheckCircle class="w-5 h-5 text-info mr-2 flex-none" />
+                    <span class="text-sm text-info-strong">SEPA-Mandat wurde unterschrieben und wartet auf Aktivierung</span>
                   </div>
                   <button
                     type="button"
                     @click="activateSepaMandate(paymentMethod)"
                     :disabled="activatingMandate === paymentMethod.id"
-                    class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    class="bg-info-solid text-white px-3 py-1 rounded text-sm hover:bg-info-solid-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                   >
                     {{ activatingMandate === paymentMethod.id ? 'Wird aktiviert...' : 'Mandat aktivieren' }}
                   </button>
@@ -200,7 +200,7 @@
                   v-if="!paymentMethod.is_default && paymentMethod.status === 'active'"
                   @click="setAsDefault(paymentMethod)"
                   type="button"
-                  class="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                  class="text-sm font-semibold text-brand hover:text-brand-strong"
                   :disabled="settingDefault === paymentMethod.id"
                 >
                   {{ settingDefault === paymentMethod.id ? 'Wird gesetzt...' : 'Als Standard setzen' }}
@@ -208,7 +208,7 @@
                 <button
                   @click="openEditPaymentMethod(paymentMethod)"
                   type="button"
-                  class="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                  class="text-sm font-semibold text-brand hover:text-brand-strong"
                 >
                   Bearbeiten
                 </button>
@@ -216,7 +216,7 @@
                   v-if="paymentMethod.status === 'active'"
                   @click="deactivatePaymentMethod(paymentMethod)"
                   type="button"
-                  class="text-sm font-semibold text-red-600 hover:text-red-800"
+                  class="text-sm font-semibold text-danger hover:text-danger-strong"
                   :disabled="deactivating === paymentMethod.id"
                 >
                   {{ deactivating === paymentMethod.id ? 'Deaktivieren...' : 'Deaktivieren' }}
@@ -225,7 +225,7 @@
                   v-if="paymentMethod.status === 'expired'"
                   @click="deletePaymentMethod(paymentMethod)"
                   type="button"
-                  class="text-sm font-semibold text-red-600 hover:text-red-800"
+                  class="text-sm font-semibold text-danger hover:text-danger-strong"
                   :disabled="deleting === paymentMethod.id"
                 >
                   {{ deleting === paymentMethod.id ? 'Löschen...' : 'Löschen' }}
@@ -236,13 +236,13 @@
         </div>
       </div>
 
-      <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-        <Wallet class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p class="text-gray-500">Keine Zahlungsmethoden vorhanden</p>
+      <div v-else class="text-center py-8 bg-surface-muted rounded-lg">
+        <Wallet class="w-12 h-12 text-ink-muted mx-auto mb-4" />
+        <p class="text-ink-muted">Keine Zahlungsmethoden vorhanden</p>
         <button
           @click="openAddPaymentMethod"
           type="button"
-          class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 inline-flex items-center gap-2"
+          class="mt-3 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-strong inline-flex items-center gap-2"
         >
           <Plus class="w-4 h-4" />
           Erste Zahlungsmethode hinzufügen
@@ -254,8 +254,8 @@
     <div class="flex flex-col gap-3">
       <div class="flex flex-wrap justify-between items-center gap-2">
         <div class="flex items-center gap-3">
-          <h3 class="text-lg font-bold text-gray-900">Zahlungshistorie</h3>
-          <span v-if="outstandingBalance" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+          <h3 class="text-lg font-semibold text-ink">Zahlungshistorie</h3>
+          <span v-if="outstandingBalance" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-warning-subtle text-warning border border-warning-line">
             <AlertTriangle class="w-3 h-3" />
             Offene Posten: {{ outstandingBalance.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €
           </span>
@@ -266,7 +266,7 @@
       <div class="flex flex-wrap items-center gap-2.5">
         <select
           v-model="paymentStatusFilter"
-          class="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+          class="field flex-1 min-w-0 px-3 py-2"
         >
           <option value="">Alle Status</option>
           <option value="paid">Bezahlt</option>
@@ -277,7 +277,7 @@
         <button
           @click="openAddPayment"
           type="button"
-          class="flex-none bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 inline-flex items-center gap-2 text-sm font-semibold whitespace-nowrap"
+          class="flex-none bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-strong inline-flex items-center gap-2 text-sm font-semibold whitespace-nowrap"
         >
           <Plus class="w-4 h-4" />
           Zahlung
@@ -287,7 +287,7 @@
           v-if="selectedPaymentIds.length > 0 && hasPendingPaymentsSelected"
           @click="executeSelectedPayments"
           type="button"
-          class="flex-none bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 inline-flex items-center gap-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          class="flex-none bg-success-solid text-white px-4 py-2 rounded-lg hover:bg-success-solid-strong inline-flex items-center gap-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           :disabled="executingBatch"
         >
           <PlayCircle v-if="!executingBatch" class="w-4 h-4" />
@@ -314,7 +314,7 @@
               v-if="payment.invoice_id"
               @click="downloadInvoice(payment)"
               type="button"
-              class="text-blue-600 hover:text-blue-800"
+              class="text-info hover:text-info-strong"
               title="Rechnung herunterladen"
             >
               <Download class="w-4 h-4" />
@@ -324,23 +324,23 @@
               @click="handleExecutePayment(payment)"
               type="button"
               :disabled="isPaymentExecuting(payment.id) || executingBatch || payment.mollie_payment_id"
-              class="text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="text-brand hover:text-brand-strong disabled:opacity-50 disabled:cursor-not-allowed"
               :title="isPaymentExecuting(payment.id) ? 'Wird ausgeführt...' : 'Zahlung ausführen'"
             >
               <PlayCircle v-if="!isPaymentExecuting(payment.id)" class="w-4 h-4" />
-              <div v-else class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              <div v-else class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
             </button>
           </template>
 
         </PaymentsTable>
       </div>
-      <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-        <CreditCard class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p class="text-gray-500">Keine Zahlungen vorhanden</p>
+      <div v-else class="text-center py-8 bg-surface-muted rounded-lg">
+        <CreditCard class="w-12 h-12 text-ink-muted mx-auto mb-4" />
+        <p class="text-ink-muted">Keine Zahlungen vorhanden</p>
         <button
           @click="openAddPayment"
           type="button"
-          class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 inline-flex items-center gap-2"
+          class="mt-3 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-strong inline-flex items-center gap-2"
         >
           <Plus class="w-4 h-4" />
           Erste Zahlung hinzufügen
@@ -351,11 +351,11 @@
     <!-- Edit Payment Method Modal -->
     <teleport to="body">
       <div v-if="showEditPaymentMethodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeEditPaymentMethod">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+        <div class="relative top-20 mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-surface" @click.stop>
           <form @submit.prevent="updatePaymentMethod">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="bg-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
+                <h3 class="text-lg font-semibold text-ink">
                   Zahlungsmethode bearbeiten
                 </h3>
               </div>
@@ -363,20 +363,20 @@
               <div class="space-y-4">
                 <!-- Type (nicht änderbar) -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Typ</label>
+                  <label class="block text-sm font-medium text-ink-secondary mb-2">Typ</label>
                   <input
                     :value="paymentMethodForm.type_text"
                     disabled
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                    class="field w-full px-3 py-2 bg-surface-muted text-ink-muted"
                   />
                 </div>
 
                 <!-- Status -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label class="block text-sm font-medium text-ink-secondary mb-2">Status</label>
                   <select
                     v-model="paymentMethodForm.status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    class="field w-full px-3 py-2"
                   >
                     <option value="active">Aktiv</option>
                     <option value="pending">Ausstehend</option>
@@ -388,15 +388,15 @@
                 <!-- SEPA-spezifische Felder -->
                 <template v-if="isSepaType(paymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kontoinhaber</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Kontoinhaber</label>
                     <input
                       v-model="paymentMethodForm.account_holder"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">IBAN</label>
                     <IbanInput
                       v-model="paymentMethodForm.iban"
                       placeholder="DE89 3704 0044 0532 0130 00"
@@ -404,18 +404,18 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
                     <input
                       v-model="paymentMethodForm.bank_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">SEPA-Mandat Status</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">SEPA-Mandat Status</label>
                     <select
                       v-model="paymentMethodForm.sepa_mandate_status"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     >
                       <option value="pending">Unterschrift ausstehend</option>
                       <option value="signed">Unterschrieben</option>
@@ -425,11 +425,11 @@
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">SEPA-Mandatsreferenz</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">SEPA-Mandatsreferenz</label>
                     <input
                       v-model="paymentMethodForm.sepa_mandate_reference"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                 </template>
@@ -437,29 +437,29 @@
                 <!-- Kreditkarten-spezifische Felder -->
                 <template v-if="isCreditCardType(paymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Letzte 4 Ziffern</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Letzte 4 Ziffern</label>
                     <input
                       v-model="paymentMethodForm.last_four"
                       type="text"
                       maxlength="4"
                       pattern="[0-9]{4}"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Karteninhaber</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Karteninhaber</label>
                     <input
                       v-model="paymentMethodForm.cardholder_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ablaufdatum</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Ablaufdatum</label>
                     <input
                       v-model="paymentMethodForm.expiry_date"
                       type="date"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                 </template>
@@ -467,11 +467,11 @@
                 <!-- Banküberweisung-spezifische Felder -->
                 <template v-if="isBankTransferType(paymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
                     <input
                       v-model="paymentMethodForm.bank_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                 </template>
@@ -482,15 +482,15 @@
                     <input
                       v-model="paymentMethodForm.is_default"
                       type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      class="rounded border-line-strong text-brand"
                     />
-                    <span class="ml-2 text-sm text-gray-700">Als Standard-Zahlungsmethode setzen</span>
+                    <span class="ml-2 text-sm text-ink-secondary">Als Standard-Zahlungsmethode setzen</span>
                   </label>
                 </div>
               </div>
 
-              <div v-if="paymentMethodForm.errors && Object.keys(paymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
+              <div v-if="paymentMethodForm.errors && Object.keys(paymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-danger-subtle rounded-md">
+                <div class="text-sm text-danger-strong">
                   <ul class="list-disc list-inside">
                     <li v-for="(error, field) in paymentMethodForm.errors" :key="field">{{ error }}</li>
                   </ul>
@@ -498,18 +498,18 @@
               </div>
             </div>
 
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <div class="bg-surface-muted px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
                 :disabled="paymentMethodForm.processing || !canSubmitEditedPaymentMethod"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand text-base font-medium text-white hover:bg-brand-strong sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
               >
                 {{ paymentMethodForm.processing ? 'Speichern...' : 'Speichern' }}
               </button>
               <button
                 type="button"
                 @click="closeEditPaymentMethod"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-line-strong shadow-sm px-4 py-2 bg-surface text-base font-medium text-ink-secondary hover:bg-surface-muted sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               >
                 Abbrechen
               </button>
@@ -522,11 +522,11 @@
     <!-- Add Payment Method Modal -->
     <teleport to="body">
       <div v-if="showAddPaymentMethodModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeAddPaymentMethod">
-        <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-white" @click.stop>
+        <div class="relative top-20 mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-1/3 shadow-lg rounded-md bg-surface" @click.stop>
           <form @submit.prevent="createPaymentMethod">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="bg-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
+                <h3 class="text-lg font-semibold text-ink">
                   Neue Zahlungsmethode hinzufügen
                 </h3>
               </div>
@@ -534,10 +534,10 @@
               <div class="space-y-4">
                 <!-- Type (auswählbar bei neuer Zahlungsmethode) -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode <span class="text-red-500">*</span></label>
+                  <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsmethode <span class="text-danger">*</span></label>
                   <select
                     v-model="newPaymentMethodForm.type"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    class="field w-full px-3 py-2"
                   >
                     <option value="">Bitte wählen...</option>
                     <option
@@ -553,7 +553,7 @@
                 <!-- SEPA-spezifische Felder -->
                 <template v-if="isSepaType(newPaymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">IBAN <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">IBAN <span class="text-danger">*</span></label>
                     <IbanInput
                       v-model="newPaymentMethodForm.iban"
                       placeholder="DE89 3704 0044 0532 0130 00"
@@ -562,21 +562,21 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kontoinhaber</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Kontoinhaber</label>
                     <input
                       v-model="newPaymentMethodForm.account_holder"
                       type="text"
                       placeholder="Max Mustermann"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
                     <input
                       v-model="newPaymentMethodForm.bank_name"
                       type="text"
                       placeholder="Commerzbank"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
@@ -584,12 +584,12 @@
                       <input
                         v-model="newPaymentMethodForm.sepa_mandate_acknowledged"
                         type="checkbox"
-                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        class="rounded border-line-strong text-brand"
                         :disabled="!ibanValidation.newPaymentMethod.isValid"
                       />
-                      <span class="ml-2 text-sm text-gray-700">
+                      <span class="ml-2 text-sm text-ink-secondary">
                         SEPA-Mandat wurde zur Kenntnis genommen
-                        <span v-if="!ibanValidation.newPaymentMethod.isValid" class="text-gray-400">
+                        <span v-if="!ibanValidation.newPaymentMethod.isValid" class="text-ink-muted">
                           (erst nach gültiger IBAN verfügbar)
                         </span>
                       </span>
@@ -600,42 +600,42 @@
                 <!-- Kreditkarten-spezifische Felder -->
                 <template v-if="isCreditCardType(newPaymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kartennummer <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Kartennummer <span class="text-danger">*</span></label>
                     <input
                       v-model="newPaymentMethodForm.card_number"
                       type="text"
                       placeholder="**** **** **** 1234"
                       maxlength="19"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Karteninhaber <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Karteninhaber <span class="text-danger">*</span></label>
                     <input
                       v-model="newPaymentMethodForm.cardholder_name"
                       type="text"
                       placeholder="Max Mustermann"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Ablaufdatum <span class="text-red-500">*</span></label>
+                      <label class="block text-sm font-medium text-ink-secondary mb-2">Ablaufdatum <span class="text-danger">*</span></label>
                       <input
                         v-model="newPaymentMethodForm.expiry_date"
                         type="month"
                         :min="currentMonth"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="field w-full px-3 py-2"
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">CVV <span class="text-red-500">*</span></label>
+                      <label class="block text-sm font-medium text-ink-secondary mb-2">CVV <span class="text-danger">*</span></label>
                       <input
                         v-model="newPaymentMethodForm.cvv"
                         type="text"
                         maxlength="4"
                         pattern="[0-9]{3,4}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="field w-full px-3 py-2"
                       />
                     </div>
                   </div>
@@ -644,21 +644,21 @@
                 <!-- Banküberweisung-spezifische Felder -->
                 <template v-if="isBankTransferType(newPaymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
                     <input
                       v-model="newPaymentMethodForm.bank_name"
                       type="text"
                       placeholder="Commerzbank"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Notizen</label>
                     <textarea
                       v-model="newPaymentMethodForm.notes"
                       rows="2"
                       placeholder="z.B. Verwendungszweck-Vorgaben"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     ></textarea>
                   </div>
                 </template>
@@ -669,15 +669,15 @@
                     <input
                       v-model="newPaymentMethodForm.is_default"
                       type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      class="rounded border-line-strong text-brand"
                     />
-                    <span class="ml-2 text-sm text-gray-700">Als Standard-Zahlungsmethode setzen</span>
+                    <span class="ml-2 text-sm text-ink-secondary">Als Standard-Zahlungsmethode setzen</span>
                   </label>
                 </div>
               </div>
 
-              <div v-if="newPaymentMethodForm.errors && Object.keys(newPaymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
+              <div v-if="newPaymentMethodForm.errors && Object.keys(newPaymentMethodForm.errors).length > 0" class="mt-4 p-3 bg-danger-subtle rounded-md">
+                <div class="text-sm text-danger-strong">
                   <ul class="list-disc list-inside">
                     <li v-for="(error, field) in newPaymentMethodForm.errors" :key="field">{{ error }}</li>
                   </ul>
@@ -685,20 +685,20 @@
               </div>
             </div>
 
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <div class="bg-surface-muted px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
                 :disabled="newPaymentMethodForm.processing ||
                           !newPaymentMethodForm.type ||
                           (isSepaType(newPaymentMethodForm.type) && !ibanValidation.newPaymentMethod.isValid)"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand text-base font-medium text-white hover:bg-brand-strong sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ newPaymentMethodForm.processing ? 'Hinzufügen...' : 'Hinzufügen' }}
               </button>
               <button
                 type="button"
                 @click="closeAddPaymentMethod"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-line-strong shadow-sm px-4 py-2 bg-surface text-base font-medium text-ink-secondary hover:bg-surface-muted sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               >
                 Abbrechen
               </button>
@@ -711,55 +711,55 @@
     <!-- Add Payment Modal -->
     <teleport to="body">
       <div v-if="showAddPaymentModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50 flex justify-center items-start py-12 sm:py-20 px-2" @click="closeAddPayment">
-        <div class="relative mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/2 xl:w-2/5 shadow-lg rounded-md bg-white" @click.stop>
+        <div class="relative mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-1/2 xl:w-2/5 shadow-lg rounded-md bg-surface" @click.stop>
           <form @submit.prevent="createPayment">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="bg-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="mb-4">
-                <h3 class="text-lg font-medium text-gray-900">
+                <h3 class="text-lg font-semibold text-ink">
                   {{ newPaymentForm.payment_type === 'topup' ? 'Guthaben aufladen' : 'Neue Zahlung hinzufügen' }}
                 </h3>
               </div>
 
               <!-- Payment type selector -->
               <div class="mb-5">
-                <div class="text-sm font-semibold text-gray-700 mb-2">Zahlungstyp</div>
+                <div class="text-sm font-semibold text-ink-secondary mb-2">Zahlungstyp</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     @click="newPaymentForm.payment_type = 'regular'"
                     class="text-left rounded-lg border px-4 py-3.5 transition-colors"
                     :class="newPaymentForm.payment_type === 'regular'
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
+                      ? 'border-brand bg-brand-subtle text-brand-strong'
+                      : 'border-line bg-surface text-ink-secondary hover:border-line-strong'"
                   >
                     <div class="flex items-center gap-2.5">
                       <CreditCard class="w-[18px] h-[18px]" />
                       <span class="font-semibold text-sm">Reguläre Zahlung</span>
                     </div>
-                    <div class="text-xs text-gray-500 mt-1.5">Forderung über eine Zahlungsmethode.</div>
+                    <div class="text-xs text-ink-muted mt-1.5">Forderung über eine Zahlungsmethode.</div>
                   </button>
                   <button
                     type="button"
                     @click="newPaymentForm.payment_type = 'topup'"
                     class="text-left rounded-lg border px-4 py-3.5 transition-colors"
                     :class="newPaymentForm.payment_type === 'topup'
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
+                      ? 'border-brand bg-brand-subtle text-brand-strong'
+                      : 'border-line bg-surface text-ink-secondary hover:border-line-strong'"
                   >
                     <div class="flex items-center gap-2.5">
                       <Wallet class="w-[18px] h-[18px]" />
                       <span class="font-semibold text-sm">Guthaben-Aufladung</span>
                     </div>
-                    <div class="text-xs text-gray-500 mt-1.5">Betrag als Guthaben gutschreiben.</div>
+                    <div class="text-xs text-ink-muted mt-1.5">Betrag als Guthaben gutschreiben.</div>
                   </button>
                 </div>
               </div>
 
               <!-- Top-up branch -->
               <template v-if="newPaymentForm.payment_type === 'topup'">
-                <div class="flex gap-3 bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3.5 mb-5">
-                  <Info class="w-5 h-5 text-indigo-600 flex-none" />
-                  <div class="text-[13px] text-indigo-800 leading-relaxed">
+                <div class="flex gap-3 bg-brand-subtle border border-brand-line rounded-lg px-4 py-3.5 mb-5">
+                  <Info class="w-5 h-5 text-brand flex-none" />
+                  <div class="text-compact text-brand-strong leading-relaxed">
                     Der Betrag wird dem Mitgliedskonto als Guthaben gutgeschrieben und bei zukünftigen Abbuchungen
                     <strong>automatisch vorrangig</strong> verwendet. Ideal für Voraus- und Jahreszahlungen per Überweisung.
                   </div>
@@ -767,39 +767,39 @@
 
                 <div class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Betrag <span class="text-danger">*</span></label>
                     <input
                       v-model="newPaymentForm.amount"
                       type="number"
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung <span class="text-danger">*</span></label>
                     <input
                       v-model="newPaymentForm.description"
                       type="text"
                       placeholder="z.B. Guthaben-Aufladung: Überweisung"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Eingangsdatum</label>
+                      <label class="block text-sm font-medium text-ink-secondary mb-2">Eingangsdatum</label>
                       <input
                         v-model="newPaymentForm.paid_date"
                         type="date"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="field w-full px-3 py-2"
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsart</label>
+                      <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsart</label>
                       <select
                         v-model="newPaymentForm.payment_method"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="field w-full px-3 py-2"
                       >
                         <option
                           v-for="method in topupPaymentMethods"
@@ -811,16 +811,16 @@
                       </select>
                     </div>
                   </div>
-                  <div v-if="isMollieTopupMethod" class="flex gap-2.5 bg-amber-100 rounded-md px-3.5 py-3">
-                    <Info class="w-[17px] h-[17px] text-amber-600 flex-none" />
-                    <div class="text-xs text-amber-700 leading-relaxed">
+                  <div v-if="isMollieTopupMethod" class="flex gap-2.5 bg-warning-soft rounded-md px-3.5 py-3">
+                    <Info class="w-[17px] h-[17px] text-warning flex-none" />
+                    <div class="text-xs text-warning leading-relaxed">
                       Die Aufladung wird zunächst als <strong>ausstehend</strong> vermerkt. Das Guthaben wird erst
                       gutgeschrieben, sobald die Zahlung über den Zahlungsanbieter bestätigt wurde.
                     </div>
                   </div>
-                  <div class="flex items-center justify-between gap-3 bg-gray-50 border border-dashed border-gray-300 rounded-md px-4 py-3.5">
-                    <span class="text-sm text-gray-600">{{ isMollieTopupMethod ? 'Guthaben-Stand nach Zahlungseingang' : 'Neuer Guthaben-Stand nach Aufladung' }}</span>
-                    <span class="text-lg font-bold text-indigo-600 whitespace-nowrap flex-none">{{ newBalancePreview }}</span>
+                  <div class="flex items-center justify-between gap-3 bg-surface-muted border border-dashed border-line-strong rounded-md px-4 py-3.5">
+                    <span class="text-sm text-ink-secondary">{{ isMollieTopupMethod ? 'Guthaben-Stand nach Zahlungseingang' : 'Neuer Guthaben-Stand nach Aufladung' }}</span>
+                    <span class="text-lg font-bold text-brand whitespace-nowrap flex-none">{{ newBalancePreview }}</span>
                   </div>
                 </div>
               </template>
@@ -829,41 +829,41 @@
               <template v-else>
                 <div class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Betrag <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Betrag <span class="text-danger">*</span></label>
                     <input
                       v-model="newPaymentForm.amount"
                       type="number"
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Beschreibung <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung <span class="text-danger">*</span></label>
                     <input
                       v-model="newPaymentForm.description"
                       type="text"
                       placeholder="z.B. Monatsbeitrag Januar 2024"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fälligkeitsdatum</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Fälligkeitsdatum</label>
                     <input
                       v-model="newPaymentForm.due_date"
                       type="date"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsmethode</label>
                     <select
                       v-model="newPaymentForm.payment_method"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     >
                       <option value="">Bitte wählen...</option>
                       <option value="credit">Guthaben (verfügbar: {{ creditBalanceFormatted }}) — vorrangig</option>
@@ -877,18 +877,18 @@
                     </select>
                   </div>
 
-                  <div v-if="newPaymentForm.payment_method === 'credit'" class="flex gap-2.5 bg-amber-100 rounded-md px-3.5 py-3">
-                    <Info class="w-[17px] h-[17px] text-amber-600 flex-none" />
-                    <div class="text-xs text-amber-700 leading-relaxed">
+                  <div v-if="newPaymentForm.payment_method === 'credit'" class="flex gap-2.5 bg-warning-soft rounded-md px-3.5 py-3">
+                    <Info class="w-[17px] h-[17px] text-warning flex-none" />
+                    <div class="text-xs text-warning leading-relaxed">
                       Reicht das Guthaben nicht aus, wird der Restbetrag automatisch über die Standard-Zahlungsmethode abgebucht.
                     </div>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Status</label>
                     <select
                       v-model="newPaymentForm.status"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     >
                       <option value="pending">Ausstehend</option>
                       <option value="paid">Bezahlt</option>
@@ -896,28 +896,28 @@
                   </div>
 
                   <div v-if="newPaymentForm.status === 'paid'">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bezahlt am</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bezahlt am</label>
                     <input
                       v-model="newPaymentForm.paid_date"
                       type="date"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">Notizen</label>
                     <textarea
                       v-model="newPaymentForm.notes"
                       rows="2"
                       placeholder="Optionale Notizen zur Zahlung"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="field w-full px-3 py-2"
                     ></textarea>
                   </div>
                 </div>
               </template>
 
-              <div v-if="newPaymentForm.errors && Object.keys(newPaymentForm.errors).length > 0" class="mt-4 p-3 bg-red-50 rounded-md">
-                <div class="text-sm text-red-800">
+              <div v-if="newPaymentForm.errors && Object.keys(newPaymentForm.errors).length > 0" class="mt-4 p-3 bg-danger-subtle rounded-md">
+                <div class="text-sm text-danger-strong">
                   <ul class="list-disc list-inside">
                     <li v-for="(error, field) in newPaymentForm.errors" :key="field">{{ error }}</li>
                   </ul>
@@ -925,11 +925,11 @@
               </div>
             </div>
 
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <div class="bg-surface-muted px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"
                 :disabled="newPaymentForm.processing || !newPaymentForm.amount || !newPaymentForm.description"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand text-base font-medium text-white hover:bg-brand-strong sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <template v-if="newPaymentForm.processing">Wird gespeichert...</template>
                 <template v-else>{{ newPaymentForm.payment_type === 'topup' ? 'Als Guthaben verbuchen' : 'Hinzufügen' }}</template>
@@ -937,7 +937,7 @@
               <button
                 type="button"
                 @click="closeAddPayment"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                class="mt-3 w-full inline-flex justify-center rounded-md border border-line-strong shadow-sm px-4 py-2 bg-surface text-base font-medium text-ink-secondary hover:bg-surface-muted sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               >
                 Abbrechen
               </button>
@@ -1565,16 +1565,16 @@ Diese Funktion wird in einem zukünftigen Update automatisiert.`
 // Utility functions
 const getStatusBadgeClass = (status) => {
   const classes = {
-    active: 'bg-green-100 text-green-800',
-    inactive: 'bg-gray-100 text-gray-800',
-    paused: 'bg-yellow-100 text-yellow-800',
-    cancelled: 'bg-red-100 text-red-800',
-    paid: 'bg-green-100 text-green-800',
+    active: 'bg-success-soft text-success-strong',
+    inactive: 'bg-fill text-ink',
+    paused: 'bg-warning-soft text-warning-strong',
+    cancelled: 'bg-danger-soft text-danger-strong',
+    paid: 'bg-success-soft text-success-strong',
     pending: 'bg-orange-100 text-orange-800',
-    failed: 'bg-red-100 text-red-800',
-    expired: 'bg-gray-100 text-gray-800'
+    failed: 'bg-danger-soft text-danger-strong',
+    expired: 'bg-fill text-ink'
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  return classes[status] || 'bg-fill text-ink'
 }
 
 const getStatusText = (status) => {
@@ -1608,24 +1608,24 @@ const getPaymentMethodIcon = (type) => {
 
 const getPaymentMethodIconClass = (type) => {
   const classes = {
-    'sepa_direct_debit': 'bg-blue-100 text-blue-600',
+    'sepa_direct_debit': 'bg-info-soft text-info',
     'creditcard': 'bg-purple-100 text-purple-600',
-    'banktransfer': 'bg-green-100 text-green-600',
-    'cash': 'bg-yellow-100 text-yellow-600',
-    'invoice': 'bg-gray-100 text-gray-600'
+    'banktransfer': 'bg-success-soft text-success',
+    'cash': 'bg-warning-soft text-warning',
+    'invoice': 'bg-fill text-ink-secondary'
   }
-  return classes[type] || 'bg-gray-100 text-gray-600'
+  return classes[type] || 'bg-fill text-ink-secondary'
 }
 
 const getSepaMandateStatusClass = (status) => {
   const classes = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'signed': 'bg-blue-100 text-blue-800',
-    'active': 'bg-green-100 text-green-800',
-    'revoked': 'bg-red-100 text-red-800',
-    'expired': 'bg-gray-100 text-gray-800'
+    'pending': 'bg-warning-soft text-warning-strong',
+    'signed': 'bg-info-soft text-info-strong',
+    'active': 'bg-success-soft text-success-strong',
+    'revoked': 'bg-danger-soft text-danger-strong',
+    'expired': 'bg-fill text-ink'
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  return classes[status] || 'bg-fill text-ink'
 }
 
 const getSepaMandateStatusText = (status) => {

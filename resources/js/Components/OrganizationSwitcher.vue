@@ -9,7 +9,7 @@
             :aria-expanded="canExpand ? showOrgPopover : undefined"
             :aria-controls="canExpand ? popoverId : undefined"
             @click="canExpand && (showOrgPopover = !showOrgPopover)"
-            :class="['w-full flex items-center justify-between p-3 transition-colors', canExpand ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default']">
+            :class="['w-full flex items-center justify-between p-3 transition-colors', canExpand ? 'hover:bg-fill cursor-pointer' : 'cursor-default']">
             <div class="flex items-center flex-1 min-w-0">
                 <div class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold leading-none"
                     aria-hidden="true"
@@ -36,7 +36,7 @@
             <!-- Management links are reserved for owners/admins of the current
                  organization. Staff and trainers never see them. -->
             <template v-if="canManage">
-                <div class="p-3 border-b border-gray-100">
+                <div class="p-3 border-b border-line-subtle">
                     <h2 class="text-xs font-medium text-ink-muted uppercase tracking-wide">Organisation verwalten</h2>
                 </div>
                 <div class="py-1">
@@ -61,7 +61,7 @@
                 </div>
             </template>
             <template v-if="allOrganizations.length > 1">
-                <div class="p-3 border-b border-gray-100">
+                <div class="p-3 border-b border-line-subtle">
                     <h2 class="text-xs font-medium text-ink-muted uppercase tracking-wide">Organisation wechseln</h2>
                 </div>
                 <div class="py-1">

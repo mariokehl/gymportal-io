@@ -1,25 +1,25 @@
 <template>
     <div class="space-y-6">
         <!-- Header -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center mb-4">
-                    <component :is="FileSignature" class="w-6 h-6 text-indigo-600 mr-3" />
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    <component :is="FileSignature" class="w-6 h-6 text-brand mr-3" />
+                    <h3 class="text-lg leading-6 font-semibold text-ink">
                         Vertragseinstellungen
                     </h3>
                 </div>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-ink-muted">
                     Konfiguriere die Vertragsunterzeichnung und die Vertragsvorlage für automatisch generierte Online-Verträge.
                 </p>
             </div>
         </div>
 
         <!-- Allgemeine Vertragseinstellungen -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h4 class="text-lg font-medium text-gray-900 mb-2">Allgemeine Einstellungen</h4>
-                <p class="text-sm text-gray-600 mb-6">
+                <h4 class="text-lg font-semibold text-ink mb-2">Allgemeine Einstellungen</h4>
+                <p class="text-sm text-ink-secondary mb-6">
                     Konfiguriere, wie neue Mitgliedschaftsverträge erstellt werden.
                 </p>
 
@@ -31,13 +31,13 @@
                                 id="contracts_start_first_of_month"
                                 v-model="contractsStartFirstOfMonth"
                                 type="checkbox"
-                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                                class="h-4 w-4 text-brand border-line-strong rounded" />
                         </div>
                         <div class="ml-3">
-                            <label for="contracts_start_first_of_month" class="text-sm font-medium text-gray-700">
+                            <label for="contracts_start_first_of_month" class="text-sm font-medium text-ink-secondary">
                                 Verträge immer zum 1. des Monats starten
                             </label>
-                            <p class="text-xs text-gray-500 mt-1">
+                            <p class="text-xs text-ink-muted mt-1">
                                 Wenn aktiviert, starten zahlungspflichtige Verträge immer zum 1. des Folgemonats.
                                 Für die Zeit vom Anlagedatum bis Monatsende wird automatisch eine kostenlose Mitgliedschaft erstellt.
                             </p>
@@ -46,15 +46,15 @@
 
                     <!-- Textfeld: Name der Gratis-Mitgliedschaft (nur sichtbar wenn Toggle aktiv) -->
                     <div v-if="contractsStartFirstOfMonth" class="ml-7">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <label class="block text-sm font-medium text-ink-secondary mb-1">
                             Name der Gratis-Mitgliedschaft
                         </label>
                         <input
                             v-model="freeTrialMembershipName"
                             type="text"
                             placeholder="Gratis-Testzeitraum"
-                            class="block w-full max-w-md rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
-                        <p class="mt-1 text-xs text-gray-500">
+                            class="field block w-full max-w-md px-3 py-1.5" />
+                        <p class="mt-1 text-xs text-ink-muted">
                             Dieser Name wird für die automatisch erstellte Gratis-Mitgliedschaft verwendet.
                         </p>
                     </div>
@@ -63,36 +63,36 @@
         </div>
 
         <!-- Signing Method -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Unterzeichnungsmethode</h4>
+                <h4 class="text-lg font-semibold text-ink mb-4">Unterzeichnungsmethode</h4>
 
                 <div class="space-y-3">
-                    <label class="flex items-center p-4 bg-gray-50 rounded-lg cursor-pointer"
-                        :class="{ 'ring-2 ring-indigo-500 bg-indigo-50': signingMethod === 'offline' }">
+                    <label class="flex items-center p-4 bg-surface-muted rounded-lg cursor-pointer"
+                        :class="{ 'ring-2 ring-focus bg-brand-subtle': signingMethod === 'offline' }">
                         <input
                             type="radio"
                             v-model="signingMethod"
                             value="offline"
-                            class="rounded-full border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            class="rounded-full border-line-strong text-brand"
                         >
                         <div class="ml-3">
-                            <span class="text-sm font-medium text-gray-900">Offline unterzeichnet</span>
-                            <p class="text-xs text-gray-500">Der Vertrag wird vor Ort im Studio unterzeichnet.</p>
+                            <span class="text-sm font-medium text-ink">Offline unterzeichnet</span>
+                            <p class="text-xs text-ink-muted">Der Vertrag wird vor Ort im Studio unterzeichnet.</p>
                         </div>
                     </label>
 
-                    <label class="flex items-center p-4 bg-gray-50 rounded-lg cursor-pointer"
-                        :class="{ 'ring-2 ring-indigo-500 bg-indigo-50': signingMethod === 'online' }">
+                    <label class="flex items-center p-4 bg-surface-muted rounded-lg cursor-pointer"
+                        :class="{ 'ring-2 ring-focus bg-brand-subtle': signingMethod === 'online' }">
                         <input
                             type="radio"
                             v-model="signingMethod"
                             value="online"
-                            class="rounded-full border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            class="rounded-full border-line-strong text-brand"
                         >
                         <div class="ml-3">
-                            <span class="text-sm font-medium text-gray-900">Automatisch generierter Online-Vertrag per E-Mail</span>
-                            <p class="text-xs text-gray-500">Der Vertrag wird automatisch generiert und dem Mitglied per E-Mail zugesendet.</p>
+                            <span class="text-sm font-medium text-ink">Automatisch generierter Online-Vertrag per E-Mail</span>
+                            <p class="text-xs text-ink-muted">Der Vertrag wird automatisch generiert und dem Mitglied per E-Mail zugesendet.</p>
                         </div>
                     </label>
                 </div>
@@ -100,37 +100,37 @@
         </div>
 
         <!-- Online Contract Template (only visible when signing method is 'online') -->
-        <div v-if="signingMethod === 'online'" class="bg-white shadow-sm rounded-lg">
+        <div v-if="signingMethod === 'online'" class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h4 class="text-lg font-medium text-gray-900 mb-6">Vertragsvorlage</h4>
+                <h4 class="text-lg font-semibold text-ink mb-6">Vertragsvorlage</h4>
 
                 <div class="space-y-6">
                     <!-- Subject -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Vertrags-Betreff</label>
+                        <label class="block text-sm font-medium text-ink-secondary mb-1">Vertrags-Betreff</label>
                         <input
                             v-model="contractTemplateSubject"
                             type="text"
-                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                            class="field block w-full px-3 py-1.5"
                             placeholder="z.B. Mitgliedschaftsvertrag"
                         />
                     </div>
 
                     <!-- Placeholder Helper -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h5 class="text-sm font-medium text-blue-800 mb-3 flex items-center">
+                    <div class="bg-info-subtle border border-info-line rounded-lg p-4">
+                        <h5 class="text-sm font-medium text-info-strong mb-3 flex items-center">
                             <component :is="Info" class="w-4 h-4 mr-2" />
                             Verfügbare Platzhalter
                         </h5>
-                        <p class="text-xs text-blue-600 mb-3">Klicken Sie auf einen Platzhalter, um ihn an der Cursorposition im Textfeld einzufügen.</p>
+                        <p class="text-xs text-info mb-3">Klicken Sie auf einen Platzhalter, um ihn an der Cursorposition im Textfeld einzufügen.</p>
 
                         <!-- Member Placeholders -->
                         <div class="mb-3">
-                            <h6 class="text-xs font-semibold text-blue-900 mb-1.5">Mitglied</h6>
+                            <h6 class="text-xs font-semibold text-info-strong mb-1.5">Mitglied</h6>
                             <div class="flex flex-wrap gap-1.5">
                                 <span v-for="placeholder in placeholderGroups.member" :key="placeholder.key"
                                     @click="insertPlaceholder(placeholder.key)"
-                                    class="bg-white border border-blue-300 rounded px-2 py-1 text-xs cursor-pointer hover:bg-blue-100 transition-colors"
+                                    class="bg-surface border border-info rounded px-2 py-1 text-xs cursor-pointer hover:bg-info-soft transition-colors"
                                     :title="placeholder.description">
                                     {{ placeholder.key }}
                                 </span>
@@ -139,11 +139,11 @@
 
                         <!-- Gym Placeholders -->
                         <div class="mb-3">
-                            <h6 class="text-xs font-semibold text-blue-900 mb-1.5">Fitnessstudio</h6>
+                            <h6 class="text-xs font-semibold text-info-strong mb-1.5">Fitnessstudio</h6>
                             <div class="flex flex-wrap gap-1.5">
                                 <span v-for="placeholder in placeholderGroups.gym" :key="placeholder.key"
                                     @click="insertPlaceholder(placeholder.key)"
-                                    class="bg-white border border-blue-300 rounded px-2 py-1 text-xs cursor-pointer hover:bg-blue-100 transition-colors"
+                                    class="bg-surface border border-info rounded px-2 py-1 text-xs cursor-pointer hover:bg-info-soft transition-colors"
                                     :title="placeholder.description">
                                     {{ placeholder.key }}
                                 </span>
@@ -152,11 +152,11 @@
 
                         <!-- Contract Placeholders -->
                         <div class="mb-3">
-                            <h6 class="text-xs font-semibold text-blue-900 mb-1.5">Vertrag</h6>
+                            <h6 class="text-xs font-semibold text-info-strong mb-1.5">Vertrag</h6>
                             <div class="flex flex-wrap gap-1.5">
                                 <span v-for="placeholder in placeholderGroups.contract" :key="placeholder.key"
                                     @click="insertPlaceholder(placeholder.key)"
-                                    class="bg-white border border-blue-300 rounded px-2 py-1 text-xs cursor-pointer hover:bg-blue-100 transition-colors"
+                                    class="bg-surface border border-info rounded px-2 py-1 text-xs cursor-pointer hover:bg-info-soft transition-colors"
                                     :title="placeholder.description">
                                     {{ placeholder.key }}
                                 </span>
@@ -165,11 +165,11 @@
 
                         <!-- System Placeholders -->
                         <div>
-                            <h6 class="text-xs font-semibold text-blue-900 mb-1.5">System</h6>
+                            <h6 class="text-xs font-semibold text-info-strong mb-1.5">System</h6>
                             <div class="flex flex-wrap gap-1.5">
                                 <span v-for="placeholder in placeholderGroups.system" :key="placeholder.key"
                                     @click="insertPlaceholder(placeholder.key)"
-                                    class="bg-white border border-blue-300 rounded px-2 py-1 text-xs cursor-pointer hover:bg-blue-100 transition-colors"
+                                    class="bg-surface border border-info rounded px-2 py-1 text-xs cursor-pointer hover:bg-info-soft transition-colors"
                                     :title="placeholder.description">
                                     {{ placeholder.key }}
                                 </span>
@@ -179,16 +179,16 @@
 
                     <!-- Body Textarea -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Vertragsinhalt (HTML)</label>
+                        <label class="block text-sm font-medium text-ink-secondary mb-1">Vertragsinhalt (HTML)</label>
                         <textarea
                             ref="bodyTextarea"
                             v-model="contractTemplateBody"
                             rows="20"
-                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 font-mono"
+                            class="field block w-full px-3 py-1.5 font-mono"
                             placeholder="<p>Vertragsinhalt hier eingeben...</p>"
                             spellcheck="false"
                         ></textarea>
-                        <p class="mt-1 text-xs text-gray-500">
+                        <p class="mt-1 text-xs text-ink-muted">
                             Verwenden Sie HTML-Tags für die Formatierung des Vertragstextes.
                         </p>
                     </div>
@@ -210,13 +210,13 @@
         </div>
 
         <!-- Save Button -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <button
                     type="button"
                     @click="saveSettings"
                     :disabled="isSaving"
-                    class="w-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    class="w-full flex items-center justify-center bg-brand hover:bg-brand-strong text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     <component :is="Save" class="w-4 h-4 mr-2" />
                     {{ isSaving ? 'Speichert...' : 'Einstellungen speichern' }}
@@ -226,26 +226,26 @@
 
         <!-- Preview Modal -->
         <div v-if="showPreviewModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
+            <div class="relative top-20 mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-surface">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Vertragsvorschau</h3>
-                    <button @click="showPreviewModal = false" class="text-gray-400 hover:text-gray-600">
+                    <h3 class="text-lg font-semibold text-ink">Vertragsvorschau</h3>
+                    <button @click="showPreviewModal = false" class="text-ink-muted hover:text-ink">
                         <span class="text-2xl">&times;</span>
                     </button>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                        <div class="text-sm text-gray-600">
+                <div class="border border-line rounded-lg overflow-hidden">
+                    <div class="bg-surface-muted px-4 py-2 border-b border-line">
+                        <div class="text-sm text-ink-secondary">
                             <strong>Betreff:</strong> {{ contractTemplateSubject }}
                         </div>
                     </div>
-                    <div class="p-6 bg-white prose max-w-none" v-html="previewHtml"></div>
+                    <div class="p-6 bg-surface prose max-w-none" v-html="previewHtml"></div>
                 </div>
 
                 <div class="flex justify-end mt-4">
                     <button @click="showPreviewModal = false"
-                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md">
+                        class="bg-fill-strong hover:bg-line-strong text-ink-secondary font-medium py-2 px-4 rounded-md">
                         Schließen
                     </button>
                 </div>

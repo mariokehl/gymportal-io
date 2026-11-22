@@ -10,7 +10,7 @@
       <button
         v-if="dismissible"
         type="button"
-        class="lg:hidden -mr-1 -mt-1 p-2 rounded-xl text-ink-muted hover:bg-gray-100 transition-colors"
+        class="lg:hidden -mr-1 -mt-1 p-2 rounded-xl text-ink-muted hover:bg-fill transition-colors"
         aria-label="Menü schließen"
         @click="$emit('close')"
       >

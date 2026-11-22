@@ -7,80 +7,80 @@
     <div class="space-y-6">
       <!-- Statistics Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div class="bg-surface p-6 rounded-lg shadow-sm border border-line">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">Gesamtumsatz</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(statistics.total_amount) }}</p>
+              <p class="text-sm font-medium text-ink-secondary">Gesamtumsatz</p>
+              <p class="text-2xl font-bold text-ink tabular-nums">{{ formatCurrency(statistics.total_amount) }}</p>
             </div>
-            <div class="p-3 bg-indigo-100 rounded-full">
-              <DollarSign class="w-6 h-6 text-indigo-600" />
+            <div class="p-3 bg-brand-soft rounded-full">
+              <DollarSign class="w-6 h-6 text-brand" />
             </div>
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div class="bg-surface p-6 rounded-lg shadow-sm border border-line">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">Bezahlt</p>
-              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(statistics.paid_amount) }}</p>
-              <p class="text-sm text-gray-500">{{ statistics.paid_count }} Zahlungen</p>
+              <p class="text-sm font-medium text-ink-secondary">Bezahlt</p>
+              <p class="text-2xl font-bold text-success tabular-nums">{{ formatCurrency(statistics.paid_amount) }}</p>
+              <p class="text-sm text-ink-muted">{{ statistics.paid_count }} Zahlungen</p>
             </div>
-            <div class="p-3 bg-green-100 rounded-full">
-              <CheckCircle class="w-6 h-6 text-green-600" />
+            <div class="p-3 bg-success-soft rounded-full">
+              <CheckCircle class="w-6 h-6 text-success" />
             </div>
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div class="bg-surface p-6 rounded-lg shadow-sm border border-line">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">Ausstehend</p>
-              <p class="text-2xl font-bold text-yellow-600">{{ formatCurrency(statistics.pending_amount) }}</p>
-              <p class="text-sm text-gray-500">{{ statistics.pending_count }} Zahlungen</p>
+              <p class="text-sm font-medium text-ink-secondary">Ausstehend</p>
+              <p class="text-2xl font-bold text-warning tabular-nums">{{ formatCurrency(statistics.pending_amount) }}</p>
+              <p class="text-sm text-ink-muted">{{ statistics.pending_count }} Zahlungen</p>
             </div>
-            <div class="p-3 bg-yellow-100 rounded-full">
-              <Clock class="w-6 h-6 text-yellow-600" />
+            <div class="p-3 bg-warning-soft rounded-full">
+              <Clock class="w-6 h-6 text-warning" />
             </div>
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div class="bg-surface p-6 rounded-lg shadow-sm border border-line">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600">Fehlgeschlagen</p>
-              <p class="text-2xl font-bold text-red-600">{{ formatCurrency(statistics.failed_amount) }}</p>
-              <p class="text-sm text-gray-500">{{ statistics.failed_count }} Zahlungen</p>
+              <p class="text-sm font-medium text-ink-secondary">Fehlgeschlagen</p>
+              <p class="text-2xl font-bold text-danger tabular-nums">{{ formatCurrency(statistics.failed_amount) }}</p>
+              <p class="text-sm text-ink-muted">{{ statistics.failed_count }} Zahlungen</p>
             </div>
-            <div class="p-3 bg-red-100 rounded-full">
-              <XCircle class="w-6 h-6 text-red-600" />
+            <div class="p-3 bg-danger-soft rounded-full">
+              <XCircle class="w-6 h-6 text-danger" />
             </div>
           </div>
         </div>
       </div>
 
       <!-- Filters -->
-      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div class="bg-surface p-6 rounded-lg shadow-sm border border-line">
         <div class="flex flex-wrap items-end gap-4 mb-4">
           <div class="flex-1 min-w-64">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Suchen</label>
+            <label class="block text-sm font-medium text-ink-secondary mb-1">Suchen</label>
             <div class="relative">
-              <Search class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search class="absolute left-3 top-3 h-4 w-4 text-ink-muted" />
               <input
                 v-model="localFilters.search"
                 type="text"
                 placeholder="Nach Mitglied, Beschreibung oder Transaktions-ID suchen..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="field w-full pl-10 pr-4 py-2"
                 @input="debouncedFilter"
               />
             </div>
           </div>
 
           <div class="w-48">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label class="block text-sm font-medium text-ink-secondary mb-1">Status</label>
             <select
               v-model="localFilters.status"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="field w-full px-3 py-2"
               @change="applyFilters"
             >
               <option value="">Alle Status</option>
@@ -91,10 +91,10 @@
           </div>
 
           <div class="w-48">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Zahlungsart</label>
+            <label class="block text-sm font-medium text-ink-secondary mb-1">Zahlungsart</label>
             <select
               v-model="localFilters.payment_method"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="field w-full px-3 py-2"
               @change="applyFilters"
             >
               <option value="">Alle Zahlungsarten</option>
@@ -104,11 +104,11 @@
             </select>
           </div>
 
-          <label class="flex h-[42px] cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <label class="flex h-[42px] cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-surface px-4 text-sm font-medium text-ink-secondary hover:bg-surface-muted">
             <input
               v-model="localFilters.due"
               type="checkbox"
-              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              class="h-4 w-4 rounded border-line-strong text-brand"
               @change="applyFilters"
             />
             Nur fällige
@@ -116,7 +116,7 @@
 
           <button
             @click="showAdvancedFilters = !showAdvancedFilters"
-            class="flex h-[42px] items-center px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="flex h-[42px] items-center px-4 text-sm font-medium text-ink-secondary bg-surface border border-line-strong rounded-lg hover:bg-surface-muted"
           >
             <Filter class="w-4 h-4 mr-2" />
             Erweiterte Filter
@@ -125,48 +125,48 @@
         </div>
 
         <!-- Advanced Filters -->
-        <div v-if="showAdvancedFilters" class="border-t border-gray-200 pt-4">
+        <div v-if="showAdvancedFilters" class="border-t border-line pt-4">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Datum von</label>
+              <label class="block text-sm font-medium text-ink-secondary mb-1">Datum von</label>
               <input
                 v-model="localFilters.date_from"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="field w-full px-3 py-2"
                 @change="applyFilters"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Datum bis</label>
+              <label class="block text-sm font-medium text-ink-secondary mb-1">Datum bis</label>
               <input
                 v-model="localFilters.date_to"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="field w-full px-3 py-2"
                 @change="applyFilters"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Betrag von</label>
+              <label class="block text-sm font-medium text-ink-secondary mb-1">Betrag von</label>
               <input
                 v-model="localFilters.amount_from"
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="field w-full px-3 py-2"
                 @change="applyFilters"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Betrag bis</label>
+              <label class="block text-sm font-medium text-ink-secondary mb-1">Betrag bis</label>
               <input
                 v-model="localFilters.amount_to"
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="field w-full px-3 py-2"
                 @change="applyFilters"
               />
             </div>
@@ -175,7 +175,7 @@
           <div class="mt-4 flex gap-2">
             <button
               @click="clearFilters"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="px-4 py-2 text-sm font-medium text-ink-secondary bg-surface border border-line-strong rounded-lg hover:bg-surface-muted"
             >
               Filter zurücksetzen
             </button>
@@ -191,11 +191,11 @@
         @sort="handleSort"
       >
         <template #toolbar>
-          <label class="flex items-center gap-1.5 text-sm text-gray-500">
+          <label class="flex items-center gap-1.5 text-sm text-ink-muted">
             Pro Seite
             <select
               :value="perPage"
-              class="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+              class="field py-2 pl-3 pr-8"
               @change="changePerPage(Number($event.target.value))"
             >
               <option v-for="option in perPageOptions" :key="option" :value="option">{{ option }}</option>

@@ -1,13 +1,13 @@
 <template>
     <div class="space-y-6">
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    <h3 class="text-lg leading-6 font-semibold text-ink">
                         Team-Mitglieder
                     </h3>
                     <button @click="showAddUserModal = true"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md flex items-center">
+                        class="bg-brand hover:bg-brand-strong text-white font-medium py-2 px-4 rounded-md flex items-center">
                         <component :is="Plus" class="w-4 h-4 mr-2" />
                         Hinzufügen
                     </button>
@@ -15,44 +15,44 @@
 
                 <!-- Team Members Table -->
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-surface-muted">
                             <tr>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Benutzer
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Rolle
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Hinzugefügt am
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Aktionen
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-surface divide-y divide-line">
                             <tr v-for="gymUser in localGymUsers" :key="gymUser.id">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div
-                                            class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                                            <span class="text-indigo-600 font-medium text-sm">
+                                            class="w-10 h-10 bg-brand-soft rounded-full flex items-center justify-center">
+                                            <span class="text-brand font-medium text-sm">
                                                 {{ getUserInitials(gymUser.user) }}
                                             </span>
                                         </div>
                                         <div class="ml-4">
                                             <!-- Display mode -->
                                             <div v-if="editingNameId !== gymUser.id"
-                                                class="group flex items-center text-sm font-medium text-gray-900">
+                                                class="group flex items-center text-sm font-medium text-ink">
                                                 <span>{{ gymUser.user?.first_name }} {{ gymUser.user?.last_name }}</span>
                                                 <button v-if="isGymOwner" @click="startEditName(gymUser)"
-                                                    class="ml-2 text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                                    class="ml-2 text-ink-muted hover:text-brand-strong opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                                                     title="Namen bearbeiten">
                                                     <component :is="Pencil" class="w-3.5 h-3.5" />
                                                 </button>
@@ -61,20 +61,20 @@
                                             <div v-else class="flex items-center gap-1">
                                                 <input v-model="nameForm.first_name" type="text" placeholder="Vorname"
                                                     @keyup.enter="saveName(gymUser)" @keyup.esc="cancelEditName"
-                                                    class="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                                    class="field w-24 px-2 py-1" />
                                                 <input v-model="nameForm.last_name" type="text" placeholder="Nachname"
                                                     @keyup.enter="saveName(gymUser)" @keyup.esc="cancelEditName"
-                                                    class="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" />
+                                                    class="field w-24 px-2 py-1" />
                                                 <button @click="saveName(gymUser)" :disabled="gymUser.isSavingName"
-                                                    class="text-green-600 hover:text-green-800 disabled:opacity-50" title="Speichern">
+                                                    class="text-success hover:text-success-strong disabled:opacity-50" title="Speichern">
                                                     <component :is="Check" class="w-4 h-4" />
                                                 </button>
                                                 <button @click="cancelEditName" :disabled="gymUser.isSavingName"
-                                                    class="text-gray-400 hover:text-gray-600 disabled:opacity-50" title="Abbrechen">
+                                                    class="text-ink-muted hover:text-ink disabled:opacity-50" title="Abbrechen">
                                                     <component :is="X" class="w-4 h-4" />
                                                 </button>
                                             </div>
-                                            <div class="text-sm text-gray-500">
+                                            <div class="text-sm text-ink-muted">
                                                 {{ gymUser.user?.email }}
                                             </div>
                                         </div>
@@ -83,22 +83,22 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <select v-model="gymUser.role" @change="updateUserRole(gymUser)"
                                         :disabled="gymUser.user?.id === currentUser.id || gymUser.isUpdating"
-                                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
+                                        class="field w-full p-2 disabled:bg-fill">
                                         <option value="admin">Admin</option>
                                         <option value="staff">Mitarbeiter</option>
                                         <option value="trainer">Trainer</option>
                                     </select>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                                     {{ formatDate(gymUser.created_at) }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button v-if="gymUser.user?.id !== currentUser.id" @click="removeUser(gymUser)"
                                         :disabled="gymUser.isRemoving"
-                                        class="text-red-600 hover:text-red-900 disabled:opacity-50">
+                                        class="text-danger hover:text-danger-strong disabled:opacity-50">
                                         <component :is="Trash2" class="w-4 h-4" />
                                     </button>
-                                    <span v-else class="text-gray-400 text-xs">
+                                    <span v-else class="text-ink-muted text-xs">
                                         (Sie)
                                     </span>
                                 </td>
@@ -110,55 +110,55 @@
         </div>
 
         <!-- Pending Invitations -->
-        <div v-if="localInvitations.length > 0" class="bg-white shadow-sm rounded-lg">
+        <div v-if="localInvitations.length > 0" class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                <h3 class="text-lg leading-6 font-semibold text-ink mb-4">
                     Ausstehende Einladungen
                 </h3>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-surface-muted">
                             <tr>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     E-Mail
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Rolle
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Eingeladen am
                                 </th>
                                 <th
-                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Aktionen
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-surface divide-y divide-line">
                             <tr v-for="invitation in localInvitations" :key="invitation.id">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink">
                                     {{ invitation.email }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                                     {{ roleLabel(invitation.role) }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                                     {{ formatDate(invitation.created_at) }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                     <button @click="resendInvitation(invitation)"
                                         :disabled="invitation.isBusy"
-                                        class="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                        class="text-brand hover:text-brand-strong disabled:opacity-50"
                                         title="Einladung erneut senden">
                                         <component :is="Send" class="w-4 h-4 inline" />
                                     </button>
                                     <button @click="withdrawInvitation(invitation)"
                                         :disabled="invitation.isBusy"
-                                        class="text-red-600 hover:text-red-900 disabled:opacity-50"
+                                        class="text-danger hover:text-danger-strong disabled:opacity-50"
                                         title="Einladung zurückziehen">
                                         <component :is="Trash2" class="w-4 h-4 inline" />
                                     </button>
@@ -172,27 +172,27 @@
 
         <!-- Add User Modal -->
         <div v-if="showAddUserModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
+            <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface">
                 <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 mb-1">Team-Mitglied einladen</h3>
-                    <p class="text-sm text-gray-500 mb-4">
+                    <h3 class="text-lg font-semibold text-ink mb-1">Team-Mitglied einladen</h3>
+                    <p class="text-sm text-ink-muted mb-4">
                         Die Person erhält eine Einladung per E-Mail. Bereits registrierte Benutzer
                         werden sofort hinzugefügt.
                     </p>
 
                     <form @submit.prevent="inviteUser" class="space-y-4">
                         <div>
-                            <label class="block text-sm/6 font-medium text-gray-700">E-Mail-Adresse</label>
+                            <label class="block text-sm/6 font-medium text-ink-secondary">E-Mail-Adresse</label>
                             <input v-model="userForm.email" type="email"
-                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                                class="field block w-full px-3 py-1.5"
                                 required />
-                            <p v-if="formErrors.email" class="mt-1 text-sm text-red-600">{{ formErrors.email }}</p>
+                            <p v-if="formErrors.email" class="mt-1 text-sm text-danger">{{ formErrors.email }}</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm/6 font-medium text-gray-700">Rolle</label>
+                            <label class="block text-sm/6 font-medium text-ink-secondary">Rolle</label>
                             <select v-model="userForm.role"
-                                class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                class="field w-full p-2"
                                 required>
                                 <option value="admin">Admin</option>
                                 <option value="staff">Mitarbeiter</option>
@@ -202,11 +202,11 @@
 
                         <div class="flex justify-end space-x-3 pt-4">
                             <button type="button" @click="closeAddUserModal"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md hover:bg-gray-300">
+                                class="px-4 py-2 text-sm font-medium text-ink-secondary bg-fill-strong border border-line-strong rounded-md hover:bg-line-strong">
                                 Abbrechen
                             </button>
                             <button type="submit" :disabled="isSubmittingUser"
-                                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                                class="px-4 py-2 text-sm font-medium text-white bg-brand border border-transparent rounded-md hover:bg-brand-strong disabled:opacity-50">
                                 Einladen
                             </button>
                         </div>

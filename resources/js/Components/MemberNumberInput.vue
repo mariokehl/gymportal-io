@@ -4,10 +4,10 @@
     <label
       v-if="label"
       :for="inputId"
-      class="block text-sm font-medium text-gray-700 mb-2"
+      class="block text-sm font-medium text-ink-secondary mb-2"
     >
       {{ label }}
-      <span v-if="required" class="text-red-500">*</span>
+      <span v-if="required" class="text-danger">*</span>
     </label>
 
     <!-- Input Container -->
@@ -19,6 +19,7 @@
         :placeholder="placeholder"
         :disabled="disabled || isCheckingNumber"
         :class="inputClasses"
+        :aria-invalid="hasError ? 'true' : undefined"
         :autocomplete="autocomplete"
         @input="handleInput"
         @blur="handleBlur"
@@ -30,19 +31,19 @@
         <!-- Loading Spinner -->
         <LoaderIcon
           v-if="isCheckingNumber"
-          class="h-5 w-5 animate-spin text-gray-400"
+          class="h-5 w-5 animate-spin text-ink-muted"
         />
 
         <!-- Success Checkmark -->
         <CheckIcon
           v-else-if="showSuccessIcon"
-          class="h-5 w-5 text-green-500"
+          class="h-5 w-5 text-success"
         />
 
         <!-- Error Icon -->
         <AlertCircleIcon
           v-else-if="showErrorIcon"
-          class="h-5 w-5 text-red-500"
+          class="h-5 w-5 text-danger"
         />
       </div>
     </div>
@@ -50,22 +51,22 @@
     <!-- Status Messages -->
     <div class="mt-1 min-h-[1.25rem]">
       <!-- Error Message -->
-      <p v-if="errorMessage" class="text-sm text-red-600">
+      <p v-if="errorMessage" class="text-sm text-danger">
         {{ errorMessage }}
       </p>
 
       <!-- Loading Message -->
-      <p v-else-if="isCheckingNumber && showLoadingMessage" class="text-sm text-gray-500">
+      <p v-else-if="isCheckingNumber && showLoadingMessage" class="text-sm text-ink-muted">
         {{ loadingMessage }}
       </p>
 
       <!-- Success Message -->
-      <p v-else-if="showSuccessMessage" class="text-sm text-green-600">
+      <p v-else-if="showSuccessMessage" class="text-sm text-success">
         {{ successMessage }}
       </p>
 
       <!-- Help Text -->
-      <p v-else-if="helpText && !isTouched" class="text-sm text-gray-500">
+      <p v-else-if="helpText && !isTouched" class="text-sm text-ink-muted">
         {{ helpText }}
       </p>
     </div>
@@ -219,22 +220,15 @@ const showSuccessMessage = computed(() => {
 
 // Input classes
 const inputClasses = computed(() => [
-  'w-full px-3 py-2 border rounded-md transition-colors duration-200',
-  'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
-  'placeholder-gray-400',
+  // Border, focus and the error state (aria-invalid) come from `.field`.
+  'field w-full px-3 py-2',
   'pr-10', // Space for icons
   {
-    // Normal state
-    'border-gray-300': !isTouched.value || (!hasError.value && !showSuccessIcon.value),
-
-    // Error state
-    'border-red-500 focus:ring-red-500 focus:border-red-500': hasError.value,
-
     // Success state
-    'border-green-500 focus:ring-green-500 focus:border-green-500': showSuccessIcon.value,
+    'border-success': showSuccessIcon.value,
 
     // Disabled state
-    'bg-gray-50 text-gray-500 cursor-not-allowed': props.disabled || isCheckingNumber.value,
+    'bg-surface-muted text-ink-muted cursor-not-allowed': props.disabled || isCheckingNumber.value,
   }
 ])
 

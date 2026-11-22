@@ -5,27 +5,26 @@
     </template>
 
     <div class="space-y-6">
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="bg-surface rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-lg font-semibold text-gray-900">Gesperrte Einträge</h2>
-            <p class="text-sm text-gray-500 mt-1">
+            <h2 class="text-lg font-semibold text-ink">Gesperrte Einträge</h2>
+            <p class="text-sm text-ink-muted mt-1">
               Mitglieder und Personen, die von der Registrierung ausgeschlossen sind
             </p>
           </div>
           <button
             @click="showManual = true"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg
-                   text-sm font-medium hover:bg-red-700 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-danger-solid text-white rounded-lg text-sm font-medium hover:bg-danger-solid-strong transition-colors"
           >
             <Plus :size="16" />
             Manuell sperren
           </button>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-gray-200">
+        <div class="overflow-hidden rounded-xl border border-line">
           <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+            <thead class="bg-surface-muted text-ink-muted uppercase text-xs">
               <tr>
                 <th class="px-4 py-3 text-left">Mitglied</th>
                 <th class="px-4 py-3 text-left">Grund</th>
@@ -36,45 +35,45 @@
                 <th class="px-4 py-3 text-left">Aktionen</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-line-subtle">
               <tr v-if="entries.data.length === 0">
-                <td colspan="7" class="px-4 py-8 text-center text-gray-400">
+                <td colspan="7" class="px-4 py-8 text-center text-ink-muted">
                   Keine Einträge in der Sperrliste.
                 </td>
               </tr>
-              <tr v-for="entry in entries.data" :key="entry.id" class="hover:bg-gray-50">
+              <tr v-for="entry in entries.data" :key="entry.id" class="hover:bg-surface-muted">
                 <td class="px-4 py-3">
-                  <div v-if="entry.member" class="font-medium text-gray-900">
+                  <div v-if="entry.member" class="font-medium text-ink">
                     {{ entry.member.first_name }} {{ entry.member.last_name }}
                   </div>
-                  <div v-else class="text-gray-400 italic">Manueller Eintrag</div>
-                  <div class="text-gray-400 text-xs">
+                  <div v-else class="text-ink-muted italic">Manueller Eintrag</div>
+                  <div class="text-ink-muted text-xs">
                     {{ entry.member?.member_number ? '#' + entry.member.member_number : 'ID #' + (entry.original_member_id ?? '—') }}
                   </div>
                 </td>
                 <td class="px-4 py-3">
                   <span class="px-2 py-0.5 rounded-full text-xs font-medium"
                     :class="{
-                      'bg-red-100 text-red-700': ['chargeback','fraud'].includes(entry.reason),
+                      'bg-danger-soft text-danger': ['chargeback','fraud'].includes(entry.reason),
                       'bg-orange-100 text-orange-700': entry.reason === 'payment_failed',
-                      'bg-gray-100 text-gray-600': entry.reason === 'manual',
+                      'bg-fill text-ink-secondary': entry.reason === 'manual',
                     }"
                   >
                     {{ reasonLabels[entry.reason] }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-gray-600">
+                <td class="px-4 py-3 text-ink-secondary">
                   {{ formatDate(entry.blocked_at) }}
                 </td>
-                <td class="px-4 py-3 text-gray-600">
+                <td class="px-4 py-3 text-ink-secondary">
                   {{ entry.blocked_until ? formatDate(entry.blocked_until) : 'Permanent' }}
                 </td>
-                <td class="px-4 py-3 text-gray-600">
+                <td class="px-4 py-3 text-ink-secondary">
                   {{ entry.blocked_by_user?.name ?? '—' }}
                 </td>
                 <td class="px-4 py-3">
                   <span class="flex items-center gap-1 text-xs font-medium"
-                    :class="isActive(entry) ? 'text-red-600' : 'text-gray-400'"
+                    :class="isActive(entry) ? 'text-danger' : 'text-ink-muted'"
                   >
                     <ShieldX v-if="isActive(entry)" :size="14" />
                     <ShieldCheck v-else :size="14" />
@@ -85,7 +84,7 @@
                   <button
                     v-if="isActive(entry)"
                     @click="showUnblock = entry"
-                    class="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                    class="text-sm text-brand hover:text-brand-strong font-medium"
                   >
                     Entsperren
                   </button>
@@ -104,20 +103,20 @@
               v-html="link.label"
               class="px-3 py-1 rounded text-sm border"
               :class="link.active
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+                ? 'bg-brand text-white border-brand'
+                : 'border-line text-ink-secondary hover:bg-surface-muted'"
             />
-            <span v-else v-html="link.label" class="px-3 py-1 rounded text-sm border border-gray-100 text-gray-300" />
+            <span v-else v-html="link.label" class="px-3 py-1 rounded text-sm border border-line-subtle text-ink-disabled" />
           </template>
         </div>
       </div>
 
       <!-- Verdächtige Registrierungen (Audit-Log) -->
-      <div v-if="fraudChecks.length > 0" class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Letzte Fraud-Checks</h2>
-        <div class="overflow-hidden rounded-xl border border-gray-200">
+      <div v-if="fraudChecks.length > 0" class="bg-surface rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-ink mb-4">Letzte Fraud-Checks</h2>
+        <div class="overflow-hidden rounded-xl border border-line">
           <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+            <thead class="bg-surface-muted text-ink-muted uppercase text-xs">
               <tr>
                 <th class="px-4 py-3 text-left">E-Mail</th>
                 <th class="px-4 py-3 text-left">Score</th>
@@ -126,31 +125,31 @@
                 <th class="px-4 py-3 text-left">Zeitpunkt</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="check in fraudChecks" :key="check.id" class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-gray-900">{{ check.email }}</td>
+            <tbody class="divide-y divide-line-subtle">
+              <tr v-for="check in fraudChecks" :key="check.id" class="hover:bg-surface-muted">
+                <td class="px-4 py-3 text-ink">{{ check.email }}</td>
                 <td class="px-4 py-3">
                   <span class="font-mono font-medium" :class="{
-                    'text-red-600': check.fraud_score >= 80,
+                    'text-danger': check.fraud_score >= 80,
                     'text-orange-500': check.fraud_score >= 40 && check.fraud_score < 80,
-                    'text-green-600': check.fraud_score < 40,
+                    'text-success': check.fraud_score < 40,
                   }">
                     {{ check.fraud_score }}/100
                   </span>
                 </td>
                 <td class="px-4 py-3">
                   <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="{
-                    'bg-red-100 text-red-700': check.action === 'blocked',
+                    'bg-danger-soft text-danger': check.action === 'blocked',
                     'bg-orange-100 text-orange-700': check.action === 'flagged',
-                    'bg-green-100 text-green-700': check.action === 'allowed',
+                    'bg-success-soft text-success': check.action === 'allowed',
                   }">
                     {{ actionLabels[check.action] }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-gray-600 text-xs">
+                <td class="px-4 py-3 text-ink-secondary text-xs">
                   {{ formatMatchedFields(check.matched_fields) }}
                 </td>
-                <td class="px-4 py-3 text-gray-600">
+                <td class="px-4 py-3 text-ink-secondary">
                   {{ formatDate(check.checked_at) }}
                 </td>
               </tr>

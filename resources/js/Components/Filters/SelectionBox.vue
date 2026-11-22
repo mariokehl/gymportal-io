@@ -4,7 +4,7 @@
   <span
     :class="[
       'flex h-4 w-4 items-center justify-center rounded border',
-      state === 'none' ? 'border-gray-400 bg-white' : 'border-indigo-600 bg-indigo-600 text-white'
+      state === 'none' ? 'border-line-strong bg-surface' : 'border-brand bg-brand text-white'
     ]"
     aria-hidden="true"
   >

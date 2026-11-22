@@ -5,25 +5,26 @@
         </template>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-surface p-6 rounded-lg shadow-sm">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-sm text-gray-500">{{ stat.title }}</p>
+                        <p class="text-sm text-ink-muted">{{ stat.title }}</p>
                         <!-- Value is redacted server-side for staff; render a blurred placeholder instead -->
                         <div v-if="isRedacted(stat)" class="blur-sm select-none" aria-hidden="true">
-                            <h3 class="text-2xl font-bold mt-1">000</h3>
-                            <span class="text-sm text-gray-500">0% gegenüber letztem Monat</span>
+                            <p class="text-2xl font-bold mt-1 tabular-nums">000</p>
+                            <span class="text-sm text-ink-muted">0% gegenüber letztem Monat</span>
                         </div>
                         <template v-else>
-                            <h3 class="text-2xl font-bold mt-1">{{ stat.value }}</h3>
+                            <!-- A key figure, not a heading: keeps the outline h1 → h2 -->
+                            <p class="text-2xl font-bold mt-1 tabular-nums">{{ stat.value }}</p>
                             <span :class="['text-sm', trendClass(stat.color)]">
                                 {{ stat.change }} gegenüber letztem Monat
                             </span>
                         </template>
                     </div>
-                    <div class="p-2 bg-indigo-50 rounded-lg">
-                        <component :is="getIcon(stat.icon)" class="w-6 h-6 text-indigo-500" />
+                    <div class="p-2 bg-brand-subtle rounded-lg">
+                        <component :is="getIcon(stat.icon)" class="w-6 h-6 text-brand" />
                     </div>
                 </div>
             </div>
@@ -31,53 +32,64 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Members Overview -->
-            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
-                <div class="flex justify-between items-center mb-6">
+            <div class="@container lg:col-span-2 bg-surface p-6 rounded-lg shadow-sm">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h2 class="text-lg font-semibold">Zuletzt angelegte Mitglieder</h2>
                     <Link
                         :href="route('members.create')"
-                        class="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm flex items-center hover:bg-indigo-600 transition-colors">
+                        class="bg-brand text-white px-4 py-2 pointer-coarse:py-3 rounded-md text-sm flex items-center whitespace-nowrap hover:bg-brand-strong transition-colors">
                         <Plus class="w-4 h-4 mr-1" />
                         Neues Mitglied
                     </Link>
                 </div>
 
+                <!-- Narrow cards (phones, the 2/3 column on small laptops): a
+                     compact list; the table needs ~720px. -->
+                <ul class="@2xl:hidden -mx-2 divide-y divide-line-subtle">
+                    <li v-for="member in props.members" :key="member.id" class="flex items-center gap-3 px-2 py-3">
+                        <div class="min-w-0 flex-1">
+                            <MemberIdentity :member="member" size="sm" max-width="100%" />
+                        </div>
+                        <MemberStatusBadge class="shrink-0" :status="member.status" />
+                    </li>
+                </ul>
+
                 <!-- Members Table -->
-                <div class="overflow-x-auto">
+                <div class="hidden @2xl:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-gray-200">
-                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Name</th>
-                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Mitgliedschaft</th>
-                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
-                                <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">Letzter Besuch</th>
-                                <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">Aktionen</th>
+                            <tr class="border-b border-line">
+                                <th class="text-left py-3 px-3 text-sm font-medium text-ink-muted">Name</th>
+                                <th class="text-left py-3 px-3 text-sm font-medium text-ink-muted">Mitgliedschaft</th>
+                                <th class="text-left py-3 px-3 text-sm font-medium text-ink-muted">Status</th>
+                                <th class="text-left py-3 px-3 text-sm font-medium text-ink-muted">Letzter Besuch</th>
+                                <th class="text-right py-3 px-3 text-sm font-medium text-ink-muted">Aktionen</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="member in props.members" :key="member.id"
-                                class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                <td class="py-3 px-4">
+                                class="border-b border-line-subtle hover:bg-surface-muted transition-colors">
+                                <td class="py-3 px-3">
                                     <MemberIdentity :member="member" size="sm" />
                                 </td>
-                                <td class="py-3 px-4 text-sm">{{ member.membership }}</td>
-                                <td class="py-3 px-4">
+                                <td class="py-3 px-3 text-sm">{{ member.membership }}</td>
+                                <td class="py-3 px-3">
                                     <MemberStatusBadge :status="member.status" />
                                 </td>
-                                <td class="py-3 px-4 text-sm">
+                                <td class="py-3 px-3 text-sm">
                                     {{ member.last_check_in ? formatDate(member.last_check_in.check_in_time) : 'Noch nie' }}
                                 </td>
-                                <td class="py-3 px-4 text-right">
-                                    <div class="flex items-center justify-end space-x-2">
+                                <td class="py-3 px-3 text-right">
+                                    <div class="flex items-center justify-end space-x-2 pointer-coarse:space-x-7">
                                         <Link
                                             :href="route('members.show', member.id)"
-                                            class="text-gray-700 hover:text-gray-900 p-1 rounded"
+                                            class="touch-target relative text-ink-secondary hover:text-ink p-1 rounded"
                                             title="Anzeigen">
                                             <Eye class="w-4 h-4" />
                                         </Link>
                                         <Link
                                             :href="route('members.show', member.id) + '?edit=true'"
-                                            class="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                                            class="touch-target relative text-brand hover:text-brand-strong p-1 rounded"
                                             title="Bearbeiten">
                                             <Edit class="w-4 h-4" />
                                         </Link>
@@ -90,7 +102,7 @@
 
                 <!-- Pagination -->
                 <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-ink-muted">
                         Zeige 1-{{ props.members.length }} von
                         <span v-if="canViewStatistics">{{ totalMembers }}</span>
                         <span v-else class="blur-sm select-none" aria-hidden="true">000</span>
@@ -102,30 +114,30 @@
             <!-- Right Column: Notifications & Active Check-Ins -->
             <div class="space-y-6">
                 <!-- Notifications -->
-                <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="bg-surface p-6 rounded-lg shadow-sm">
                     <h2 class="text-lg font-semibold mb-4">Benachrichtigungen</h2>
                     <div class="space-y-4">
                         <component :is="notification.link ? Link : 'div'"
                             v-for="notification in notifications"
                             :key="notification.id"
                             :href="notification.link"
-                            class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
-                            :class="{ 'hover:bg-gray-50 -mx-2 px-2 py-2 rounded transition-colors cursor-pointer': notification.link }"
+                            class="border-b border-line-subtle pb-3 last:border-b-0 last:pb-0"
+                            :class="{ 'hover:bg-surface-muted -mx-2 px-2 py-2 rounded transition-colors cursor-pointer': notification.link }"
                         >
                             <div class="flex justify-between items-start gap-2">
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium" :class="notification.read_at ? 'text-gray-600' : 'text-gray-900'">
+                                    <p class="text-sm font-medium" :class="notification.read_at ? 'text-ink-secondary' : 'text-ink'">
                                         {{ notification.title }}
                                     </p>
-                                    <p class="text-xs text-gray-500 mt-1 truncate">{{ notification.message }}</p>
+                                    <p class="text-xs text-ink-muted mt-1 truncate">{{ notification.message }}</p>
                                 </div>
                                 <div class="flex items-center gap-2 flex-shrink-0">
-                                    <span class="text-xs text-gray-400">{{ notification.created_at }}</span>
-                                    <div v-if="!notification.read_at" class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                                    <span class="text-xs text-ink-muted">{{ notification.created_at }}</span>
+                                    <div v-if="!notification.read_at" class="w-2 h-2 bg-brand rounded-full"></div>
                                 </div>
                             </div>
                         </component>
-                        <div v-if="notifications.length === 0" class="text-center text-sm text-gray-500 py-4">
+                        <div v-if="notifications.length === 0" class="text-center text-sm text-ink-muted py-4">
                             Keine Benachrichtigungen vorhanden.
                         </div>
                     </div>
@@ -133,7 +145,7 @@
                     <Link
                         v-if="notifications.length > 0"
                         :href="route('notifications.index')"
-                        class="mt-4 text-indigo-500 text-sm font-medium flex items-center hover:text-indigo-600 transition-colors"
+                        class="mt-4 text-brand text-sm font-medium flex items-center hover:text-brand-strong transition-colors"
                     >
                         Alle anzeigen
                         <ChevronRight class="w-4 h-4 ml-1" />
@@ -141,7 +153,7 @@
                 </div>
 
                 <!-- Active Check-Ins -->
-                <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="bg-surface p-6 rounded-lg shadow-sm">
                     <h2 class="text-lg font-semibold mb-4">Aktuell Anwesend</h2>
                     <div v-if="activeCheckIns.length > 0" class="flex flex-wrap gap-2">
                         <Tooltip
@@ -151,19 +163,19 @@
                         >
                             <Link
                                 :href="route('members.show', checkIn.member_id)"
-                                class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center font-medium text-sm hover:bg-indigo-200 transition-colors"
+                                class="w-10 h-10 rounded-full bg-brand-soft text-brand flex items-center justify-center font-medium text-sm hover:bg-brand-line transition-colors"
                             >
                                 {{ checkIn.member_initials }}
                             </Link>
                             <template #content>
                                 <div class="text-center">
                                     <p class="font-medium">{{ checkIn.member_name }}</p>
-                                    <p class="text-xs text-gray-400">{{ checkIn.check_in_time }}</p>
+                                    <p class="text-xs text-ink-muted">{{ checkIn.check_in_time }}</p>
                                 </div>
                             </template>
                         </Tooltip>
                     </div>
-                    <div v-else class="text-center text-sm text-gray-500 py-4">
+                    <div v-else class="text-center text-sm text-ink-muted py-4">
                         Gerade keine Check-Ins.
                     </div>
                 </div>

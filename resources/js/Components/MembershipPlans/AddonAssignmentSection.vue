@@ -1,19 +1,19 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+  <div class="bg-surface rounded-lg shadow-sm border border-line">
     <!-- Header -->
-    <div class="p-5 border-b border-gray-100 flex items-start gap-3">
-      <div class="w-10 h-10 flex-none rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+    <div class="p-5 border-b border-line-subtle flex items-start gap-3">
+      <div class="w-10 h-10 flex-none rounded-lg bg-brand-subtle text-brand flex items-center justify-center">
         <Package class="w-5 h-5" />
       </div>
       <div class="flex-1 min-w-0">
-        <h3 class="text-base font-semibold text-gray-900">Add-ons</h3>
-        <p class="text-xs text-gray-500 leading-relaxed mt-0.5">
+        <h3 class="text-base font-semibold text-ink">Add-ons</h3>
+        <p class="text-xs text-ink-muted leading-relaxed mt-0.5">
           Zusatzleistungen für diesen Vertrag: inklusive enthalten oder optional zubuchbar.
         </p>
       </div>
       <span
         v-if="addons.length > 0"
-        class="flex-none text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full mt-0.5 whitespace-nowrap"
+        class="flex-none text-xs font-semibold text-brand bg-brand-subtle px-2.5 py-1 rounded-full mt-0.5 whitespace-nowrap"
       >
         {{ assignedCount }} zugeordnet
       </span>
@@ -22,11 +22,11 @@
     <div class="p-5">
       <!-- No add-ons exist yet -->
       <div v-if="addons.length === 0" class="text-center py-6 px-2">
-        <div class="w-10 h-10 mx-auto mb-2.5 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center">
+        <div class="w-10 h-10 mx-auto mb-2.5 rounded-full bg-fill text-ink-muted flex items-center justify-center">
           <Package class="w-5 h-5" />
         </div>
-        <p class="text-sm font-semibold text-gray-900">Noch keine Add-ons angelegt</p>
-        <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">
+        <p class="text-sm font-semibold text-ink">Noch keine Add-ons angelegt</p>
+        <p class="text-xs text-ink-muted mt-0.5 leading-relaxed">
           Legen Sie Zusatzleistungen an, um sie diesem Vertrag zuzuordnen.
         </p>
       </div>
@@ -37,26 +37,26 @@
           v-for="addon in addons"
           :key="addon.id"
           class="border rounded-lg px-3.5 py-3 flex items-center gap-3 transition-colors"
-          :class="modeOf(addon.id) ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-200 bg-white'"
+          :class="modeOf(addon.id) ? 'border-brand-line bg-brand-subtle/40' : 'border-line bg-surface'"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-gray-900 truncate">{{ addon.name }}</span>
+              <span class="text-sm font-semibold text-ink truncate">{{ addon.name }}</span>
               <span
                 v-if="!addon.is_active"
-                class="flex-none text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full"
+                class="flex-none text-xs font-medium text-ink-secondary bg-fill px-2 py-0.5 rounded-full"
               >
                 Inaktiv
               </span>
             </div>
-            <p class="text-xs text-gray-500 mt-0.5">{{ priceLabel(addon) }}</p>
+            <p class="text-xs text-ink-muted mt-0.5">{{ priceLabel(addon) }}</p>
           </div>
 
           <select
             :id="`addon_mode_${addon.id}`"
             :value="modeOf(addon.id) ?? ''"
             :aria-label="`Zuordnung für ${addon.name}`"
-            class="w-40 flex-none text-sm border border-gray-300 rounded-md px-2.5 py-2 bg-white focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+            class="field w-40 flex-none px-2.5 py-2"
             @change="setMode(addon.id, $event.target.value)"
           >
             <option value="">Nicht zugeordnet</option>
@@ -70,25 +70,25 @@
            than this card can sensibly ask for. -->
       <Link
         :href="route('contracts.addons.create')"
-        class="w-full mt-3 text-sm font-medium py-2.5 border border-dashed border-indigo-300 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1.5"
+        class="w-full mt-3 text-sm font-medium py-2.5 border border-dashed border-brand-line rounded-lg bg-brand-subtle text-brand hover:bg-brand-soft transition-colors flex items-center justify-center gap-1.5"
       >
         <Plus class="w-4 h-4" />
         Neues Add-on anlegen
       </Link>
 
       <!-- Summary -->
-      <dl v-if="assignedCount > 0" class="mt-4 bg-gray-50 rounded-lg px-4 py-3.5">
+      <dl v-if="assignedCount > 0" class="mt-4 bg-surface-muted rounded-lg px-4 py-3.5">
         <div v-if="includedAddons.length > 0" class="flex justify-between text-sm mb-2">
-          <dt class="text-gray-600">Inklusive (immer berechnet)</dt>
-          <dd class="text-gray-900 font-semibold">{{ formatCents(includedTotalCents) }}</dd>
+          <dt class="text-ink-secondary">Inklusive (immer berechnet)</dt>
+          <dd class="text-ink font-semibold">{{ formatCents(includedTotalCents) }}</dd>
         </div>
         <div v-if="optionalCount > 0" class="flex justify-between text-sm mb-2">
-          <dt class="text-gray-600">Optional zubuchbar</dt>
-          <dd class="text-gray-900 font-semibold">
+          <dt class="text-ink-secondary">Optional zubuchbar</dt>
+          <dd class="text-ink font-semibold">
             {{ optionalCount }} {{ optionalCount === 1 ? 'Add-on' : 'Add-ons' }}
           </dd>
         </div>
-        <p class="text-xs text-gray-500 leading-relaxed mt-1">
+        <p class="text-xs text-ink-muted leading-relaxed mt-1">
           Inklusive Add-ons sind für Mitglieder vorausgewählt und nicht abwählbar.
           Optionale Add-ons wählt das Mitglied beim Vertragsabschluss.
         </p>

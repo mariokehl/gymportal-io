@@ -4,7 +4,7 @@
       <div class="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between flex-wrap">
           <div class="w-0 flex-1 flex items-center">
-            <span class="flex p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+            <span class="flex p-2 rounded-lg bg-surface/20 backdrop-blur-sm">
               <AlertTriangle class="h-6 w-6 text-white" />
             </span>
             <p class="ml-3 font-medium text-white truncate">
@@ -21,7 +21,7 @@
           <div class="order-3 mt-2 flex-shrink-0 w-full sm:order-2 sm:mt-0 sm:w-auto">
             <button
               @click="stopImpersonation"
-              class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-red-600 bg-white hover:bg-red-50 transition-all duration-200 transform hover:scale-105"
+              class="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-danger bg-surface hover:bg-danger-subtle transition-all duration-200 transform hover:scale-105"
             >
               <LogOut class="h-4 w-4 mr-2" />
               Zurück zu {{ impersonatorFullName }}
@@ -31,7 +31,7 @@
             <button
               @click="showDetails = !showDetails"
               type="button"
-              class="-mr-1 flex p-2 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white sm:-mr-2"
+              class="-mr-1 flex p-2 rounded-md hover:bg-surface/20 sm:-mr-2"
             >
               <span class="sr-only">Details anzeigen</span>
               <Info class="h-6 w-6 text-white" />
@@ -48,7 +48,7 @@
           leave-from-class="transform opacity-100 scale-100"
           leave-to-class="transform opacity-0 scale-95"
         >
-          <div v-if="showDetails" class="mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3">
+          <div v-if="showDetails" class="mt-3 bg-surface/10 backdrop-blur-sm rounded-lg p-3">
             <div class="text-sm text-white">
               <div class="flex items-center mb-2">
                 <Shield class="h-4 w-4 mr-2 flex-shrink-0" />

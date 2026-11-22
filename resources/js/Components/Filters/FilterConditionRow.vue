@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-wrap items-start gap-2 rounded-lg border border-gray-200 bg-white py-2 pl-2.5 pr-2">
+  <div class="flex flex-wrap items-start gap-2 rounded-lg border border-line bg-surface py-2 pl-2.5 pr-2">
     <div class="w-[52px] shrink-0 pt-1.5">
-      <span v-if="isFirst" class="text-[13px] font-medium text-gray-500">Wenn</span>
+      <span v-if="isFirst" class="text-compact font-medium text-ink-muted">Wenn</span>
       <button
         v-else
         type="button"
         title="UND / ODER umschalten"
-        class="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold tracking-wider text-indigo-700 hover:bg-indigo-100"
+        class="rounded-full border border-brand-line bg-brand-subtle px-2 py-0.5 text-2xs font-semibold tracking-wider text-brand-strong hover:bg-brand-soft"
         @click="emit('toggle-logic')"
       >
         {{ LOGIC_LABELS[logic] }}
@@ -16,16 +16,16 @@
     <div ref="pickerWrapper" class="relative max-w-full">
       <button
         type="button"
-        class="inline-flex h-[34px] max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 text-sm hover:border-indigo-300"
+        class="inline-flex h-[34px] max-w-full items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-sm hover:border-brand-line"
         @click="pickerOpen = !pickerOpen"
       >
         <template v-if="field">
-          <span class="text-xs text-gray-500">{{ field.entity }}</span>
-          <span class="text-gray-300">/</span>
-          <span class="font-medium text-gray-900">{{ field.label }}</span>
+          <span class="text-xs text-ink-muted">{{ field.entity }}</span>
+          <span class="text-ink-disabled">/</span>
+          <span class="font-medium text-ink">{{ field.label }}</span>
         </template>
-        <span v-else class="text-gray-500">Feld auswählen …</span>
-        <ChevronDown class="h-3.5 w-3.5 text-gray-400" />
+        <span v-else class="text-ink-muted">Feld auswählen …</span>
+        <ChevronDown class="h-3.5 w-3.5 text-ink-muted" />
       </button>
       <FilterFieldPicker v-if="pickerOpen" :fields="fields" @select="selectField" @close="pickerOpen = false" />
     </div>
@@ -33,7 +33,7 @@
     <select
       v-if="field"
       :value="condition.op"
-      class="h-[34px] rounded-md border border-gray-300 bg-white py-0 pl-2 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+      class="field h-[34px] py-0 pl-2 pr-8"
       @change="changeOperator($event.target.value)"
     >
       <option v-for="option in operatorOptions(field.type)" :key="option.value" :value="option.value">{{ option.label }}</option>
@@ -53,7 +53,7 @@
       <div v-else-if="field.type === 'date' && !DAY_OPERATORS.includes(condition.op)" class="flex items-center gap-1.5">
         <input :value="condition.value" type="date" :class="inputClass" @input="update({ value: $event.target.value })" />
         <template v-if="condition.op === 'between'">
-          <span class="text-[13px] text-gray-500">und</span>
+          <span class="text-compact text-ink-muted">und</span>
           <input :value="condition.value2" type="date" :class="inputClass" @input="update({ value2: $event.target.value })" />
         </template>
       </div>
@@ -68,7 +68,7 @@
           @input="update({ value: $event.target.value })"
         />
         <template v-if="condition.op === 'between'">
-          <span class="text-[13px] text-gray-500">und</span>
+          <span class="text-compact text-ink-muted">und</span>
           <input
             :value="condition.value2"
             type="number"
@@ -78,7 +78,7 @@
             @input="update({ value2: $event.target.value })"
           />
         </template>
-        <span class="text-[13px] text-gray-500">{{ field.type === 'date' ? 'Tagen' : field.unit }}</span>
+        <span class="text-compact text-ink-muted">{{ field.type === 'date' ? 'Tagen' : field.unit }}</span>
       </div>
     </template>
 
@@ -88,25 +88,25 @@
         :key="option.value"
         type="button"
         :class="[
-          'inline-flex items-center gap-1 rounded-full border px-2.5 py-[3px] text-[13px] font-medium',
+          'inline-flex items-center gap-1 rounded-full border px-2.5 py-[3px] text-compact font-medium',
           isSelected(option.value)
-            ? 'border-indigo-600 bg-indigo-600 text-white'
-            : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-700'
+            ? 'border-brand bg-brand text-white'
+            : 'border-line-strong bg-surface text-ink-secondary hover:border-brand-line hover:text-brand-strong'
         ]"
         @click="toggleOption(option.value)"
       >
         <Check v-if="isSelected(option.value)" class="h-3 w-3" :stroke-width="3" />
         {{ option.label }}
       </button>
-      <span v-if="field.options.length === 0" class="pt-1 text-[13px] text-gray-500">Keine Werte vorhanden.</span>
+      <span v-if="field.options.length === 0" class="pt-1 text-compact text-ink-muted">Keine Werte vorhanden.</span>
     </div>
 
     <div class="ml-auto flex items-center gap-0.5 pt-0.5">
-      <span v-if="field && !complete" class="mr-1.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Unvollständig · wird ignoriert</span>
-      <button type="button" title="Duplizieren" class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900" @click="emit('duplicate')">
+      <span v-if="field && !complete" class="mr-1.5 rounded-full bg-warning-soft px-2 py-0.5 text-xs text-warning">Unvollständig · wird ignoriert</span>
+      <button type="button" title="Duplizieren" class="rounded-md p-1.5 text-ink-muted hover:bg-fill hover:text-ink" @click="emit('duplicate')">
         <Copy class="h-4 w-4" />
       </button>
-      <button type="button" title="Bedingung entfernen" class="rounded-md p-1.5 text-gray-500 hover:bg-red-100 hover:text-red-600" @click="emit('remove')">
+      <button type="button" title="Bedingung entfernen" class="rounded-md p-1.5 text-ink-muted hover:bg-danger-soft hover:text-danger-strong" @click="emit('remove')">
         <X class="h-4 w-4" />
       </button>
     </div>
@@ -133,7 +133,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update', 'toggle-logic', 'duplicate', 'remove'])
 
-const inputClass = 'h-[34px] rounded-md border border-gray-300 px-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
+const inputClass = 'field h-[34px] px-2.5'
 
 const pickerOpen = ref(props.autoOpen && !props.condition.field)
 const pickerWrapper = ref(null)

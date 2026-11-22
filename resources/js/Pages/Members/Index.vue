@@ -14,23 +14,23 @@
         subject="Mitglieder"
       />
 
-      <section class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-3.5">
+      <section class="@container overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <div class="flex items-baseline gap-2">
             <template v-if="canViewStatistics">
-              <span class="text-2xl font-bold text-gray-900">{{ members.total }}</span>
-              <span v-if="activeCount > 0" class="text-sm text-gray-500">von {{ memberCount }} Mitgliedern entsprechen dem Filter</span>
-              <span v-else class="text-sm text-gray-500">Mitglieder</span>
+              <span class="text-2xl font-bold text-ink tabular-nums">{{ members.total }}</span>
+              <span v-if="activeCount > 0" class="text-sm text-ink-muted">von {{ memberCount }} Mitgliedern entsprechen dem Filter</span>
+              <span v-else class="text-sm text-ink-muted">Mitglieder</span>
             </template>
-            <span v-else class="text-sm text-gray-500">{{ activeCount > 0 ? 'Gefilterte Mitglieder' : 'Alle Mitglieder' }}</span>
-            <Loader2 v-if="isLoading" class="h-4 w-4 animate-spin self-center text-gray-400" />
+            <span v-else class="text-sm text-ink-muted">{{ activeCount > 0 ? 'Gefilterte Mitglieder' : 'Alle Mitglieder' }}</span>
+            <Loader2 v-if="isLoading" class="h-4 w-4 animate-spin self-center text-ink-muted" />
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <label class="flex items-center gap-1.5 text-[13px] text-gray-500">
+            <label class="hidden @2xl:flex items-center gap-1.5 text-compact text-ink-muted">
               Pro Seite
               <select
                 :value="perPage"
-                class="h-[34px] rounded-md border border-gray-300 bg-white py-0 pl-2 pr-7 text-[13px] text-gray-900"
+                class="field h-[34px] py-0 pl-2 pr-7 text-compact pointer-coarse:text-base"
                 @change="changePerPage(Number($event.target.value))"
               >
                 <option v-for="option in perPageOptions" :key="option" :value="option">{{ option }}</option>
@@ -40,15 +40,15 @@
               v-if="canExport"
               type="button"
               :disabled="members.total === 0 || isExporting"
-              class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              class="inline-flex h-9 pointer-coarse:h-11 items-center gap-2 rounded-lg border border-line-strong bg-surface px-4 text-sm font-medium text-ink-secondary hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
               @click="exportMembers(false)"
             >
               <Download class="h-4 w-4" />
-              CSV exportieren<template v-if="canViewStatistics"> ({{ members.total }})</template>
+              <span>CSV<span class="hidden @2xl:inline"> exportieren</span><template v-if="canViewStatistics"> ({{ members.total }})</template></span>
             </button>
             <Link
               :href="route('members.create')"
-              class="inline-flex h-9 items-center whitespace-nowrap rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+              class="inline-flex h-9 pointer-coarse:h-11 items-center whitespace-nowrap rounded-lg bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-strong"
             >
               <Plus class="mr-2 h-4 w-4" />
               Neues Mitglied
@@ -56,22 +56,22 @@
           </div>
         </div>
 
-        <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-3 border-b border-indigo-200 bg-indigo-50 px-5 py-2.5">
-          <span class="text-sm font-semibold text-indigo-800">{{ selectionLabel }}</span>
+        <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-3 border-b border-brand-line bg-brand-subtle px-5 py-2.5">
+          <span class="text-sm font-semibold text-brand-strong">{{ selectionLabel }}</span>
           <button
             v-if="offerSelectAll"
             type="button"
-            class="px-1 py-0.5 text-sm font-medium text-indigo-600 underline underline-offset-[3px]"
+            class="px-1 py-0.5 text-sm font-medium text-brand underline underline-offset-[3px]"
             @click="selectAllMatching"
           >
             Alle {{ members.total }} gefilterten Mitglieder auswählen
           </button>
-          <button type="button" class="px-1 py-0.5 text-sm text-indigo-700" @click="clearSelection">Auswahl aufheben</button>
+          <button type="button" class="px-1 py-0.5 text-sm text-brand-strong" @click="clearSelection">Auswahl aufheben</button>
           <div class="ml-auto flex flex-wrap items-center gap-2">
             <button
               type="button"
               :disabled="isExporting"
-              class="inline-flex h-8 items-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              class="inline-flex h-8 items-center gap-1.5 rounded-md border border-brand-line bg-surface px-3 text-sm font-medium text-ink-secondary hover:bg-surface-muted disabled:opacity-50"
               @click="exportMembers(true)"
             >
               <Download class="h-[15px] w-[15px]" />
@@ -84,18 +84,54 @@
              "Aktionen" heading) must be clipped by this scroll container,
              otherwise they are placed against the page and widen the window. -->
         <div class="relative overflow-x-auto">
-          <table class="min-w-[1180px] w-full">
-            <thead class="border-b border-gray-200 bg-gray-50">
+          <!-- Narrow cards (phones): one row per member with what identifies
+               them at a glance; the full table needs ~1180px. -->
+          <ul class="@2xl:hidden divide-y divide-line-subtle">
+            <li
+              v-for="member in members.data"
+              :key="member.id"
+              class="flex items-center gap-2 py-2.5 pr-4"
+              :class="[isSelected(member.id) ? 'bg-brand-subtle/60' : '', canExport ? 'pl-2' : 'pl-4']"
+            >
+              <button
+                v-if="canExport"
+                type="button"
+                role="checkbox"
+                :aria-label="`${member.first_name} ${member.last_name} auswählen`"
+                :aria-checked="isSelected(member.id)"
+                class="flex size-11 shrink-0 items-center justify-center"
+                @click="toggleRow(member.id)"
+              >
+                <SelectionBox :state="isSelected(member.id) ? 'all' : 'none'" />
+              </button>
+              <div class="min-w-0 flex-1">
+                <MemberIdentity :member="member" size="md" :show-email="false" max-width="100%">
+                  <template #meta>
+                    <p class="flex items-center gap-1.5 text-xs text-ink-muted">
+                      <span class="truncate">
+                        {{ member.member_number }}<template v-if="member.plans.length"> · {{ member.plans[0] }}</template>
+                      </span>
+                      <AggregatorBadge v-if="member.aggregator" :aggregator="member.aggregator.key" :status="member.aggregator.status" />
+                    </p>
+                  </template>
+                </MemberIdentity>
+              </div>
+              <MemberStatusBadge class="shrink-0" :status="member.status" :outstanding-balance="member.outstanding_balance" />
+            </li>
+          </ul>
+
+          <table class="hidden @2xl:table min-w-[1180px] w-full">
+            <thead class="border-b border-line bg-surface-muted">
               <tr>
                 <th v-if="canExport" class="relative w-[52px] pl-4">
-                  <div ref="selectMenuWrapper" class="flex items-center">
+                  <div ref="selectMenuWrapper" class="flex items-center pointer-coarse:gap-6">
                     <button
                       type="button"
                       role="checkbox"
                       title="Aktuelle Seite auswählen"
                       aria-label="Alle Mitglieder dieser Seite auswählen"
                       :aria-checked="pageSelectionState === 'some' ? 'mixed' : pageSelectionState === 'all'"
-                      class="flex"
+                      class="touch-target relative flex"
                       @click="togglePage"
                     >
                       <SelectionBox :state="pageSelectionState" />
@@ -106,20 +142,20 @@
                       aria-label="Auswahloptionen"
                       aria-haspopup="menu"
                       :aria-expanded="selectMenuOpen"
-                      class="flex rounded p-0.5 text-gray-500 hover:bg-gray-200"
+                      class="touch-target relative flex rounded p-0.5 text-ink-muted hover:bg-fill-strong"
                       @click="selectMenuOpen = !selectMenuOpen"
                     >
                       <ChevronDown class="h-3.5 w-3.5" />
                     </button>
-                    <div v-if="selectMenuOpen" class="absolute left-2 top-full z-40 mt-0.5 w-[260px] rounded-lg border border-gray-200 bg-white py-1 text-left font-normal normal-case tracking-normal shadow-lg">
-                      <button type="button" class="flex w-full justify-between px-3 py-2 text-sm text-gray-900 hover:bg-indigo-50" @click="selectPage">
-                        <span>Aktuelle Seite auswählen</span><span class="text-xs text-gray-400">{{ members.data.length }}</span>
+                    <div v-if="selectMenuOpen" class="absolute left-2 top-full z-40 mt-0.5 w-[260px] rounded-lg border border-line bg-surface py-1 text-left font-normal normal-case tracking-normal shadow-lg">
+                      <button type="button" class="flex w-full justify-between px-3 py-2 text-sm text-ink hover:bg-brand-subtle" @click="selectPage">
+                        <span>Aktuelle Seite auswählen</span><span class="text-xs text-ink-muted">{{ members.data.length }}</span>
                       </button>
-                      <button type="button" class="flex w-full justify-between px-3 py-2 text-sm text-gray-900 hover:bg-indigo-50" @click="selectAllMatching">
-                        <span>Alle gefilterten Mitglieder</span><span v-if="canViewStatistics" class="text-xs text-gray-400">{{ members.total }}</span>
+                      <button type="button" class="flex w-full justify-between px-3 py-2 text-sm text-ink hover:bg-brand-subtle" @click="selectAllMatching">
+                        <span>Alle gefilterten Mitglieder</span><span v-if="canViewStatistics" class="text-xs text-ink-muted">{{ members.total }}</span>
                       </button>
-                      <div class="my-1 h-px bg-gray-100" />
-                      <button type="button" class="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100" @click="clearSelection">Auswahl aufheben</button>
+                      <div class="my-1 h-px bg-fill" />
+                      <button type="button" class="flex w-full px-3 py-2 text-sm text-ink-secondary hover:bg-fill" @click="clearSelection">Auswahl aufheben</button>
                     </div>
                   </div>
                 </th>
@@ -127,7 +163,7 @@
                   v-for="column in columns"
                   :key="column.label"
                   :class="[
-                    'whitespace-nowrap px-3 py-[11px] text-[11px] font-medium uppercase tracking-wider text-gray-500',
+                    'whitespace-nowrap px-3 py-[11px] text-2xs font-medium uppercase tracking-wider text-ink-muted',
                     column.align === 'right' ? 'text-right' : 'text-left',
                     !canExport && column.label === 'Mitglied' && 'pl-5',
                   ]"
@@ -137,7 +173,7 @@
                   <button
                     v-if="column.sort"
                     type="button"
-                    :class="['inline-flex items-center gap-1 uppercase hover:text-gray-900', sortBy === column.sort && 'text-gray-900']"
+                    :class="['touch-target relative inline-flex items-center gap-1 uppercase hover:text-ink', sortBy === column.sort && 'text-ink']"
                     @click="changeSort(column)"
                   >
                     {{ column.label }}
@@ -148,11 +184,11 @@
                 <th class="w-12 pr-5"><span class="sr-only">Aktionen</span></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-line-subtle">
               <tr
                 v-for="member in members.data"
                 :key="member.id"
-                :class="isSelected(member.id) ? 'bg-indigo-50/60' : 'hover:bg-gray-50'"
+                :class="isSelected(member.id) ? 'bg-brand-subtle/60' : 'hover:bg-surface-muted'"
               >
                 <td v-if="canExport" class="pl-4">
                   <button
@@ -161,7 +197,7 @@
                     title="Auswählen"
                     :aria-label="`${member.first_name} ${member.last_name} auswählen`"
                     :aria-checked="isSelected(member.id)"
-                    class="-ml-1 flex p-1"
+                    class="touch-target relative -ml-1 flex p-1"
                     @click="toggleRow(member.id)"
                   >
                     <SelectionBox :state="isSelected(member.id) ? 'all' : 'none'" />
@@ -170,7 +206,7 @@
                 <td :class="['py-2.5 pr-3', canExport ? 'pl-1' : 'pl-5']">
                   <MemberIdentity :member="member" size="md" :show-email="false" max-width="220px">
                     <template #meta>
-                      <p class="flex items-center gap-1.5 text-xs text-gray-500">
+                      <p class="flex items-center gap-1.5 text-xs text-ink-muted">
                         <span class="truncate">{{ member.member_number }}<template v-if="member.age !== null"> · {{ member.age }} J.</template></span>
                         <AggregatorBadge v-if="member.aggregator" :aggregator="member.aggregator.key" :status="member.aggregator.status" />
                       </p>
@@ -182,14 +218,14 @@
                 </td>
                 <!-- Data cells stay on one line so every row has the same height;
                      what does not fit is truncated and shown in full as a tooltip. -->
-                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
+                <td class="whitespace-nowrap px-3 py-2.5 text-compact text-ink-secondary">
                   <template v-if="member.plans.length">
                     <Tooltip position="top" teleport only-when-truncated class="align-middle">
                       <span class="block max-w-[160px] truncate">{{ member.plans[0] }}</span>
                       <template #content>{{ member.plans[0] }}</template>
                     </Tooltip>
                     <Tooltip v-if="member.plans.length > 1" position="top" teleport class="ml-1 align-middle">
-                      <span class="cursor-default rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
+                      <span class="cursor-default rounded-full bg-fill px-1.5 py-0.5 text-2xs font-medium text-ink-secondary">
                         +{{ member.plans.length - 1 }}
                       </span>
                       <template #content>
@@ -200,46 +236,46 @@
                       </template>
                     </Tooltip>
                   </template>
-                  <span v-else class="text-gray-400">–</span>
+                  <span v-else class="text-ink-muted">–</span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
+                <td class="whitespace-nowrap px-3 py-2.5 text-compact text-ink-secondary">
                   <Tooltip v-if="member.payment_method" position="top" teleport only-when-truncated>
                     <span class="flex items-center">
                       <span
                         v-if="member.payment_method.provider"
-                        :class="['mr-1.5 rounded px-1.5 py-0.5 text-[11px] font-medium', providerBadgeClass(member.payment_method.provider)]"
+                        :class="['mr-1.5 rounded px-1.5 py-0.5 text-2xs font-medium', providerBadgeClass(member.payment_method.provider)]"
                       >{{ member.payment_method.provider }}</span>
                       <span class="max-w-[150px] truncate">{{ member.payment_method.label }}</span>
                     </span>
                     <template #content>
                       <div class="font-semibold">{{ member.payment_method.label }}</div>
-                      <div v-if="member.payment_method.provider" class="text-gray-300">über {{ member.payment_method.provider }}</div>
+                      <div v-if="member.payment_method.provider" class="text-ink-disabled">über {{ member.payment_method.provider }}</div>
                     </template>
                   </Tooltip>
-                  <span v-else class="text-gray-400">–</span>
+                  <span v-else class="text-ink-muted">–</span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-2.5 text-right text-[13px]">
-                  <span v-if="member.outstanding_balance" class="font-medium text-amber-600">{{ formatCurrency(member.outstanding_balance) }}</span>
-                  <span v-else class="text-gray-400">–</span>
-                  <span v-if="member.failed_payment_count > 0" class="block text-[11px] text-red-700">{{ member.failed_payment_count }}× fehlgeschlagen</span>
+                <td class="whitespace-nowrap px-3 py-2.5 text-right text-compact">
+                  <span v-if="member.outstanding_balance" class="font-medium text-warning">{{ formatCurrency(member.outstanding_balance) }}</span>
+                  <span v-else class="text-ink-muted">–</span>
+                  <span v-if="member.failed_payment_count > 0" class="block text-2xs text-danger">{{ member.failed_payment_count }}× fehlgeschlagen</span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-2.5 text-right text-[13px] tabular-nums text-gray-700">{{ member.check_in_count }}</td>
-                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-500">{{ member.last_check_in_at ? formatDate(member.last_check_in_at) : 'nie' }}</td>
-                <td class="whitespace-nowrap px-3 py-2.5 text-[13px] text-gray-700">
+                <td class="whitespace-nowrap px-3 py-2.5 text-right text-compact tabular-nums text-ink-secondary">{{ member.check_in_count }}</td>
+                <td class="whitespace-nowrap px-3 py-2.5 text-compact text-ink-muted">{{ member.last_check_in_at ? formatDate(member.last_check_in_at) : 'nie' }}</td>
+                <td class="whitespace-nowrap px-3 py-2.5 text-compact text-ink-secondary">
                   <Tooltip v-if="member.postal_code || member.city" position="top" teleport only-when-truncated>
                     <span class="block max-w-[170px] truncate">{{ [member.postal_code, member.city].filter(Boolean).join(' ') }}</span>
                     <template #content>{{ [member.postal_code, member.city].filter(Boolean).join(' ') }}</template>
                   </Tooltip>
-                  <span v-else class="text-gray-400">–</span>
+                  <span v-else class="text-ink-muted">–</span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-gray-700">
+                <td class="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-ink-secondary">
                   {{ member.nfc_tag ?? '–' }}<span v-if="member.nfc_tag_count > 1" class="ml-1 font-sans text-ink-muted">+{{ member.nfc_tag_count - 1 }}</span>
                 </td>
                 <td class="pr-5 text-right">
                   <button
                     v-if="member.can_delete"
                     type="button"
-                    class="rounded p-1 text-red-600 transition-colors hover:text-red-900"
+                    class="rounded p-1 text-danger transition-colors hover:text-danger-strong"
                     title="Löschen"
                     :aria-label="`${member.first_name} ${member.last_name} löschen`"
                     @click="confirmDelete(member)"
@@ -256,7 +292,7 @@
                         type="button"
                         aria-disabled="true"
                         :aria-label="`${member.first_name} ${member.last_name} kann nicht gelöscht werden: ${member.delete_block_reason}`"
-                        class="cursor-not-allowed rounded p-1 text-gray-300 opacity-50"
+                        class="cursor-not-allowed rounded p-1 text-ink-disabled opacity-50"
                         @click.prevent
                       >
                         <Trash2 class="h-4 w-4" />
@@ -267,8 +303,8 @@
                         <AlertCircle class="mr-1 h-3 w-3" />
                         Löschen nicht möglich
                       </div>
-                      <div class="text-gray-300">{{ member.delete_block_reason }}</div>
-                      <div v-if="member.status !== 'inactive'" class="mt-2 border-t border-gray-700 pt-2 text-gray-400">
+                      <div class="text-ink-disabled">{{ member.delete_block_reason }}</div>
+                      <div v-if="member.status !== 'inactive'" class="mt-2 border-t border-gray-700 pt-2 text-ink-muted">
                         Tipp: Mitglied muss erst inaktiviert werden
                       </div>
                     </template>
@@ -279,9 +315,9 @@
           </table>
 
           <div v-if="members.data.length === 0" class="px-6 py-12 text-center">
-            <Users class="mx-auto h-12 w-12 text-gray-400" />
-            <h3 class="mt-2 text-sm font-semibold text-gray-900">Keine Mitglieder gefunden</h3>
-            <p class="mt-1 text-sm text-gray-500">
+            <Users class="mx-auto h-12 w-12 text-ink-muted" />
+            <h3 class="mt-2 text-sm font-semibold text-ink">Keine Mitglieder gefunden</h3>
+            <p class="mt-1 text-sm text-ink-muted">
               {{ activeCount > 0
                 ? 'Keine Mitglieder entsprechen den aktuellen Filtern. Lockern Sie Bedingungen oder verknüpfen Sie sie mit ODER.'
                 : 'Beginnen Sie mit dem Hinzufügen Ihres ersten Mitglieds.' }}
@@ -301,20 +337,20 @@
 
     <!-- Erweitertes Lösch-Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
+      <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface">
         <div class="mt-3 text-center">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-            <AlertTriangle class="h-6 w-6 text-red-600" />
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-soft">
+            <AlertTriangle class="h-6 w-6 text-danger" />
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mt-2">Mitglied löschen</h3>
+          <h3 class="text-lg font-semibold text-ink mt-2">Mitglied löschen</h3>
 
           <div class="mt-4 px-7 py-3">
             <!-- Mitgliedsinfo -->
-            <div class="bg-gray-50 rounded-lg p-3 mb-4">
-              <div class="font-medium text-gray-900">
+            <div class="bg-surface-muted rounded-lg p-3 mb-4">
+              <div class="font-medium text-ink">
                 {{ memberToDelete?.first_name }} {{ memberToDelete?.last_name }}
               </div>
-              <div class="text-sm text-gray-500">
+              <div class="text-sm text-ink-muted">
                 {{ memberToDelete?.member_number }} • {{ memberToDelete?.email }}
               </div>
             </div>
@@ -322,22 +358,22 @@
             <!-- Prüfungs-Checkliste -->
             <div class="text-left space-y-2 mb-4">
               <div class="flex items-center text-sm">
-                <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
-                <span class="text-gray-600">Status: Inaktiv</span>
+                <CheckCircle class="w-4 h-4 text-success mr-2" />
+                <span class="text-ink-secondary">Status: Inaktiv</span>
               </div>
               <div class="flex items-center text-sm">
-                <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
-                <span class="text-gray-600">Keine aktiven Mitgliedschaften</span>
+                <CheckCircle class="w-4 h-4 text-success mr-2" />
+                <span class="text-ink-secondary">Keine aktiven Mitgliedschaften</span>
               </div>
               <div class="flex items-center text-sm">
-                <CheckCircle class="w-4 h-4 text-green-500 mr-2" />
-                <span class="text-gray-600">Keine offenen Zahlungen</span>
+                <CheckCircle class="w-4 h-4 text-success mr-2" />
+                <span class="text-ink-secondary">Keine offenen Zahlungen</span>
               </div>
             </div>
 
             <!-- Warnung -->
-            <div class="bg-red-50 border border-red-200 rounded-md p-3">
-              <p class="text-sm text-red-800">
+            <div class="bg-danger-subtle border border-danger-line rounded-md p-3">
+              <p class="text-sm text-danger-strong">
                 <strong>Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
                 Alle Daten des Mitglieds werden unwiderruflich gelöscht.
               </p>
@@ -348,7 +384,7 @@
             <button
               @click="deleteMember"
               :disabled="isDeleting"
-              class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="px-4 py-2 bg-danger-solid text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-danger-solid-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <span v-if="!isDeleting">Endgültig löschen</span>
               <span v-else class="flex items-center justify-center">
@@ -359,7 +395,7 @@
             <button
               @click="closeDeleteModal"
               :disabled="isDeleting"
-              class="px-4 py-2 bg-white text-gray-700 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
+              class="px-4 py-2 bg-surface text-ink-secondary text-base font-medium rounded-md w-full shadow-sm border border-line-strong hover:bg-surface-muted disabled:opacity-50 transition-colors"
             >
               Abbrechen
             </button>
@@ -425,7 +461,7 @@ const columns = [
 // unknown providers stay neutral.
 const PROVIDER_BADGE_CLASSES = { Mollie: 'bg-black text-white' }
 
-const providerBadgeClass = provider => PROVIDER_BADGE_CLASSES[provider] ?? 'bg-gray-100 text-gray-500'
+const providerBadgeClass = provider => PROVIDER_BADGE_CLASSES[provider] ?? 'bg-fill text-ink-muted'
 
 // Mirror the defaults of App\Services\MemberListService.
 const DEFAULT_SORT = { sortBy: 'member_number', sortDirection: 'asc' }

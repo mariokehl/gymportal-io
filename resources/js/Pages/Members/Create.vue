@@ -4,7 +4,7 @@
       <div class="flex items-center">
         <Link
           :href="route('members.index')"
-          class="text-gray-500 hover:text-gray-700 mr-4"
+          class="text-ink-muted hover:text-ink mr-4"
         >
           <ArrowLeft class="w-5 h-5" />
         </Link>
@@ -26,7 +26,7 @@
                 <span v-else>{{ step.id }}</span>
               </div>
               <div class="ml-3">
-                <p class="text-sm font-medium" :class="index <= currentStep ? 'text-indigo-600' : 'text-gray-500'">
+                <p class="text-sm font-medium" :class="index <= currentStep ? 'text-brand' : 'text-ink-muted'">
                   {{ step.name }}
                 </p>
               </div>
@@ -35,74 +35,74 @@
             <div v-if="index < steps.length - 1" class="flex-1 ml-6">
               <div
                 class="h-0.5 w-full transition-colors"
-                :class="index < currentStep ? 'bg-indigo-600' : 'bg-gray-300'"
+                :class="index < currentStep ? 'bg-brand' : 'bg-line-strong'"
               ></div>
             </div>
           </div>
         </div>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="bg-white rounded-lg shadow">
+      <form @submit.prevent="handleSubmit" class="bg-surface rounded-lg shadow">
 
         <!-- Schritt 1: Persönliche Daten -->
         <div v-show="currentStep === 0" class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">Persönliche Daten</h3>
+          <h3 class="text-lg font-semibold text-ink mb-6">Persönliche Daten</h3>
 
           <!-- Anrede, Vorname, Nachname in einer Zeile -->
           <div class="grid grid-cols-1 md:grid-cols-8 gap-6 mb-6">
             <!-- Anrede (25% = 2/8 Spalten) -->
             <div class="md:col-span-2">
-              <label for="salutation" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="salutation" class="block text-sm font-medium text-ink-secondary mb-2">
                 Anrede
               </label>
               <select
                 id="salutation"
                 v-model="form.salutation"
-                class="w-full px-3 p-2.5 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.salutation }"
+                class="field w-full px-3 p-2.5"
+                :class="{ 'border-danger': errors.salutation }"
               >
                 <option value="" selected>Anrede auswählen</option>
                 <option value="Herr">Herr</option>
                 <option value="Frau">Frau</option>
                 <option value="Divers">Divers</option>
               </select>
-              <p v-if="errors.salutation" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.salutation" class="mt-1 text-sm text-danger">
                 {{ errors.salutation }}
               </p>
             </div>
 
             <!-- Vorname (37.5% = 3/8 Spalten) -->
             <div class="md:col-span-3">
-              <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">
-                Vorname <span class="text-red-500">*</span>
+              <label for="first_name" class="block text-sm font-medium text-ink-secondary mb-2">
+                Vorname <span class="text-danger">*</span>
               </label>
               <input
                 id="first_name"
                 v-model="form.first_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.first_name }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.first_name }"
                 @blur="handleFieldBlur('first_name', 'Vorname ist erforderlich')"
               />
-              <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.first_name" class="mt-1 text-sm text-danger">
                 {{ errors.first_name }}
               </p>
             </div>
 
             <!-- Nachname (37.5% = 3/8 Spalten) -->
             <div class="md:col-span-3">
-              <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">
-                Nachname <span class="text-red-500">*</span>
+              <label for="last_name" class="block text-sm font-medium text-ink-secondary mb-2">
+                Nachname <span class="text-danger">*</span>
               </label>
               <input
                 id="last_name"
                 v-model="form.last_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.last_name }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.last_name }"
                 @blur="handleFieldBlur('last_name', 'Nachname ist erforderlich')"
               />
-              <p v-if="errors.last_name" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.last_name" class="mt-1 text-sm text-danger">
                 {{ errors.last_name }}
               </p>
             </div>
@@ -136,7 +136,7 @@
           <!-- Geburtsdatum und Mitgliedsnummer in eigener Zeile -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="birth_date" class="block text-sm font-medium text-ink-secondary mb-2">
                 Geburtsdatum
               </label>
               <input
@@ -144,110 +144,110 @@
                 v-model="form.birth_date"
                 type="date"
                 :min="earliestBirthDate()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.birth_date }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.birth_date }"
               />
-              <p v-if="errors.birth_date" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.birth_date" class="mt-1 text-sm text-danger">
                 {{ errors.birth_date }}
               </p>
             </div>
 
             <div>
-              <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="phone" class="block text-sm font-medium text-ink-secondary mb-2">
                 Mobilfunknummer
               </label>
               <input
                 id="phone"
                 v-model="form.phone"
                 type="tel"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.phone }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.phone }"
               />
-              <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.phone" class="mt-1 text-sm text-danger">
                 {{ errors.phone }}
               </p>
             </div>
           </div>
 
           <!-- Adresse in Schritt 1 -->
-          <h4 class="text-md font-medium text-gray-900 mt-8 mb-4">Adresse</h4>
+          <h4 class="text-base font-semibold text-ink mt-8 mb-4">Adresse</h4>
           <div class="grid grid-cols-1 gap-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label for="address" class="block text-sm font-medium text-gray-700 mb-2">
-                  Straße und Hausnummer <span class="text-red-500">*</span>
+                <label for="address" class="block text-sm font-medium text-ink-secondary mb-2">
+                  Straße und Hausnummer <span class="text-danger">*</span>
                 </label>
                 <input
                   id="address"
                   v-model="form.address"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  :class="{ 'border-red-500': errors.address }"
+                  class="field w-full px-3 py-2"
+                  :class="{ 'border-danger': errors.address }"
                   @blur="handleFieldBlur('address', 'Straße und Hausnummer ist erforderlich')"
                 />
-                <p v-if="errors.address" class="mt-1 text-sm text-red-600">
+                <p v-if="errors.address" class="mt-1 text-sm text-danger">
                   {{ errors.address }}
                 </p>
               </div>
 
               <div>
-                <label for="address_addition" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="address_addition" class="block text-sm font-medium text-ink-secondary mb-2">
                   Adresszusatz
                 </label>
                 <input
                   id="address_addition"
                   v-model="form.address_addition"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="field w-full px-3 py-2"
                 />
               </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label for="postal_code" class="block text-sm font-medium text-gray-700 mb-2">
-                  PLZ <span class="text-red-500">*</span>
+                <label for="postal_code" class="block text-sm font-medium text-ink-secondary mb-2">
+                  PLZ <span class="text-danger">*</span>
                 </label>
                 <input
                   id="postal_code"
                   v-model="form.postal_code"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  :class="{ 'border-red-500': errors.postal_code }"
+                  class="field w-full px-3 py-2"
+                  :class="{ 'border-danger': errors.postal_code }"
                   @blur="handleFieldBlur('postal_code', 'PLZ ist erforderlich')"
                 />
-                <p v-if="errors.postal_code" class="mt-1 text-sm text-red-600">
+                <p v-if="errors.postal_code" class="mt-1 text-sm text-danger">
                   {{ errors.postal_code }}
                 </p>
               </div>
 
               <div class="md:col-span-2">
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-2">
-                  Stadt <span class="text-red-500">*</span>
+                <label for="city" class="block text-sm font-medium text-ink-secondary mb-2">
+                  Stadt <span class="text-danger">*</span>
                 </label>
                 <input
                   id="city"
                   v-model="form.city"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  :class="{ 'border-red-500': errors.city }"
+                  class="field w-full px-3 py-2"
+                  :class="{ 'border-danger': errors.city }"
                   @blur="handleFieldBlur('city', 'Stadt ist erforderlich')"
                 />
-                <p v-if="errors.city" class="mt-1 text-sm text-red-600">
+                <p v-if="errors.city" class="mt-1 text-sm text-danger">
                   {{ errors.city }}
                 </p>
               </div>
             </div>
 
             <div>
-              <label for="country" class="block text-sm font-medium text-gray-700 mb-2">
-                Land <span class="text-red-500">*</span>
+              <label for="country" class="block text-sm font-medium text-ink-secondary mb-2">
+                Land <span class="text-danger">*</span>
               </label>
               <select
                 id="country"
                 v-model="form.country"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.country }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.country }"
                 @blur="handleFieldBlur('country', 'Land ist erforderlich')"
               >
                 <option value="" selected>Land auswählen</option>
@@ -255,96 +255,96 @@
                 <option value="AT">Österreich</option>
                 <option value="CH">Schweiz</option>
               </select>
-              <p v-if="errors.country" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.country" class="mt-1 text-sm text-danger">
                 {{ errors.country }}
               </p>
             </div>
           </div>
 
           <!-- Notfallkontakt in Schritt 1 -->
-          <h4 class="text-md font-medium text-gray-900 mt-8 mb-4">Notfallkontakt</h4>
+          <h4 class="text-base font-semibold text-ink mt-8 mb-4">Notfallkontakt</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label for="emergency_contact_name" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="emergency_contact_name" class="block text-sm font-medium text-ink-secondary mb-2">
                 Name des Notfallkontakts
               </label>
               <input
                 id="emergency_contact_name"
                 v-model="form.emergency_contact_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.emergency_contact_name }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.emergency_contact_name }"
               />
-              <p v-if="errors.emergency_contact_name" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.emergency_contact_name" class="mt-1 text-sm text-danger">
                 {{ errors.emergency_contact_name }}
               </p>
             </div>
 
             <div>
-              <label for="emergency_contact_phone" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="emergency_contact_phone" class="block text-sm font-medium text-ink-secondary mb-2">
                 Telefon des Notfallkontakts
               </label>
               <input
                 id="emergency_contact_phone"
                 v-model="form.emergency_contact_phone"
                 type="tel"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.emergency_contact_phone }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.emergency_contact_phone }"
               />
-              <p v-if="errors.emergency_contact_phone" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.emergency_contact_phone" class="mt-1 text-sm text-danger">
                 {{ errors.emergency_contact_phone }}
               </p>
             </div>
           </div>
 
           <!-- Gesetzlicher Vertreter -->
-          <h4 class="text-md font-medium text-gray-900 mt-8 mb-4">Gesetzlicher Vertreter</h4>
-          <p class="text-sm text-gray-500 mb-4">
+          <h4 class="text-base font-semibold text-ink mt-8 mb-4">Gesetzlicher Vertreter</h4>
+          <p class="text-sm text-ink-muted mb-4">
             Bei Minderjährigen muss ein gesetzlicher Vertreter (z.B. Elternteil) dem Vertrag zustimmen.
           </p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label for="legal_guardian_first_name" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="legal_guardian_first_name" class="block text-sm font-medium text-ink-secondary mb-2">
                 Vorname des gesetzlichen Vertreters
               </label>
               <input
                 id="legal_guardian_first_name"
                 v-model="form.legal_guardian_first_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.legal_guardian_first_name }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.legal_guardian_first_name }"
               />
-              <p v-if="errors.legal_guardian_first_name" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.legal_guardian_first_name" class="mt-1 text-sm text-danger">
                 {{ errors.legal_guardian_first_name }}
               </p>
             </div>
 
             <div>
-              <label for="legal_guardian_last_name" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="legal_guardian_last_name" class="block text-sm font-medium text-ink-secondary mb-2">
                 Nachname des gesetzlichen Vertreters
               </label>
               <input
                 id="legal_guardian_last_name"
                 v-model="form.legal_guardian_last_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                :class="{ 'border-red-500': errors.legal_guardian_last_name }"
+                class="field w-full px-3 py-2"
+                :class="{ 'border-danger': errors.legal_guardian_last_name }"
               />
-              <p v-if="errors.legal_guardian_last_name" class="mt-1 text-sm text-red-600">
+              <p v-if="errors.legal_guardian_last_name" class="mt-1 text-sm text-danger">
                 {{ errors.legal_guardian_last_name }}
               </p>
             </div>
           </div>
 
           <div class="mt-6">
-            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="notes" class="block text-sm font-medium text-ink-secondary mb-2">
               Zusätzliche Notizen (optional)
             </label>
             <textarea
               id="notes"
               v-model="form.notes"
               rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="field w-full px-3 py-2"
               placeholder="Besondere Hinweise, medizinische Informationen, etc..."
             ></textarea>
           </div>
@@ -352,7 +352,7 @@
 
         <!-- Schritt 2: Mitgliedschaft -->
         <div v-show="currentStep === 1" class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">Mitgliedschaft wählen</h3>
+          <h3 class="text-lg font-semibold text-ink mb-6">Mitgliedschaft wählen</h3>
 
           <!-- Gastzugang Option -->
           <div class="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
@@ -360,30 +360,30 @@
               <input
                 type="checkbox"
                 v-model="form.create_as_guest"
-                class="w-4 h-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                class="w-4 h-4 text-orange-600 border-line-strong rounded"
               />
-              <span class="ml-3 text-sm font-medium text-gray-900">
+              <span class="ml-3 text-sm font-medium text-ink">
                 Als Gast anlegen (ohne Mitgliedschaft)
               </span>
             </label>
-            <p class="mt-2 ml-7 text-xs text-gray-600">
+            <p class="mt-2 ml-7 text-xs text-ink-secondary">
               Das Mitglied erhält Gastzugang und kann das Fitnessstudio betreten, ohne eine aktive Mitgliedschaft zu benötigen.
               Keine Zahlungsmethode erforderlich.
             </p>
           </div>
 
           <!-- Show message if no membership plans are available (nur wenn nicht als Gast) -->
-          <div v-if="!form.create_as_guest && (!membershipPlans || !Array.isArray(membershipPlans) || membershipPlans.length === 0)" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div v-if="!form.create_as_guest && (!membershipPlans || !Array.isArray(membershipPlans) || membershipPlans.length === 0)" class="p-4 bg-warning-subtle border border-warning-line rounded-lg">
             <div class="flex">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-5 w-5 text-warning" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
               </div>
               <div class="ml-3">
-                <p class="text-sm text-yellow-800">
+                <p class="text-sm text-warning-strong">
                   Keine Mitgliedschaftspläne verfügbar. Bitte zunächst
-                  <Link :href="route('contracts.index')" class="font-medium underline hover:text-yellow-900">Verträge</Link>
+                  <Link :href="route('contracts.index')" class="font-medium underline hover:text-warning-strong">Verträge</Link>
                   anlegen, bevor neue Mitglieder erstellt werden können.
                 </p>
               </div>
@@ -395,7 +395,7 @@
               v-for="plan in membershipPlans"
               :key="plan.id"
               class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-              :class="form.membership_plan_id === plan.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
+              :class="form.membership_plan_id === plan.id ? 'border-brand bg-brand-subtle' : 'border-line-strong'"
               @click="selectMembershipPlan(plan.id)"
             >
               <div class="flex items-center mb-3">
@@ -404,22 +404,22 @@
                   :id="`plan_${plan.id}`"
                   :value="plan.id"
                   v-model="form.membership_plan_id"
-                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                  class="w-4 h-4 text-brand"
                 />
-                <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-gray-900">
+                <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-ink">
                   {{ plan.name }}
                 </label>
               </div>
-              <p class="text-sm text-gray-600 mb-3">{{ plan.description }}</p>
+              <p class="text-sm text-ink-secondary mb-3">{{ plan.description }}</p>
               <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-indigo-600">
+                <span class="text-lg font-bold text-brand">
                   {{ formatCurrency(plan.price) }}
                 </span>
-                <span class="text-sm text-gray-500">
+                <span class="text-sm text-ink-muted">
                   / {{ getBillingCycleText(plan.billing_cycle) }}
                 </span>
               </div>
-              <div class="mt-2 text-xs text-gray-500">
+              <div class="mt-2 text-xs text-ink-muted">
                 <span v-if="plan.commitment_months > 0">
                   Mindestlaufzeit: {{ plan.commitment_months }} Monate
                 </span>
@@ -435,9 +435,9 @@
                 <input
                   type="checkbox"
                   v-model="form.allow_past_start_date"
-                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  class="w-4 h-4 text-brand border-line-strong rounded"
                 />
-                <span class="ml-2 text-sm text-gray-700">
+                <span class="ml-2 text-sm text-ink-secondary">
                   Mitgliedschaft in der Vergangenheit beginnen lassen
                 </span>
               </label>
@@ -445,28 +445,28 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label for="joined_date" class="block text-sm font-medium text-gray-700 mb-2">
-                  Startdatum der Mitgliedschaft <span class="text-red-500">*</span>
+                <label for="joined_date" class="block text-sm font-medium text-ink-secondary mb-2">
+                  Startdatum der Mitgliedschaft <span class="text-danger">*</span>
                 </label>
                 <input
                   id="joined_date"
                   v-model="form.joined_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  :class="{ 'border-red-500': errors.joined_date }"
+                  class="field w-full px-3 py-2"
+                  :class="{ 'border-danger': errors.joined_date }"
                   :min="form.allow_past_start_date ? null : today"
                   @blur="handleJoinedDateBlur"
                 />
-                <p v-if="errors.joined_date" class="mt-1 text-sm text-red-600">
+                <p v-if="errors.joined_date" class="mt-1 text-sm text-danger">
                   {{ errors.joined_date }}
                 </p>
               </div>
 
               <div v-if="selectedPlan">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-sm font-medium text-ink-secondary mb-2">
                   Vertragslaufzeit bis
                 </label>
-                <div class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-600">
+                <div class="w-full px-3 py-2 bg-surface-muted border border-line-strong rounded-md text-ink-secondary">
                   {{ getEndDate() }}
                 </div>
               </div>
@@ -475,38 +475,38 @@
             <!-- Billing Anchor Date -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div>
-                <label for="billing_anchor_date" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="billing_anchor_date" class="block text-sm font-medium text-ink-secondary mb-2">
                   Erste Abrechnung am (optional)
                 </label>
                 <input
                   id="billing_anchor_date"
                   v-model="form.billing_anchor_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  :class="{ 'border-red-500': errors.billing_anchor_date }"
+                  class="field w-full px-3 py-2"
+                  :class="{ 'border-danger': errors.billing_anchor_date }"
                   :min="today"
                   @blur="handleBillingAnchorDateBlur"
                 />
-                <p v-if="errors.billing_anchor_date" class="mt-1 text-sm text-red-600">
+                <p v-if="errors.billing_anchor_date" class="mt-1 text-sm text-danger">
                   {{ errors.billing_anchor_date }}
                 </p>
-                <p class="mt-1 text-xs text-gray-500">
+                <p class="mt-1 text-xs text-ink-muted">
                   Wenn angegeben, wird die erste Abrechnung zu diesem Datum erstellt. Muss am gleichen Tag des Monats liegen wie das Startdatum.
                 </p>
               </div>
             </div>
 
             <!-- Gratis-Zeitraum Info-Box -->
-            <div v-if="shouldShowFreePeriodInfo" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div v-if="shouldShowFreePeriodInfo" class="mt-6 p-4 bg-success-subtle border border-success-line rounded-lg">
               <div class="flex items-start">
                 <div class="flex-shrink-0">
-                  <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg class="h-5 w-5 text-success" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <h3 class="text-sm font-medium text-green-800">Gratis-Testzeitraum</h3>
-                  <div class="mt-2 text-sm text-green-700">
+                  <h3 class="text-sm font-medium text-success-strong">Gratis-Testzeitraum</h3>
+                  <div class="mt-2 text-sm text-success">
                     <p>
                       Da der Vertrag nicht am 1. des Monats beginnt, wird automatisch ein
                       <strong>{{ gymSettings.free_trial_membership_name }}</strong> erstellt:
@@ -526,39 +526,39 @@
                 <input
                   type="checkbox"
                   v-model="form.start_immediately"
-                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  class="w-4 h-4 text-brand border-line-strong rounded"
                 />
-                <span class="ml-2 text-sm text-gray-700">
+                <span class="ml-2 text-sm text-ink-secondary">
                   Vertrag beginnt sofort (ohne Gratis-Zeitraum)
                 </span>
               </label>
-              <p class="mt-1 ml-6 text-xs text-gray-500">
+              <p class="mt-1 ml-6 text-xs text-ink-muted">
                 Der Vertrag startet am gewählten Datum und es wird kein Gratis-Zeitraum angelegt.
               </p>
             </div>
           </div>
 
-          <p v-if="!form.create_as_guest && errors.membership_plan_id" class="mt-4 text-sm text-red-600">
+          <p v-if="!form.create_as_guest && errors.membership_plan_id" class="mt-4 text-sm text-danger">
             {{ errors.membership_plan_id }}
           </p>
         </div>
 
         <!-- Schritt 3: Zahlungsmethode -->
         <div v-show="currentStep === 2" class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">Zahlungsmethode</h3>
+          <h3 class="text-lg font-semibold text-ink mb-6">Zahlungsmethode</h3>
 
           <!-- Show message if no payment methods are enabled -->
-          <div v-if="!paymentMethods || !Array.isArray(paymentMethods) || paymentMethods.length === 0" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div v-if="!paymentMethods || !Array.isArray(paymentMethods) || paymentMethods.length === 0" class="p-4 bg-warning-subtle border border-warning-line rounded-lg">
             <div class="flex">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-5 w-5 text-warning" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
               </div>
               <div class="ml-3">
-                <p class="text-sm text-yellow-800">
+                <p class="text-sm text-warning-strong">
                   Keine Zahlungsmethoden aktiviert. Bitte mindestens eine Zahlungsart in den
-                  <Link :href="route('settings.index')" class="font-medium underline hover:text-yellow-900">Einstellungen</Link>
+                  <Link :href="route('settings.index')" class="font-medium underline hover:text-warning-strong">Einstellungen</Link>
                   aktivieren.
                 </p>
               </div>
@@ -570,7 +570,7 @@
               v-for="method in paymentMethods"
               :key="method.key"
               class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-              :class="form.payment_method === method.key ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
+              :class="form.payment_method === method.key ? 'border-brand bg-brand-subtle' : 'border-line-strong'"
               @click="form.payment_method = method.key"
             >
               <div class="flex items-center">
@@ -579,26 +579,26 @@
                   :id="`payment_${method.key}`"
                   :value="method.key"
                   v-model="form.payment_method"
-                  class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                  class="w-4 h-4 text-brand"
                 />
                 <div class="ml-3">
-                  <label :for="`payment_${method.key}`" class="font-medium text-gray-900">
+                  <label :for="`payment_${method.key}`" class="font-medium text-ink">
                     {{ method.name }}
                   </label>
-                  <p class="text-sm text-gray-600">{{ method.description }}</p>
+                  <p class="text-sm text-ink-secondary">{{ method.description }}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <p v-if="errors.payment_method" class="mt-4 text-sm text-red-600">
+          <p v-if="errors.payment_method" class="mt-4 text-sm text-danger">
             {{ errors.payment_method }}
           </p>
 
           <!-- Zusätzliche Informationen für SEPA -->
-          <div v-if="form.payment_method === 'sepa_direct_debit'" class="mt-6 p-4 bg-indigo-50 rounded-lg">
-            <h4 class="font-medium text-indigo-900 mb-2">SEPA-Lastschrift</h4>
-            <p class="text-sm text-indigo-800">
+          <div v-if="form.payment_method === 'sepa_direct_debit'" class="mt-6 p-4 bg-brand-subtle rounded-lg">
+            <h4 class="font-medium text-brand-strong mb-2">SEPA-Lastschrift</h4>
+            <p class="text-sm text-brand-strong">
               Die Kontodaten können nach der Registrierung im Mitgliederbereich hinterlegt werden.
               Der erste Beitrag wird 7 Tage nach Vertragsstart eingezogen.
             </p>
@@ -607,12 +607,12 @@
 
         <!-- Schritt 4: Zusammenfassung -->
         <div v-show="currentStep === 3" class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">Zusammenfassung</h3>
+          <h3 class="text-lg font-semibold text-ink mb-6">Zusammenfassung</h3>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Persönliche Daten -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="font-medium text-gray-900 mb-3">Persönliche Daten</h4>
+            <div class="bg-surface-muted rounded-lg p-4">
+              <h4 class="font-medium text-ink mb-3">Persönliche Daten</h4>
               <div class="space-y-2 text-sm">
                 <div v-if="form.salutation"><span class="font-medium">Anrede:</span> {{ form.salutation }}</div>
                 <div><span class="font-medium">Name:</span> {{ form.first_name }} {{ form.last_name }}</div>
@@ -620,7 +620,7 @@
                 <div v-if="form.phone"><span class="font-medium">Telefon:</span> {{ form.phone }}</div>
                 <div v-if="form.birth_date"><span class="font-medium">Geburtsdatum:</span> {{ formatDate(form.birth_date) }}</div>
                 <div v-if="form.custom_member_number"><span class="font-medium">Mitgliedsnummer:</span> {{ form.custom_member_number }}</div>
-                <div v-else class="text-gray-500 italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
+                <div v-else class="text-ink-muted italic"><span class="font-medium">Mitgliedsnummer:</span> Wird automatisch generiert</div>
                 <div><span class="font-medium">Adresse:</span> {{ form.address }}<template v-if="form.address_addition">, {{ form.address_addition }}</template>, {{ form.postal_code }} {{ form.city }}, {{ form.country }}</div>
                 <div v-if="form.emergency_contact_name || form.emergency_contact_phone"><span class="font-medium">Notfallkontakt:</span> {{ form.emergency_contact_name }} ({{ form.emergency_contact_phone }})</div>
                 <div v-if="form.legal_guardian_first_name || form.legal_guardian_last_name"><span class="font-medium">Gesetzlicher Vertreter:</span> {{ form.legal_guardian_first_name }} {{ form.legal_guardian_last_name }}</div>
@@ -628,8 +628,8 @@
             </div>
 
             <!-- Mitgliedschaft / Gastzugang -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="font-medium text-gray-900 mb-3">
+            <div class="bg-surface-muted rounded-lg p-4">
+              <h4 class="font-medium text-ink mb-3">
                 {{ form.create_as_guest ? 'Gastzugang' : 'Mitgliedschaft' }}
               </h4>
 
@@ -639,8 +639,8 @@
                   <div class="text-orange-800 font-medium">Gastzugang aktiviert</div>
                   <div class="text-orange-700 text-xs mt-1">Zugang ohne aktive Mitgliedschaft</div>
                 </div>
-                <div class="text-gray-600 italic">Keine Mitgliedschaft</div>
-                <div class="text-gray-600 italic">Keine Zahlungsmethode</div>
+                <div class="text-ink-secondary italic">Keine Mitgliedschaft</div>
+                <div class="text-ink-secondary italic">Keine Zahlungsmethode</div>
               </div>
 
               <!-- Normale Mitgliedschafts-Anzeige -->
@@ -650,9 +650,9 @@
 
                 <!-- Gratis-Zeitraum Anzeige in Zusammenfassung -->
                 <template v-if="shouldShowFreePeriodInfo">
-                  <div class="py-2 px-3 bg-green-100 rounded-md -mx-1">
-                    <div class="text-green-800 font-medium">{{ gymSettings.free_trial_membership_name }}</div>
-                    <div class="text-green-700">{{ formatFreePeriodDate(new Date(form.joined_date)) }} - {{ formatFreePeriodDate(freePeriodEndDate) }} (kostenlos)</div>
+                  <div class="py-2 px-3 bg-success-soft rounded-md -mx-1">
+                    <div class="text-success-strong font-medium">{{ gymSettings.free_trial_membership_name }}</div>
+                    <div class="text-success">{{ formatFreePeriodDate(new Date(form.joined_date)) }} - {{ formatFreePeriodDate(freePeriodEndDate) }} (kostenlos)</div>
                   </div>
                   <div><span class="font-medium">Zahlungspflichtiger Vertrag ab:</span> {{ formatFreePeriodDate(paidMembershipStartDate) }}</div>
                 </template>
@@ -674,20 +674,20 @@
 
           <!-- Datenschutz und AGB -->
           <!--
-          <div class="mt-8 p-4 border border-gray-200 rounded-lg">
+          <div class="mt-8 p-4 border border-line rounded-lg">
             <div class="flex items-start">
               <input
                 id="accept_terms"
                 v-model="form.accept_terms"
                 type="checkbox"
-                class="mt-1 w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                class="mt-1 w-4 h-4 text-brand border-line-strong rounded"
               />
-              <label for="accept_terms" class="ml-2 text-sm text-gray-700">
-                Ich akzeptiere die <a href="#" class="text-indigo-600 hover:underline">Allgemeinen Geschäftsbedingungen</a>
-                und die <a href="#" class="text-indigo-600 hover:underline">Datenschutzerklärung</a>. <span class="text-red-500">*</span>
+              <label for="accept_terms" class="ml-2 text-sm text-ink-secondary">
+                Ich akzeptiere die <a href="#" class="text-brand hover:underline">Allgemeinen Geschäftsbedingungen</a>
+                und die <a href="#" class="text-brand hover:underline">Datenschutzerklärung</a>. <span class="text-danger">*</span>
               </label>
             </div>
-            <p v-if="errors.accept_terms" class="mt-2 text-sm text-red-600">
+            <p v-if="errors.accept_terms" class="mt-2 text-sm text-danger">
               {{ errors.accept_terms }}
             </p>
           </div>
@@ -696,27 +696,27 @@
 
 
         <!-- Allgemeine Fehlermeldung (z.B. Server-/Exception-Fehler) -->
-        <div v-if="errors.general" class="mx-6 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div v-if="errors.general" class="mx-6 mb-4 p-4 bg-danger-subtle border border-danger-line rounded-lg">
           <div class="flex items-start">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg class="h-5 w-5 text-danger" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
               </svg>
             </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">Fehler beim Anlegen des Mitglieds</h3>
-              <p class="mt-1 text-sm text-red-700">{{ errors.general }}</p>
+              <h3 class="text-sm font-medium text-danger-strong">Fehler beim Anlegen des Mitglieds</h3>
+              <p class="mt-1 text-sm text-danger">{{ errors.general }}</p>
             </div>
           </div>
         </div>
 
         <!-- Navigation Buttons -->
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
+        <div class="px-6 py-4 bg-surface-muted border-t border-line flex justify-between">
           <button
             type="button"
             @click="previousStep"
             v-show="currentStep > 0"
-            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="px-6 py-2 border border-line-strong text-ink-secondary rounded-md hover:bg-surface-muted"
           >
             Zurück
           </button>
@@ -726,7 +726,7 @@
               type="button"
               @click="nextStep"
               v-show="currentStep < steps.length - 1"
-              class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              class="px-6 py-2 bg-brand text-white rounded-md hover:bg-brand-strong"
             >
               Weiter
             </button>
@@ -734,7 +734,7 @@
             <button
               type="submit"
               v-show="currentStep === steps.length - 1"
-              class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              class="px-6 py-2 bg-success-solid text-white rounded-md hover:bg-success-solid-strong"
               :disabled="!isFormValid() || processing"
             >
               <span v-if="processing">Wird erstellt...</span>
@@ -1106,11 +1106,11 @@ const isFormValid = () => {
 
 const getStepClasses = (index) => {
   if (index < currentStep.value) {
-    return 'bg-indigo-600 border-indigo-600 text-white'
+    return 'bg-brand border-brand text-white'
   } else if (index === currentStep.value) {
-    return 'bg-indigo-100 border-indigo-600 text-indigo-600'
+    return 'bg-brand-soft border-brand text-brand'
   } else {
-    return 'bg-white border-gray-300 text-gray-500'
+    return 'bg-surface border-line-strong text-ink-muted'
   }
 }
 

@@ -1,59 +1,59 @@
 <template>
-  <section class="rounded-lg border border-gray-200 bg-white shadow-sm">
+  <section class="rounded-lg border border-line bg-surface shadow-sm">
     <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
       <button
         type="button"
         :class="[
           'inline-flex h-[34px] items-center gap-1.5 rounded-md border pl-3 pr-2.5 text-sm font-medium',
           open || activeCount > 0
-            ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            ? 'border-brand-line bg-brand-subtle text-brand-strong hover:bg-brand-soft'
+            : 'border-line-strong bg-surface text-ink-secondary hover:bg-surface-muted'
         ]"
         :aria-expanded="open"
         @click="toggleOpen"
       >
         <Filter class="h-4 w-4" />
         Filter
-        <span v-if="activeCount > 0" class="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[11px] font-semibold text-white">{{ activeCount }}</span>
+        <span v-if="activeCount > 0" class="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand px-1.5 text-2xs font-semibold text-white">{{ activeCount }}</span>
         <ChevronDown :class="['h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180']" />
       </button>
 
       <div ref="savedMenuWrapper" class="relative">
         <button
           type="button"
-          class="inline-flex h-[34px] max-w-[320px] items-center gap-1.5 rounded-md border border-gray-300 bg-white pl-3 pr-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          class="inline-flex h-[34px] max-w-[320px] items-center gap-1.5 rounded-md border border-line-strong bg-surface pl-3 pr-2.5 text-sm font-medium text-ink-secondary hover:bg-surface-muted"
           :aria-expanded="savedMenuOpen"
           @click="savedMenuOpen = !savedMenuOpen"
         >
           <Bookmark class="h-4 w-4 shrink-0" />
           <span class="truncate">{{ activeSaved ? activeSaved.name + (dirty ? ' (geändert)' : '') : 'Gespeicherte Filter' }}</span>
-          <ChevronDown class="h-3.5 w-3.5 shrink-0 text-gray-400" />
+          <ChevronDown class="h-3.5 w-3.5 shrink-0 text-ink-muted" />
         </button>
 
-        <div v-if="savedMenuOpen" class="absolute left-0 top-full z-40 mt-1 w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-          <div class="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-gray-500">Gespeicherte Filter</div>
+        <div v-if="savedMenuOpen" class="absolute left-0 top-full z-40 mt-1 w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface py-1 shadow-lg">
+          <div class="px-3 pb-1 pt-2 text-2xs font-medium uppercase tracking-wider text-ink-muted">Gespeicherte Filter</div>
           <div class="max-h-72 overflow-y-auto">
-            <div v-for="saved in savedFilters" :key="saved.id" class="flex items-center hover:bg-gray-50">
-              <button type="button" class="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm text-gray-900" @click="loadSaved(saved)">
-                <span class="flex w-3.5 shrink-0 text-indigo-600"><Check v-if="saved.id === activeSavedId" class="h-3.5 w-3.5" /></span>
+            <div v-for="saved in savedFilters" :key="saved.id" class="flex items-center hover:bg-surface-muted">
+              <button type="button" class="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm text-ink" @click="loadSaved(saved)">
+                <span class="flex w-3.5 shrink-0 text-brand"><Check v-if="saved.id === activeSavedId" class="h-3.5 w-3.5" /></span>
                 <span class="truncate">{{ saved.name }}</span>
-                <span v-if="saved.id === activeSavedId && dirty" class="whitespace-nowrap text-xs text-amber-700">· geändert</span>
+                <span v-if="saved.id === activeSavedId && dirty" class="whitespace-nowrap text-xs text-warning">· geändert</span>
               </button>
               <button
                 type="button"
                 title="Filter löschen"
-                class="mr-1.5 rounded-md p-1.5 text-gray-400 hover:bg-red-100 hover:text-red-600"
+                class="mr-1.5 rounded-md p-1.5 text-ink-muted hover:bg-danger-soft hover:text-danger-strong"
                 @click="removeSaved(saved)"
               >
                 <Trash2 class="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
-          <div v-if="savedFilters.length === 0" class="px-3 py-2 text-[13px] text-gray-400">Noch keine Filter gespeichert.</div>
-          <div class="my-1 h-px bg-gray-100" />
+          <div v-if="savedFilters.length === 0" class="px-3 py-2 text-compact text-ink-muted">Noch keine Filter gespeichert.</div>
+          <div class="my-1 h-px bg-fill" />
           <button
             type="button"
-            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-transparent"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-brand hover:bg-brand-subtle disabled:cursor-not-allowed disabled:text-ink-muted disabled:hover:bg-transparent"
             :disabled="activeCount === 0"
             :title="activeCount === 0 ? 'Legen Sie zuerst mindestens eine Bedingung fest.' : undefined"
             @click="openSave"
@@ -64,31 +64,31 @@
         </div>
       </div>
 
-      <div v-if="!open && activeCount > 0" class="flex min-w-0 flex-[1_1_280px] flex-wrap items-center gap-1.5 border-l border-gray-200 pl-2">
+      <div v-if="!open && activeCount > 0" class="flex min-w-0 flex-[1_1_280px] flex-wrap items-center gap-1.5 border-l border-line pl-2">
         <template v-for="(token, index) in chips" :key="index">
-          <span v-if="token.kind === 'condition'" class="inline-flex max-w-[340px] items-center rounded-full border border-gray-200 bg-gray-50">
+          <span v-if="token.kind === 'condition'" class="inline-flex max-w-[340px] items-center rounded-full border border-line bg-surface-muted">
             <button
               type="button"
               title="Filter bearbeiten"
-              class="truncate py-[3px] pl-2.5 pr-1 text-[13px] text-gray-700"
+              class="truncate py-[3px] pl-2.5 pr-1 text-compact text-ink-secondary"
               @click="open = true"
             >
-              <span class="font-medium text-gray-900">{{ token.field }}</span> {{ [token.operator, token.value].filter(Boolean).join(' ') }}
+              <span class="font-medium text-ink">{{ token.field }}</span> {{ [token.operator, token.value].filter(Boolean).join(' ') }}
             </button>
             <button
               type="button"
               title="Bedingung entfernen"
-              class="flex py-[3px] pl-0.5 pr-2 text-gray-400 hover:text-red-600"
+              class="flex py-[3px] pl-0.5 pr-2 text-ink-muted hover:text-danger-strong"
               @click="removeCondition(token.groupId, token.conditionId)"
             >
               <X class="h-3 w-3" />
             </button>
           </span>
-          <span v-else-if="token.kind === 'logic'" class="text-[10px] font-semibold tracking-wider text-indigo-700">{{ token.text }}</span>
-          <span v-else class="font-semibold text-gray-400">{{ token.text }}</span>
+          <span v-else-if="token.kind === 'logic'" class="text-2xs font-semibold tracking-wider text-brand-strong">{{ token.text }}</span>
+          <span v-else class="font-semibold text-ink-muted">{{ token.text }}</span>
         </template>
       </div>
-      <span v-else-if="!open" class="flex-[1_1_240px] pl-1 text-[13px] text-ink-muted">
+      <span v-else-if="!open" class="flex-[1_1_240px] pl-1 text-compact text-ink-muted">
         Keine Filter aktiv – alle {{ subject }} werden angezeigt.
       </span>
 
@@ -97,7 +97,7 @@
         <button
           v-if="activeCount > 0 || activeSavedId"
           type="button"
-          class="inline-flex h-[34px] items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+          class="inline-flex h-[34px] items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-ink-muted hover:bg-fill hover:text-ink"
           @click="reset"
         >
           <RotateCcw class="h-4 w-4" />
@@ -106,13 +106,13 @@
       </div>
     </div>
 
-    <div v-if="open" class="border-t border-gray-100">
+    <div v-if="open" class="border-t border-line-subtle">
       <form
         v-if="saving"
-        class="flex flex-wrap items-center gap-2 border-b border-gray-100 bg-indigo-50 px-3 py-2.5"
+        class="flex flex-wrap items-center gap-2 border-b border-line-subtle bg-brand-subtle px-3 py-2.5"
         @submit.prevent="confirmSave"
       >
-        <label for="saved-filter-name" class="text-sm font-medium text-indigo-800">Name des Filters</label>
+        <label for="saved-filter-name" class="text-sm font-medium text-brand-strong">Name des Filters</label>
         <input
           id="saved-filter-name"
           ref="saveNameInput"
@@ -120,19 +120,19 @@
           type="text"
           maxlength="100"
           placeholder="z. B. Zahlungsprobleme Q4"
-          class="h-[34px] w-[280px] max-w-full rounded-md border border-indigo-200 bg-white px-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+          class="field h-[34px] w-[280px] max-w-full px-2.5"
           @keydown.esc="saving = false"
         />
         <button
           type="submit"
           :disabled="!saveName.trim() || isSaving"
-          class="h-[34px] rounded-md bg-indigo-600 px-3.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          class="h-[34px] rounded-md bg-brand px-3.5 text-sm font-medium text-white hover:bg-brand-strong disabled:opacity-50"
         >
           Speichern
         </button>
-        <button type="button" class="h-[34px] rounded-md px-3 text-sm font-medium text-indigo-700" @click="saving = false">Abbrechen</button>
-        <span v-if="saveError" class="text-xs text-red-600">{{ saveError }}</span>
-        <span v-else-if="overwrites" class="text-xs text-indigo-600">Vorhandener Filter wird überschrieben.</span>
+        <button type="button" class="h-[34px] rounded-md px-3 text-sm font-medium text-brand-strong" @click="saving = false">Abbrechen</button>
+        <span v-if="saveError" class="text-xs text-danger">{{ saveError }}</span>
+        <span v-else-if="overwrites" class="text-xs text-brand">Vorhandener Filter wird überschrieben.</span>
       </form>
 
       <FilterBuilder

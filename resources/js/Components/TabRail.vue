@@ -5,7 +5,7 @@
   <nav
     class="flex gap-2 overflow-x-auto gp-tab-rail"
     :class="sticky
-      ? '-mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-1 sticky z-20 bg-gray-100 border-b border-gray-200 lg:static lg:z-auto lg:bg-transparent lg:border-b-0'
+      ? '-mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-1 sticky z-20 bg-fill border-b border-line lg:static lg:z-auto lg:bg-transparent lg:border-b-0'
       : 'py-1'"
     :style="sticky ? { top: 'var(--gp-header-height, 56px)' } : undefined"
   >
@@ -16,8 +16,8 @@
       @click="$emit('update:modelValue', tab.id)"
       :class="[
         modelValue === tab.id
-          ? 'bg-indigo-600 text-white border-transparent shadow-[0_2px_8px_rgba(79,70,229,0.3)]'
-          : 'bg-white text-gray-600 border-gray-200 shadow-sm hover:border-gray-300',
+          ? 'bg-brand text-white border-transparent shadow-[0_2px_8px_rgba(79,70,229,0.3)]'
+          : 'bg-surface text-ink-secondary border-line shadow-sm hover:border-line-strong',
         'flex-none whitespace-nowrap flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors'
       ]"
     >

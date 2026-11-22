@@ -2,42 +2,42 @@
   <div class="flex flex-col gap-3 px-3 py-4">
     <template v-for="(group, groupIndex) in modelValue.groups" :key="group.id">
       <div v-if="groupIndex > 0" class="flex items-center gap-2.5">
-        <div class="h-px flex-1 bg-gray-200" />
+        <div class="h-px flex-1 bg-fill-strong" />
         <button
           type="button"
           title="Verknüpfung der Gruppen umschalten"
-          class="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-semibold tracking-wider text-indigo-700 hover:bg-indigo-50"
+          class="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-surface px-3 py-1 text-xs font-semibold tracking-wider text-brand-strong hover:bg-brand-subtle"
           @click="emitDefinition({ rootLogic: toggleLogic(modelValue.rootLogic) })"
         >
           {{ LOGIC_LABELS[modelValue.rootLogic] }}
           <ArrowUpDown class="h-3 w-3" />
         </button>
-        <div class="h-px flex-1 bg-gray-200" />
+        <div class="h-px flex-1 bg-fill-strong" />
       </div>
 
-      <div class="flex flex-col gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-4 pb-3.5 pt-3">
+      <div class="flex flex-col gap-2.5 rounded-lg border border-line bg-surface-muted px-4 pb-3.5 pt-3">
         <div class="flex flex-wrap items-center gap-2.5">
-          <span class="text-xs font-medium uppercase tracking-wider text-gray-500">Gruppe {{ groupIndex + 1 }}</span>
-          <span class="text-[13px] text-gray-500">Bedingungen verknüpfen mit</span>
-          <div class="inline-flex overflow-hidden rounded-md border border-gray-300 bg-white">
+          <span class="text-xs font-medium uppercase tracking-wider text-ink-muted">Gruppe {{ groupIndex + 1 }}</span>
+          <span class="text-compact text-ink-muted">Bedingungen verknüpfen mit</span>
+          <div class="inline-flex overflow-hidden rounded-md border border-line-strong bg-surface">
             <button
               v-for="logic in ['AND', 'OR']"
               :key="logic"
               type="button"
               :class="[
                 'px-3 py-1 text-xs font-semibold tracking-wide',
-                group.logic === logic ? 'cursor-default bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                group.logic === logic ? 'cursor-default bg-brand text-white' : 'text-ink-secondary hover:bg-fill'
               ]"
               @click="updateGroup(group.id, { logic })"
             >
               {{ LOGIC_LABELS[logic] }}
             </button>
           </div>
-          <span class="text-xs text-gray-400">{{ group.logic === 'AND' ? 'alle müssen zutreffen' : 'mindestens eine muss zutreffen' }}</span>
+          <span class="text-xs text-ink-muted">{{ group.logic === 'AND' ? 'alle müssen zutreffen' : 'mindestens eine muss zutreffen' }}</span>
           <button
             v-if="modelValue.groups.length > 1"
             type="button"
-            class="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px] text-gray-500 hover:bg-red-100 hover:text-red-700"
+            class="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-compact text-ink-muted hover:bg-danger-soft hover:text-danger-strong"
             @click="removeGroup(group.id)"
           >
             <Trash2 class="h-3.5 w-3.5" />
@@ -60,14 +60,14 @@
           @remove="removeCondition(group.id, condition.id)"
         />
 
-        <p v-if="group.conditions.length === 0" class="m-0 text-[13px] text-gray-500">
+        <p v-if="group.conditions.length === 0" class="m-0 text-compact text-ink-muted">
           Keine Bedingungen – diese Gruppe trifft auf alle {{ subject }} zu.
         </p>
 
         <div>
           <button
             type="button"
-            class="-ml-1.5 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+            class="-ml-1.5 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-brand hover:bg-brand-subtle"
             @click="addCondition(group.id)"
           >
             <Plus class="h-4 w-4" />
@@ -81,26 +81,26 @@
       <button
         v-if="modelValue.groups.length < MAX_GROUPS"
         type="button"
-        class="inline-flex h-[34px] items-center gap-1.5 rounded-md border border-dashed border-indigo-300 bg-white px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+        class="inline-flex h-[34px] items-center gap-1.5 rounded-md border border-dashed border-brand-line bg-surface px-3 text-sm font-medium text-brand-strong hover:bg-brand-subtle"
         @click="addGroup"
       >
         <Layers class="h-4 w-4" />
         Gruppe hinzufügen
       </button>
-      <span class="text-[13px] text-gray-500">Gruppen bündeln Bedingungen, z. B. (A UND B) ODER (C).</span>
+      <span class="text-compact text-ink-muted">Gruppen bündeln Bedingungen, z. B. (A UND B) ODER (C).</span>
     </div>
 
-    <div class="flex flex-wrap items-baseline gap-2.5 border-t border-gray-100 pt-3.5 text-sm leading-[1.9]">
-      <span class="text-xs font-medium uppercase tracking-wider text-gray-500">Zeige {{ subject }}, bei denen</span>
+    <div class="flex flex-wrap items-baseline gap-2.5 border-t border-line-subtle pt-3.5 text-sm leading-[1.9]">
+      <span class="text-xs font-medium uppercase tracking-wider text-ink-muted">Zeige {{ subject }}, bei denen</span>
       <span>
-        <span v-if="summary.length === 0" class="text-gray-500">keine Einschränkung gilt (alle {{ subject }})</span>
+        <span v-if="summary.length === 0" class="text-ink-muted">keine Einschränkung gilt (alle {{ subject }})</span>
         <template v-for="(token, index) in summary" :key="index">
-          <span v-if="token.kind === 'logic'" class="mr-1 rounded-full bg-indigo-50 px-[7px] py-0.5 text-[11px] font-semibold tracking-wider text-indigo-700">{{ token.text }}</span>
-          <span v-else-if="token.kind === 'paren'" class="mr-1 font-semibold text-gray-400">{{ token.text }}</span>
+          <span v-if="token.kind === 'logic'" class="mr-1 rounded-full bg-brand-subtle px-[7px] py-0.5 text-2xs font-semibold tracking-wider text-brand-strong">{{ token.text }}</span>
+          <span v-else-if="token.kind === 'paren'" class="mr-1 font-semibold text-ink-muted">{{ token.text }}</span>
           <template v-else>
-            <span class="mr-1 font-semibold text-gray-900">{{ token.field }}</span>
-            <span v-if="token.operator" class="mr-1 text-gray-500">{{ token.operator }}</span>
-            <span v-if="token.value" class="mr-1 font-medium text-indigo-700">{{ token.value }}</span>
+            <span class="mr-1 font-semibold text-ink">{{ token.field }}</span>
+            <span v-if="token.operator" class="mr-1 text-ink-muted">{{ token.operator }}</span>
+            <span v-if="token.value" class="mr-1 font-medium text-brand-strong">{{ token.value }}</span>
           </template>
         </template>
       </span>

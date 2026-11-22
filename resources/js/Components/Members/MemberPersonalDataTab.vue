@@ -4,36 +4,36 @@
     <div v-if="editMode">
       <div
         v-if="isDirty"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200"
+        class="flex items-center gap-3 px-4 py-3 rounded-lg bg-warning-subtle border border-warning-line"
       >
-        <AlertCircle class="w-5 h-5 text-amber-600 flex-shrink-0" />
+        <AlertCircle class="w-5 h-5 text-warning flex-shrink-0" />
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-semibold text-amber-700">Ungespeicherte Änderungen</div>
-          <div class="text-xs text-amber-600/90">
+          <div class="text-sm font-semibold text-warning">Ungespeicherte Änderungen</div>
+          <div class="text-xs text-warning/90">
             {{ dirtyCount }} {{ dirtyCount === 1 ? 'Feld' : 'Felder' }} geändert · „Speichern“ klicken
           </div>
         </div>
         <button
           type="button"
           @click="$emit('request-cancel')"
-          class="flex-none text-sm font-semibold text-amber-700 underline hover:text-amber-800"
+          class="flex-none text-sm font-semibold text-warning underline hover:text-warning-strong"
         >
           Verwerfen
         </button>
       </div>
       <div
         v-else
-        class="flex items-center gap-3 px-4 py-3 rounded-lg bg-indigo-50 border border-indigo-200"
+        class="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-subtle border border-brand-line"
       >
-        <Edit class="w-4 h-4 text-indigo-600 flex-shrink-0" />
-        <div class="text-sm text-indigo-800">
+        <Edit class="w-4 h-4 text-brand flex-shrink-0" />
+        <div class="text-sm text-brand-strong">
           Bearbeitungsmodus aktiv — Felder anpassen, dann speichern.
         </div>
       </div>
     </div>
 
     <!-- Personal data form -->
-    <div class="bg-white rounded-lg shadow">
+    <div class="bg-surface rounded-lg shadow">
       <div class="p-5 sm:p-6">
         <form @submit.prevent="save">
           <!-- Salutation, first name, last name in one row -->
@@ -55,31 +55,31 @@
                 <option value="Frau">Frau</option>
                 <option value="Divers">Divers</option>
               </select>
-              <div v-if="form.errors.salutation" class="text-red-500 text-sm mt-1">{{ form.errors.salutation }}</div>
+              <div v-if="form.errors.salutation" class="text-danger text-sm mt-1">{{ form.errors.salutation }}</div>
             </div>
             <div class="md:col-span-3">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Vorname <span class="text-red-500">*</span></label>
+                <label :class="fieldLabel">Vorname <span class="text-danger">*</span></label>
                 <span v-if="changed('first_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.first_name || '—' }}</div>
               <input v-else v-model="form.first_name" type="text" :class="fieldClass('first_name')" />
-              <div v-if="form.errors.first_name" class="text-red-500 text-sm mt-1">{{ form.errors.first_name }}</div>
+              <div v-if="form.errors.first_name" class="text-danger text-sm mt-1">{{ form.errors.first_name }}</div>
             </div>
             <div class="md:col-span-3">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Nachname <span class="text-red-500">*</span></label>
+                <label :class="fieldLabel">Nachname <span class="text-danger">*</span></label>
                 <span v-if="changed('last_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.last_name || '—' }}</div>
               <input v-else v-model="form.last_name" type="text" :class="fieldClass('last_name')" />
-              <div v-if="form.errors.last_name" class="text-red-500 text-sm mt-1">{{ form.errors.last_name }}</div>
+              <div v-if="form.errors.last_name" class="text-danger text-sm mt-1">{{ form.errors.last_name }}</div>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-5">
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">E-Mail <span class="text-red-500">*</span></label>
+                <label :class="fieldLabel">E-Mail <span class="text-danger">*</span></label>
                 <span v-if="changed('email')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div class="flex rounded-md shadow-sm">
@@ -95,14 +95,14 @@
                 <button
                   v-if="hasActiveMembership"
                   @click="sendWelcomeToMember"
-                  class="px-3 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md text-sm text-indigo-600 hover:text-indigo-800 hover:bg-gray-100 flex items-center gap-1 flex-none"
+                  class="px-3 bg-surface-muted border border-l-0 border-line-strong rounded-r-md text-sm text-brand hover:text-brand-strong hover:bg-fill flex items-center gap-1 flex-none"
                   type="button"
                 >
                   <Mail class="w-4 h-4" />
                   <span class="hidden sm:inline">Willkommen</span>
                 </button>
               </div>
-              <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
+              <div v-if="form.errors.email" class="text-danger text-sm mt-1">{{ form.errors.email }}</div>
             </div>
             <div>
               <div :class="fieldLabelRow">
@@ -122,7 +122,7 @@
                 <a
                   v-if="telLink"
                   :href="telLink"
-                  class="px-3 bg-gray-50 border border-l-0 border-gray-300 hover:bg-gray-100 text-gray-500 hover:text-indigo-600 flex items-center justify-center flex-none"
+                  class="px-3 bg-surface-muted border border-l-0 border-line-strong hover:bg-fill text-ink-muted hover:text-brand-strong flex items-center justify-center flex-none"
                   :class="{ 'rounded-r-md': !whatsappLink }"
                   title="Anrufen"
                 >
@@ -133,7 +133,7 @@
                   :href="whatsappLink"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="px-3 bg-gray-50 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-100 flex items-center justify-center flex-none"
+                  class="px-3 bg-surface-muted border border-l-0 border-line-strong rounded-r-md hover:bg-fill flex items-center justify-center flex-none"
                   title="Chat on WhatsApp"
                 >
                   <svg class="w-5 h-5" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg">
@@ -153,7 +153,7 @@
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Beitrittsdatum <span class="text-red-500">*</span></label>
+                <label :class="fieldLabel">Beitrittsdatum <span class="text-danger">*</span></label>
                 <span v-if="changed('joined_date')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.joined_date ? formatDate(form.joined_date) : '—' }}</div>
@@ -230,9 +230,9 @@
             </div>
 
             <!-- Legal guardian -->
-            <div class="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
-              <h4 class="text-sm font-semibold text-gray-900 mb-1">Gesetzlicher Vertreter</h4>
-              <p class="text-xs text-gray-500">Bei Minderjährigen muss ein gesetzlicher Vertreter dem Vertrag zustimmen.</p>
+            <div class="md:col-span-2 mt-4 pt-4 border-t border-line-subtle">
+              <h4 class="text-sm font-semibold text-ink mb-1">Gesetzlicher Vertreter</h4>
+              <p class="text-xs text-ink-muted">Bei Minderjährigen muss ein gesetzlicher Vertreter dem Vertrag zustimmen.</p>
             </div>
 
             <!-- Link to an existing member -->
@@ -244,23 +244,23 @@
                     v-model="legalGuardianSearch"
                     type="text"
                     placeholder="Nach Mitglied suchen (Name oder Mitgliedsnummer)..."
-                    class="w-full px-3 py-2.5 text-[15px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    class="field w-full px-3 py-2.5"
                     @input="searchLegalGuardian"
                     @focus="showLegalGuardianResults = true"
                   />
                   <!-- Search results -->
                   <div
                     v-if="showLegalGuardianResults && legalGuardianSearchResults.length > 0"
-                    class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                    class="absolute z-10 mt-1 w-full bg-surface border border-line-strong rounded-md shadow-lg max-h-60 overflow-auto"
                   >
                     <div
                       v-for="result in legalGuardianSearchResults"
                       :key="result.id"
                       @click="selectLegalGuardian(result)"
-                      class="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm"
+                      class="px-4 py-2 hover:bg-brand-subtle cursor-pointer text-sm"
                     >
                       <span class="font-medium">{{ result.first_name }} {{ result.last_name }}</span>
-                      <span class="text-gray-500 ml-2">#{{ result.member_number }}</span>
+                      <span class="text-ink-muted ml-2">#{{ result.member_number }}</span>
                     </div>
                   </div>
                 </div>
@@ -268,29 +268,29 @@
                   v-if="form.legal_guardian_member_id"
                   type="button"
                   @click="clearLegalGuardianMember"
-                  class="px-3 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
+                  class="px-3 py-2 text-sm text-danger hover:text-danger-strong border border-danger rounded-md hover:bg-danger-subtle"
                 >
                   Verknüpfung entfernen
                 </button>
               </div>
               <!-- Linked member display -->
-              <div v-if="form.legal_guardian_member_id && selectedLegalGuardian" class="mt-2 p-2 bg-indigo-50 rounded-md text-sm">
+              <div v-if="form.legal_guardian_member_id && selectedLegalGuardian" class="mt-2 p-2 bg-brand-subtle rounded-md text-sm">
                 <span class="font-medium">Verknüpft mit:</span>
                 {{ selectedLegalGuardian.first_name }} {{ selectedLegalGuardian.last_name }}
-                <span class="text-gray-500">#{{ selectedLegalGuardian.member_number }}</span>
+                <span class="text-ink-muted">#{{ selectedLegalGuardian.member_number }}</span>
               </div>
             </div>
 
             <!-- Shown only when not editing and a member is linked -->
             <div v-if="!editMode && member.legal_guardian_member_id && member.legal_guardian" class="md:col-span-2">
               <label :class="[fieldLabel, 'block mb-1.5']">Verknüpftes Mitglied</label>
-              <div class="p-3 bg-indigo-50 rounded-md">
+              <div class="p-3 bg-brand-subtle rounded-md">
                 <Link
                   :href="route('members.show', member.legal_guardian.id)"
-                  class="text-indigo-600 hover:text-indigo-800 font-medium"
+                  class="text-brand hover:text-brand-strong font-medium"
                 >
                   {{ member.legal_guardian.first_name }} {{ member.legal_guardian.last_name }}
-                  <span class="text-gray-500">#{{ member.legal_guardian.member_number }}</span>
+                  <span class="text-ink-muted">#{{ member.legal_guardian.member_number }}</span>
                 </Link>
               </div>
             </div>
@@ -395,19 +395,17 @@ const captureEditSnapshot = () => {
 /* ------------------------------------------------------------------ */
 
 const fieldLabelRow = 'flex items-center gap-1.5 mb-1.5'
-const fieldLabel = 'text-[13px] font-medium text-gray-700'
-const changedFlag = 'ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600'
-const changedDot = 'w-1.5 h-1.5 rounded-full bg-amber-600'
-const readBox = 'w-full min-h-[42px] px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-[15px] text-gray-900 flex items-center'
+const fieldLabel = 'text-compact font-medium text-ink-secondary'
+const changedFlag = 'ml-auto inline-flex items-center gap-1 text-2xs font-semibold text-warning'
+const changedDot = 'w-1.5 h-1.5 rounded-full bg-warning-solid'
+const readBox = 'w-full min-h-[42px] px-3 py-2.5 border border-line-strong rounded-md bg-surface-muted text-sm pointer-coarse:text-base text-ink flex items-center'
 
 // Input/select/textarea class in edit mode; turns amber when the value changed
 const fieldClass = (key) => {
   const dirty = changed(key)
   return [
-    'w-full px-3 py-2.5 text-[15px] rounded-md border focus:outline-none focus:ring-2',
-    dirty
-      ? 'border-amber-600 bg-amber-50 focus:ring-amber-500/40'
-      : 'border-gray-300 bg-white focus:ring-indigo-500/40 focus:border-indigo-500',
+    'field w-full px-3 py-2.5',
+    dirty ? 'border-warning bg-warning-subtle' : '',
   ]
 }
 

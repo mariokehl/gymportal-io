@@ -1,10 +1,10 @@
 <template>
-    <div class="bg-white shadow-sm rounded-lg">
+    <div class="bg-surface shadow-sm rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
                 <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Symbol der Organisation</h3>
-                    <p class="mt-2 text-sm text-gray-500 max-w-xl">
+                    <h3 class="text-lg leading-6 font-semibold text-ink">Symbol der Organisation</h3>
+                    <p class="mt-2 text-sm text-ink-muted max-w-xl">
                         Farbe und Symbol werden links unten und im Organisations-Wechsler verwendet. So lassen sich
                         mehrere Standorte auf einen Blick unterscheiden.
                     </p>
@@ -12,14 +12,14 @@
                 <!-- Reminder which organization is being edited: the settings page
                      always edits the currently active one. -->
                 <div
-                    class="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-full py-1.5 pl-2 pr-3.5 whitespace-nowrap">
+                    class="flex items-center gap-2.5 bg-surface-muted border border-line rounded-full py-1.5 pl-2 pr-3.5 whitespace-nowrap">
                     <span
                         class="w-6 h-6 flex-shrink-0 rounded-md flex items-center justify-center text-xs font-semibold leading-none"
                         :style="previewTileStyle">
                         {{ previewSymbol.content }}
                     </span>
-                    <span class="text-xs text-gray-500">
-                        Bearbeitet: <span class="text-gray-900 font-medium">{{ organizationName }}</span>
+                    <span class="text-xs text-ink-muted">
+                        Bearbeitet: <span class="text-ink font-medium">{{ organizationName }}</span>
                     </span>
                 </div>
             </div>
@@ -27,14 +27,14 @@
             <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-8">
                 <div class="space-y-6">
                     <div>
-                        <label class="block text-sm/6 font-medium text-gray-700 mb-2">Symbol</label>
-                        <div class="inline-flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
+                        <label class="block text-sm/6 font-medium text-ink-secondary mb-2">Symbol</label>
+                        <div class="inline-flex bg-fill rounded-lg p-0.5 gap-0.5">
                             <button v-for="option in symbolTypeOptions" :key="option.value" type="button"
                                 @click="selectSymbolType(option.value)" :class="[
                                     'px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
                                     symbolType === option.value
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-surface text-ink shadow-sm'
+                                        : 'text-ink-muted hover:text-ink'
                                 ]">
                                 {{ option.label }}
                             </button>
@@ -42,14 +42,14 @@
                     </div>
 
                     <div v-if="symbolType === SYMBOL_TYPE_EMOJI">
-                        <label class="block text-sm/6 font-medium text-gray-700 mb-2">Emoji auswählen</label>
+                        <label class="block text-sm/6 font-medium text-ink-secondary mb-2">Emoji auswählen</label>
                         <div class="grid grid-cols-8 sm:grid-cols-12 gap-1.5 max-w-lg">
                             <button v-for="emoji in SYMBOL_EMOJIS" :key="emoji" type="button"
                                 @click="selectEmoji(emoji)" :aria-pressed="emoji === symbolEmoji" :class="[
                                     'aspect-square flex items-center justify-center text-xl leading-none rounded-md transition-colors',
                                     emoji === symbolEmoji
-                                        ? 'bg-indigo-50 ring-2 ring-inset ring-indigo-600'
-                                        : 'bg-gray-50 ring-1 ring-inset ring-gray-200 hover:bg-gray-100'
+                                        ? 'bg-brand-subtle ring-2 ring-inset ring-focus'
+                                        : 'bg-surface-muted ring-1 ring-inset ring-line hover:bg-fill'
                                 ]">
                                 {{ emoji }}
                             </button>
@@ -57,38 +57,38 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm/6 font-medium text-gray-700 mb-2">Farbe</label>
+                        <label class="block text-sm/6 font-medium text-ink-secondary mb-2">Farbe</label>
                         <div class="flex flex-wrap gap-2.5">
                             <button v-for="color in SYMBOL_COLORS" :key="color.value" type="button"
                                 @click="selectColor(color.value)" :title="color.name" :aria-label="color.name"
                                 :aria-pressed="color.value === symbolColor" class="w-7 h-7 rounded-full transition-shadow"
                                 :style="colorSwatchStyle(color.value)"></button>
                         </div>
-                        <p class="mt-2.5 text-xs text-gray-500">Ohne Auswahl wird weiterhin Indigo verwendet.</p>
+                        <p class="mt-2.5 text-xs text-ink-muted">Ohne Auswahl wird weiterhin Indigo verwendet.</p>
                     </div>
                 </div>
 
                 <!-- Preview of both places the symbol shows up, so operators can
                      judge the choice without leaving the settings page. -->
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-5">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 mb-4">Vorschau</p>
+                <div class="bg-surface-muted border border-line rounded-lg p-5">
+                    <p class="text-xs font-medium uppercase tracking-wide text-ink-muted mb-4">Vorschau</p>
 
-                    <div class="bg-white border border-gray-200 rounded-lg p-2.5 flex items-center gap-3">
+                    <div class="bg-surface border border-line rounded-lg p-2.5 flex items-center gap-3">
                         <span
                             class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold leading-none"
                             :style="previewTileStyle">
                             {{ previewSymbol.content }}
                         </span>
                         <span class="flex-1 min-w-0">
-                            <span class="block text-sm font-medium text-gray-900 truncate">{{ organizationName }}</span>
-                            <span class="block text-xs text-gray-500">Organisation</span>
+                            <span class="block text-sm font-medium text-ink truncate">{{ organizationName }}</span>
+                            <span class="block text-xs text-ink-muted">Organisation</span>
                         </span>
-                        <component :is="ChevronDown" class="w-4 h-4 text-gray-400" />
+                        <component :is="ChevronDown" class="w-4 h-4 text-ink-muted" />
                     </div>
 
                     <template v-if="otherOrganizations.length">
-                        <p class="text-xs text-gray-500 mt-4 mb-2.5">Alle Standorte im Vergleich</p>
-                        <div class="bg-white border border-gray-200 rounded-lg py-1.5">
+                        <p class="text-xs text-ink-muted mt-4 mb-2.5">Alle Standorte im Vergleich</p>
+                        <div class="bg-surface border border-line rounded-lg py-1.5">
                             <div v-for="organization in comparisonOrganizations" :key="organization.id"
                                 class="flex items-center gap-2.5 px-3 py-1.5">
                                 <span
@@ -96,20 +96,20 @@
                                     :style="organization.tileStyle">
                                     {{ organization.content }}
                                 </span>
-                                <span class="text-sm text-gray-700 truncate">{{ organization.name }}</span>
+                                <span class="text-sm text-ink-secondary truncate">{{ organization.name }}</span>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <div class="flex items-center justify-end gap-4 border-t border-gray-100 mt-6 pt-5">
+            <div class="flex items-center justify-end gap-4 border-t border-line-subtle mt-6 pt-5">
                 <button type="button" @click="reset" :disabled="isSubmitting"
-                    class="inline-flex justify-center items-center py-2 px-4 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="inline-flex justify-center items-center py-2 px-4 border border-line-strong bg-surface text-ink-secondary hover:bg-surface-muted text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
                     Zurücksetzen
                 </button>
                 <button type="button" @click="save" :disabled="isSubmitting"
-                    class="inline-flex justify-center items-center py-2 px-4 border border-transparent bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="inline-flex justify-center items-center py-2 px-4 border border-transparent bg-brand hover:bg-brand-strong text-white text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
                     {{ isSubmitting ? 'Wird gespeichert…' : 'Änderungen speichern' }}
                 </button>
             </div>

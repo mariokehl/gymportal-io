@@ -132,8 +132,8 @@ onBeforeUnmount(() => {
 const tooltipClasses = computed(() => {
   // Base classes mit conditional theme
   const themeClasses = props.theme === 'dark'
-    ? 'text-white text-xs bg-gray-900'
-    : 'text-gray-900 text-xs bg-white border border-gray-200'
+    ? 'text-white text-xs bg-inverse'
+    : 'text-ink text-xs bg-surface border border-line'
 
   // Whitespace handling - nur nowrap bei einfachem Text (kein content slot).
   // Mit content slot darf der Text umbrechen, sonst sprengt er die maxWidth.

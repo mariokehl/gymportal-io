@@ -8,6 +8,10 @@ import { registerFlashToasts } from '@/composables/useFlashToasts';
 // Configuring Axios for Sanctum
 import './bootstrap';
 
+// Register the self-hosted fonts in the Vite manifest so app.blade.php can
+// preload them via Vite::asset().
+import.meta.glob('../fonts/*.woff2', { eager: false });
+
 // Import Echo for WebSocket support
 import './echo';
 

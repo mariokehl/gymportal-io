@@ -24,7 +24,7 @@
           <div class="ml-4 flex flex-shrink-0">
             <button
               type="button"
-              class="inline-flex rounded-md bg-surface text-ink-muted hover:text-ink-muted focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2"
+              class="inline-flex rounded-md bg-surface text-ink-muted hover:text-ink-muted"
               @click="dismiss"
             >
               <span class="sr-only">Schließen</span>

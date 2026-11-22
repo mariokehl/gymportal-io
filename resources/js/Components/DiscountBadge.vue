@@ -1,7 +1,7 @@
 <template>
   <Tooltip v-if="discount" :text="tooltip">
     <span
-      class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-50 text-green-700 border border-green-200 align-middle"
+      class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-success-subtle text-success border border-success-line align-middle"
       aria-label="Rabattierte Zahlung"
     >
       <Percent class="w-3 h-3" />
