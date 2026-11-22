@@ -46,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription' => CheckSubscription::class,
             'paddleIp' => PaddleIpMiddleware::class,
             'scanner.auth' => AuthenticateScanner::class,
+            'agent.auth' => \App\Http\Middleware\AuthenticateAgent::class,
             'blocked.check' => CheckIfUserBlocked::class,
             'basic.auth' => BasicAuthMiddleware::class,
             'full.session' => EnsureFullSession::class,
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/pwa/*',
             'api/scanner/*',
+            'api/v1/agent/*',
             'api/widget/*',
             'api/guests/*',
             'billing/webhook/paddle',
