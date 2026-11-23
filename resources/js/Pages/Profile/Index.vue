@@ -81,6 +81,53 @@
                 </div>
             </div>
 
+            <!-- Appearance -->
+            <section class="bg-surface shadow-sm rounded-lg" aria-labelledby="appearance-title">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 id="appearance-title" class="text-lg leading-6 font-semibold text-ink mb-2">
+                        Darstellung
+                    </h3>
+                    <p id="appearance-hint" class="text-sm text-ink-secondary mb-6">
+                        Wählen Sie, ob das Backend hell, dunkel oder passend zu Ihrem Gerät angezeigt wird.
+                    </p>
+
+                    <div
+                        role="radiogroup"
+                        aria-labelledby="appearance-title"
+                        aria-describedby="appearance-hint"
+                        class="grid grid-cols-1 sm:grid-cols-3 gap-3"
+                    >
+                        <label
+                            v-for="option in themeOptions"
+                            :key="option.value"
+                            class="relative flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus"
+                            :class="themePreference === option.value
+                                ? 'border-brand bg-brand-subtle'
+                                : 'border-line hover:bg-surface-muted'"
+                        >
+                            <input
+                                v-model="themePreference"
+                                type="radio"
+                                name="theme_preference"
+                                :value="option.value"
+                                class="sr-only"
+                                @change="saveThemePreference"
+                            >
+                            <component
+                                :is="option.icon"
+                                class="mt-0.5 h-5 w-5 flex-none"
+                                :class="themePreference === option.value ? 'text-brand-ink' : 'text-ink-muted'"
+                                aria-hidden="true"
+                            />
+                            <span class="min-w-0">
+                                <span class="block text-sm font-medium text-ink">{{ option.label }}</span>
+                                <span class="mt-0.5 block text-xs text-ink-muted">{{ option.description }}</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
             <!-- Password Change Section -->
             <div class="bg-surface shadow-sm rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
@@ -248,15 +295,36 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { useForm, router } from '@inertiajs/vue3'
+import { Sun, Moon, Monitor } from '@lucide/vue'
+import { applyScheme } from '@/utils/colorScheme'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import AppShell from '@/Layouts/AppShell.vue'
 
 defineOptions({ layout: AppShell })
 
-defineProps({
+const props = defineProps({
     user: Object,
 })
+
+// Appearance: applied at once, then saved; the server confirms with a toast.
+const themeOptions = [
+    { value: 'light', label: 'Hell', description: 'Immer helle Darstellung', icon: Sun },
+    { value: 'dark', label: 'Dunkel', description: 'Immer dunkle Darstellung', icon: Moon },
+    { value: 'system', label: 'Automatisch', description: 'Folgt der Einstellung Ihres Geräts', icon: Monitor },
+]
+
+const themePreference = ref(props.user.theme_preference ?? 'system')
+
+const saveThemePreference = () => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    applyScheme(document.documentElement, themePreference.value, prefersDark)
+
+    router.put(route('profile.appearance.update'), { theme_preference: themePreference.value }, {
+        preserveScroll: true,
+        preserveState: true,
+    })
+}
 
 const showDeleteModal = ref(false)
 

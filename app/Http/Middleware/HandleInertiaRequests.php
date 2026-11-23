@@ -109,6 +109,7 @@ class HandleInertiaRequests extends Middleware
                         'first_name' => $user->first_name,
                         'last_name' => $user->last_name,
                         'email' => $user->email, // E-Mail hinzugefügt für Verifizierungsseite
+                        'theme_preference' => $user->theme_preference?->value ?? 'system',
                         'current_gym' => $user->currentGym !== null ? [
                             'id' => $user->currentGym->id,
                             'name' => $user->currentGym->getDisplayName(),
