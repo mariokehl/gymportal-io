@@ -23,111 +23,89 @@
       <MemberQuickSearch ref="quickSearch" />
     </div>
 
-    <nav aria-label="Hauptnavigation" class="flex-1 overflow-y-auto" :class="canAccessPremiumFeatures ? 'mt-2' : 'mt-6'">
-      <SidebarItem
-        :icon="BarChart"
-        label="Dashboard"
-        :active="isCurrent('dashboard')"
-        :href="route('dashboard')"
-      />
-      <SidebarItem
-        :icon="Users"
-        label="Mitglieder"
-        :active="isCurrent('members.*') || isCurrent('blocklist.*')"
-        :current="isCurrent('members.*')"
-        :href="route('members.index')"
-        :disabled="!canAccessPremiumFeatures"
-      >
-        <template #children>
-          <Link
-            v-if="isOwnerOrAdmin"
-            :href="route('blocklist.index')"
-            :aria-current="isCurrent('blocklist.*') ? 'page' : undefined"
-            :class="[
-              'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-              isCurrent('blocklist.*')
-                ? 'text-brand-ink-strong'
-                : 'text-ink-muted hover:text-ink-secondary'
-            ]"
-          >
-            <span class="w-5 mr-3 flex justify-center" aria-hidden="true">
-              <span class="w-px h-full min-h-4 bg-line-strong" />
-            </span>
-            Sperrliste
-          </Link>
-        </template>
-      </SidebarItem>
-      <SidebarItem
-        :icon="FilePlus"
-        label="Verträge"
-        :active="isCurrent('contracts.*')"
-        :current="isCurrent('contracts.*') && !isCurrent('contracts.addons.*')"
-        :href="route('contracts.index')"
-        :disabled="!canAccessPremiumFeatures"
-      >
-        <template #children>
-          <Link
-            v-if="isOwnerOrAdmin"
-            :href="route('contracts.addons.index')"
-            :aria-current="isCurrent('contracts.addons.*') ? 'page' : undefined"
-            :class="[
-              'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-              isCurrent('contracts.addons.*')
-                ? 'text-brand-ink-strong'
-                : 'text-ink-muted hover:text-ink-secondary'
-            ]"
-          >
-            <span class="w-5 mr-3 flex justify-center" aria-hidden="true">
-              <span class="w-px h-full min-h-4 bg-line-strong" />
-            </span>
-            Add-ons
-          </Link>
-        </template>
-      </SidebarItem>
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="DollarSign"
-        label="Finanzen"
-        :active="isCurrent('finances.index')"
-        :href="route('finances.index')"
-        :disabled="!canAccessPremiumFeatures"
-      />
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="Bell"
-        label="Benachrichtigungen"
-        :active="isCurrent('notifications.index')"
-        :href="route('notifications.index')"
-        :disabled="!canAccessPremiumFeatures"
-      />
-      <SidebarItem
-        :icon="DoorOpen"
-        label="Zugangskontrolle"
-        :active="isCurrent('access-control.*')"
-        :href="route('access-control.index')"
-        :disabled="!canAccessPremiumFeatures"
-      />
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="ArrowDownUp"
-        label="Import/Export"
-        :active="isCurrent('data-transfer.*')"
-        :href="route('data-transfer.index')"
-      />
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="Settings"
-        label="Einstellungen"
-        :active="isCurrent('settings.index')"
-        :href="route('settings.index')"
-      />
+    <nav aria-label="Hauptnavigation" class="flex-1 overflow-y-auto px-2 pb-4" :class="canAccessPremiumFeatures ? 'pt-2' : 'pt-4'">
+      <div class="flex flex-col gap-0.5">
+        <SidebarItem
+          :icon="BarChart"
+          label="Dashboard"
+          :active="isCurrent('dashboard')"
+          :href="route('dashboard')"
+        />
+        <SidebarItem
+          :icon="Users"
+          label="Mitglieder"
+          :active="isCurrent('members.*') || isCurrent('blocklist.*')"
+          :current="isCurrent('members.*')"
+          :href="route('members.index')"
+          :disabled="!canAccessPremiumFeatures"
+        >
+          <template v-if="isOwnerOrAdmin" #children>
+            <SidebarSubItem label="Sperrliste" :href="route('blocklist.index')" :current="isCurrent('blocklist.*')" />
+          </template>
+        </SidebarItem>
+        <SidebarItem
+          :icon="FilePlus"
+          label="Verträge"
+          :active="isCurrent('contracts.*')"
+          :current="isCurrent('contracts.*') && !isCurrent('contracts.addons.*')"
+          :href="route('contracts.index')"
+          :disabled="!canAccessPremiumFeatures"
+        >
+          <template v-if="isOwnerOrAdmin" #children>
+            <SidebarSubItem label="Add-ons" :href="route('contracts.addons.index')" :current="isCurrent('contracts.addons.*')" />
+          </template>
+        </SidebarItem>
+        <SidebarItem
+          v-if="isOwnerOrAdmin"
+          :icon="DollarSign"
+          label="Finanzen"
+          :active="isCurrent('finances.index')"
+          :href="route('finances.index')"
+          :disabled="!canAccessPremiumFeatures"
+        />
+        <SidebarItem
+          v-if="isOwnerOrAdmin"
+          :icon="Bell"
+          label="Benachrichtigungen"
+          :active="isCurrent('notifications.index')"
+          :href="route('notifications.index')"
+          :disabled="!canAccessPremiumFeatures"
+        />
+        <SidebarItem
+          :icon="DoorOpen"
+          label="Zugangskontrolle"
+          :active="isCurrent('access-control.*')"
+          :href="route('access-control.index')"
+          :disabled="!canAccessPremiumFeatures"
+        />
+      </div>
+
+      <!-- Back-office pages, apart from the daily work above -->
+      <div v-if="isOwnerOrAdmin" role="group" aria-labelledby="sidebar-group-admin" class="mt-6 flex flex-col gap-0.5">
+        <p id="sidebar-group-admin" class="px-2 pb-1.5 text-xs font-medium text-ink-muted">Verwaltung</p>
+        <SidebarItem
+          :icon="ArrowDownUp"
+          label="Import/Export"
+          :active="isCurrent('data-transfer.*')"
+          :href="route('data-transfer.index')"
+        />
+        <SidebarItem
+          :icon="Settings"
+          label="Einstellungen"
+          :active="isCurrent('settings.index')"
+          :href="route('settings.index')"
+        />
+      </div>
+    </nav>
+
+    <!-- Signing out is an action, not a destination: kept out of the nav list -->
+    <div class="px-2 pb-2">
       <SidebarItem
         :icon="LogOut"
         label="Abmelden"
-        :active="false"
         @click="handleLogout"
       />
-    </nav>
+    </div>
 
     <OrganizationSwitcher />
 
@@ -148,11 +126,13 @@
           <span class="ml-auto text-ink-muted">Aktiv</span>
         </p>
 
-        <div v-else class="flex items-center gap-2 px-1 text-xs">
+        <!-- Same one-line shape as the other states: status left, the one
+             action right. Neither part may wrap in the 256px sidebar. -->
+        <div v-else class="flex items-center gap-2 px-1 text-xs whitespace-nowrap">
           <span class="size-2 flex-none rounded-full bg-danger-solid" aria-hidden="true"></span>
-          <span class="font-medium text-danger">Testphase abgelaufen</span>
-          <Link :href="route('billing.index')" class="ml-auto font-medium text-brand-ink underline underline-offset-2 hover:text-brand-ink-strong">
-            Jetzt upgraden
+          <span class="min-w-0 truncate font-medium text-danger">Testphase abgelaufen</span>
+          <Link :href="route('billing.index')" class="ml-auto flex-none font-medium text-brand-ink underline underline-offset-2 hover:text-brand-ink-strong">
+            Upgraden
           </Link>
         </div>
       </template>
@@ -174,6 +154,7 @@ import {
   FilePlus, DoorOpen, ArrowDownUp, X
 } from '@lucide/vue'
 import SidebarItem from '@/Components/SidebarItem.vue'
+import SidebarSubItem from '@/Components/SidebarSubItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import Logo from '@/Components/Logo.vue'
 import AppVersion from '@/Components/AppVersion.vue'

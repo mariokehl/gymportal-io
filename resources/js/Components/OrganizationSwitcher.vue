@@ -9,7 +9,7 @@
             :aria-expanded="canExpand ? showOrgPopover : undefined"
             :aria-controls="canExpand ? popoverId : undefined"
             @click="canExpand && (showOrgPopover = !showOrgPopover)"
-            :class="['w-full flex items-center justify-between p-3 transition-colors', canExpand ? 'hover:bg-fill cursor-pointer' : 'cursor-default']">
+            :class="['w-full flex items-center justify-between px-4 py-3 transition-colors', canExpand ? 'hover:bg-fill cursor-pointer' : 'cursor-default']">
             <div class="flex items-center flex-1 min-w-0">
                 <div class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold leading-none"
                     aria-hidden="true"
