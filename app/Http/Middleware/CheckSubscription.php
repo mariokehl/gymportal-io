@@ -50,6 +50,7 @@ class CheckSubscription
             'profile.index',
             'profile.password.update',
             'profile.destroy',
+            'profile.appearance.update',
             // Leaving an expired organization for another one must stay
             // possible; the target organization is checked on the next request.
             'user.switch-organization',

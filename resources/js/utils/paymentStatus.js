@@ -9,61 +9,61 @@ export const statusConfig = {
   pending: {
     label: 'Ausstehend',
     color: 'yellow',
-    classes: 'bg-yellow-100 text-yellow-800',
+    classes: 'bg-warning-soft text-warning-strong',
     filled: false
   },
   paid: {
     label: 'Bezahlt',
     color: 'green',
-    classes: 'bg-green-100 text-green-800',
+    classes: 'bg-success-soft text-success-strong',
     filled: true
   },
   completed: {
     label: 'Bezahlt',
     color: 'green',
-    classes: 'bg-green-100 text-green-800',
+    classes: 'bg-success-soft text-success-strong',
     filled: true
   },
   failed: {
     label: 'Fehlgeschlagen',
     color: 'red',
-    classes: 'bg-red-100 text-red-800',
+    classes: 'bg-danger-soft text-danger-strong',
     filled: true
   },
   refunded: {
     label: 'Erstattet',
     color: 'blue',
-    classes: 'bg-indigo-100 text-indigo-800',
+    classes: 'bg-brand-soft text-brand-ink-strong',
     filled: true
   },
   partially_refunded: {
     label: 'Teilweise erstattet',
     color: 'blue',
-    classes: 'bg-indigo-100 text-indigo-800',
+    classes: 'bg-brand-soft text-brand-ink-strong',
     filled: true
   },
   chargeback: {
     label: 'Rückbuchung',
     color: 'red',
-    classes: 'bg-red-100 text-red-800',
+    classes: 'bg-danger-soft text-danger-strong',
     filled: true
   },
   expired: {
     label: 'Verfallen',
     color: 'gray',
-    classes: 'bg-gray-100 text-gray-800',
+    classes: 'bg-fill text-ink',
     filled: false
   },
   canceled: {
     label: 'Abgebrochen',
     color: 'red',
-    classes: 'bg-red-100 text-red-800',
+    classes: 'bg-danger-soft text-danger-strong',
     filled: true
   },
   unknown: {
     label: 'Unbekannt',
     color: 'gray',
-    classes: 'bg-gray-100 text-gray-800',
+    classes: 'bg-fill text-ink',
     filled: false
   }
 }
@@ -75,25 +75,25 @@ export const chargebackStatusConfig = {
   received: {
     label: 'Eingegangen',
     color: 'red',
-    classes: 'bg-red-100 text-red-800',
+    classes: 'bg-danger-soft text-danger-strong',
     filled: true
   },
   accepted: {
     label: 'Akzeptiert',
     color: 'gray',
-    classes: 'bg-gray-100 text-gray-800',
+    classes: 'bg-fill text-ink',
     filled: true
   },
   disputed: {
     label: 'Angefochten',
     color: 'yellow',
-    classes: 'bg-yellow-100 text-yellow-800',
+    classes: 'bg-warning-soft text-warning-strong',
     filled: false
   },
   reversed: {
     label: 'Rückgängig gemacht',
     color: 'green',
-    classes: 'bg-green-100 text-green-800',
+    classes: 'bg-success-soft text-success-strong',
     filled: true
   }
 }
@@ -105,25 +105,25 @@ export const refundStatusConfig = {
   pending: {
     label: 'Ausstehend',
     color: 'yellow',
-    classes: 'bg-yellow-100 text-yellow-800',
+    classes: 'bg-warning-soft text-warning-strong',
     filled: false
   },
   processing: {
     label: 'In Bearbeitung',
     color: 'blue',
-    classes: 'bg-indigo-100 text-indigo-800',
+    classes: 'bg-brand-soft text-brand-ink-strong',
     filled: false
   },
   refunded: {
     label: 'Erstattet',
     color: 'green',
-    classes: 'bg-green-100 text-green-800',
+    classes: 'bg-success-soft text-success-strong',
     filled: true
   },
   failed: {
     label: 'Fehlgeschlagen',
     color: 'red',
-    classes: 'bg-red-100 text-red-800',
+    classes: 'bg-danger-soft text-danger-strong',
     filled: true
   }
 }
@@ -148,7 +148,7 @@ export function getStatusText(status, type = 'payment') {
  * Gibt die CSS-Klassen für einen Status-Badge zurück
  */
 export function getStatusBadgeClass(status, type = 'payment') {
-  return configFor(type)[status]?.classes || 'bg-gray-100 text-gray-800'
+  return configFor(type)[status]?.classes || 'bg-fill text-ink'
 }
 
 /**

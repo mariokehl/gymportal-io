@@ -2,19 +2,19 @@
 <template>
     <div class="contract-widget space-y-8">
         <!-- Header mit Gym-Info -->
-        <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="bg-surface shadow-sm rounded-lg p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">{{ currentGym.name }}</h2>
-                    <p class="text-gray-600">Konfiguriere das Registrierungs-Widget für dein Fitnessstudio</p>
+                    <h2 class="text-2xl font-bold text-ink tabular-nums">{{ currentGym.name }}</h2>
+                    <p class="text-ink-secondary">Konfiguriere das Registrierungs-Widget für dein Fitnessstudio</p>
                 </div>
                 <div class="flex items-center space-x-2">
                     <div class="flex items-center">
                         <div :class="[
                             'w-3 h-3 rounded-full mr-2',
-                            settings.widget_enabled ? 'bg-green-500' : 'bg-gray-400'
+                            settings.widget_enabled ? 'bg-success-solid' : 'bg-gray-400'
                         ]"></div>
-                        <span class="text-sm text-gray-600">
+                        <span class="text-sm text-ink-secondary">
                             {{ settings.widget_enabled ? 'Aktiviert' : 'Deaktiviert' }}
                         </span>
                     </div>
@@ -23,61 +23,63 @@
         </div>
 
         <!-- Widget Configuration -->
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="bg-surface rounded-lg shadow p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
-                    <component :is="Settings" class="w-6 h-6 text-indigo-600 mr-3" />
-                    <h3 class="text-xl font-semibold text-gray-900">Widget-Einstellungen</h3>
+                    <component :is="Settings" class="w-6 h-6 text-brand-ink mr-3" />
+                    <h3 class="text-xl font-semibold text-ink">Widget-Einstellungen</h3>
                 </div>
             </div>
 
             <form @submit.prevent="saveWidgetConfig" class="space-y-6">
                 <!-- Widget aktivieren/deaktivieren -->
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-4 bg-surface-muted rounded-lg">
                     <div>
-                        <h4 class="text-sm font-medium text-gray-900">Widget aktivieren</h4>
-                        <p class="text-sm text-gray-500">Macht das Widget auf deiner Website verfügbar</p>
+                        <h4 class="text-sm font-medium text-ink">Widget aktivieren</h4>
+                        <p class="text-sm text-ink-muted">Macht das Widget auf deiner Website verfügbar</p>
                     </div>
                     <div class="relative inline-block w-11 h-5">
-                        <input v-model="settings.widget_enabled" id="switch-component-blue" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-indigo-600 cursor-pointer transition-colors duration-300" />
-                        <label for="switch-component-blue" class="absolute top-0 left-0 w-5 h-5 bg-white rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-indigo-600 cursor-pointer"></label>
+                        <input v-model="settings.widget_enabled" id="switch-component-blue" type="checkbox" role="switch" aria-label="Online-Widget aktivieren" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-brand cursor-pointer transition-colors duration-300" />
+                        <label for="switch-component-blue" class="absolute top-0 left-0 w-5 h-5 bg-surface rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-brand cursor-pointer"></label>
                     </div>
                 </div>
 
                 <!-- Farben -->
                 <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <h4 class="text-lg font-semibold text-ink mb-4 flex items-center">
                         <component :is="Palette" class="w-5 h-5 mr-2" />
                         Farben
                     </h4>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Primärfarbe</label>
+                            <label for="contract-widget-settings-colors-primary" class="block text-sm font-medium text-ink-secondary mb-2">Primärfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="contract-widget-settings-colors-primary"
                                     type="color"
                                     v-model="settings.colors.primary"
-                                    class="w-12 h-10 rounded border border-gray-300 cursor-pointer"
+                                    class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
                                     type="text"
                                     v-model="settings.colors.primary"
-                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    class="field flex-1 px-3 py-2"
+                                    aria-label="Primärfarbe als Hex-Wert"
                                 >
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Sekundärfarbe</label>
+                            <label for="contract-widget-settings-colors-secondary" class="block text-sm font-medium text-ink-secondary mb-2">Sekundärfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="contract-widget-settings-colors-secondary"
                                     type="color"
                                     v-model="settings.colors.secondary"
-                                    class="w-12 h-10 rounded border border-gray-300 cursor-pointer"
+                                    class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
                                     type="text"
                                     v-model="settings.colors.secondary"
-                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    class="field flex-1 px-3 py-2"
+                                    aria-label="Sekundärfarbe als Hex-Wert"
                                 >
                             </div>
                         </div>
@@ -86,26 +88,26 @@
 
                 <!-- Texte -->
                 <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <h4 class="text-lg font-semibold text-ink mb-4 flex items-center">
                         <component :is="Type" class="w-5 h-5 mr-2" />
                         Texte
                     </h4>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Widget-Titel</label>
-                            <input
+                            <label for="contract-widget-settings-texts-title" class="block text-sm font-medium text-ink-secondary mb-2">Widget-Titel</label>
+                            <input id="contract-widget-settings-texts-title"
                                 type="text"
                                 v-model="settings.texts.title"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                class="field w-full px-3 py-2"
                                 placeholder="z.B. Wähle deinen Tarif"
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Willkommensnachricht</label>
-                            <textarea
+                            <label for="contract-widget-settings-texts-welcome-message" class="block text-sm font-medium text-ink-secondary mb-2">Willkommensnachricht</label>
+                            <textarea id="contract-widget-settings-texts-welcome-message"
                                 v-model="settings.texts.welcome_message"
                                 rows="3"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                class="field w-full px-3 py-2"
                                 placeholder="z.B. Willkommen bei unserem Fitnessstudio..."
                             ></textarea>
                         </div>
@@ -114,31 +116,31 @@
 
                 <!-- Vertragsauswahl -->
                 <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <h4 class="text-lg font-semibold text-ink mb-4 flex items-center">
                         <component :is="ListOrdered" class="w-5 h-5 mr-2" />
                         Vertragsauswahl
                     </h4>
-                    <p class="text-sm text-gray-500 mb-4">
+                    <p class="text-sm text-ink-muted mb-4">
                         Wähle bis zu 3 Verträge aus und bestimme ihre Anzeigereihenfolge im Widget
                     </p>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Verfügbare Verträge -->
                         <div>
-                            <h5 class="text-sm font-medium text-gray-700 mb-3">Verfügbare Verträge</h5>
-                            <div class="bg-gray-50 rounded-lg p-4 min-h-[200px]">
+                            <h5 class="text-sm font-medium text-ink-secondary mb-3">Verfügbare Verträge</h5>
+                            <div class="bg-surface-muted rounded-lg p-4 min-h-[200px]">
                                 <!-- Loading State -->
                                 <div v-if="contractsLoading" class="text-center py-8">
-                                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                                    <p class="mt-2 text-sm text-gray-600">Verträge werden geladen...</p>
+                                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-brand"></div>
+                                    <p class="mt-2 text-sm text-ink-secondary">Verträge werden geladen...</p>
                                 </div>
 
                                 <!-- Empty State -->
-                                <div v-else-if="availableContracts.length === 0" class="text-center text-gray-400 py-8">
+                                <div v-else-if="availableContracts.length === 0" class="text-center text-ink-muted py-8">
                                     <component :is="Package" class="w-8 h-8 mx-auto mb-2" />
                                     <p class="text-sm">Keine Verträge verfügbar</p>
                                     <button @click="loadAvailableContracts"
-                                            class="mt-2 text-xs text-indigo-600 hover:text-indigo-500">
+                                            class="mt-2 text-xs text-brand-ink hover:text-brand-ink-strong">
                                         Erneut versuchen
                                     </button>
                                 </div>
@@ -149,27 +151,28 @@
                                         :key="contract.id"
                                         @click="selectContract(contract)"
                                         :class="[
-                                            'p-3 bg-white rounded-md border cursor-pointer transition-all',
+                                            'p-3 bg-surface rounded-md border cursor-pointer transition-all',
                                             isContractSelected(contract.id)
-                                                ? 'border-gray-300 opacity-50 cursor-not-allowed'
-                                                : 'border-gray-200 hover:border-indigo-300 hover:shadow-sm'
+                                                ? 'border-line-strong bg-surface-muted cursor-not-allowed'
+                                                : 'border-line hover:border-brand-line hover:shadow-sm'
                                         ]"
                                         :disabled="isContractSelected(contract.id) || selectedContracts.length >= 3">
                                         <div class="flex items-center justify-between">
                                             <div class="flex items-center">
                                                 <input type="checkbox"
+                                                    :aria-label="`${contract.name} im Widget anbieten`"
                                                     :checked="isContractSelected(contract.id)"
                                                     :disabled="!isContractSelected(contract.id) && selectedContracts.length >= 3"
-                                                    class="mr-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    class="mr-3 rounded border-line-strong text-brand-ink"
                                                     @click.stop="toggleContract(contract)">
                                                 <div>
-                                                    <p class="font-medium text-sm text-gray-900">{{ contract.name }}</p>
-                                                    <p class="text-xs text-gray-500">
+                                                    <p class="font-medium text-sm text-ink">{{ contract.name }}</p>
+                                                    <p class="text-xs text-ink-muted">
                                                         {{ contract.formatted_price }} / {{ contract.billing_cycle_text || contract.billing_cycle }}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span v-if="contract.is_active" class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                            <span v-if="contract.is_active" class="text-xs bg-success-soft text-success-strong px-2 py-1 rounded">
                                                 Aktiv
                                             </span>
                                         </div>
@@ -181,18 +184,18 @@
                         <!-- Ausgewählte Verträge -->
                         <div>
                             <div class="flex items-center justify-between mb-3">
-                                <h5 class="text-sm font-medium text-gray-700">
+                                <h5 class="text-sm font-medium text-ink-secondary">
                                     Ausgewählte Verträge ({{ selectedContracts.length }}/3)
                                 </h5>
                                 <button v-if="selectedContracts.length > 0"
                                         @click="clearSelection"
-                                        class="text-xs text-gray-500 hover:text-gray-700">
+                                        class="text-xs text-ink-muted hover:text-ink">
                                     Alle entfernen
                                 </button>
                             </div>
-                            <div class="bg-indigo-50 rounded-lg p-4 min-h-[200px]">
+                            <div class="bg-brand-subtle rounded-lg p-4 min-h-[200px]">
                                 <div v-if="selectedContracts.length === 0"
-                                    class="text-center text-indigo-400 py-8">
+                                    class="text-center text-brand-ink py-8">
                                     <component :is="MousePointerClick" class="w-8 h-8 mx-auto mb-2" />
                                     <p class="text-sm">Wähle Verträge aus der linken Liste</p>
                                 </div>
@@ -204,25 +207,27 @@
                                         :animation="200"
                                         class="space-y-2">
                                     <template #item="{element, index}">
-                                        <div class="p-3 bg-white rounded-md border border-indigo-200 shadow-sm">
+                                        <div class="p-3 bg-surface rounded-md border border-brand-line shadow-sm">
                                             <div class="flex items-center">
-                                                <div class="drag-handle cursor-move mr-3 text-gray-400 hover:text-gray-600">
+                                                <div class="drag-handle cursor-move mr-3 text-ink-muted hover:text-ink">
                                                     <component :is="GripVertical" class="w-5 h-5" />
                                                 </div>
                                                 <div class="flex items-center justify-between flex-1">
                                                     <div class="flex items-center">
-                                                        <span class="inline-flex items-center justify-center w-6 h-6 bg-indigo-600 text-white text-xs font-bold rounded-full mr-3">
+                                                        <span class="inline-flex items-center justify-center w-6 h-6 bg-brand text-white text-xs font-bold rounded-full mr-3">
                                                             {{ index + 1 }}
                                                         </span>
                                                         <div>
-                                                            <p class="font-medium text-sm text-gray-900">{{ element.name }}</p>
-                                                            <p class="text-xs text-gray-500">
+                                                            <p class="font-medium text-sm text-ink">{{ element.name }}</p>
+                                                            <p class="text-xs text-ink-muted">
                                                                 {{ element.formatted_price }} / {{ element.billing_cycle_text || element.billing_cycle }}
                                                             </p>
                                                         </div>
                                                     </div>
                                                     <button @click="removeContract(element.id)"
-                                                            class="ml-3 text-gray-400 hover:text-red-600 transition-colors">
+                                                            type="button"
+                                                            :aria-label="`${element.name} aus dem Widget entfernen`"
+                                                            class="touch-target relative ml-3 text-ink-muted hover:text-danger-strong transition-colors">
                                                         <component :is="X" class="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -233,7 +238,7 @@
 
                                 <!-- Hinweis -->
                                 <div v-if="selectedContracts.length === 3"
-                                    class="mt-3 p-2 bg-indigo-100 rounded text-xs text-indigo-700">
+                                    class="mt-3 p-2 bg-brand-soft rounded text-xs text-brand-ink-strong">
                                     <component :is="Info" class="w-3 h-3 inline mr-1" />
                                     Maximale Anzahl erreicht
                                 </div>
@@ -242,70 +247,70 @@
                     </div>
 
                     <!-- Zusätzliche Optionen -->
-                    <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div class="mt-4 p-3 bg-surface-muted rounded-lg">
                         <label class="flex items-center justify-between cursor-pointer">
                             <div>
-                                <span class="text-sm font-medium text-gray-900">Automatische Sortierung</span>
-                                <p class="text-xs text-gray-500">Verträge nach Preis aufsteigend sortieren</p>
+                                <span class="text-sm font-medium text-ink">Automatische Sortierung</span>
+                                <p class="text-xs text-ink-muted">Verträge nach Preis aufsteigend sortieren</p>
                             </div>
                             <input type="checkbox"
                                 v-model="settings.contracts.auto_sort"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                class="rounded border-line-strong text-brand-ink">
                         </label>
                     </div>
                 </div>
 
                 <!-- Funktionen -->
                 <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <h4 class="text-lg font-semibold text-ink mb-4 flex items-center">
                         <component :is="ToggleLeft" class="w-5 h-5 mr-2" />
                         Funktionen
                     </h4>
                     <div class="space-y-3">
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                        <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
                             <div>
-                                <span class="text-sm font-medium text-gray-900">Laufzeit-Auswahl</span>
-                                <p class="text-xs text-gray-500">12 Monate/Monatlich Auswahl anzeigen</p>
+                                <span class="text-sm font-medium text-ink">Laufzeit-Auswahl</span>
+                                <p class="text-xs text-ink-muted">12 Monate/Monatlich Auswahl anzeigen</p>
                             </div>
                             <input
                                 type="checkbox"
                                 v-model="settings.features.show_duration_selector"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                        <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
                             <div>
-                                <span class="text-sm font-medium text-gray-900">Fitness-Ziele</span>
-                                <p class="text-xs text-gray-500">Ziele-Auswahl im Formular</p>
+                                <span class="text-sm font-medium text-ink">Fitness-Ziele</span>
+                                <p class="text-xs text-ink-muted">Ziele-Auswahl im Formular</p>
                             </div>
                             <input
                                 type="checkbox"
                                 v-model="settings.features.show_goals_selection"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                        <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
                             <div>
-                                <span class="text-sm font-medium text-gray-900">Geburtsdatum erforderlich</span>
-                                <p class="text-xs text-gray-500">Pflichtfeld im Formular</p>
+                                <span class="text-sm font-medium text-ink">Geburtsdatum erforderlich</span>
+                                <p class="text-xs text-ink-muted">Pflichtfeld im Formular</p>
                             </div>
                             <input
                                 type="checkbox"
                                 v-model="settings.features.require_birth_date"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg">
                             <div>
-                                <span class="text-sm font-medium text-gray-900">Mindestalter</span>
-                                <p class="text-xs text-gray-500">Erforderliches Mindestalter für den Online-Abschluss</p>
+                                <span class="text-sm font-medium text-ink">Mindestalter</span>
+                                <p class="text-xs text-ink-muted">Erforderliches Mindestalter für den Online-Abschluss</p>
                             </div>
                             <input
                                 type="number"
                                 min="0"
                                 max="120"
                                 v-model.number="minAge"
-                                class="w-20 rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                class="field w-20"
                             >
                         </label>
                     </div>
@@ -313,27 +318,27 @@
 
                 <!-- Erlaubte Domains -->
                 <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <h4 class="text-lg font-semibold text-ink mb-4 flex items-center">
                         <component :is="ShieldCheck" class="w-5 h-5 mr-2" />
                         Erlaubte Domains
                     </h4>
                     <div class="space-y-3">
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer">
+                        <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
                             <div>
-                                <span class="text-sm font-medium text-gray-900">Alle Domains zulassen (*)</span>
-                                <p class="text-xs text-gray-500">Das Widget kann auf jeder Website eingebunden werden</p>
+                                <span class="text-sm font-medium text-ink">Alle Domains zulassen (*)</span>
+                                <p class="text-xs text-ink-muted">Das Widget kann auf jeder Website eingebunden werden</p>
                             </div>
                             <input
                                 type="checkbox"
                                 v-model="allowAllOrigins"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
-                        <div v-if="!allowAllOrigins" class="p-3 bg-gray-50 rounded-lg">
-                            <label for="widget-allowed-origins" class="block text-sm font-medium text-gray-900">
+                        <div v-if="!allowAllOrigins" class="p-3 bg-surface-muted rounded-lg">
+                            <label for="widget-allowed-origins" class="block text-sm font-medium text-ink">
                                 Domains Ihrer Website
                             </label>
-                            <p class="text-xs text-gray-500 mb-2">
+                            <p class="text-xs text-ink-muted mb-2">
                                 Eine Domain pro Zeile, z. B. https://www.ihr-studio.de. Ohne Protokoll wird https:// verwendet.
                                 Tragen Sie Varianten mit und ohne „www“ jeweils separat ein.
                             </p>
@@ -342,17 +347,17 @@
                                 v-model="allowedOriginsText"
                                 rows="4"
                                 placeholder="https://www.ihr-studio.de"
-                                class="w-full rounded border-gray-300 text-sm font-mono focus:ring-indigo-500 focus:border-indigo-500"
+                                class="field w-full font-mono"
                             ></textarea>
                         </div>
-                        <div v-else class="p-2 bg-amber-50 rounded text-xs text-amber-800">
+                        <div v-else class="p-2 bg-warning-subtle rounded text-xs text-warning-strong">
                             <component :is="Info" class="w-3 h-3 inline mr-1" />
                             Wir empfehlen, das Widget auf die Domains Ihrer Website zu beschränken.
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-gray-200 space-y-3">
+                <div class="pt-4 border-t border-line space-y-3">
                     <button
                         type="button"
                         @click="openWidgetPreview"
@@ -364,7 +369,7 @@
                     <button
                         type="submit"
                         :disabled="isSaving"
-                        class="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        class="w-full flex items-center justify-center px-4 py-2 bg-brand text-white rounded-md hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         <component :is="Save" class="w-4 h-4 mr-2" />
                         {{ isSaving ? 'Speichern...' : 'Einstellungen speichern' }}
@@ -374,22 +379,22 @@
         </div>
 
         <!-- Integration Methods -->
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="bg-surface rounded-lg shadow p-6 mb-6">
             <div class="flex items-center mb-4">
-                <component :is="ToyBrick" class="w-6 h-6 text-indigo-600 mr-3" />
-                <h3 class="text-xl font-semibold text-gray-900">Integration-Methoden</h3>
+                <component :is="ToyBrick" class="w-6 h-6 text-brand-ink mr-3" />
+                <h3 class="text-xl font-semibold text-ink">Integration-Methoden</h3>
             </div>
 
             <!-- Tab Navigation -->
-            <div class="border-b border-gray-200 mb-6">
+            <div class="border-b border-line mb-6">
                 <nav class="-mb-px flex space-x-8">
                     <button v-for="method in integrationMethods" :key="method.key"
                             @click="activeMethod = method.key"
                             :class="[
                                 'py-2 px-1 border-b-2 font-medium text-sm',
                                 activeMethod === method.key
-                                    ? 'border-indigo-500 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-brand text-brand-ink'
+                                    : 'border-transparent text-ink-muted hover:text-ink hover:border-line-strong'
                             ]">
                         <component :is="method.icon" class="w-4 h-4 mr-2 inline" />
                         {{ method.label }}
@@ -399,18 +404,19 @@
 
             <!-- Script Integration -->
             <div v-if="activeMethod === 'script'" class="space-y-4">
-                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                    <h4 class="font-medium text-indigo-900 mb-2">Script Integration (Empfohlen)</h4>
-                    <p class="text-indigo-800 text-sm">Einfachste Integration - fügen Sie nur den Code in Ihre Website ein.</p>
+                <div class="bg-brand-subtle border border-brand-line rounded-lg p-4">
+                    <h4 class="font-medium text-brand-ink-strong mb-2">Script Integration (Empfohlen)</h4>
+                    <p class="text-brand-ink-strong text-sm">Einfachste Integration - fügen Sie nur den Code in Ihre Website ein.</p>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">
                         HTML-Code für Ihre Website:
                     </label>
                     <div class="relative">
-                        <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ scriptCode }}</pre>
+                        <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ scriptCode }}</pre>
                         <button @click="copyToClipboard(scriptCode)"
+                                aria-label="Code kopieren"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                             <component :is="Copy" class="w-4 h-4" />
                         </button>
@@ -420,29 +426,30 @@
 
             <!-- iFrame Integration -->
             <div v-if="activeMethod === 'iframe'" class="space-y-4">
-                <div class="bg-gray-50 border border-gray-200 rounded-md p-3 shadow-sm">
+                <div class="bg-surface-muted border border-line rounded-md p-3 shadow-sm">
                     <div class="flex items-center">
-                        <svg class="h-4 w-4 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="h-4 w-4 text-ink-muted mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"></path>
                         </svg>
-                        <span class="text-sm text-gray-700">
+                        <span class="text-sm text-ink-secondary">
                             Feature noch nicht implementiert - wird in Kürze verfügbar sein
                         </span>
                     </div>
                 </div>
 
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 class="font-medium text-green-900 mb-2">iFrame Integration</h4>
-                    <p class="text-green-800 text-sm">Vollständige Isolation - Widget läuft in eigenem Kontext.</p>
+                <div class="bg-success-subtle border border-success-line rounded-lg p-4">
+                    <h4 class="font-medium text-success-strong mb-2">iFrame Integration</h4>
+                    <p class="text-success-strong text-sm">Vollständige Isolation - Widget läuft in eigenem Kontext.</p>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">
                         iFrame-Code:
                     </label>
                     <div class="relative">
-                        <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ iframeCode }}</pre>
+                        <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ iframeCode }}</pre>
                         <button @click="copyToClipboard(iframeCode)"
+                                aria-label="Code kopieren"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                             <component :is="Copy" class="w-4 h-4" />
                         </button>
@@ -452,12 +459,12 @@
 
             <!-- Web Component -->
             <div v-if="activeMethod === 'webcomponent'" class="space-y-4">
-                <div class="bg-gray-50 border border-gray-200 rounded-md p-3 shadow-sm">
+                <div class="bg-surface-muted border border-line rounded-md p-3 shadow-sm">
                     <div class="flex items-center">
-                        <svg class="h-4 w-4 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="h-4 w-4 text-ink-muted mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"></path>
                         </svg>
-                        <span class="text-sm text-gray-700">
+                        <span class="text-sm text-ink-secondary">
                             Feature noch nicht implementiert - wird in Kürze verfügbar sein
                         </span>
                     </div>
@@ -469,12 +476,13 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-ink-secondary mb-2">
                         Web Component Code:
                     </label>
                     <div class="relative">
-                        <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ webComponentCode }}</pre>
+                        <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ webComponentCode }}</pre>
                         <button @click="copyToClipboard(webComponentCode)"
+                                aria-label="Code kopieren"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                             <component :is="Copy" class="w-4 h-4" />
                         </button>
@@ -484,12 +492,12 @@
 
             <!-- API Integration -->
             <div v-if="activeMethod === 'api'" class="space-y-4">
-                <div class="bg-gray-50 border border-gray-200 rounded-md p-3 shadow-sm">
+                <div class="bg-surface-muted border border-line rounded-md p-3 shadow-sm">
                     <div class="flex items-center">
-                        <svg class="h-4 w-4 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="h-4 w-4 text-ink-muted mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"></path>
                         </svg>
-                        <span class="text-sm text-gray-700">
+                        <span class="text-sm text-ink-secondary">
                             Feature noch nicht implementiert - wird in Kürze verfügbar sein
                         </span>
                     </div>
@@ -502,12 +510,13 @@
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <label class="block text-sm font-medium text-ink-secondary mb-2">
                             API-Endpunkte:
                         </label>
                         <div class="relative">
-                            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ apiEndpoints }}</pre>
+                            <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ apiEndpoints }}</pre>
                             <button @click="copyToClipboard(apiEndpoints)"
+                                    aria-label="Code kopieren"
                                     class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                                 <component :is="Copy" class="w-4 h-4" />
                             </button>
@@ -515,12 +524,13 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <label class="block text-sm font-medium text-ink-secondary mb-2">
                             JavaScript SDK:
                         </label>
                         <div class="relative">
-                            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ sdkCode }}</pre>
+                            <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ sdkCode }}</pre>
                             <button @click="copyToClipboard(sdkCode)"
+                                    aria-label="Code kopieren"
                                     class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                                 <component :is="Copy" class="w-4 h-4" />
                             </button>
@@ -531,22 +541,22 @@
         </div>
 
         <!-- API Keys -->
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-surface rounded-lg shadow p-6">
             <div class="flex items-center mb-4">
-                <component :is="Key" class="w-6 h-6 text-indigo-600 mr-3" />
-                <h3 class="text-xl font-semibold text-gray-900">API-Schlüssel</h3>
+                <component :is="Key" class="w-6 h-6 text-brand-ink mr-3" />
+                <h3 class="text-xl font-semibold text-ink">API-Schlüssel</h3>
             </div>
 
             <!-- Loading State -->
             <div v-if="apiKeys.loading" class="text-center py-4">
-                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                <p class="mt-2 text-sm text-gray-600">API-Schlüssel werden geladen...</p>
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-brand"></div>
+                <p class="mt-2 text-sm text-ink-secondary">API-Schlüssel werden geladen...</p>
             </div>
 
             <!-- Error State -->
-            <div v-else-if="apiKeys.error" class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p class="text-red-800 text-sm">{{ apiKeys.error }}</p>
-                <button @click="loadApiKeys" class="mt-2 text-red-600 hover:text-red-500 text-sm">
+            <div v-else-if="apiKeys.error" class="bg-danger-subtle border border-danger-line rounded-lg p-4">
+                <p class="text-danger-strong text-sm">{{ apiKeys.error }}</p>
+                <button @click="loadApiKeys" class="mt-2 text-danger hover:text-danger-strong text-sm">
                     Erneut versuchen
                 </button>
             </div>
@@ -554,13 +564,13 @@
             <!-- API Keys Content -->
             <div v-else class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="contract-widget-public-key-f-r-frontend-integration" class="block text-sm font-medium text-ink-secondary mb-2">
                         Public Key (für Frontend-Integration):
                     </label>
                     <div class="flex items-center space-x-2">
-                        <input :value="apiKeys.public" type="text" readonly
-                            class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono">
-                        <button @click="copyToClipboard(apiKeys.public)"
+                        <input id="contract-widget-public-key-f-r-frontend-integration" :value="apiKeys.public" type="text" readonly
+                            class="field flex-1 p-2 bg-surface-muted font-mono">
+                        <button @click="copyToClipboard(apiKeys.public)" aria-label="Öffentlichen Schlüssel kopieren"
                                 :disabled="!apiKeys.public"
                                 class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded">
                             <component :is="Copy" class="w-4 h-4" />
@@ -569,19 +579,19 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="contract-widget-private-key-f-r-server-integration" class="block text-sm font-medium text-ink-secondary mb-2">
                         Private Key (für Server-Integration):
                     </label>
                     <div class="flex items-center space-x-2">
-                        <input :value="showPrivateKey ? apiKeys.private : '••••••••••••••••••••••••••••••••'"
+                        <input id="contract-widget-private-key-f-r-server-integration" :value="showPrivateKey ? apiKeys.private : '••••••••••••••••••••••••••••••••'"
                             type="text" readonly
-                            class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono">
-                        <button @click="togglePrivateKey"
+                            class="field flex-1 p-2 bg-surface-muted font-mono">
+                        <button @click="togglePrivateKey" :aria-label="showPrivateKey ? 'Privaten Schlüssel verbergen' : 'Privaten Schlüssel anzeigen'"
                                 :disabled="!apiKeys.private"
                                 class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded">
                             <component :is="showPrivateKey ? EyeOff : Eye" class="w-4 h-4" />
                         </button>
-                        <button @click="copyToClipboard(apiKeys.private)"
+                        <button @click="copyToClipboard(apiKeys.private)" aria-label="Privaten Schlüssel kopieren"
                                 :disabled="!apiKeys.private"
                                 class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded">
                             <component :is="Copy" class="w-4 h-4" />
@@ -592,7 +602,7 @@
                 <div class="flex justify-end">
                     <button @click="regenerateApiKeys"
                             :disabled="apiKeys.loading"
-                            class="flex items-center text-sm bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors py-2 px-4 rounded-md">
+                            class="flex items-center text-sm bg-danger-solid hover:bg-danger-solid-strong text-white disabled:opacity-50 transition-colors py-2 px-4 rounded-md">
                         <component :is="RefreshCw" class="w-4 h-4 mr-1" />
                         API-Schlüssel regenerieren
                     </button>
@@ -981,7 +991,7 @@ onMounted(() => {
 <style scoped>
 /* Toggle Switch Styles */
 .peer:checked + div {
-    background-color: #2563eb;
+    background-color: var(--brand);
 }
 
 .peer:checked + div:after {
@@ -991,7 +1001,7 @@ onMounted(() => {
 
 /* Code block styling */
 pre {
-    font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.875rem;
     line-height: 1.5;
 }

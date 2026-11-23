@@ -96,4 +96,15 @@ class ExpiredOrganizationAccessTest extends TestCase
             ->get(route('members.index'))
             ->assertOk();
     }
+
+    #[Test]
+    public function the_appearance_can_be_saved_while_the_organization_is_expired(): void
+    {
+        $this->actingAs($this->user)
+            ->from(route('profile.index'))
+            ->put(route('profile.appearance.update'), ['theme_preference' => 'dark'])
+            ->assertRedirect(route('profile.index'));
+
+        $this->assertSame('dark', $this->user->fresh()->theme_preference->value);
+    }
 }

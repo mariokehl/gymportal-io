@@ -4,9 +4,10 @@
       <div class="flex items-center min-w-0 flex-1">
         <Link
           :href="route('members.index')"
-          class="text-gray-500 hover:text-gray-700 mr-4 flex-shrink-0"
+          aria-label="Zurück zur Mitgliederliste"
+          class="touch-target relative text-ink-muted hover:text-ink mr-4 flex-shrink-0"
         >
-          <ArrowLeft class="w-5 h-5" />
+          <ArrowLeft class="w-5 h-5" aria-hidden="true" />
         </Link>
 
         <!-- On mobile the plain title swaps for a compact member identity once
@@ -38,12 +39,12 @@
               size="sm"
             />
             <div class="min-w-0">
-              <div class="text-sm font-bold text-gray-900 leading-tight truncate">
+              <div class="text-sm font-bold text-ink leading-tight truncate">
                 {{ member.salutation ? member.salutation + ' ' : '' }}{{ member.first_name }} {{ member.last_name }}
               </div>
               <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
                 <span class="w-1.5 h-1.5 rounded-full flex-none" :class="headerStatusDotClass" />
-                <span class="text-[11.5px] font-normal text-gray-500 truncate">
+                <span class="text-2xs font-normal text-ink-muted truncate">
                   {{ headerStatusText }} · #{{ member.member_number }}
                 </span>
               </div>
@@ -61,7 +62,7 @@
           <button
             type="button"
             @click="headerCard?.requestCancelEdit()"
-            class="px-2 py-2 text-sm font-medium text-gray-600"
+            class="px-2 py-2 text-sm font-medium text-ink-secondary"
           >
             Abbrechen
           </button>
@@ -70,7 +71,7 @@
             @click="savePersonalData"
             :disabled="!isDirty || isSaving"
             class="px-2 py-2 text-sm font-bold"
-            :class="(!isDirty || isSaving) ? 'text-gray-400' : 'text-indigo-600'"
+            :class="(!isDirty || isSaving) ? 'text-ink-muted' : 'text-brand-ink'"
           >
             {{ isSaving ? 'Speichern...' : 'Speichern' }}
           </button>
@@ -79,7 +80,7 @@
           v-else
           type="button"
           @click="headerCard?.openActionSheet()"
-          class="-mr-1 w-11 h-11 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+          class="-mr-1 w-11 h-11 rounded-xl flex items-center justify-center text-ink-secondary hover:bg-fill transition-colors"
           aria-label="Aktionen"
         >
           <MoreVertical class="w-6 h-6" />
@@ -112,27 +113,26 @@
         @toggle-checkin="toggleCheckin"
         @topup="handleTopup"
         @status-changed="handleStatusChanged"
-        @status-changing="handleStatusChanging"
       />
 
       <!-- Fraud-Warnbanner -->
-      <div v-if="fraudCheck" class="bg-amber-50 border border-amber-300 rounded-lg shadow p-4">
+      <div v-if="fraudCheck" class="bg-warning-subtle border border-warning rounded-lg shadow p-4">
         <div class="flex items-start gap-3">
-          <AlertCircle class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <AlertCircle class="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
           <div class="flex-1">
-            <h3 class="text-sm font-semibold text-amber-800">Verdächtige Registrierung erkannt</h3>
-            <p class="mt-1 text-sm text-amber-700">
+            <h3 class="text-sm font-semibold text-warning-strong">Verdächtige Registrierung erkannt</h3>
+            <p class="mt-1 text-sm text-warning">
               Fraud-Score: <span class="font-semibold">{{ fraudCheck.fraud_score }}/100</span>
               — Übereinstimmungen:
               <span class="font-medium">
                 {{ Object.keys(fraudCheck.matched_fields || {}).filter(k => k !== '_combination_bonus').join(', ') }}
               </span>
             </p>
-            <p v-if="fraudCheck.blocklist_entry" class="mt-1 text-sm text-amber-700">
+            <p v-if="fraudCheck.blocklist_entry" class="mt-1 text-sm text-warning">
               Sperrgrund: {{ fraudCheck.blocklist_entry.reason === 'chargeback' ? 'Rücklastschrift' : (fraudCheck.blocklist_entry.reason === 'payment_failed' ? 'Zahlungsausfall' : fraudCheck.blocklist_entry.reason) }}
               <template v-if="fraudCheck.blocklist_entry.notes"> — {{ fraudCheck.blocklist_entry.notes }}</template>
             </p>
-            <p class="mt-2 text-xs text-amber-600">
+            <p class="mt-2 text-xs text-warning">
               Dieses Mitglied muss manuell aktiviert werden. Geprüft am {{ new Date(fraudCheck.checked_at).toLocaleDateString('de-DE') }}.
             </p>
           </div>
@@ -146,18 +146,18 @@
           <span
             v-if="tab.id === 'history' && member.status_history?.length > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-ink-strong'"
           >{{ member.status_history.length }}</span>
           <span
             v-if="tab.id === 'membership' && membershipBadge"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : membershipBadge.colorClass"
+            :class="active ? 'bg-surface/25 text-white' : membershipBadge.colorClass"
             :title="membershipBadge.hint"
           >{{ membershipBadge.count }}</span>
           <span
             v-if="tab.id === 'payments' && paymentsAttentionSignal"
             class="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full"
-            :class="active ? 'bg-white/25 text-white' : paymentsAttentionSignal.colorClass"
+            :class="active ? 'bg-surface/25 text-white' : paymentsAttentionSignal.colorClass"
             :title="paymentsAttentionHint"
           >
             <!-- out-in keeps a single icon in the badge at any time, so the
@@ -175,23 +175,23 @@
           <span
             v-else-if="tab.id === 'payments' && paymentsCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-fill-strong text-ink-secondary'"
             :title="`${paymentsCount} Zahlung(en)`"
           >{{ paymentsCount }}</span>
           <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-ink-strong'"
           >{{ documentCount }}</span>
           <span
             v-if="tab.id === 'checkins' && checkInsTotal > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-ink-strong'"
           >{{ checkInsTotal }}</span>
           <span
             v-if="tab.id === 'access' && activeAccessCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-white/25 text-white' : 'bg-green-100 text-green-600'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-success-soft text-success'"
           >{{ activeAccessCount }}</span>
         </template>
       </TabRail>
@@ -308,6 +308,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import StatusHistory from '@/Components/StatusHistory.vue'
 import MembershipTab from '@/Components/Members/MembershipTab.vue'
 import PaymentsTab from '@/Components/Members/PaymentsTab.vue'
@@ -330,6 +331,8 @@ import {
   MoreVertical
 } from '@lucide/vue'
 import { getStatusText, getStatusColor } from '@/utils/memberStatus'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   member: Object,
@@ -415,12 +418,12 @@ const headerInitials = computed(() =>
 const headerStatusText = computed(() => getStatusText(props.member.status))
 const headerStatusDotClass = computed(() => {
   const dotColors = {
-    green: 'bg-green-500',
+    green: 'bg-success-solid',
     gray: 'bg-gray-400',
-    yellow: 'bg-yellow-500',
+    yellow: 'bg-warning-solid',
     orange: 'bg-orange-500',
-    red: 'bg-red-500',
-    black: 'bg-gray-900',
+    red: 'bg-danger-solid',
+    black: 'bg-inverse',
   }
   return dotColors[getStatusColor(props.member.status)] || 'bg-gray-400'
 })

@@ -6,7 +6,7 @@
     <form @submit.prevent="submit" class="space-y-6">
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
-          <label for="first_name" class="block text-sm font-medium text-gray-700">
+          <label for="first_name" class="block text-sm font-medium text-ink-secondary">
             Vorname
           </label>
           <div class="mt-1">
@@ -16,17 +16,17 @@
               type="text"
               autocomplete="given-name"
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              :class="{ 'border-red-300': errors.first_name }"
+              class="field appearance-none block w-full px-3 py-2"
+              :class="{ 'border-danger': errors.first_name }"
             />
-            <p v-if="errors.first_name" class="mt-2 text-sm text-red-600">
+            <p v-if="errors.first_name" class="mt-2 text-sm text-danger">
               {{ errors.first_name }}
             </p>
           </div>
         </div>
 
         <div>
-          <label for="last_name" class="block text-sm font-medium text-gray-700">
+          <label for="last_name" class="block text-sm font-medium text-ink-secondary">
             Nachname
           </label>
           <div class="mt-1">
@@ -36,10 +36,10 @@
               type="text"
               autocomplete="family-name"
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              :class="{ 'border-red-300': errors.last_name }"
+              class="field appearance-none block w-full px-3 py-2"
+              :class="{ 'border-danger': errors.last_name }"
             />
-            <p v-if="errors.last_name" class="mt-2 text-sm text-red-600">
+            <p v-if="errors.last_name" class="mt-2 text-sm text-danger">
               {{ errors.last_name }}
             </p>
           </div>
@@ -47,7 +47,7 @@
       </div>
 
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700">
+        <label for="email" class="block text-sm font-medium text-ink-secondary">
           E-Mail-Adresse
         </label>
         <div class="mt-1">
@@ -57,17 +57,17 @@
             type="email"
             autocomplete="email"
             required
-            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            :class="{ 'border-red-300': errors.email }"
+            class="field appearance-none block w-full px-3 py-2"
+            :class="{ 'border-danger': errors.email }"
           />
-          <p v-if="errors.email" class="mt-2 text-sm text-red-600">
+          <p v-if="errors.email" class="mt-2 text-sm text-danger">
             {{ errors.email }}
           </p>
         </div>
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">
+        <label for="password" class="block text-sm font-medium text-ink-secondary">
           Passwort
         </label>
         <div class="mt-1">
@@ -77,17 +77,17 @@
             type="password"
             autocomplete="new-password"
             required
-            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            :class="{ 'border-red-300': errors.password }"
+            class="field appearance-none block w-full px-3 py-2"
+            :class="{ 'border-danger': errors.password }"
           />
-          <p v-if="errors.password" class="mt-2 text-sm text-red-600">
+          <p v-if="errors.password" class="mt-2 text-sm text-danger">
             {{ errors.password }}
           </p>
         </div>
       </div>
 
       <div>
-        <label for="password_confirmation" class="block text-sm font-medium text-gray-700">
+        <label for="password_confirmation" class="block text-sm font-medium text-ink-secondary">
           Passwort bestätigen
         </label>
         <div class="mt-1">
@@ -97,7 +97,7 @@
             type="password"
             autocomplete="new-password"
             required
-            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            class="field appearance-none block w-full px-3 py-2"
           />
         </div>
       </div>
@@ -111,29 +111,29 @@
               v-model="form.terms_accepted"
               type="checkbox"
               required
-              class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-              :class="{ 'border-red-300': errors.terms_accepted }"
+              class="h-4 w-4 text-brand-ink border-line-strong rounded"
+              :class="{ 'border-danger': errors.terms_accepted }"
             />
           </div>
           <div class="ml-3 text-sm">
-            <label for="terms_accepted" class="text-gray-700">
+            <label for="terms_accepted" class="text-ink-secondary">
               Ich stimme den
               <a
                 href="https://gymportal.io/terms"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-indigo-600 hover:text-indigo-500 underline">AGB</a>
+                class="text-brand-ink hover:text-brand-ink-strong underline">AGB</a>
               und dem
               <a
                 href="https://gymportal.io/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-indigo-600 hover:text-indigo-500 underline">Datenschutz</a>
+                class="text-brand-ink hover:text-brand-ink-strong underline">Datenschutz</a>
               zu
             </label>
           </div>
         </div>
-        <p v-if="errors.terms_accepted" class="mt-2 text-sm text-red-600">
+        <p v-if="errors.terms_accepted" class="mt-2 text-sm text-danger">
           {{ errors.terms_accepted }}
         </p>
       </div>
@@ -142,7 +142,7 @@
         <button
           type="submit"
           :disabled="processing || !form.terms_accepted"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="processing">Wird registriert...</span>
           <span v-else>Registrieren</span>
@@ -150,7 +150,7 @@
       </div>
 
       <div class="text-center">
-        <Link href="/login" class="text-sm text-indigo-600 hover:text-indigo-500">
+        <Link href="/login" class="text-sm text-brand-ink hover:text-brand-ink-strong">
           Bereits registriert? Hier anmelden
         </Link>
       </div>

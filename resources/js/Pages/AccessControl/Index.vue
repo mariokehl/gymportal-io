@@ -77,6 +77,7 @@ import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { ScanLine, Radio, BarChart3, Settings } from '@lucide/vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import TabRail from '@/Components/TabRail.vue'
 import ScannerManagement from '@/Components/AccessControl/ScannerManagement.vue'
 import AccessLogLive from '@/Components/AccessControl/AccessLogLive.vue'
@@ -87,6 +88,8 @@ import CrossLocationSettings from '@/Components/AccessControl/CrossLocationSetti
 import CheckinStationSettings from '@/Components/AccessControl/CheckinStationSettings.vue'
 import { useToast } from '@/composables/useToast'
 import { useTabQuery } from '@/composables/useTabQuery'
+
+defineOptions({ layout: AppShell })
 
 const { success, error: toastError } = useToast()
 

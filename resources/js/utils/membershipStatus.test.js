@@ -12,7 +12,7 @@ describe('membershipStatusOption', () => {
   it('falls back to the raw value on a neutral badge', () => {
     expect(membershipStatusOption('unknown')).toMatchObject({
       label: 'unknown',
-      badgeClass: 'bg-gray-100 text-gray-800'
+      badgeClass: 'bg-fill text-ink'
     })
   })
 })

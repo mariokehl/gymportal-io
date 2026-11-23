@@ -1,69 +1,495 @@
 @import 'tailwindcss';
 
+/* `dark:` follows the .dark class set from the user's preference, not only
+   the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
 @source '../views';
 
-/* Custom CSS Variables for Tailwind CSS 4 */
+/*
+ * Brand typeface: Archivo (variable, wght 100–900, wdth 62–125%), shared with
+ * the landing page and self-hosted, so no third-party request is made (GDPR).
+ * The latin subset is preloaded in app.blade.php. The width axis is there for
+ * the landing page's condensed headlines; the backend runs at 100%.
+ */
+@font-face {
+    font-family: 'Archivo';
+    font-style: normal;
+    font-weight: 100 900;
+    font-stretch: 62% 125%;
+    font-display: swap;
+    src: url('../fonts/archivo-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+        U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+        U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: 'Archivo';
+    font-style: normal;
+    font-weight: 100 900;
+    font-stretch: 62% 125%;
+    font-display: swap;
+    src: url('../fonts/archivo-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+        U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+        U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Metric-matched fallback shown until the web font arrives, so the swap does
+   not reflow the layout. Values derived from the font file at wght 400 /
+   wdth 100: average width of German text vs. Arial, and the vertical metrics
+   rescaled by that factor. */
+@font-face {
+    font-family: 'Archivo Fallback';
+    src: local('Arial'), local('ArialMT'), local('Helvetica');
+    size-adjust: 98.47%;
+    ascent-override: 89.17%;
+    descent-override: 21.33%;
+    line-gap-override: 0%;
+}
+
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Archivo', 'Archivo Fallback', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --color-blue-50: #eff6ff;
-    --color-blue-100: #dbeafe;
-    --color-blue-500: #3b82f6;
-    --color-blue-600: #2563eb;
-    --color-blue-700: #1d4ed8;
+    /* Type roles below Tailwind's `text-xs`/`text-sm` steps for dense UI:
+       compact = table cells, filters, toolbars; 2xs = badges and chips. */
+    --text-compact: 0.8125rem;
+    --text-compact--line-height: 1.125rem;
+    --text-2xs: 0.6875rem;
+    --text-2xs--line-height: 1rem;
 
-    --color-gray-50: #f9fafb;
-    --color-gray-100: #f3f4f6;
-    --color-gray-200: #e5e7eb;
-    --color-gray-300: #d1d5db;
-    --color-gray-400: #9ca3af;
-    --color-gray-500: #6b7280;
-    --color-gray-600: #4b5563;
-    --color-gray-700: #374151;
-
-    --color-green-100: #dcfce7;
-    --color-green-500: #22c55e;
-    --color-green-700: #15803d;
-
-    --color-red-100: #fee2e2;
-    --color-red-500: #ef4444;
-    --color-red-700: #b91c1c;
-
-    --color-orange-500: #f97316;
-    --color-purple-500: #a855f7;
-
+    /* Elevation kept from the Tailwind v3 look the UI was built with. */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-
-    --border-radius-md: 0.375rem;
-    --border-radius-lg: 0.5rem;
-    --border-radius-full: 9999px;
 }
 
-/* Custom utilities */
-.transition-colors {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/*
+ * Semantic color roles. Components use these (`bg-surface`, `text-ink-muted`,
+ * `text-brand`, `bg-success-subtle`, …) instead of raw palette shades, so the
+ * palette can be retuned in one place. Contrast notes are against white.
+ *
+ * Brand: indigo sits between the logo's violet (#8b5cf6) and cyan (#06b6d4)
+ * and is reserved for action, selection and focus.
+ */
+@theme inline {
+    --color-canvas: var(--canvas);
+    --color-surface: var(--surface);
+    --color-surface-muted: var(--surface-muted);
+    --color-inverse: var(--inverse);
+    --color-fill: var(--fill);
+    --color-fill-strong: var(--fill-strong);
+    --color-line-subtle: var(--line-subtle);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-ink: var(--ink);
+    --color-ink-secondary: var(--ink-secondary);
+    --color-ink-muted: var(--ink-muted);
+    --color-ink-disabled: var(--ink-disabled);
+    --color-brand: var(--brand);
+    --color-brand-strong: var(--brand-strong);
+    --color-brand-subtle: var(--brand-subtle);
+    --color-brand-soft: var(--brand-soft);
+    --color-brand-line: var(--brand-line);
+    --color-brand-ink: var(--brand-ink);
+    --color-brand-ink-strong: var(--brand-ink-strong);
+    --color-focus: var(--focus);
+    --color-guest-solid: var(--guest-solid);
+    --color-success: var(--success);
+    --color-success-strong: var(--success-strong);
+    --color-success-subtle: var(--success-subtle);
+    --color-success-soft: var(--success-soft);
+    --color-success-line: var(--success-line);
+    --color-success-solid: var(--success-solid);
+    --color-success-solid-strong: var(--success-solid-strong);
+    --color-warning: var(--warning);
+    --color-warning-strong: var(--warning-strong);
+    --color-warning-subtle: var(--warning-subtle);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-line: var(--warning-line);
+    --color-warning-solid: var(--warning-solid);
+    --color-warning-solid-strong: var(--warning-solid-strong);
+    --color-danger: var(--danger);
+    --color-danger-strong: var(--danger-strong);
+    --color-danger-subtle: var(--danger-subtle);
+    --color-danger-soft: var(--danger-soft);
+    --color-danger-line: var(--danger-line);
+    --color-danger-solid: var(--danger-solid);
+    --color-danger-solid-strong: var(--danger-solid-strong);
+    --color-info: var(--info);
+    --color-info-strong: var(--info-strong);
+    --color-info-subtle: var(--info-subtle);
+    --color-info-soft: var(--info-soft);
+    --color-info-line: var(--info-line);
+    --color-info-solid: var(--info-solid);
+    --color-info-solid-strong: var(--info-solid-strong);
 }
 
-/* Focus states for better accessibility */
-.focus\:ring-2:focus {
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+/*
+ * Role values per theme. Light is the default; `.dark` on <html> (set from
+ * the user's profile preference, see app.blade.php) swaps in the cool
+ * graphite ramp. Filled controls (`*-solid`, brand) keep their light values
+ * so white labels hold 4.5:1; text roles step lighter on dark.
+ */
+@layer base {
+    :root {
+        --canvas: --theme(--color-gray-100);
+        --surface: #ffffff;
+        --surface-muted: --theme(--color-gray-50);
+        --inverse: --theme(--color-gray-900);
+        --fill: --theme(--color-gray-100);
+        --fill-strong: --theme(--color-gray-200);
+        --line-subtle: --theme(--color-gray-100);
+        --line: --theme(--color-gray-200);
+        --line-strong: --theme(--color-gray-300);
+        --ink: --theme(--color-gray-900);
+        --ink-secondary: --theme(--color-gray-700);
+        --ink-muted: oklch(52% 0.027 264.4);
+        --ink-disabled: --theme(--color-gray-400);
+        --brand: --theme(--color-indigo-600);
+        --brand-strong: --theme(--color-indigo-700);
+        --brand-subtle: --theme(--color-indigo-50);
+        --brand-soft: --theme(--color-indigo-100);
+        --brand-line: --theme(--color-indigo-200);
+        --brand-ink: --theme(--color-indigo-600);
+        --brand-ink-strong: --theme(--color-indigo-700);
+        --focus: --theme(--color-indigo-500);
+        --success: --theme(--color-green-700);
+        --success-strong: --theme(--color-green-800);
+        --success-subtle: --theme(--color-green-50);
+        --success-soft: --theme(--color-green-100);
+        --success-line: --theme(--color-green-200);
+        --success-solid: --theme(--color-green-600);
+        --success-solid-strong: --theme(--color-green-700);
+        --warning: --theme(--color-amber-700);
+        --warning-strong: --theme(--color-amber-800);
+        --warning-subtle: --theme(--color-amber-50);
+        --warning-soft: --theme(--color-amber-100);
+        --warning-line: --theme(--color-amber-200);
+        --warning-solid: --theme(--color-amber-500);
+        --warning-solid-strong: --theme(--color-amber-600);
+        --danger: --theme(--color-red-700);
+        --danger-strong: --theme(--color-red-800);
+        --danger-subtle: --theme(--color-red-50);
+        --danger-soft: --theme(--color-red-100);
+        --danger-line: --theme(--color-red-200);
+        --danger-solid: --theme(--color-red-600);
+        --danger-solid-strong: --theme(--color-red-700);
+        --info: --theme(--color-blue-700);
+        --info-strong: --theme(--color-blue-800);
+        --info-subtle: --theme(--color-blue-50);
+        --info-soft: --theme(--color-blue-100);
+        --info-line: --theme(--color-blue-200);
+        --info-solid: --theme(--color-blue-600);
+        --info-solid-strong: --theme(--color-blue-700);
+        --guest-solid: --theme(--color-orange-700 inline);
+        --selection-bg: --theme(--color-indigo-100);
+        --selection-ink: --theme(--color-indigo-950);
+    }
+
+    .dark {
+        color-scheme: dark;
+        --canvas: #0f1218;
+        --surface: #161a21;
+        --surface-muted: #1b2029;
+        --inverse: #2b313c;
+        --fill: #1e232c;
+        --fill-strong: #272d37;
+        --line-subtle: rgb(238 240 244 / 0.06);
+        --line: rgb(238 240 244 / 0.1);
+        --line-strong: rgb(238 240 244 / 0.18);
+        --ink: #eef0f4;
+        --ink-secondary: #c5cad3;
+        --ink-muted: #9aa1ae;
+        --ink-disabled: #6b7280;
+        --brand: --theme(--color-indigo-600);
+        --brand-strong: --theme(--color-indigo-700);
+        --brand-subtle: rgb(99 102 241 / 0.14);
+        --brand-soft: rgb(99 102 241 / 0.22);
+        --brand-line: rgb(129 140 248 / 0.35);
+        --brand-ink: --theme(--color-indigo-300);
+        --brand-ink-strong: --theme(--color-indigo-200);
+        --focus: --theme(--color-indigo-400);
+        --success: --theme(--color-green-400);
+        --success-strong: --theme(--color-green-300);
+        --success-subtle: rgb(34 197 94 / 0.08);
+        --success-soft: rgb(34 197 94 / 0.16);
+        --success-line: rgb(34 197 94 / 0.3);
+        --success-solid: --theme(--color-green-600);
+        --success-solid-strong: --theme(--color-green-700);
+        --warning: --theme(--color-amber-400);
+        --warning-strong: --theme(--color-amber-300);
+        --warning-subtle: rgb(245 158 11 / 0.08);
+        --warning-soft: rgb(245 158 11 / 0.16);
+        --warning-line: rgb(245 158 11 / 0.3);
+        --warning-solid: --theme(--color-amber-500);
+        --warning-solid-strong: --theme(--color-amber-600);
+        --danger: --theme(--color-red-400);
+        --danger-strong: --theme(--color-red-300);
+        --danger-subtle: rgb(239 68 68 / 0.08);
+        --danger-soft: rgb(239 68 68 / 0.16);
+        --danger-line: rgb(239 68 68 / 0.3);
+        --danger-solid: --theme(--color-red-600);
+        --danger-solid-strong: --theme(--color-red-700);
+        --info: --theme(--color-blue-400);
+        --info-strong: --theme(--color-blue-300);
+        --info-subtle: rgb(59 130 246 / 0.08);
+        --info-soft: rgb(59 130 246 / 0.16);
+        --info-line: rgb(59 130 246 / 0.3);
+        --info-solid: --theme(--color-blue-600);
+        --info-solid-strong: --theme(--color-blue-700);
+        --guest-solid: --theme(--color-orange-700 inline);
+        --selection-bg: rgb(99 102 241 / 0.4);
+        --selection-ink: #eef0f4;
+
+        /* Category hues (pending/guest orange, admin and aggregator purple,
+           teal, rose …) are still raw palette in markup; remap their shades
+           so tints read as dark washes and text shades turn light. */
+        --color-orange-50: color-mix(in oklab, --theme(--color-orange-500 inline) 10%, #161a21);
+        --color-orange-100: color-mix(in oklab, --theme(--color-orange-500 inline) 16%, #161a21);
+        --color-orange-200: color-mix(in oklab, --theme(--color-orange-500 inline) 26%, #161a21);
+        --color-orange-300: color-mix(in oklab, --theme(--color-orange-500 inline) 42%, #161a21);
+        --color-orange-700: --theme(--color-orange-300 inline);
+        --color-orange-800: --theme(--color-orange-200 inline);
+        --color-orange-900: --theme(--color-orange-100 inline);
+        --color-purple-50: color-mix(in oklab, --theme(--color-purple-500 inline) 10%, #161a21);
+        --color-purple-100: color-mix(in oklab, --theme(--color-purple-500 inline) 16%, #161a21);
+        --color-purple-200: color-mix(in oklab, --theme(--color-purple-500 inline) 26%, #161a21);
+        --color-purple-300: color-mix(in oklab, --theme(--color-purple-500 inline) 42%, #161a21);
+        --color-purple-700: --theme(--color-purple-300 inline);
+        --color-purple-800: --theme(--color-purple-200 inline);
+        --color-purple-900: --theme(--color-purple-100 inline);
+        --color-purple-600: --theme(--color-purple-400 inline);
+        --color-violet-50: color-mix(in oklab, --theme(--color-violet-500 inline) 10%, #161a21);
+        --color-violet-100: color-mix(in oklab, --theme(--color-violet-500 inline) 16%, #161a21);
+        --color-violet-200: color-mix(in oklab, --theme(--color-violet-500 inline) 26%, #161a21);
+        --color-violet-300: color-mix(in oklab, --theme(--color-violet-500 inline) 42%, #161a21);
+        --color-violet-700: --theme(--color-violet-300 inline);
+        --color-violet-800: --theme(--color-violet-200 inline);
+        --color-violet-900: --theme(--color-violet-100 inline);
+        --color-violet-600: --theme(--color-violet-400 inline);
+        --color-teal-50: color-mix(in oklab, --theme(--color-teal-500 inline) 10%, #161a21);
+        --color-teal-100: color-mix(in oklab, --theme(--color-teal-500 inline) 16%, #161a21);
+        --color-teal-200: color-mix(in oklab, --theme(--color-teal-500 inline) 26%, #161a21);
+        --color-teal-300: color-mix(in oklab, --theme(--color-teal-500 inline) 42%, #161a21);
+        --color-teal-700: --theme(--color-teal-300 inline);
+        --color-teal-800: --theme(--color-teal-200 inline);
+        --color-teal-900: --theme(--color-teal-100 inline);
+        --color-rose-50: color-mix(in oklab, --theme(--color-rose-500 inline) 10%, #161a21);
+        --color-rose-100: color-mix(in oklab, --theme(--color-rose-500 inline) 16%, #161a21);
+        --color-rose-200: color-mix(in oklab, --theme(--color-rose-500 inline) 26%, #161a21);
+        --color-rose-300: color-mix(in oklab, --theme(--color-rose-500 inline) 42%, #161a21);
+        --color-rose-700: --theme(--color-rose-300 inline);
+        --color-rose-800: --theme(--color-rose-200 inline);
+        --color-rose-900: --theme(--color-rose-100 inline);
+        --color-rose-600: --theme(--color-rose-400 inline);
+        --color-emerald-50: color-mix(in oklab, --theme(--color-emerald-500 inline) 10%, #161a21);
+        --color-emerald-100: color-mix(in oklab, --theme(--color-emerald-500 inline) 16%, #161a21);
+        --color-emerald-200: color-mix(in oklab, --theme(--color-emerald-500 inline) 26%, #161a21);
+        --color-emerald-300: color-mix(in oklab, --theme(--color-emerald-500 inline) 42%, #161a21);
+        --color-emerald-700: --theme(--color-emerald-300 inline);
+        --color-emerald-800: --theme(--color-emerald-200 inline);
+        --color-emerald-900: --theme(--color-emerald-100 inline);
+        --color-cyan-50: color-mix(in oklab, --theme(--color-cyan-500 inline) 10%, #161a21);
+        --color-cyan-100: color-mix(in oklab, --theme(--color-cyan-500 inline) 16%, #161a21);
+        --color-cyan-200: color-mix(in oklab, --theme(--color-cyan-500 inline) 26%, #161a21);
+        --color-cyan-300: color-mix(in oklab, --theme(--color-cyan-500 inline) 42%, #161a21);
+        --color-cyan-700: --theme(--color-cyan-300 inline);
+        --color-cyan-800: --theme(--color-cyan-200 inline);
+        --color-cyan-900: --theme(--color-cyan-100 inline);
+        --color-pink-50: color-mix(in oklab, --theme(--color-pink-500 inline) 10%, #161a21);
+        --color-pink-100: color-mix(in oklab, --theme(--color-pink-500 inline) 16%, #161a21);
+        --color-pink-200: color-mix(in oklab, --theme(--color-pink-500 inline) 26%, #161a21);
+        --color-pink-300: color-mix(in oklab, --theme(--color-pink-500 inline) 42%, #161a21);
+        --color-pink-700: --theme(--color-pink-300 inline);
+        --color-pink-800: --theme(--color-pink-200 inline);
+        --color-pink-900: --theme(--color-pink-100 inline);
+        --color-pink-600: --theme(--color-pink-400 inline);
+        --color-lime-50: color-mix(in oklab, --theme(--color-lime-500 inline) 10%, #161a21);
+        --color-lime-100: color-mix(in oklab, --theme(--color-lime-500 inline) 16%, #161a21);
+        --color-lime-200: color-mix(in oklab, --theme(--color-lime-500 inline) 26%, #161a21);
+        --color-lime-300: color-mix(in oklab, --theme(--color-lime-500 inline) 42%, #161a21);
+        --color-lime-700: --theme(--color-lime-300 inline);
+        --color-lime-800: --theme(--color-lime-200 inline);
+        --color-lime-900: --theme(--color-lime-100 inline);
+        --color-sky-50: color-mix(in oklab, --theme(--color-sky-500 inline) 10%, #161a21);
+        --color-sky-100: color-mix(in oklab, --theme(--color-sky-500 inline) 16%, #161a21);
+        --color-sky-200: color-mix(in oklab, --theme(--color-sky-500 inline) 26%, #161a21);
+        --color-sky-300: color-mix(in oklab, --theme(--color-sky-500 inline) 42%, #161a21);
+        --color-sky-700: --theme(--color-sky-300 inline);
+        --color-sky-800: --theme(--color-sky-200 inline);
+        --color-sky-900: --theme(--color-sky-100 inline);
+        --color-yellow-50: color-mix(in oklab, --theme(--color-yellow-500 inline) 10%, #161a21);
+        --color-yellow-100: color-mix(in oklab, --theme(--color-yellow-500 inline) 16%, #161a21);
+        --color-yellow-200: color-mix(in oklab, --theme(--color-yellow-500 inline) 26%, #161a21);
+        --color-yellow-300: color-mix(in oklab, --theme(--color-yellow-500 inline) 42%, #161a21);
+        --color-yellow-700: --theme(--color-yellow-300 inline);
+        --color-yellow-800: --theme(--color-yellow-200 inline);
+        --color-yellow-900: --theme(--color-yellow-100 inline);
+        --color-fuchsia-50: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 10%, #161a21);
+        --color-fuchsia-100: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 16%, #161a21);
+        --color-fuchsia-200: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 26%, #161a21);
+        --color-fuchsia-300: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 42%, #161a21);
+        --color-fuchsia-700: --theme(--color-fuchsia-300 inline);
+        --color-fuchsia-800: --theme(--color-fuchsia-200 inline);
+        --color-fuchsia-900: --theme(--color-fuchsia-100 inline);
+        --color-fuchsia-600: --theme(--color-fuchsia-400 inline);
+        --color-slate-50: color-mix(in oklab, --theme(--color-slate-500 inline) 10%, #161a21);
+        --color-slate-100: color-mix(in oklab, --theme(--color-slate-500 inline) 16%, #161a21);
+        --color-slate-200: color-mix(in oklab, --theme(--color-slate-500 inline) 26%, #161a21);
+        --color-slate-300: color-mix(in oklab, --theme(--color-slate-500 inline) 42%, #161a21);
+        --color-slate-700: --theme(--color-slate-300 inline);
+        --color-slate-800: --theme(--color-slate-200 inline);
+        --color-slate-900: --theme(--color-slate-100 inline);
+        --color-slate-600: --theme(--color-slate-400 inline);
+    }
 }
 
-.focus\:ring-blue-500:focus {
-  --tw-ring-color: rgb(59 130 246);
+
+/* Role colors are runtime variables (see above), so --theme(--color-…)
+   resolves to var(--…) and follows the active theme. */
+@layer base {
+    /* Headings: brand tracking (STYLEGUIDE: headlines run slightly tight) and
+       balanced breaks. Utilities on an element still win. */
+    :where(h1, h2, h3) {
+        letter-spacing: -0.011em;
+        text-wrap: balance;
+    }
+
+    :where(p, li, dd) {
+        text-wrap: pretty;
+    }
+
+    /* Figures line up in columns of amounts, dates and IDs. */
+    :where(table) {
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Native checkboxes, radios and range inputs follow the brand. */
+    :root {
+        accent-color: --theme(--color-brand);
+    }
+
+    ::selection {
+        background-color: var(--selection-bg);
+        color: var(--selection-ink);
+    }
+
+    /* The one keyboard focus indicator for buttons, links and custom
+       controls. Form fields draw theirs via `.field:focus`. */
+    :focus-visible {
+        outline: 2px solid --theme(--color-focus);
+        outline-offset: 2px;
+    }
+
+    /* Full-width entries in navigation lists sit in scroll containers that
+       clip an outer ring; draw it inside instead. */
+    nav :is(a, button):focus-visible {
+        outline-offset: -2px;
+    }
 }
 
-.focus\:border-blue-500:focus {
-  border-color: rgb(59 130 246);
+/*
+ * Text inputs, selects and textareas share one look and one focus state.
+ * Layout (width, padding, height) stays in markup; utilities on the element
+ * (e.g. an error `border-danger`) still win over this component layer.
+ */
+@layer components {
+    /* 14px with a mouse; 16px on touch screens, where anything smaller makes
+       iOS zoom into the field on focus. */
+    .field {
+        font-size: --theme(--text-sm);
+        line-height: --theme(--text-sm--line-height);
+        border: 1px solid --theme(--color-line-strong);
+        border-radius: --theme(--radius-md);
+        background-color: --theme(--color-surface);
+        color: --theme(--color-ink);
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    @media (pointer: coarse) {
+        .field {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+    }
+
+    .field::placeholder {
+        color: --theme(--color-ink-muted);
+        opacity: 1;
+    }
+
+    /* Brand border plus a 1px ring: a crisp 2px edge without layout shift. */
+    .field:focus {
+        outline: none;
+        border-color: --theme(--color-brand);
+        box-shadow: 0 0 0 1px --theme(--color-brand);
+    }
+
+    .field:disabled,
+    .field[readonly] {
+        background-color: --theme(--color-fill);
+        color: --theme(--color-ink-muted);
+    }
+
+    .field:disabled {
+        cursor: not-allowed;
+    }
+
+    .field[aria-invalid='true'] {
+        border-color: --theme(--color-danger);
+    }
+
+    .field[aria-invalid='true']:focus {
+        box-shadow: 0 0 0 1px --theme(--color-danger);
+    }
+}
+
+/*
+ * Touch screens: small controls (icon buttons, row checkboxes, sort headers)
+ * get a 44px hit area without changing how they look or the layout around
+ * them. Mouse users keep the dense desktop UI. The element must be positioned
+ * (add `relative` unless it already is `absolute`/`fixed`).
+ */
+@utility touch-target {
+    @media (pointer: coarse) {
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: max(100%, 44px);
+            height: max(100%, 44px);
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+/* Native checkboxes and radios cannot carry a pseudo hit area; on touch
+   screens they grow instead. Unlayered on purpose so it beats the `h-4 w-4`
+   utilities they are sized with. */
+@media (pointer: coarse) {
+    input:is([type='checkbox'], [type='radio']):not(.sr-only) {
+        width: 1.375rem;
+        height: 1.375rem;
+    }
+}
+
+/*
+ * Dark: depth comes from surface steps and hairlines. Resting shadows would
+ * vanish on the graphite canvas, so they become a hairline; floating layers
+ * keep a deep shadow plus a hairline edge.
+ */
+.dark :is(.shadow-sm, .shadow, .shadow-md) {
+    box-shadow: 0 0 0 1px var(--line-subtle);
+}
+
+.dark :is(.shadow-lg, .shadow-xl, .shadow-2xl) {
+    box-shadow: 0 0 0 1px var(--line), 0 16px 40px rgb(0 0 0 / 0.5);
 }
 
 /* Lift the Chatwoot launcher above a bar pinned to the bottom of the screen

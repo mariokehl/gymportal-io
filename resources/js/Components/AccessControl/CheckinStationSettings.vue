@@ -1,25 +1,25 @@
 <template>
     <div class="space-y-6">
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                <h3 class="text-lg leading-6 font-semibold text-ink mb-4">
                     Check-in-Aufsteller
                 </h3>
-                <p class="text-sm text-gray-600 mb-6">
+                <p class="text-sm text-ink-secondary mb-6">
                     Für Studios ohne Scanner-Hardware: Ein ausgedruckter QR-Code am Tresen, den Mitglieder
                     mit dem eigenen Smartphone scannen. Ein Code genügt für Check-in und Check-out – die
                     App erkennt selbst, welche Aktion ansteht.
                 </p>
 
                 <!-- Was dieses Verfahren nicht leisten kann -->
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div class="bg-warning-subtle border border-warning-line rounded-lg p-4 mb-6">
                     <div class="flex items-start">
-                        <AlertTriangle class="w-5 h-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                        <AlertTriangle class="w-5 h-5 text-warning mt-0.5 mr-2 flex-shrink-0" />
                         <div>
-                            <p class="text-sm font-medium text-amber-800">
+                            <p class="text-sm font-medium text-warning-strong">
                                 Kein Nachweis der Anwesenheit
                             </p>
-                            <p class="text-sm text-amber-700 mt-1">
+                            <p class="text-sm text-warning mt-1">
                                 Ein gedruckter Code lässt sich abfotografieren. Wer das Foto besitzt, kann sich
                                 auch von zuhause einchecken. Der Aufsteller eignet sich daher zur
                                 Anwesenheits&shy;erfassung, nicht als Zutrittskontrolle.
@@ -36,17 +36,17 @@
                                 id="checkin_station_enabled"
                                 v-model="form.checkin_station_enabled"
                                 type="checkbox"
-                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                class="h-4 w-4 text-brand-ink border-line-strong rounded"
                             />
                         </div>
                         <div class="ml-3">
-                            <label for="checkin_station_enabled" class="text-sm font-medium text-gray-700">
+                            <label for="checkin_station_enabled" class="text-sm font-medium text-ink-secondary">
                                 Check-in per Aufsteller aktivieren
                             </label>
-                            <p class="text-xs text-gray-500 mt-1">
+                            <p class="text-xs text-ink-muted mt-1">
                                 Beim ersten Aktivieren wird automatisch ein Code erzeugt.
                             </p>
-                            <p v-if="willDisable" class="text-xs text-red-600 mt-1">
+                            <p v-if="willDisable" class="text-xs text-danger mt-1">
                                 Beim Speichern wird der Code gelöscht. Bereits gedruckte Aufsteller
                                 funktionieren danach nicht mehr – auch nicht nach erneutem Aktivieren.
                             </p>
@@ -57,7 +57,7 @@
                         <button
                             type="submit"
                             :disabled="isSaving"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
+                            class="bg-brand hover:bg-brand-strong text-white font-medium py-2 px-4 rounded-md disabled:opacity-50"
                         >
                             {{ isSaving ? 'Speichern...' : 'Speichern' }}
                         </button>
@@ -65,11 +65,11 @@
                 </form>
 
                 <!-- Der Link, aus dem der Aufsteller-Code erzeugt wird -->
-                <div v-if="checkinStation.enabled && checkinStation.scan_url" class="mt-8 border-t border-gray-200 pt-6">
-                    <h4 class="text-sm font-medium text-gray-900 mb-1">
+                <div v-if="checkinStation.enabled && checkinStation.scan_url" class="mt-8 border-t border-line pt-6">
+                    <h4 class="text-sm font-medium text-ink mb-1">
                         Link für den Aufsteller
                     </h4>
-                    <p class="text-xs text-gray-500 mb-3">
+                    <p class="text-xs text-ink-muted mb-3">
                         Diesen Link als QR-Code drucken und am Tresen aufstellen. Er enthält den Zugangscode
                         des Studios – bitte nicht öffentlich teilen.
                     </p>
@@ -77,9 +77,10 @@
                     <div class="flex items-center space-x-2">
                         <input
                             :value="checkinStation.scan_url"
+                            aria-label="Check-in-Adresse der Station"
                             type="text"
                             readonly
-                            class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono"
+                            class="field flex-1 p-2 bg-surface-muted font-mono"
                         />
                         <button
                             type="button"
@@ -93,14 +94,14 @@
                             type="button"
                             @click="regenerate"
                             :disabled="isRegenerating"
-                            class="flex items-center whitespace-nowrap text-sm bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors py-2 px-4 rounded-md"
+                            class="flex items-center whitespace-nowrap text-sm bg-danger-solid hover:bg-danger-solid-strong text-white disabled:opacity-50 transition-colors py-2 px-4 rounded-md"
                         >
                             <component :is="RefreshCw" class="w-4 h-4 mr-1" />
                             {{ isRegenerating ? 'Wird erneuert...' : 'Code erneuern' }}
                         </button>
                     </div>
 
-                    <p class="mt-3 text-xs text-gray-500">
+                    <p class="mt-3 text-xs text-ink-muted">
                         Erneuern macht alle bereits gedruckten Aufsteller ungültig – nötig, wenn der Code
                         nach außen gelangt ist.
                     </p>

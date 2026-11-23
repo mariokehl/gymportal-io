@@ -3,19 +3,19 @@
         <!-- Existing Attachments List -->
         <div v-if="props.attachments.length > 0" class="space-y-2">
             <div v-for="attachment in props.attachments" :key="attachment.id"
-                class="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50 group hover:bg-gray-100 transition-colors">
+                class="flex items-center justify-between p-3 border border-line rounded-lg bg-surface-muted group hover:bg-fill transition-colors">
                 <div class="flex items-center min-w-0 flex-1">
-                    <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                        <component :is="FileText" class="w-4 h-4 text-indigo-600" />
+                    <div class="w-8 h-8 bg-brand-soft rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                        <component :is="FileText" class="w-4 h-4 text-brand-ink" />
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="text-sm font-medium text-gray-900 truncate">{{ attachment.file_name }}</p>
-                        <p class="text-xs text-gray-500">{{ attachment.formatted_file_size }}</p>
+                        <p class="text-sm font-medium text-ink truncate">{{ attachment.file_name }}</p>
+                        <p class="text-xs text-ink-muted">{{ attachment.formatted_file_size }}</p>
                     </div>
                 </div>
                 <button @click="deleteAttachment(attachment)"
                     :disabled="deletingId === attachment.id"
-                    class="p-2 text-red-600 hover:text-red-800 transition-colors disabled:opacity-50 flex-shrink-0"
+                    class="p-2 text-danger hover:text-danger-strong transition-colors disabled:opacity-50 flex-shrink-0"
                     title="Anhang löschen">
                     <component :is="deletingId === attachment.id ? Loader2 : Trash2"
                         :class="['w-4 h-4', { 'animate-spin': deletingId === attachment.id }]" />
@@ -33,20 +33,20 @@
                 :class="[
                     'border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer',
                     isDragging
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-300 hover:border-indigo-400'
+                        ? 'border-brand bg-brand-subtle'
+                        : 'border-line-strong hover:border-brand'
                 ]">
                 <div v-if="isUploading" class="flex flex-col items-center">
-                    <component :is="Loader2" class="w-8 h-8 text-indigo-500 animate-spin" />
-                    <p class="mt-2 text-sm font-medium text-gray-700">Wird hochgeladen...</p>
+                    <component :is="Loader2" class="w-8 h-8 text-brand-ink animate-spin" />
+                    <p class="mt-2 text-sm font-medium text-ink-secondary">Wird hochgeladen...</p>
                 </div>
                 <div v-else>
-                    <component :is="Upload" class="mx-auto w-8 h-8 text-gray-400" />
+                    <component :is="Upload" class="mx-auto w-8 h-8 text-ink-muted" />
                     <div class="mt-2">
-                        <p class="text-sm font-medium text-gray-700">
-                            <span class="text-indigo-600">Datei auswählen</span> oder per Drag & Drop
+                        <p class="text-sm font-medium text-ink-secondary">
+                            <span class="text-brand-ink">Datei auswählen</span> oder per Drag & Drop
                         </p>
-                        <p class="mt-1 text-xs text-gray-500">
+                        <p class="mt-1 text-xs text-ink-muted">
                             Nur PDF-Dateien, max. 10 MB ({{ props.attachments.length }}/{{ maxAttachments }} Anhänge)
                         </p>
                     </div>
@@ -62,9 +62,9 @@
         </div>
 
         <!-- Max attachments reached info -->
-        <div v-else class="flex items-center justify-center p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <component :is="Paperclip" class="w-4 h-4 text-gray-400 mr-2" />
-            <p class="text-sm text-gray-500">Maximale Anzahl an Anhängen erreicht ({{ maxAttachments }}/{{ maxAttachments }})</p>
+        <div v-else class="flex items-center justify-center p-4 border border-line rounded-lg bg-surface-muted">
+            <component :is="Paperclip" class="w-4 h-4 text-ink-muted mr-2" />
+            <p class="text-sm text-ink-muted">Maximale Anzahl an Anhängen erreicht ({{ maxAttachments }}/{{ maxAttachments }})</p>
         </div>
     </div>
 </template>

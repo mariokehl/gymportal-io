@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\UpdateAppearanceRequest;
 use App\Models\Gym;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ class ProfileController extends Controller
                 'last_name' => $user->last_name,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'theme_preference' => $user->theme_preference->value,
             ],
         ]);
     }
@@ -58,6 +60,18 @@ class ProfileController extends Controller
         ]);
 
         return back()->with('success', 'Passwort erfolgreich geändert.');
+    }
+
+    /**
+     * Update how the backend looks for this user (light, dark or system).
+     */
+    public function updateAppearance(UpdateAppearanceRequest $request)
+    {
+        $request->user()->update([
+            'theme_preference' => $request->validated('theme_preference'),
+        ]);
+
+        return back()->with('success', 'Darstellung gespeichert.');
     }
 
     /**
@@ -127,7 +141,7 @@ class ProfileController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Account deletion failed: ' . $e->getMessage(), [
+            Log::error('Account deletion failed: '.$e->getMessage(), [
                 'user_id' => $user->id,
                 'exception' => $e->getTraceAsString(),
             ]);

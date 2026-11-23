@@ -3,15 +3,15 @@
   <div class="flex flex-col gap-3.5">
     <!-- Section heading (on the gray canvas) with change count on the right -->
     <div class="flex items-center justify-between gap-3">
-      <h2 class="text-[19px] font-bold text-gray-900">Verlauf</h2>
+      <h2 class="text-lg font-semibold text-ink">Verlauf</h2>
       <div class="flex items-center gap-3">
-        <span v-if="member.status_history" class="text-[13px] text-gray-500">
+        <span v-if="member.status_history" class="text-compact text-ink-muted">
           {{ member.status_history.length }} {{ member.status_history.length === 1 ? 'Änderung' : 'Änderungen' }}
         </span>
         <button
           v-if="member.status_history && member.status_history.length > 5"
           @click="showAllHistory = !showAllHistory"
-          class="text-[13px] font-medium text-indigo-600 hover:text-indigo-800"
+          class="text-compact font-medium text-brand-ink hover:text-brand-ink-strong"
         >
           {{ showAllHistory ? 'Weniger anzeigen' : 'Alle anzeigen' }}
         </button>
@@ -21,7 +21,7 @@
     <!-- Timeline card -->
     <div
       v-if="member.status_history && member.status_history.length > 0"
-      class="rounded-lg bg-white shadow-sm p-[18px]"
+      class="rounded-lg bg-surface shadow-sm p-[18px]"
     >
       <div class="flex flex-col gap-[18px]">
         <div
@@ -39,7 +39,7 @@
             </span>
             <span
               v-if="index < displayedHistory.length - 1"
-              class="w-0.5 flex-1 bg-gray-100 mt-1"
+              class="w-0.5 flex-1 bg-fill mt-1"
             ></span>
           </div>
 
@@ -48,11 +48,11 @@
             :class="index < displayedHistory.length - 1 ? 'pb-1.5' : ''"
           >
             <!-- Hauptänderungstext -->
-            <div class="text-sm text-gray-700 leading-normal">
-              <span class="font-semibold text-gray-900">
+            <div class="text-sm text-ink-secondary leading-normal">
+              <span class="font-semibold text-ink">
                 {{ history.changed_by_name }}
               </span>
-              <span v-if="history.changed_by_details?.role" class="text-gray-500">
+              <span v-if="history.changed_by_details?.role" class="text-ink-muted">
                 ({{ history.changed_by_details.role }})
               </span>
               hat den Status von
@@ -67,8 +67,8 @@
             </div>
 
             <!-- Grund -->
-            <div v-if="history.reason" class="mt-1.5 text-sm text-gray-700 leading-normal">
-              <span class="font-semibold text-gray-900">Grund:</span> {{ history.reason }}
+            <div v-if="history.reason" class="mt-1.5 text-sm text-ink-secondary leading-normal">
+              <span class="font-semibold text-ink">Grund:</span> {{ history.reason }}
             </div>
 
             <!-- Betroffene Mitgliedschaften -->
@@ -76,22 +76,22 @@
               v-if="history.metadata && (history.metadata.activated_memberships || history.metadata.paused_memberships || history.metadata.reactivated_memberships)"
               class="mt-1.5 flex flex-col gap-1"
             >
-              <div v-if="history.metadata.activated_memberships" class="text-xs text-green-600 flex items-center gap-1">
+              <div v-if="history.metadata.activated_memberships" class="text-xs text-success flex items-center gap-1">
                 <CheckCircle class="w-3 h-3 flex-none" />
                 {{ history.metadata.activated_memberships }} Mitgliedschaft(en) aktiviert
               </div>
-              <div v-if="history.metadata.paused_memberships" class="text-xs text-yellow-600 flex items-center gap-1">
+              <div v-if="history.metadata.paused_memberships" class="text-xs text-warning flex items-center gap-1">
                 <Pause class="w-3 h-3 flex-none" />
                 {{ history.metadata.paused_memberships }} Mitgliedschaft(en) pausiert
               </div>
-              <div v-if="history.metadata.reactivated_memberships" class="text-xs text-blue-600 flex items-center gap-1">
+              <div v-if="history.metadata.reactivated_memberships" class="text-xs text-info flex items-center gap-1">
                 <PlayCircle class="w-3 h-3 flex-none" />
                 {{ history.metadata.reactivated_memberships }} Mitgliedschaft(en) reaktiviert
               </div>
             </div>
 
             <!-- Zeitstempel und technische Details -->
-            <div class="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-gray-500">
+            <div class="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-compact text-ink-muted">
               <span v-if="history.metadata?.triggered_by" class="inline-flex items-center gap-1.5">
                 <Info class="w-3.5 h-3.5" />
                 {{ getTriggeredByText(history.metadata.triggered_by) }}
@@ -118,30 +118,30 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else class="rounded-lg bg-white shadow-sm text-center py-12">
-      <History class="w-12 h-12 text-gray-400 mx-auto mb-3" />
-      <p class="text-gray-500">Keine Status-Änderungen vorhanden</p>
-      <p class="text-xs text-gray-400 mt-1">Änderungen werden hier automatisch protokolliert</p>
+    <div v-else class="rounded-lg bg-surface shadow-sm text-center py-12">
+      <History class="w-12 h-12 text-ink-muted mx-auto mb-3" />
+      <p class="text-ink-muted">Keine Status-Änderungen vorhanden</p>
+      <p class="text-xs text-ink-muted mt-1">Änderungen werden hier automatisch protokolliert</p>
     </div>
 
     <!-- Statistiken -->
     <div v-if="statusInfo || statusStats" class="mt-2 space-y-3.5">
       <!-- Basis-Statistiken -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div class="bg-white rounded-lg shadow-sm p-4">
-          <div class="text-sm text-gray-500">Gesamte Änderungen</div>
-          <div class="mt-1 text-2xl font-bold text-gray-900">
+        <div class="bg-surface rounded-lg shadow-sm p-4">
+          <div class="text-sm text-ink-muted">Gesamte Änderungen</div>
+          <div class="mt-1 text-2xl font-bold text-ink tabular-nums">
             {{ statusStats?.total_changes || member.status_history?.length || 0 }}
           </div>
-          <div class="mt-1 text-xs text-gray-500">
+          <div class="mt-1 text-xs text-ink-muted">
             {{ statusStats?.manual_changes || 0 }} manuell /
             {{ statusStats?.automatic_changes || 0 }} automatisch
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm p-4">
-          <div class="text-sm text-gray-500">Aktueller Status seit</div>
-          <div class="mt-1 text-sm font-medium text-gray-900">
+        <div class="bg-surface rounded-lg shadow-sm p-4">
+          <div class="text-sm text-ink-muted">Aktueller Status seit</div>
+          <div class="mt-1 text-sm font-medium text-ink">
             {{ statusInfo?.days_since_last_change !== null
               ? `vor ${statusInfo.days_since_last_change} Tagen`
               : member.status_history?.[0]
@@ -149,14 +149,14 @@
                 : '-'
             }}
           </div>
-          <div v-if="statusInfo?.current_status_reason" class="mt-1 text-xs text-gray-500">
+          <div v-if="statusInfo?.current_status_reason" class="mt-1 text-xs text-ink-muted">
             {{ statusInfo.current_status_reason }}
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm p-4">
-          <div class="text-sm text-gray-500">Aktivierungen</div>
-          <div class="mt-1 text-sm font-medium text-gray-900">
+        <div class="bg-surface rounded-lg shadow-sm p-4">
+          <div class="text-sm text-ink-muted">Aktivierungen</div>
+          <div class="mt-1 text-sm font-medium text-ink">
             <div v-if="statusInfo?.first_activation_date">
               Erstmals: {{ statusInfo.first_activation_date }}
             </div>
@@ -171,19 +171,19 @@
       </div>
 
       <!-- Änderungen nach Benutzer (wenn vorhanden) -->
-      <div v-if="statusStats?.changes_by_user && statusStats.changes_by_user.length > 0" class="bg-white rounded-lg shadow-sm p-4">
-        <div class="text-sm font-medium text-gray-700 mb-3">Änderungen nach Benutzer</div>
+      <div v-if="statusStats?.changes_by_user && statusStats.changes_by_user.length > 0" class="bg-surface rounded-lg shadow-sm p-4">
+        <div class="text-sm font-medium text-ink-secondary mb-3">Änderungen nach Benutzer</div>
         <div class="space-y-2">
           <div
             v-for="userStat in statusStats.changes_by_user"
             :key="userStat.user_id"
             class="flex items-center justify-between text-sm"
           >
-            <span class="text-gray-600">
+            <span class="text-ink-secondary">
               {{ userStat.user_name }}
-              <span v-if="userStat.user_role" class="text-xs text-gray-500">({{ userStat.user_role }})</span>
+              <span v-if="userStat.user_role" class="text-xs text-ink-muted">({{ userStat.user_role }})</span>
             </span>
-            <span class="font-medium text-gray-900">{{ userStat.count }} Änderungen</span>
+            <span class="font-medium text-ink">{{ userStat.count }} Änderungen</span>
           </div>
         </div>
       </div>
@@ -225,12 +225,12 @@ const displayedHistory = computed(() => {
 // Spezifische Funktionen für diese Komponente
 const getHistoryIconColor = (status) => {
   const colors = {
-    'active': 'bg-green-500',
+    'active': 'bg-success-solid',
     'inactive': 'bg-gray-400',
-    'paused': 'bg-yellow-500',
+    'paused': 'bg-warning-solid',
     'pending': 'bg-orange-500',
-    'overdue': 'bg-red-500',
-    'blocked': 'bg-gray-900'
+    'overdue': 'bg-danger-solid',
+    'blocked': 'bg-inverse'
   }
   return colors[status] || 'bg-gray-400'
 }

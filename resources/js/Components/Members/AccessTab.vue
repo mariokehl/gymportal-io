@@ -2,33 +2,35 @@
   <div class="space-y-6">
     <!-- Primary Access Methods -->
     <div class="flex flex-col gap-3">
-      <h3 class="text-lg font-bold text-gray-900">Primäre Zugangsmethoden</h3>
+      <h3 class="text-lg font-semibold text-ink">Primäre Zugangsmethoden</h3>
 
       <!-- QR Code Section -->
-      <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden">
         <div class="flex items-center gap-3 p-4">
-          <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-none">
+          <div class="w-11 h-11 rounded-xl bg-brand-subtle text-brand-ink flex items-center justify-center flex-none">
             <QrCode class="w-[22px] h-[22px]" />
           </div>
           <div class="flex-1 min-w-0">
-            <h4 class="font-semibold text-gray-900">QR-Code Zugang</h4>
-            <p class="text-sm text-gray-500 mt-0.5">Digitaler Zugang über Mitglieder-App</p>
+            <h4 class="font-semibold text-ink">QR-Code Zugang</h4>
+            <p class="text-sm text-ink-muted mt-0.5">Digitaler Zugang über Mitglieder-App</p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer flex-none">
             <input
               v-model="accessForm.qr_code_enabled"
               type="checkbox"
+              role="switch"
+              aria-label="QR-Code Zugang"
               class="sr-only peer"
               @change="updateAccessSettings"
             >
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-line rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
           </label>
         </div>
 
         <!-- Status footer strip -->
         <div
           class="px-4 py-2.5 border-t text-sm flex items-center gap-2"
-          :class="accessForm.qr_code_enabled ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-500'"
+          :class="accessForm.qr_code_enabled ? 'bg-success-subtle border-success-line text-success' : 'bg-surface-muted border-line-subtle text-ink-muted'"
         >
           <CheckCircle v-if="accessForm.qr_code_enabled" class="w-4 h-4 flex-none" />
           <XCircle v-else class="w-4 h-4 flex-none" />
@@ -37,11 +39,11 @@
         </div>
 
         <!-- QR actions -->
-        <div v-if="accessForm.qr_code_enabled" class="flex flex-wrap gap-x-4 gap-y-2 px-4 py-3 border-t border-gray-100">
+        <div v-if="accessForm.qr_code_enabled" class="flex flex-wrap gap-x-4 gap-y-2 px-4 py-3 border-t border-line-subtle">
           <button
             @click="invalidateQrCode"
             type="button"
-            class="text-sm font-semibold text-red-600 hover:text-red-800 flex items-center gap-1.5"
+            class="text-sm font-semibold text-danger hover:text-danger-strong flex items-center gap-1.5"
           >
             <XCircle class="w-4 h-4" />
             QR-Code invalidieren
@@ -49,7 +51,7 @@
           <button
             @click="sendQrCodeToMember"
             type="button"
-            class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
+            class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong flex items-center gap-1.5"
           >
             <Mail class="w-4 h-4" />
             App-Link per E-Mail senden
@@ -58,30 +60,32 @@
       </div>
 
       <!-- NFC Tag Section -->
-      <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden">
         <div class="flex items-center gap-3 p-4">
           <div class="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center flex-none">
             <Nfc class="w-[22px] h-[22px]" />
           </div>
           <div class="flex-1 min-w-0">
-            <h4 class="font-semibold text-gray-900">NFC-Tag Zugang</h4>
-            <p class="text-sm text-gray-500 mt-0.5">Kontaktloser Zugang via NFC-Chip oder Karte</p>
+            <h4 class="font-semibold text-ink">NFC-Tag Zugang</h4>
+            <p class="text-sm text-ink-muted mt-0.5">Kontaktloser Zugang via NFC-Chip oder Karte</p>
           </div>
           <label class="relative inline-flex items-center cursor-pointer flex-none">
             <input
               v-model="accessForm.nfc_enabled"
               type="checkbox"
+              role="switch"
+              aria-label="NFC-Tag Zugang"
               class="sr-only peer"
               @change="updateAccessSettings"
             >
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+            <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
           </label>
         </div>
 
         <!-- Status footer strip (shown only when NFC is off; when on the editor takes over) -->
         <div
           v-if="!accessForm.nfc_enabled"
-          class="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-sm text-gray-500 flex items-center gap-2"
+          class="px-4 py-2.5 border-t border-line-subtle bg-surface-muted text-sm text-ink-muted flex items-center gap-2"
         >
           <XCircle class="w-4 h-4 flex-none" />
           NFC-Zugang ist deaktiviert
@@ -90,7 +94,7 @@
         <!-- Registered tag summary (full-width status strip, analogous to the QR strip) -->
         <div
           v-else-if="accessForm.nfc_uid && !editingNfc && !isNfcScanning"
-          class="px-4 py-2.5 border-t border-gray-100 bg-purple-50 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+          class="px-4 py-2.5 border-t border-line-subtle bg-purple-50 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
         >
           <div class="flex items-center gap-2 min-w-0">
             <CheckCircle class="w-4 h-4 text-purple-600 flex-none" />
@@ -103,7 +107,7 @@
             <button
               @click="startNfcEdit"
               type="button"
-              class="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+              class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
             >
               Bearbeiten
             </button>
@@ -118,7 +122,7 @@
             <button
               @click="removeNfcTag"
               type="button"
-              class="text-sm font-semibold text-red-600 hover:text-red-800"
+              class="text-sm font-semibold text-danger hover:text-danger-strong"
             >
               Entfernen
             </button>
@@ -126,14 +130,14 @@
         </div>
 
         <!-- NFC editor (no tag yet, or actively editing/scanning) -->
-        <div v-else class="px-4 py-4 border-t border-gray-100 space-y-3">
+        <div v-else class="px-4 py-4 border-t border-line-subtle space-y-3">
           <!-- Input + actions (stacks on mobile, inline on larger screens) -->
           <div class="flex flex-col sm:flex-row sm:items-center gap-2">
             <input
               v-model="nfcInputValue"
               type="text"
               placeholder="NFC ID eingeben..."
-              class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
+              class="field flex-1 min-w-0 px-3 py-2 disabled:bg-surface-muted"
               :disabled="!editingNfc"
               @input="validateNfcInput"
             />
@@ -142,7 +146,7 @@
                 <button
                   @click="startNfcEdit"
                   type="button"
-                  class="flex-1 sm:flex-none px-4 py-2 text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 text-brand-ink border border-brand rounded-md hover:bg-brand-subtle text-sm font-medium"
                 >
                   Bearbeiten
                 </button>
@@ -159,7 +163,7 @@
                 <button
                   @click="stopNfcScanning"
                   type="button"
-                  class="flex-1 sm:flex-none px-4 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50 flex items-center justify-center gap-2 text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 text-danger border border-danger rounded-md hover:bg-danger-subtle flex items-center justify-center gap-2 text-sm font-medium"
                 >
                   <Loader2 class="w-4 h-4 animate-spin" />
                   Abbrechen
@@ -170,14 +174,14 @@
                   @click="saveNfcUid"
                   type="button"
                   :disabled="!isNfcValid"
-                  class="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 bg-brand text-white rounded-md hover:bg-brand-strong disabled:bg-line-strong disabled:cursor-not-allowed text-sm font-medium"
                 >
                   Speichern
                 </button>
                 <button
                   @click="cancelNfcEdit"
                   type="button"
-                  class="flex-1 sm:flex-none px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 text-ink-secondary border border-line-strong rounded-md hover:bg-surface-muted text-sm font-medium"
                 >
                   Abbrechen
                 </button>
@@ -186,22 +190,22 @@
           </div>
 
           <!-- Format hints -->
-          <div v-if="editingNfc" class="text-xs text-gray-500 space-y-1">
+          <div v-if="editingNfc" class="text-xs text-ink-muted space-y-1">
             <p>Akzeptierte Formate:</p>
             <ul class="ml-4 space-y-0.5">
-              <li>• Hex mit Trennzeichen: <code class="bg-gray-100 px-1 rounded">04:A1:B2:C3</code> oder <code class="bg-gray-100 px-1 rounded">04-A1-B2-C3</code></li>
-              <li>• Hex mit Prefix: <code class="bg-gray-100 px-1 rounded">0x04A1B2C3</code></li>
-              <li>• Reines Hex: <code class="bg-gray-100 px-1 rounded">04A1B2C3</code></li>
-              <li>• Dezimal: <code class="bg-gray-100 px-1 rounded">77856451</code></li>
+              <li>• Hex mit Trennzeichen: <code class="bg-fill px-1 rounded">04:A1:B2:C3</code> oder <code class="bg-fill px-1 rounded">04-A1-B2-C3</code></li>
+              <li>• Hex mit Prefix: <code class="bg-fill px-1 rounded">0x04A1B2C3</code></li>
+              <li>• Reines Hex: <code class="bg-fill px-1 rounded">04A1B2C3</code></li>
+              <li>• Dezimal: <code class="bg-fill px-1 rounded">77856451</code></li>
             </ul>
           </div>
 
           <!-- Validation feedback -->
-          <div v-if="editingNfc && nfcInputValue && !isNfcValid" class="flex items-center gap-2 text-sm text-red-600">
+          <div v-if="editingNfc && nfcInputValue && !isNfcValid" class="flex items-center gap-2 text-sm text-danger">
             <XCircle class="w-4 h-4" />
             Ungültiges Format
           </div>
-          <div v-if="editingNfc && normalizedNfcId && isNfcValid" class="flex items-center gap-2 text-sm text-green-600">
+          <div v-if="editingNfc && normalizedNfcId && isNfcValid" class="flex items-center gap-2 text-sm text-success">
             <CheckCircle class="w-4 h-4" />
             Normalisiert: {{ formatNfcIdForDisplay(normalizedNfcId) }}
           </div>
@@ -210,15 +214,15 @@
         <!-- Additional tags (only next to a registered primary tag) -->
         <div
           v-if="accessForm.nfc_enabled && accessForm.nfc_uid && !editingNfc && !isNfcScanning"
-          class="px-4 py-3 border-t border-gray-100 space-y-3"
+          class="px-4 py-3 border-t border-line-subtle space-y-3"
         >
           <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <span class="text-sm font-medium text-gray-700">Weitere NFC-Tags</span>
+            <span class="text-sm font-medium text-ink-secondary">Weitere NFC-Tags</span>
             <button
               v-if="!addingNfcTag"
               @click="startNfcTagAdd"
               type="button"
-              class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
+              class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong flex items-center gap-1.5"
             >
               <Plus class="w-4 h-4" />
               Hinzufügen
@@ -245,7 +249,7 @@
               </button>
             </span>
           </div>
-          <p v-else-if="!addingNfcTag" class="text-xs text-gray-500">Keine weiteren NFC-Tags hinterlegt.</p>
+          <p v-else-if="!addingNfcTag" class="text-xs text-ink-muted">Keine weiteren NFC-Tags hinterlegt.</p>
 
           <div v-if="addingNfcTag" class="space-y-2">
             <div class="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -254,7 +258,7 @@
                 v-model="nfcTagInputValue"
                 type="text"
                 placeholder="Weitere NFC ID eingeben..."
-                class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                class="field flex-1 min-w-0 px-3 py-2"
                 @keyup.enter="saveAdditionalNfcTag"
               />
               <div class="flex gap-2">
@@ -262,29 +266,29 @@
                   @click="saveAdditionalNfcTag"
                   type="button"
                   :disabled="!normalizedNfcTagId || nfcTagForm.processing"
-                  class="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 bg-brand text-white rounded-md hover:bg-brand-strong disabled:bg-line-strong disabled:cursor-not-allowed text-sm font-medium"
                 >
                   Speichern
                 </button>
                 <button
                   @click="cancelNfcTagAdd"
                   type="button"
-                  class="flex-1 sm:flex-none px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 text-ink-secondary border border-line-strong rounded-md hover:bg-surface-muted text-sm font-medium"
                 >
                   Abbrechen
                 </button>
               </div>
             </div>
-            <div v-if="nfcTagInputValue && !normalizedNfcTagId" class="flex items-center gap-2 text-sm text-red-600">
+            <div v-if="nfcTagInputValue && !normalizedNfcTagId" class="flex items-center gap-2 text-sm text-danger">
               <XCircle class="w-4 h-4" />
               Ungültiges Format
             </div>
-            <div v-else-if="normalizedNfcTagId && !nfcTagForm.errors.uid" class="flex items-center gap-2 text-sm text-green-600">
+            <div v-else-if="normalizedNfcTagId && !nfcTagForm.errors.uid" class="flex items-center gap-2 text-sm text-success">
               <CheckCircle class="w-4 h-4" />
               Normalisiert: {{ formatNfcIdForDisplay(normalizedNfcTagId) }}
             </div>
           </div>
-          <p v-if="nfcTagForm.errors.uid" class="text-sm text-red-600">{{ nfcTagForm.errors.uid }}</p>
+          <p v-if="nfcTagForm.errors.uid" class="text-sm text-danger">{{ nfcTagForm.errors.uid }}</p>
         </div>
       </div>
     </div>
@@ -294,19 +298,19 @@
 
     <!-- Additional Services -->
     <div class="flex flex-col gap-3">
-      <h3 class="text-lg font-bold text-gray-900">Zusätzliche Services</h3>
+      <h3 class="text-lg font-semibold text-ink">Zusätzliche Services</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <!-- Solarium -->
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-[10px] bg-yellow-100 text-yellow-600 flex items-center justify-center flex-none">
+            <div class="w-10 h-10 rounded-[10px] bg-warning-soft text-warning flex items-center justify-center flex-none">
               <Sun class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Solarium</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Zugang zur Sonnenbank</p>
-              <p v-if="accessForm.solarium_enabled" class="text-xs text-gray-400 mt-1">
+              <h5 class="font-semibold text-ink">Solarium</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Zugang zur Sonnenbank</p>
+              <p v-if="accessForm.solarium_enabled" class="text-xs text-ink-muted mt-1">
                 {{ accessForm.solarium_minutes || 0 }} Minuten verfügbar
               </p>
             </div>
@@ -314,24 +318,26 @@
               <input
                 v-model="accessForm.solarium_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Solarium"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+              <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-warning rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-warning-solid"></div>
             </label>
           </div>
         </div>
 
         <!-- Vending Machine -->
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-[10px] bg-green-100 text-green-600 flex items-center justify-center flex-none">
+            <div class="w-10 h-10 rounded-[10px] bg-success-soft text-success flex items-center justify-center flex-none">
               <Package class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Vending Machine</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Proteinriegel & Snacks</p>
-              <p v-if="accessForm.vending_enabled" class="text-xs text-gray-400 mt-1">
+              <h5 class="font-semibold text-ink">Vending Machine</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Proteinriegel & Snacks</p>
+              <p v-if="accessForm.vending_enabled" class="text-xs text-ink-muted mt-1">
                 Guthaben: {{ formatCurrency(accessForm.vending_credit || 0) }}
               </p>
             </div>
@@ -339,24 +345,26 @@
               <input
                 v-model="accessForm.vending_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Vending Machine"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-success rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-success-solid"></div>
             </label>
           </div>
         </div>
 
         <!-- Massage Chair -->
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-[10px] bg-blue-100 text-blue-600 flex items-center justify-center flex-none">
+            <div class="w-10 h-10 rounded-[10px] bg-info-soft text-info flex items-center justify-center flex-none">
               <Armchair class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Massagestuhl</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Wellness & Entspannung</p>
-              <p v-if="accessForm.massage_enabled" class="text-xs text-gray-400 mt-1">
+              <h5 class="font-semibold text-ink">Massagestuhl</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Wellness & Entspannung</p>
+              <p v-if="accessForm.massage_enabled" class="text-xs text-ink-muted mt-1">
                 {{ accessForm.massage_sessions || 0 }} Sitzungen verfügbar
               </p>
             </div>
@@ -364,24 +372,26 @@
               <input
                 v-model="accessForm.massage_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Massagestuhl"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-info rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-info-solid"></div>
             </label>
           </div>
         </div>
 
         <!-- Coffee Flat -->
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-[10px] bg-orange-100 text-orange-600 flex items-center justify-center flex-none">
               <Coffee class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Kaffee-Flatrate</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Unbegrenzt Kaffee</p>
-              <p v-if="accessForm.coffee_flat_enabled" class="text-xs text-gray-400 mt-1">
+              <h5 class="font-semibold text-ink">Kaffee-Flatrate</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Unbegrenzt Kaffee</p>
+              <p v-if="accessForm.coffee_flat_enabled" class="text-xs text-ink-muted mt-1">
                 Gültig bis: {{ accessForm.coffee_flat_expiry ? formatDate(accessForm.coffee_flat_expiry) : 'Unbegrenzt' }}
               </p>
             </div>
@@ -389,24 +399,26 @@
               <input
                 v-model="accessForm.coffee_flat_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Kaffee-Flatrate"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+              <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
             </label>
           </div>
         </div>
 
         <!-- Tageskarte -->
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-[10px] bg-rose-100 text-rose-600 flex items-center justify-center flex-none">
               <Ticket class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Tageskarte</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Eintritt für einen Tag</p>
-              <div v-if="accessForm.day_pass_enabled" class="text-xs text-gray-400 mt-1">
+              <h5 class="font-semibold text-ink">Tageskarte</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Eintritt für einen Tag</p>
+              <div v-if="accessForm.day_pass_enabled" class="text-xs text-ink-muted mt-1">
                 <div v-if="editingDayPassDate" class="flex items-center gap-1.5">
                   <span>Gültig am</span>
                   <input
@@ -414,13 +426,13 @@
                     v-model="dayPassDateValue"
                     type="date"
                     :min="todayIso"
-                    class="px-1.5 py-0.5 text-xs text-gray-700 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    class="field px-1.5 py-0.5"
                     @keydown.enter.prevent="saveDayPassDate"
                     @keydown.esc.prevent="cancelDayPassDateEdit"
                   >
                   <button
                     type="button"
-                    class="p-0.5 text-gray-400 hover:text-green-600 disabled:opacity-50"
+                    class="p-0.5 text-ink-muted hover:text-success-strong disabled:opacity-50"
                     title="Datum speichern"
                     :disabled="!dayPassDateValue || accessForm.processing"
                     @click="saveDayPassDate"
@@ -429,7 +441,7 @@
                   </button>
                   <button
                     type="button"
-                    class="p-0.5 text-gray-400 hover:text-gray-600"
+                    class="p-0.5 text-ink-muted hover:text-ink"
                     title="Abbrechen"
                     @click="cancelDayPassDateEdit"
                   >
@@ -439,7 +451,7 @@
                 <div v-else-if="accessForm.day_pass_valid_until" class="flex items-center gap-1">
                   <button
                     type="button"
-                    class="hover:text-gray-600 hover:underline"
+                    class="hover:text-ink hover:underline"
                     title="Datum ändern"
                     @click="startDayPassDateEdit"
                   >
@@ -447,7 +459,7 @@
                   </button>
                   <button
                     type="button"
-                    class="p-0.5 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                    class="p-0.5 text-ink-muted hover:text-danger-strong disabled:opacity-50"
                     title="Datum entfernen"
                     :disabled="accessForm.processing"
                     @click="removeDayPassDate"
@@ -465,7 +477,7 @@
                     Datum festlegen
                   </button>
                 </div>
-                <p v-if="accessForm.errors.day_pass_valid_until" class="text-red-600 mt-1">
+                <p v-if="accessForm.errors.day_pass_valid_until" class="text-danger mt-1">
                   {{ accessForm.errors.day_pass_valid_until }}
                 </p>
               </div>
@@ -474,24 +486,26 @@
               <input
                 v-model="accessForm.day_pass_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Tageskarte"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+              <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
             </label>
           </div>
         </div>
 
         <!-- Visit card -->
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-[10px] bg-teal-100 text-teal-600 flex items-center justify-center flex-none">
               <Hash class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Mehrfachkarte</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Mehrere Eintritte</p>
-              <p v-if="accessForm.visit_card_enabled" class="text-xs text-gray-400 mt-1">
+              <h5 class="font-semibold text-ink">Mehrfachkarte</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Mehrere Eintritte</p>
+              <p v-if="accessForm.visit_card_enabled" class="text-xs text-ink-muted mt-1">
                 {{ accessForm.visit_card_entries || 0 }} Eintritte übrig
               </p>
             </div>
@@ -499,27 +513,29 @@
               <input
                 v-model="accessForm.visit_card_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Mehrfachkarte"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+              <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
             </label>
           </div>
         </div>
 
         <!-- Guest wallet pass -->
-        <div v-if="member.access_config?.has_guest_pass" class="rounded-lg border border-gray-200 bg-white shadow-sm p-3.5">
+        <div v-if="member.access_config?.has_guest_pass" class="rounded-lg border border-line bg-surface shadow-sm p-3.5">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-[10px] bg-gray-100 text-gray-700 flex items-center justify-center flex-none">
+            <div class="w-10 h-10 rounded-[10px] bg-fill text-ink-secondary flex items-center justify-center flex-none">
               <WalletCards class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0">
-              <h5 class="font-semibold text-gray-900">Wallet-Pass</h5>
-              <p class="text-sm text-gray-500 mt-0.5">Gast-QR-Code im Apple oder Google Wallet</p>
+              <h5 class="font-semibold text-ink">Wallet-Pass</h5>
+              <p class="text-sm text-ink-muted mt-0.5">Gast-QR-Code im Apple oder Google Wallet</p>
             </div>
             <button
               type="button"
-              class="flex-none px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+              class="flex-none px-3 py-1.5 text-sm font-medium text-danger bg-danger-subtle border border-danger-line rounded-lg hover:bg-danger-soft"
               @click="revokeGuestPass"
             >
               Sperren
@@ -533,10 +549,10 @@
     <div v-if="!isExternMember || hasStaticLoginCode" class="flex flex-col gap-3">
       <div class="flex justify-between items-center gap-2.5">
         <div class="flex items-center gap-2 min-w-0">
-          <h3 class="text-lg font-bold text-gray-900">Erweiterte Optionen</h3>
+          <h3 class="text-lg font-semibold text-ink">Erweiterte Optionen</h3>
           <span
             v-if="hasStaticLoginCode"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning-soft text-warning-strong text-xs font-semibold"
           >
             <ShieldAlert class="w-3.5 h-3.5 flex-none" />
             Abweichende Konfiguration
@@ -545,7 +561,7 @@
         <button
           @click="advancedOpen = !advancedOpen"
           type="button"
-          class="flex-none text-gray-500 hover:text-gray-700 flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+          class="flex-none text-ink-muted hover:text-ink flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
         >
           <span>{{ advancedOpen ? 'Ausblenden' : 'Einblenden' }}</span>
           <ChevronDown v-if="!advancedOpen" class="w-4 h-4" />
@@ -553,17 +569,17 @@
         </button>
       </div>
 
-      <div v-if="advancedOpen" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div v-if="advancedOpen" class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden">
         <div class="flex items-center gap-3 p-4">
           <div
             class="w-11 h-11 rounded-xl flex items-center justify-center flex-none"
-            :class="hasStaticLoginCode ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'"
+            :class="hasStaticLoginCode ? 'bg-warning-subtle text-warning' : 'bg-fill text-ink-muted'"
           >
             <KeyRound class="w-[22px] h-[22px]" />
           </div>
           <div class="flex-1 min-w-0">
-            <h4 class="font-semibold text-gray-900">Statischer Login-Code</h4>
-            <p class="text-sm text-gray-500 mt-0.5">
+            <h4 class="font-semibold text-ink">Statischer Login-Code</h4>
+            <p class="text-sm text-ink-muted mt-0.5">
               Ersetzt den per E-Mail versendeten Login-Code der Mitglieder-App
             </p>
           </div>
@@ -572,7 +588,7 @@
         <!-- Status footer strip -->
         <div
           class="px-4 py-2.5 border-t text-sm flex items-start gap-2"
-          :class="hasStaticLoginCode ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-gray-50 border-gray-100 text-gray-500'"
+          :class="hasStaticLoginCode ? 'bg-warning-subtle border-warning-line text-warning-strong' : 'bg-surface-muted border-line-subtle text-ink-muted'"
         >
           <ShieldAlert v-if="hasStaticLoginCode" class="w-4 h-4 flex-none mt-0.5" />
           <CheckCircle v-else class="w-4 h-4 flex-none mt-0.5" />
@@ -583,11 +599,11 @@
           <span v-else>Standardkonfiguration — der Login-Code wird bei jeder Anmeldung per E-Mail versendet.</span>
         </div>
 
-        <div class="p-4 border-t border-gray-100 flex flex-col gap-3">
-          <div v-if="!isExternMember" class="bg-blue-50 p-3 rounded-lg">
+        <div class="p-4 border-t border-line-subtle flex flex-col gap-3">
+          <div v-if="!isExternMember" class="bg-info-subtle p-3 rounded-lg">
             <div class="flex items-start gap-2">
-              <Info class="w-5 h-5 text-blue-600 mt-0.5 flex-none" />
-              <p class="text-sm text-blue-800">
+              <Info class="w-5 h-5 text-info mt-0.5 flex-none" />
+              <p class="text-sm text-info-strong">
                 Nutzen Sie diese Option nur in Einzelfällen — etwa wenn die Login-E-Mails beim Mitglied nicht
                 ankommen oder Sie sich für einen Supportauftrag vorübergehend in die Mitglieder-App einloggen
                 müssen. Der Code gilt unbegrenzt, bis Sie ihn wieder entfernen.
@@ -595,10 +611,10 @@
             </div>
           </div>
 
-          <div v-if="isExternMember" class="bg-amber-50 p-3 rounded-lg">
+          <div v-if="isExternMember" class="bg-warning-subtle p-3 rounded-lg">
             <div class="flex items-start gap-2">
-              <ShieldAlert class="w-5 h-5 text-amber-600 mt-0.5 flex-none" />
-              <p class="text-sm text-amber-800">
+              <ShieldAlert class="w-5 h-5 text-warning mt-0.5 flex-none" />
+              <p class="text-sm text-warning-strong">
                 Für externe Mitglieder wird kein statischer Login-Code berücksichtigt. Sie können den hinterlegten
                 Code nur noch entfernen.
               </p>
@@ -610,7 +626,7 @@
               v-if="!isExternMember"
               @click="startStaticCodeEdit"
               type="button"
-              class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5"
+              class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong flex items-center gap-1.5"
             >
               <KeyRound class="w-4 h-4" />
               {{ hasStaticLoginCode ? 'Code neu setzen' : 'Code festlegen' }}
@@ -619,7 +635,7 @@
               v-if="hasStaticLoginCode"
               @click="removeStaticCode"
               type="button"
-              class="text-sm font-semibold text-red-600 hover:text-red-800 flex items-center gap-1.5"
+              class="text-sm font-semibold text-danger hover:text-danger-strong flex items-center gap-1.5"
             >
               <XCircle class="w-4 h-4" />
               Code entfernen
@@ -640,8 +656,8 @@
                   autocomplete="off"
                   maxlength="6"
                   :aria-label="`Stelle ${index + 1} von 6`"
-                  class="w-11 h-12 text-center text-lg font-mono font-semibold rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  :class="digit ? 'border-indigo-400 text-gray-900' : 'border-gray-300 text-gray-900'"
+                  class="field w-11 h-12 text-center text-lg font-mono font-semibold"
+                  :class="digit ? 'border-brand' : ''"
                   @input="onCodeInput($event, index)"
                   @keydown.backspace="onCodeBackspace($event, index)"
                   @keydown.left.prevent="focusCodeInput(index - 1)"
@@ -655,7 +671,7 @@
                   @click="saveStaticCode"
                   type="button"
                   :disabled="!isStaticCodeValid || staticCodeForm.processing"
-                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                 >
                   <Loader2 v-if="staticCodeForm.processing" class="w-4 h-4 animate-spin" />
                   Speichern
@@ -663,16 +679,16 @@
                 <button
                   @click="cancelStaticCodeEdit"
                   type="button"
-                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50"
+                  class="px-4 py-2 rounded-lg border border-line-strong text-ink-secondary text-sm font-semibold hover:bg-surface-muted"
                 >
                   Abbrechen
                 </button>
               </div>
             </div>
-            <p v-if="staticCodeForm.errors.static_login_code" class="text-sm text-red-600">
+            <p v-if="staticCodeForm.errors.static_login_code" class="text-sm text-danger">
               {{ staticCodeForm.errors.static_login_code }}
             </p>
-            <p v-else class="text-xs text-gray-500">
+            <p v-else class="text-xs text-ink-muted">
               Der Code besteht aus genau 6 Ziffern. Notieren Sie ihn — er lässt sich später nicht mehr auslesen.
             </p>
           </div>
@@ -682,13 +698,13 @@
 
     <!-- Linked Devices (only visible when PWA login is disabled, i.e. branded app only) -->
     <div v-if="member.gym?.pwa_settings?.pwa_login_disabled" class="flex flex-col gap-3">
-      <h3 class="text-lg font-bold text-gray-900">Verknüpfte Geräte</h3>
+      <h3 class="text-lg font-semibold text-ink">Verknüpfte Geräte</h3>
 
       <div v-if="member.devices && member.devices.length > 0" class="flex flex-col gap-3">
-        <div class="bg-amber-50 p-3 rounded-lg">
+        <div class="bg-warning-subtle p-3 rounded-lg">
           <div class="flex items-start gap-2">
-            <Info class="w-5 h-5 text-amber-600 mt-0.5 flex-none" />
-            <div class="text-sm text-amber-800">
+            <Info class="w-5 h-5 text-warning mt-0.5 flex-none" />
+            <div class="text-sm text-warning-strong">
               <p>Maximal {{ maxDevicesPerMember }} {{ maxDevicesPerMember === 1 ? 'Gerät kann' : 'Geräte können' }} mit diesem Mitglied verknüpft sein. Neue Geräte werden beim Login über die Branded App automatisch registriert.</p>
             </div>
           </div>
@@ -697,20 +713,20 @@
         <div
           v-for="device in member.devices"
           :key="device.id"
-          class="flex items-center justify-between gap-3 p-4 rounded-lg border border-gray-200 bg-white shadow-sm"
+          class="flex items-center justify-between gap-3 p-4 rounded-lg border border-line bg-surface shadow-sm"
         >
           <div class="flex items-center gap-3 min-w-0">
-            <div class="p-2 bg-gray-100 rounded-lg flex-none">
-              <Smartphone class="w-5 h-5 text-gray-600" />
+            <div class="p-2 bg-fill rounded-lg flex-none">
+              <Smartphone class="w-5 h-5 text-ink-secondary" />
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-medium text-gray-900 truncate">
+              <p class="text-sm font-medium text-ink truncate">
                 {{ device.device_name || 'Unbekanntes Gerät' }}
               </p>
-              <p class="text-xs text-gray-500 font-mono truncate">
+              <p class="text-xs text-ink-muted font-mono truncate">
                 {{ device.device_token.substring(0, 8) }}...
               </p>
-              <p v-if="device.last_used_at" class="text-xs text-gray-400">
+              <p v-if="device.last_used_at" class="text-xs text-ink-muted">
                 Zuletzt aktiv: {{ formatDateTime(device.last_used_at) }}
               </p>
             </div>
@@ -719,7 +735,7 @@
             @click="removeDevice(device)"
             type="button"
             :disabled="removingDeviceId === device.id"
-            class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-none"
+            class="p-2 text-danger hover:text-danger-strong hover:bg-danger-subtle rounded-lg transition-colors flex-none"
             title="Gerät entfernen"
           >
             <Loader2 v-if="removingDeviceId === device.id" class="w-5 h-5 animate-spin" />
@@ -728,73 +744,73 @@
         </div>
       </div>
 
-      <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-        <Smartphone class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p class="text-gray-500">Keine Geräte verknüpft</p>
-        <p class="text-xs text-gray-400 mt-1">Geräte werden beim Login über die Branded App automatisch registriert</p>
+      <div v-else class="text-center py-8 bg-surface-muted rounded-lg">
+        <Smartphone class="w-12 h-12 text-ink-muted mx-auto mb-4" />
+        <p class="text-ink-muted">Keine Geräte verknüpft</p>
+        <p class="text-xs text-ink-muted mt-1">Geräte werden beim Login über die Branded App automatisch registriert</p>
       </div>
     </div>
 
     <!-- Access Log -->
     <div class="flex flex-col gap-3">
-      <h3 class="text-lg font-bold text-gray-900">Zugangshistorie</h3>
+      <h3 class="text-lg font-semibold text-ink">Zugangshistorie</h3>
 
-      <div v-if="visibleAccessLogs.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div v-if="visibleAccessLogs.length > 0" class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-[820px] w-full border-collapse">
             <thead>
-              <tr class="bg-gray-50">
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Zeitpunkt</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Aktion</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Leistung</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Gerät</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Methode</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">Status</th>
+              <tr class="bg-surface-muted">
+                <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wide whitespace-nowrap">Zeitpunkt</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wide whitespace-nowrap">Aktion</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wide whitespace-nowrap">Leistung</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wide whitespace-nowrap">Gerät</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wide whitespace-nowrap">Methode</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wide whitespace-nowrap">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="log in visibleAccessLogs" :key="log.id" class="hover:bg-gray-50">
+            <tbody class="divide-y divide-line-subtle">
+              <tr v-for="log in visibleAccessLogs" :key="log.id" class="hover:bg-surface-muted">
                 <td class="px-4 py-3 text-sm whitespace-nowrap">{{ formatDateTime(log.accessed_at) }}</td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
                   {{ log.action_name }}
-                  <span v-if="log.performed_by_name" class="block text-xs text-gray-500">
+                  <span v-if="log.performed_by_name" class="block text-xs text-ink-muted">
                     durch {{ log.performed_by_name }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">{{ log.service_name || '—' }}</td>
-                <td class="px-4 py-3 text-sm whitespace-nowrap text-gray-500">{{ log.device_name || '—' }}</td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">{{ log.device_name || '—' }}</td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
                   <span v-if="log.method" class="inline-flex items-center gap-1">
                     <component :is="getAccessMethodIcon(log.method)" class="w-4 h-4" />
                     {{ log.method }}
                   </span>
-                  <span v-else class="text-gray-400">—</span>
+                  <span v-else class="text-ink-muted">—</span>
                 </td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap">
                   <template v-if="log.is_access_attempt">
-                    <span :class="log.success ? 'text-green-600' : 'text-red-600'">
+                    <span :class="log.success ? 'text-success' : 'text-danger'">
                       {{ log.success ? 'Erfolgreich' : 'Verweigert' }}
                     </span>
-                    <span v-if="!log.success && log.reason" class="block text-xs text-gray-500">
+                    <span v-if="!log.success && log.reason" class="block text-xs text-ink-muted">
                       {{ log.reason }}
                     </span>
                   </template>
-                  <span v-else class="text-gray-400">—</span>
+                  <span v-else class="text-ink-muted">—</span>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div class="flex items-center gap-1.5 px-4 py-2.5 text-xs text-gray-400 border-t border-gray-100 sm:hidden">
+        <div class="flex items-center gap-1.5 px-4 py-2.5 text-xs text-ink-muted border-t border-line-subtle sm:hidden">
           <MoveHorizontal class="w-3.5 h-3.5" />
           Zum Scrollen wischen
         </div>
 
-        <div v-if="hasMoreAccessLogs" class="px-4 py-4 text-center border-t border-gray-100">
+        <div v-if="hasMoreAccessLogs" class="px-4 py-4 text-center border-t border-line-subtle">
           <button
             type="button"
             :disabled="loadingMoreAccessLogs"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            class="inline-flex items-center px-4 py-2 border border-line-strong rounded-md text-sm font-medium text-ink-secondary bg-surface hover:bg-surface-muted disabled:opacity-50"
             @click="loadMoreAccessLogs"
           >
             <Loader2 v-if="loadingMoreAccessLogs" class="w-4 h-4 mr-2 animate-spin" />
@@ -802,9 +818,9 @@
           </button>
         </div>
       </div>
-      <div v-else class="text-center py-8 bg-gray-50 rounded-lg">
-        <Key class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p class="text-gray-500">Noch keine Zugänge protokolliert</p>
+      <div v-else class="text-center py-8 bg-surface-muted rounded-lg">
+        <Key class="w-12 h-12 text-ink-muted mx-auto mb-4" />
+        <p class="text-ink-muted">Noch keine Zugänge protokolliert</p>
       </div>
     </div>
   </div>

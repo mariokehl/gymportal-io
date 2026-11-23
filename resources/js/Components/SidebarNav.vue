@@ -1,16 +1,13 @@
 <template>
   <div class="flex flex-col h-full">
-    <!-- Brand header -->
-    <div class="p-4 border-b border-gray-200 flex items-start justify-between">
-      <div>
-        <Logo class="h-5 w-auto" />
-        <p class="mt-1 text-xs text-gray-500 tracking-wide">Mitgliederverwaltung</p>
-      </div>
+    <!-- Brand header: the wordmark alone, 72px like the app header -->
+    <div class="h-18 flex-none px-4 border-b border-line flex items-center justify-between">
+      <Logo class="h-5 w-auto" />
       <!-- Close button (drawer only) -->
       <button
         v-if="dismissible"
         type="button"
-        class="lg:hidden -mr-1 -mt-1 p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+        class="lg:hidden -mr-1 p-2 rounded-xl text-ink-muted hover:bg-fill transition-colors"
         aria-label="Menü schließen"
         @click="$emit('close')"
       >
@@ -23,149 +20,108 @@
       <MemberQuickSearch ref="quickSearch" />
     </div>
 
-    <nav class="flex-1 overflow-y-auto" :class="canAccessPremiumFeatures ? 'mt-2' : 'mt-6'">
-      <SidebarItem
-        :icon="BarChart"
-        label="Dashboard"
-        :active="route().current('dashboard')"
-        :href="route('dashboard')"
-      />
-      <SidebarItem
-        :icon="Users"
-        label="Mitglieder"
-        :active="route().current('members.*') || route().current('blocklist.*')"
-        :href="route('members.index')"
-        :disabled="!canAccessPremiumFeatures"
-      >
-        <template #children>
-          <Link
-            v-if="isOwnerOrAdmin"
-            :href="route('blocklist.index')"
-            :class="[
-              'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-              route().current('blocklist.*')
-                ? 'text-indigo-700'
-                : 'text-gray-500 hover:text-gray-700'
-            ]"
-          >
-            <span class="w-5 mr-3 flex justify-center">
-              <span class="w-px h-full min-h-4 bg-gray-300" />
-            </span>
-            Sperrliste
-          </Link>
-        </template>
-      </SidebarItem>
-      <SidebarItem
-        :icon="FilePlus"
-        label="Verträge"
-        :active="route().current('contracts.*')"
-        :href="route('contracts.index')"
-        :disabled="!canAccessPremiumFeatures"
-      >
-        <template #children>
-          <Link
-            v-if="isOwnerOrAdmin"
-            :href="route('contracts.addons.index')"
-            :class="[
-              'flex items-center px-4 py-2 text-xs font-medium transition-colors',
-              route().current('contracts.addons.*')
-                ? 'text-indigo-700'
-                : 'text-gray-500 hover:text-gray-700'
-            ]"
-          >
-            <span class="w-5 mr-3 flex justify-center">
-              <span class="w-px h-full min-h-4 bg-gray-300" />
-            </span>
-            Add-ons
-          </Link>
-        </template>
-      </SidebarItem>
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="DollarSign"
-        label="Finanzen"
-        :active="route().current('finances.index')"
-        :href="route('finances.index')"
-        :disabled="!canAccessPremiumFeatures"
-      />
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="Bell"
-        label="Benachrichtigungen"
-        :active="route().current('notifications.index')"
-        :href="route('notifications.index')"
-        :disabled="!canAccessPremiumFeatures"
-      />
-      <SidebarItem
-        :icon="DoorOpen"
-        label="Zugangskontrolle"
-        :active="route().current('access-control.*')"
-        :href="route('access-control.index')"
-        :disabled="!canAccessPremiumFeatures"
-      />
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="ArrowDownUp"
-        label="Import/Export"
-        :active="route().current('data-transfer.*')"
-        :href="route('data-transfer.index')"
-      />
-      <SidebarItem
-        v-if="isOwnerOrAdmin"
-        :icon="Settings"
-        label="Einstellungen"
-        :active="route().current('settings.index')"
-        :href="route('settings.index')"
-      />
-      <SidebarItem
-        :icon="LogOut"
-        label="Abmelden"
-        :active="false"
-        @click="handleLogout"
-      />
+    <nav aria-label="Hauptnavigation" class="flex-1 overflow-y-auto px-2 pb-4" :class="canAccessPremiumFeatures ? 'pt-2' : 'pt-4'">
+      <div class="flex flex-col gap-0.5">
+        <SidebarItem
+          :icon="BarChart"
+          label="Dashboard"
+          :active="isCurrent('dashboard')"
+          :href="route('dashboard')"
+        />
+        <SidebarItem
+          :icon="Users"
+          label="Mitglieder"
+          :active="isCurrent('members.*') || isCurrent('blocklist.*')"
+          :current="isCurrent('members.*')"
+          :href="route('members.index')"
+          :disabled="!canAccessPremiumFeatures"
+        >
+          <template v-if="isOwnerOrAdmin" #children>
+            <SidebarSubItem label="Sperrliste" :href="route('blocklist.index')" :current="isCurrent('blocklist.*')" />
+          </template>
+        </SidebarItem>
+        <SidebarItem
+          :icon="FilePlus"
+          label="Verträge"
+          :active="isCurrent('contracts.*')"
+          :current="isCurrent('contracts.*') && !isCurrent('contracts.addons.*')"
+          :href="route('contracts.index')"
+          :disabled="!canAccessPremiumFeatures"
+        >
+          <template v-if="isOwnerOrAdmin" #children>
+            <SidebarSubItem label="Add-ons" :href="route('contracts.addons.index')" :current="isCurrent('contracts.addons.*')" />
+          </template>
+        </SidebarItem>
+        <SidebarItem
+          v-if="isOwnerOrAdmin"
+          :icon="DollarSign"
+          label="Finanzen"
+          :active="isCurrent('finances.index')"
+          :href="route('finances.index')"
+          :disabled="!canAccessPremiumFeatures"
+        />
+        <SidebarItem
+          v-if="isOwnerOrAdmin"
+          :icon="Bell"
+          label="Benachrichtigungen"
+          :active="isCurrent('notifications.index')"
+          :href="route('notifications.index')"
+          :disabled="!canAccessPremiumFeatures"
+        />
+        <SidebarItem
+          :icon="DoorOpen"
+          label="Zugangskontrolle"
+          :active="isCurrent('access-control.*')"
+          :href="route('access-control.index')"
+          :disabled="!canAccessPremiumFeatures"
+        />
+      </div>
+
+      <!-- Back-office pages, apart from the daily work above -->
+      <div v-if="isOwnerOrAdmin" role="group" aria-labelledby="sidebar-group-admin" class="mt-6 flex flex-col gap-0.5">
+        <p id="sidebar-group-admin" class="px-2 pb-1.5 text-xs font-medium text-ink-muted">Verwaltung</p>
+        <SidebarItem
+          :icon="ArrowDownUp"
+          label="Import/Export"
+          :active="isCurrent('data-transfer.*')"
+          :href="route('data-transfer.index')"
+        />
+        <SidebarItem
+          :icon="Settings"
+          label="Einstellungen"
+          :active="isCurrent('settings.index')"
+          :href="route('settings.index')"
+        />
+      </div>
     </nav>
 
     <OrganizationSwitcher />
 
     <!-- Trial/Subscription Status + Version -->
-    <div class="p-4 border-t border-gray-200 flex flex-col gap-3">
+    <div class="p-4 border-t border-line flex flex-col gap-3">
       <template v-if="subscriptionStatus">
-        <div v-if="subscriptionStatus.trial.is_active" class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-indigo-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-indigo-800">Testphase</p>
-              <p class="text-xs text-indigo-600">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</p>
-            </div>
-          </div>
-        </div>
+        <!-- One quiet status line with a live dot (the product's status
+             signature); only the expired trial asks for action. -->
+        <p v-if="subscriptionStatus.trial.is_active" class="flex items-center gap-2 px-1 text-xs">
+          <span class="size-2 flex-none rounded-full bg-brand" aria-hidden="true"></span>
+          <span class="font-medium text-ink-secondary">Testphase</span>
+          <span class="ml-auto tabular-nums text-ink-muted">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</span>
+        </p>
 
-        <div v-else-if="subscriptionStatus.subscription.is_active" class="bg-green-50 border border-green-200 rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-green-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-green-800">SaaS Hosted</p>
-              <p class="text-xs text-green-600">Aktiv</p>
-            </div>
-          </div>
-        </div>
+        <p v-else-if="subscriptionStatus.subscription.is_active" class="flex items-center gap-2 px-1 text-xs">
+          <span class="size-2 flex-none rounded-full bg-success-solid" aria-hidden="true"></span>
+          <span class="font-medium text-ink-secondary">SaaS Hosted</span>
+          <span class="ml-auto text-ink-muted">Aktiv</span>
+        </p>
 
-        <div v-else class="bg-red-50 border border-red-200 rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-red-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.084 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-red-800">Testphase abgelaufen</p>
-              <Link :href="route('billing.index')" class="text-xs text-red-600 underline">
-                Jetzt upgraden
-              </Link>
-            </div>
-          </div>
+        <!-- Same one-line shape as the other states: status left, the one
+             action right. Neither part may wrap in the 256px sidebar. -->
+        <div v-else class="flex items-center gap-2 px-1 text-xs whitespace-nowrap">
+          <span class="size-2 flex-none rounded-full bg-danger-solid" aria-hidden="true"></span>
+          <span class="min-w-0 truncate font-medium text-danger">Testphase abgelaufen</span>
+          <Link :href="route('billing.index')" class="ml-auto flex-none font-medium text-brand-ink underline underline-offset-2 hover:text-brand-ink-strong">
+            Upgraden
+          </Link>
         </div>
       </template>
 
@@ -179,13 +135,14 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { router, usePage, Link } from '@inertiajs/vue3'
+import { usePage, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
-  BarChart, Settings, LogOut,
+  BarChart, Settings,
   FilePlus, DoorOpen, ArrowDownUp, X
 } from '@lucide/vue'
 import SidebarItem from '@/Components/SidebarItem.vue'
+import SidebarSubItem from '@/Components/SidebarSubItem.vue'
 import OrganizationSwitcher from '@/Components/OrganizationSwitcher.vue'
 import Logo from '@/Components/Logo.vue'
 import AppVersion from '@/Components/AppVersion.vue'
@@ -205,6 +162,14 @@ const page = usePage()
 
 const user = computed(() => page.props.auth.user)
 
+// Ziggy's route().current() reads window.location and is not reactive. The
+// sidebar lives in the persistent AppShell, so tie the check to page.url to
+// re-render the active state after every Inertia visit.
+const isCurrent = (name) => {
+  void page.url
+  return route().current(name)
+}
+
 const subscriptionStatus = computed(() => {
   return page.props.subscription_status || null
 })
@@ -219,12 +184,6 @@ const canAccessPremiumFeatures = computed(() => {
 const isOwnerOrAdmin = computed(() => {
   return user.value?.role_id === 1 || user.value?.role_id === 2
 })
-
-const handleLogout = () => {
-  if (confirm('Möchten Sie sich wirklich abmelden?')) {
-    router.post('/logout')
-  }
-}
 
 const quickSearch = ref(null)
 

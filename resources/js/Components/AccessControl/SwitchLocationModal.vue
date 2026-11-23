@@ -6,36 +6,36 @@
             @click.self="emit('close')"
         >
             <div
-                class="bg-white rounded-lg shadow-xl w-full max-w-xl overflow-hidden"
+                class="bg-surface rounded-lg shadow-xl w-full max-w-xl overflow-hidden"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="`Standort wechseln zu ${log.home_gym_name}`"
             >
                 <!-- Kopf -->
                 <div class="px-6 pt-6 flex items-start gap-3.5">
-                    <span class="flex-none w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
-                        <ArrowUpDown class="w-5 h-5 text-indigo-600" />
+                    <span class="flex-none w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center">
+                        <ArrowUpDown class="w-5 h-5 text-brand-ink" />
                     </span>
                     <div class="min-w-0">
-                        <h3 class="text-lg font-semibold text-gray-900">Standort wechseln</h3>
-                        <p class="mt-1 text-sm text-gray-600">{{ leadText }}</p>
+                        <h3 class="text-lg font-semibold text-ink">Standort wechseln</h3>
+                        <p class="mt-1 text-sm text-ink-secondary">{{ leadText }}</p>
                     </div>
                 </div>
 
                 <div class="px-6 pt-5 flex flex-col gap-4">
                     <!-- Betroffenes Mitglied -->
-                    <div class="flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3.5">
-                        <span class="flex-none w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold">
+                    <div class="flex items-center gap-3 border border-line rounded-lg px-4 py-3.5">
+                        <span class="flex-none w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center text-xs font-semibold">
                             {{ initials }}
                         </span>
                         <div class="min-w-0">
-                            <div class="font-medium text-gray-900 truncate">
+                            <div class="font-medium text-ink truncate">
                                 {{ log.member_name }}
-                                <span v-if="log.member_number" class="text-gray-400 font-normal">
+                                <span v-if="log.member_number" class="text-ink-muted font-normal">
                                     ({{ log.member_number }})
                                 </span>
                             </div>
-                            <div class="text-xs text-gray-500">
+                            <div class="text-xs text-ink-muted">
                                 Check-in-Versuch {{ log.formatted_time }}
                             </div>
                         </div>
@@ -43,42 +43,42 @@
 
                     <!-- Von / Nach -->
                     <div class="flex items-center gap-3">
-                        <div class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-3">
-                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <div class="flex-1 min-w-0 bg-surface-muted border border-line rounded-lg px-3.5 py-3">
+                            <div class="text-xs font-medium uppercase tracking-wide text-ink-muted">
                                 Aktuelle Organisation
                             </div>
-                            <div class="mt-1 font-medium text-gray-700 truncate">{{ currentGymName }}</div>
+                            <div class="mt-1 font-medium text-ink-secondary truncate">{{ currentGymName }}</div>
                         </div>
 
-                        <ArrowRight class="w-5 h-5 text-gray-400 flex-none" />
+                        <ArrowRight class="w-5 h-5 text-ink-muted flex-none" />
 
-                        <div class="flex-1 min-w-0 bg-indigo-50 border border-indigo-200 rounded-lg px-3.5 py-3">
-                            <div class="text-xs font-medium uppercase tracking-wide text-indigo-600">
+                        <div class="flex-1 min-w-0 bg-brand-subtle border border-brand-line rounded-lg px-3.5 py-3">
+                            <div class="text-xs font-medium uppercase tracking-wide text-brand-ink">
                                 Wechsel nach
                             </div>
-                            <div class="mt-1 font-medium text-indigo-900 truncate">{{ log.home_gym_name }}</div>
+                            <div class="mt-1 font-medium text-brand-ink-strong truncate">{{ log.home_gym_name }}</div>
                         </div>
                     </div>
 
                     <!-- Was passiert -->
-                    <div class="border border-gray-200 rounded-lg px-4 py-3.5 flex flex-col gap-2">
-                        <div v-for="(line, index) in consequences" :key="index" class="flex gap-2 items-start text-sm text-gray-700">
-                            <Check class="w-4 h-4 text-green-600 flex-none mt-0.5" />
+                    <div class="border border-line rounded-lg px-4 py-3.5 flex flex-col gap-2">
+                        <div v-for="(line, index) in consequences" :key="index" class="flex gap-2 items-start text-sm text-ink-secondary">
+                            <Check class="w-4 h-4 text-success flex-none mt-0.5" />
                             <span>{{ line }}</span>
                         </div>
                     </div>
 
-                    <p class="text-xs text-gray-500">
+                    <p class="text-xs text-ink-muted">
                         Am Mitglied und an seinem Vertrag wird durch den Wechsel nichts geändert.
                     </p>
                 </div>
 
                 <!-- Aktionen -->
-                <div class="mt-5 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-wrap">
+                <div class="mt-5 px-6 py-4 border-t border-line flex justify-end gap-3 flex-wrap">
                     <button
                         type="button"
                         @click="emit('close')"
-                        class="px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        class="px-4 py-2 rounded-md border border-line-strong bg-surface text-sm font-medium text-ink-secondary hover:bg-surface-muted"
                     >
                         Abbrechen
                     </button>
@@ -86,7 +86,7 @@
                         type="button"
                         @click="confirm"
                         :disabled="isSwitching"
-                        class="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                        class="px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-strong disabled:opacity-50"
                     >
                         {{ isSwitching ? 'Wird gewechselt...' : `Zu ${log.home_gym_name} wechseln` }}
                     </button>

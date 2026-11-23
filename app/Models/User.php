@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ThemePreference;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use App\Notifications\VerifyEmailGerman;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -26,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role_id',
         'phone',
         'current_gym_id',
+        'theme_preference',
         'is_blocked',
         'blocked_reason',
     ];
@@ -38,6 +40,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_blocked' => 'boolean',
+        'theme_preference' => ThemePreference::class,
     ];
 
     protected $appends = ['full_name', 'name'];

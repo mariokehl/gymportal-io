@@ -53,7 +53,7 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
     if (activeMembershipCount.value > 0) {
       return {
         count: activeMembershipCount.value,
-        colorClass: 'bg-green-100 text-green-600',
+        colorClass: 'bg-success-soft text-success',
         hint: `${activeMembershipCount.value} aktive Mitgliedschaft(en)`,
       }
     }
@@ -89,7 +89,7 @@ export function useMemberTabBadges(member, outstandingBalance, { alternateAfter 
       signals.push({
         key: 'outstanding',
         icon: TriangleAlert,
-        colorClass: 'bg-amber-100 text-amber-600',
+        colorClass: 'bg-warning-soft text-warning',
         hint: 'Offener Betrag durch Rücklastschrift',
       })
     }

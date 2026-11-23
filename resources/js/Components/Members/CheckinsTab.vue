@@ -1,39 +1,39 @@
 <template>
   <div class="flex flex-col gap-3.5">
     <!-- Check-ins list -->
-    <div v-if="visibleCheckins.length > 0" class="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div v-if="visibleCheckins.length > 0" class="rounded-lg border border-line bg-surface overflow-hidden">
       <!-- Horizontally scrollable table on narrow viewports -->
       <div class="overflow-x-auto">
         <table class="min-w-[640px] w-full border-collapse">
-          <thead class="bg-gray-50">
+          <thead class="bg-surface-muted">
             <tr>
               <!-- Location marker; the icon and its tooltip carry the meaning -->
               <th class="w-px pl-3.5 pr-1 py-3"><span class="sr-only">Standort</span></th>
-              <th class="pl-1 pr-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Datum</th>
-              <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Check-In</th>
-              <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Check-Out</th>
-              <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Dauer</th>
-              <th class="px-3.5 py-3 text-left text-[11px] font-medium tracking-wide text-gray-500 uppercase whitespace-nowrap">Methode</th>
+              <th class="pl-1 pr-3.5 py-3 text-left text-2xs font-medium tracking-wide text-ink-muted uppercase whitespace-nowrap">Datum</th>
+              <th class="px-3.5 py-3 text-left text-2xs font-medium tracking-wide text-ink-muted uppercase whitespace-nowrap">Check-In</th>
+              <th class="px-3.5 py-3 text-left text-2xs font-medium tracking-wide text-ink-muted uppercase whitespace-nowrap">Check-Out</th>
+              <th class="px-3.5 py-3 text-left text-2xs font-medium tracking-wide text-ink-muted uppercase whitespace-nowrap">Dauer</th>
+              <th class="px-3.5 py-3 text-left text-2xs font-medium tracking-wide text-ink-muted uppercase whitespace-nowrap">Methode</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="checkin in visibleCheckins" :key="checkin.id" class="hover:bg-gray-50">
+          <tbody class="divide-y divide-line-subtle">
+            <tr v-for="checkin in visibleCheckins" :key="checkin.id" class="hover:bg-surface-muted">
               <td class="w-px pl-3.5 pr-1 py-3.5 align-middle leading-none">
                 <!-- Visit at the member's home location -->
                 <Tooltip v-if="isHomeGym(checkin)" position="top" teleport text="Check-In am Heimatstandort">
-                  <House class="w-4 h-4 text-gray-400" aria-label="Check-In am Heimatstandort" />
+                  <House class="w-4 h-4 text-ink-muted" aria-label="Check-In am Heimatstandort" />
                 </Tooltip>
                 <!-- Visit at another location of the organisation -->
                 <Tooltip v-else position="top" teleport :text="`Fremd-Check-In: ${gymName(checkin)}`">
-                  <MapPin class="w-4 h-4 text-amber-600" :aria-label="`Fremd-Check-In: ${gymName(checkin)}`" />
+                  <MapPin class="w-4 h-4 text-warning" :aria-label="`Fremd-Check-In: ${gymName(checkin)}`" />
                 </Tooltip>
               </td>
-              <td class="pl-1 pr-3.5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{{ formatDate(checkin.check_in_time) }}</td>
-              <td class="px-3.5 py-3.5 text-sm text-gray-700 whitespace-nowrap">{{ formatTime(checkin.check_in_time) }}</td>
-              <td class="px-3.5 py-3.5 text-sm text-gray-700 whitespace-nowrap">
+              <td class="pl-1 pr-3.5 py-3.5 text-sm font-medium text-ink whitespace-nowrap">{{ formatDate(checkin.check_in_time) }}</td>
+              <td class="px-3.5 py-3.5 text-sm text-ink-secondary whitespace-nowrap">{{ formatTime(checkin.check_in_time) }}</td>
+              <td class="px-3.5 py-3.5 text-sm text-ink-secondary whitespace-nowrap">
                 {{ checkin.check_out_time ? formatTime(checkin.check_out_time) : '-' }}
               </td>
-              <td class="px-3.5 py-3.5 text-sm text-gray-700 whitespace-nowrap">
+              <td class="px-3.5 py-3.5 text-sm text-ink-secondary whitespace-nowrap">
                 {{ checkin.check_out_time ? calculateDuration(checkin.check_in_time, checkin.check_out_time) : '-' }}
               </td>
               <td class="px-3.5 py-3.5 whitespace-nowrap">
@@ -43,8 +43,8 @@
                     checkin.check_in_method === 'nfc_card'
                       ? 'bg-purple-100 text-purple-800'
                       : checkin.check_in_method === 'manual'
-                        ? 'bg-gray-100 text-gray-800'
-                        : 'bg-blue-100 text-blue-800'
+                        ? 'bg-fill text-ink'
+                        : 'bg-info-soft text-info-strong'
                   ]"
                 >
                   <CreditCard v-if="checkin.check_in_method === 'nfc_card'" class="w-3 h-3 mr-1" />
@@ -59,16 +59,16 @@
       </div>
 
       <!-- Scroll hint (mobile only; the table needs horizontal scrolling there) -->
-      <div class="sm:hidden flex items-center gap-1.5 px-3.5 py-2.5 text-xs text-gray-400 border-t border-gray-100">
+      <div class="sm:hidden flex items-center gap-1.5 px-3.5 py-2.5 text-xs text-ink-muted border-t border-line-subtle">
         <MoveHorizontal class="w-3.5 h-3.5" />
         Zum Scrollen wischen
       </div>
 
-      <div v-if="hasMoreCheckins" class="px-4 py-4 text-center border-t border-gray-100">
+      <div v-if="hasMoreCheckins" class="px-4 py-4 text-center border-t border-line-subtle">
         <button
           type="button"
           :disabled="loadingMoreCheckins"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          class="inline-flex items-center px-4 py-2 border border-line-strong rounded-md text-sm font-medium text-ink-secondary bg-surface hover:bg-surface-muted disabled:opacity-50"
           @click="loadMoreCheckins"
         >
           <Loader2 v-if="loadingMoreCheckins" class="w-4 h-4 mr-2 animate-spin" />
@@ -78,9 +78,9 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else class="rounded-lg border border-gray-200 bg-white text-center py-12">
-      <Clock class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-      <p class="text-gray-500">Keine Check-Ins vorhanden</p>
+    <div v-else class="rounded-lg border border-line bg-surface text-center py-12">
+      <Clock class="w-12 h-12 text-ink-muted mx-auto mb-4" />
+      <p class="text-ink-muted">Keine Check-Ins vorhanden</p>
     </div>
   </div>
 </template>

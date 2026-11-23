@@ -1,7 +1,7 @@
 <template>
   <div ref="root" class="relative">
     <div class="relative flex items-center">
-      <Search class="absolute left-2.5 h-4 w-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+      <Search class="absolute left-2.5 h-4 w-4 text-ink-muted pointer-events-none" aria-hidden="true" />
       <input
         ref="input"
         v-model="query"
@@ -15,7 +15,7 @@
         :aria-expanded="open"
         :aria-controls="listId"
         :aria-activedescendant="open && rows[activeIndex] ? optionId(activeIndex) : undefined"
-        class="w-full h-10 lg:h-9 pl-8 pr-8 rounded-md border border-gray-300 bg-gray-50 text-base lg:text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 [&::-webkit-search-cancel-button]:hidden"
+        class="field w-full h-10 lg:h-9 pl-8 pr-8 bg-surface-muted focus:bg-surface [&::-webkit-search-cancel-button]:hidden"
         @focus="openDropdown"
         @blur="onBlur"
         @input="onInput"
@@ -24,7 +24,7 @@
       <button
         v-if="query"
         type="button"
-        class="absolute right-1.5 p-1 rounded text-gray-400 hover:text-gray-600"
+        class="touch-target absolute right-1.5 p-1 rounded text-ink-muted hover:text-ink-secondary"
         aria-label="Suche leeren"
         @mousedown.prevent
         @click="clear"
@@ -33,20 +33,20 @@
       </button>
       <kbd
         v-else
-        class="hidden lg:inline absolute right-2 px-1.5 rounded border border-gray-200 font-sans text-[11px] leading-4 text-gray-400 pointer-events-none"
+        class="hidden lg:inline absolute right-2 px-1.5 rounded border border-line font-sans text-2xs leading-4 text-ink-muted pointer-events-none"
       >/</kbd>
     </div>
 
     <div
       v-if="open"
-      class="absolute left-0 right-0 lg:right-auto lg:w-[25rem] top-full mt-2 z-30 py-2 bg-white border border-gray-200 rounded-lg shadow-lg"
+      class="absolute left-0 right-0 lg:right-auto lg:w-[25rem] top-full mt-2 z-30 py-2 bg-surface border border-line rounded-lg shadow-lg"
     >
-      <div class="px-4 py-1.5 flex items-center justify-between text-xs font-medium uppercase tracking-wider text-gray-500">
+      <div class="px-4 py-1.5 flex items-center justify-between text-xs font-medium text-ink-muted">
         <span>{{ hasQuery ? 'Mitglieder' : 'Zuletzt angesehen' }}</span>
-        <span v-if="hasQuery && !loading" class="normal-case tracking-normal text-gray-400">
+        <span v-if="hasQuery && !loading" class="normal-case tracking-normal text-ink-muted">
           {{ rows.length === 1 ? '1 Treffer' : `${rows.length} Treffer` }}
         </span>
-        <Loader2 v-if="loading" class="h-3.5 w-3.5 animate-spin text-gray-400" aria-hidden="true" />
+        <Loader2 v-if="loading" class="h-3.5 w-3.5 animate-spin text-ink-muted" aria-hidden="true" />
       </div>
 
       <ul :id="listId" role="listbox" aria-label="Mitglieder" class="max-h-[60vh] overflow-y-auto">
@@ -57,17 +57,17 @@
           role="option"
           :aria-selected="index === activeIndex"
           class="flex items-center gap-3 px-4 py-2 cursor-pointer"
-          :class="index === activeIndex ? 'bg-gray-100' : 'bg-white'"
+          :class="index === activeIndex ? 'bg-brand-subtle' : 'bg-surface'"
           @mousedown.prevent
           @mouseenter="activeIndex = index"
           @click="select(member)"
         >
-          <div class="w-8 h-8 flex-none rounded-full bg-indigo-600 text-white text-xs font-medium flex items-center justify-center">
+          <div class="w-8 h-8 flex-none rounded-full bg-brand text-white text-xs font-medium flex items-center justify-center">
             {{ initials(member.name) }}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-gray-900 truncate">{{ member.name }}</div>
-            <div class="text-xs text-gray-500 truncate">
+            <div class="text-sm font-medium text-ink truncate">{{ member.name }}</div>
+            <div class="text-xs text-ink-muted truncate">
               {{ [member.member_number, member.email].filter(Boolean).join(' · ') }}
             </div>
           </div>
@@ -76,19 +76,19 @@
             class="flex-none text-xs font-medium px-2 py-0.5 rounded-full"
             :class="getStatusBadgeClass(member.status)"
           >{{ getStatusText(member.status) }}</span>
-          <span v-else-if="member.viewedAt" class="flex-none text-xs text-gray-400 whitespace-nowrap">
+          <span v-else-if="member.viewedAt" class="flex-none text-xs text-ink-muted whitespace-nowrap">
             {{ formatViewedAt(member.viewedAt) }}
           </span>
         </li>
       </ul>
 
-      <div v-if="!loading && rows.length === 0" class="px-4 py-4 text-sm text-gray-500">
+      <div v-if="!loading && rows.length === 0" class="px-4 py-4 text-sm text-ink-muted">
         {{ hasQuery
           ? 'Keine Mitglieder gefunden. Prüfen Sie die Schreibweise oder suchen Sie nach der Mitgliedsnummer.'
           : 'Noch keine Mitglieder angesehen.' }}
       </div>
 
-      <div class="hidden lg:flex mt-1 px-4 pt-2 pb-0.5 border-t border-gray-100 gap-3 text-xs text-gray-400">
+      <div class="hidden lg:flex mt-1 px-4 pt-2 pb-0.5 border-t border-line-subtle gap-3 text-xs text-ink-muted">
         <span>↑↓ auswählen</span>
         <span>↵ öffnen</span>
         <span>Esc schließen</span>

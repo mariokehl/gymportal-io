@@ -6,27 +6,27 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-indigo-600 hover:text-indigo-800">
+      <Link :href="route('contracts.index')" class="text-brand-ink hover:text-brand-ink-strong">
         Verträge
       </Link>
-      <span class="text-gray-500 mx-2">/</span>
-      <span class="text-gray-900">Add-ons</span>
+      <span class="text-ink-muted mx-2">/</span>
+      <span class="text-ink">Add-ons</span>
     </nav>
 
     <!-- Header with Add Button -->
     <div class="mb-4 flex flex-wrap gap-3 justify-between items-start">
       <div class="max-w-3xl">
-        <h2 class="text-2xl font-bold text-gray-900">Add-ons &amp; Leistungen</h2>
-        <p class="text-gray-600 mt-1.5">
-          Zusatzleistungen zu einem Vertrag – <strong class="text-gray-700">einmalig</strong> zum Vertragsstart
-          oder <strong class="text-gray-700">wiederkehrend</strong> (monatlich, synchron zum Mitgliedsbeitrag).
+        <h2 class="text-2xl font-bold text-ink tabular-nums">Add-ons &amp; Leistungen</h2>
+        <p class="text-ink-secondary mt-1.5">
+          Zusatzleistungen zu einem Vertrag – <strong class="text-ink-secondary">einmalig</strong> zum Vertragsstart
+          oder <strong class="text-ink-secondary">wiederkehrend</strong> (monatlich, synchron zum Mitgliedsbeitrag).
           Nutzungsleistungen wie Getränke oder Sauna werden über ein Gerät mit Kontingent verrechnet.
         </p>
       </div>
       <Link
         v-if="isOwnerOrAdmin"
         :href="route('contracts.addons.create')"
-        class="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white px-4.5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors"
+        class="shrink-0 bg-brand hover:bg-brand-strong text-white px-4.5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors"
       >
         <Plus class="w-4 h-4" />
         <span>Neues Add-on</span>
@@ -41,8 +41,8 @@
         type="button"
         class="border rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
         :class="activeFilter === filter.value
-          ? 'bg-gray-900 border-gray-900 text-white'
-          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'"
+          ? 'bg-inverse border-gray-900 text-white'
+          : 'bg-surface border-line text-ink-secondary hover:border-line-strong'"
         :aria-pressed="activeFilter === filter.value"
         @click="activeFilter = filter.value"
       >
@@ -55,18 +55,18 @@
       <div
         v-for="addon in filteredAddons"
         :key="addon.id"
-        class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow flex flex-col"
+        class="bg-surface rounded-xl shadow-sm border border-line p-5 hover:shadow-md transition-shadow flex flex-col"
       >
         <div class="flex items-center gap-2.5 flex-wrap mb-1">
           <span
             class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            :class="isUsageService(addon) ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500'"
+            :class="isUsageService(addon) ? 'bg-brand-subtle text-brand-ink' : 'bg-fill text-ink-muted'"
           >
             <component :is="isUsageService(addon) ? CupSoda : BadgeCheck" class="w-4.5 h-4.5" />
           </span>
-          <h3 class="font-semibold text-lg text-gray-900">{{ addon.name }}</h3>
+          <h3 class="font-semibold text-lg text-ink">{{ addon.name }}</h3>
           <span
-            :class="addon.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+            :class="addon.is_active ? 'bg-success-soft text-success' : 'bg-fill text-ink-secondary'"
             class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
           >
             {{ addon.is_active ? 'Aktiv' : 'Inaktiv' }}
@@ -76,53 +76,53 @@
         <div class="flex gap-1.5 flex-wrap my-1.5">
           <span
             class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-            :class="isUsageService(addon) ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700'"
+            :class="isUsageService(addon) ? 'bg-brand-soft text-brand-ink-strong' : 'bg-fill text-ink-secondary'"
           >
             {{ isUsageService(addon) ? 'Nutzungsleistung' : 'Zusatzleistung' }}
           </span>
           <span
             class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-            :class="isRecurring(addon) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+            :class="isRecurring(addon) ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'"
           >
             {{ isRecurring(addon) ? 'Wiederkehrend' : 'Einmalig' }}
           </span>
         </div>
 
-        <p class="text-gray-500 text-sm mb-3.5 min-h-5">{{ addon.description }}</p>
+        <p class="text-ink-muted text-sm mb-3.5 min-h-5">{{ addon.description }}</p>
 
-        <div class="flex flex-col gap-2.5 text-sm pt-3 border-t mb-6 border-gray-100 flex-grow">
+        <div class="flex flex-col gap-2.5 text-sm pt-3 border-t mb-6 border-line-subtle flex-grow">
           <div class="flex justify-between gap-2">
-            <span class="text-gray-500">Preis</span>
-            <span class="font-semibold text-gray-900 text-right">{{ formatAddonPrice(addon) }}</span>
+            <span class="text-ink-muted">Preis</span>
+            <span class="font-semibold text-ink text-right">{{ formatAddonPrice(addon) }}</span>
           </div>
           <div class="flex justify-between gap-2">
-            <span class="text-gray-500">Abrechnung</span>
-            <span class="text-gray-700 text-right">
+            <span class="text-ink-muted">Abrechnung</span>
+            <span class="text-ink-secondary text-right">
               {{ isRecurring(addon) ? 'Monatlich, synchron zum Beitrag' : 'Einmalig zum Vertragsstart' }}
             </span>
           </div>
           <template v-if="isUsageService(addon)">
             <div class="flex justify-between gap-2">
-              <span class="text-gray-500">Nutzung</span>
-              <span class="text-gray-700 text-right">{{ formatUsage(addon) }}</span>
+              <span class="text-ink-muted">Nutzung</span>
+              <span class="text-ink-secondary text-right">{{ formatUsage(addon) }}</span>
             </div>
             <div v-if="addon.settled_via_device" class="flex justify-between items-center gap-2">
-              <span class="text-gray-500">Gerät</span>
-              <span class="inline-flex items-center gap-1.5 text-gray-700">
-                <CupSoda class="w-3.5 h-3.5 text-indigo-600" />
+              <span class="text-ink-muted">Gerät</span>
+              <span class="inline-flex items-center gap-1.5 text-ink-secondary">
+                <CupSoda class="w-3.5 h-3.5 text-brand-ink" />
                 Ausgabeautomat
               </span>
             </div>
           </template>
           <div class="flex justify-between gap-2">
-            <span class="text-gray-500">Zahlweise</span>
-            <span class="text-gray-700 text-right">
+            <span class="text-ink-muted">Zahlweise</span>
+            <span class="text-ink-secondary text-right">
               {{ addon.payment_method ? formatPaymentMethod(addon.payment_method) : 'Standard-Zahlungsart' }}
             </span>
           </div>
           <div class="flex justify-between gap-2">
-            <span class="text-gray-500">Zugeordnete Verträge</span>
-            <span class="font-semibold text-indigo-600">{{ addon.membership_plans_count || 0 }}</span>
+            <span class="text-ink-muted">Zugeordnete Verträge</span>
+            <span class="font-semibold text-brand-ink">{{ addon.membership_plans_count || 0 }}</span>
           </div>
         </div>
 
@@ -130,14 +130,14 @@
           <Link
             v-if="isOwnerOrAdmin"
             :href="route('contracts.addons.edit', addon.id)"
-            class="flex-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
+            class="flex-1 bg-brand-soft hover:bg-brand-line text-brand-ink-strong px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
           >
             Bearbeiten
           </Link>
           <button
             v-if="isOwnerOrAdmin"
             @click="confirmDelete(addon)"
-            class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            class="flex-1 bg-danger-soft hover:bg-danger-soft text-danger px-3 py-2 rounded-md text-sm font-medium transition-colors"
           >
             Löschen
           </button>
@@ -147,21 +147,21 @@
 
     <!-- No match for the active filter -->
     <div v-else-if="addons.length > 0" class="text-center py-12">
-      <PackagePlus class="w-12 h-12 text-gray-300 mx-auto mb-3" />
-      <p class="text-gray-600">In dieser Kategorie sind keine Add-ons vorhanden.</p>
+      <PackagePlus class="w-12 h-12 text-ink-disabled mx-auto mb-3" />
+      <p class="text-ink-secondary">In dieser Kategorie sind keine Add-ons vorhanden.</p>
     </div>
 
     <!-- Empty State -->
     <div v-else class="text-center py-12">
-      <PackagePlus class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-gray-900 mb-2">Keine Add-ons vorhanden</h3>
-      <p class="text-gray-600 mb-6">
+      <PackagePlus class="w-16 h-16 text-ink-muted mx-auto mb-4" />
+      <h3 class="text-lg font-semibold text-ink mb-2">Keine Add-ons vorhanden</h3>
+      <p class="text-ink-secondary mb-6">
         {{ isOwnerOrAdmin ? 'Erstellen Sie Ihr erstes Add-on und ordnen Sie es einem Vertrag zu.' : 'Es wurden noch keine Add-ons erstellt.' }}
       </p>
       <Link
         v-if="isOwnerOrAdmin"
         :href="route('contracts.addons.create')"
-        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
+        class="bg-brand hover:bg-brand-strong text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
       >
         <Plus class="w-5 h-5" />
         <span>Erstes Add-on erstellen</span>
@@ -170,16 +170,16 @@
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
+      <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface">
         <div class="flex items-center space-x-3 mb-4">
-          <div class="bg-red-100 p-2 rounded-full">
-            <AlertTriangle class="w-6 h-6 text-red-600" />
+          <div class="bg-danger-soft p-2 rounded-full">
+            <AlertTriangle class="w-6 h-6 text-danger" />
           </div>
-          <h3 class="text-lg font-medium text-gray-900">Add-on löschen</h3>
+          <h3 class="text-lg font-semibold text-ink">Add-on löschen</h3>
         </div>
 
         <div class="mb-6">
-          <p class="text-gray-600">
+          <p class="text-ink-secondary">
             Sind Sie sicher, dass Sie das Add-on "<strong>{{ addonToDelete?.name }}</strong>" löschen möchten?
             Bestehende Buchungen bleiben unberührt, das Add-on wird aber bei neuen Verträgen nicht mehr angeboten.
           </p>
@@ -188,13 +188,13 @@
         <div class="flex space-x-3">
           <button
             @click="closeDeleteModal"
-            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+            class="flex-1 bg-fill hover:bg-fill-strong text-ink-secondary px-4 py-2 rounded-lg font-medium transition-colors"
           >
             Abbrechen
           </button>
           <button
             @click="deleteAddon"
-            class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            class="flex-1 bg-danger-solid hover:bg-danger-solid-strong text-white px-4 py-2 rounded-lg font-medium transition-colors"
           >
             Löschen
           </button>
@@ -208,8 +208,11 @@
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import { Plus, PackagePlus, AlertTriangle, BadgeCheck, CupSoda } from '@lucide/vue'
 import { formatPrice } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 const page = usePage()
 

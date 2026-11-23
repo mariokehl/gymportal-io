@@ -85,7 +85,7 @@ describe('membershipBadge', () => {
       memberships: [{ status: 'active' }, { status: 'active' }, { status: 'cancelled' }],
     })
 
-    expect(membershipBadge.value).toMatchObject({ count: 2, colorClass: 'bg-green-100 text-green-600' })
+    expect(membershipBadge.value).toMatchObject({ count: 2, colorClass: 'bg-success-soft text-success' })
   })
 
   it('stays empty without active or pending memberships', () => {

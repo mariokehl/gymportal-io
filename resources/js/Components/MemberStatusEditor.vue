@@ -4,9 +4,9 @@
     <!-- Loading Overlay -->
     <div
       v-if="isChanging"
-      class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-full z-20"
+      class="absolute inset-0 flex items-center justify-center bg-surface bg-opacity-75 rounded-full z-20"
     >
-      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
     </div>
 
     <!-- Editierbares Status Badge Button -->
@@ -33,12 +33,12 @@
     >
       <div
         v-if="showMenu && !disabled"
-        class="absolute z-50 mt-2 w-72 rounded-lg shadow-xl bg-white ring-1 ring-gray-300 ring-opacity-5 divide-y divide-gray-100 overflow-hidden"
+        class="absolute z-50 mt-2 w-72 rounded-lg shadow-xl bg-surface ring-1 ring-line-strong ring-opacity-5 divide-y divide-line-subtle overflow-hidden"
         @click.stop
       >
         <!-- Status Options -->
         <div class="p-2">
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
+          <div class="text-xs font-semibold text-ink-muted uppercase tracking-wider px-3 py-2">
             Status ändern zu:
           </div>
 
@@ -49,15 +49,15 @@
               :class="[
                 'w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between group',
                 canChangeTo(option.value) && option.value !== status
-                  ? 'hover:bg-gray-50 cursor-pointer'
-                  : 'cursor-not-allowed opacity-60 bg-gray-50'
+                  ? 'hover:bg-surface-muted cursor-pointer'
+                  : 'cursor-not-allowed opacity-60 bg-surface-muted'
               ]"
             >
               <div class="flex items-center gap-3">
                 <component :is="option.icon" :class="['w-4 h-4', option.iconColor]" />
                 <div>
                   <div class="font-medium">{{ option.label }}</div>
-                  <div class="text-xs text-gray-500">{{ option.description }}</div>
+                  <div class="text-xs text-ink-muted">{{ option.description }}</div>
                 </div>
               </div>
 
@@ -65,17 +65,17 @@
               <div class="flex items-center gap-1">
                 <CheckCircle
                   v-if="option.value === status"
-                  class="w-4 h-4 text-green-500"
+                  class="w-4 h-4 text-success"
                   title="Aktueller Status"
                 />
                 <Lock
                   v-else-if="!canChangeTo(option.value)"
-                  class="w-4 h-4 text-gray-400"
+                  class="w-4 h-4 text-ink-muted"
                   :title="getBlockReason(option.value)"
                 />
                 <ArrowRight
                   v-else
-                  class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors"
+                  class="w-4 h-4 text-ink-muted group-hover:text-ink transition-colors"
                 />
               </div>
             </button>
@@ -83,7 +83,7 @@
             <!-- Reason Tooltip -->
             <div
               v-if="!canChangeTo(option.value) && option.value !== status"
-              class="mx-3 mb-1 px-2 py-1 bg-amber-50 rounded text-xs text-amber-700 flex items-start gap-1"
+              class="mx-3 mb-1 px-2 py-1 bg-warning-subtle rounded text-xs text-warning flex items-start gap-1"
             >
               <Info class="w-3 h-3 mt-0.5 flex-shrink-0" />
               <span>{{ getBlockReason(option.value) }}</span>
@@ -92,12 +92,12 @@
         </div>
 
         <!-- Info Footer -->
-        <div class="p-3 bg-gray-50">
+        <div class="p-3 bg-surface-muted">
           <div class="flex items-start gap-2">
-            <Info class="w-4 h-4 text-gray-400 mt-0.5" />
-            <div class="text-xs text-gray-600">
+            <Info class="w-4 h-4 text-ink-muted mt-0.5" />
+            <div class="text-xs text-ink-secondary">
               <p class="font-medium mb-1">Hinweise:</p>
-              <ul class="space-y-0.5 text-gray-500">
+              <ul class="space-y-0.5 text-ink-muted">
                 <li>• Änderungen werden sofort wirksam</li>
                 <li>• Alle Änderungen werden protokolliert</li>
                 <li v-if="member.status_history">
@@ -166,7 +166,7 @@ const statusOptions = computed(() => {
 const currentStatusConfig = computed(() =>
   statusConfig[props.status] || {
     label: props.status,
-    classes: 'bg-gray-100 text-gray-700',
+    classes: 'bg-fill text-ink-secondary',
     icon: null
   }
 )

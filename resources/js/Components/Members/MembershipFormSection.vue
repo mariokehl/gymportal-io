@@ -1,15 +1,15 @@
 <template>
   <div class="space-y-6">
     <!-- Mitgliedschaftsplan Auswahl -->
-    <div v-if="!membershipPlans || membershipPlans.length === 0" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <div v-if="!membershipPlans || membershipPlans.length === 0" class="p-4 bg-warning-subtle border border-warning-line rounded-lg">
       <div class="flex">
         <div class="flex-shrink-0">
-          <AlertTriangle class="h-5 w-5 text-yellow-400" />
+          <AlertTriangle class="h-5 w-5 text-warning" />
         </div>
         <div class="ml-3">
-          <p class="text-sm text-yellow-800">
+          <p class="text-sm text-warning-strong">
             Keine Mitgliedschaftspläne verfügbar. Bitte zunächst
-            <Link :href="route('contracts.index')" class="font-medium underline hover:text-yellow-900">Verträge</Link>
+            <Link :href="route('contracts.index')" class="font-medium underline hover:text-warning-strong">Verträge</Link>
             anlegen.
           </p>
         </div>
@@ -19,15 +19,15 @@
     <div v-else>
       <!-- Plan Selection -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-3">
-          Mitgliedschaftsplan auswählen <span class="text-red-500">*</span>
+        <label class="block text-sm font-medium text-ink-secondary mb-3">
+          Mitgliedschaftsplan auswählen <span class="text-danger">*</span>
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
             v-for="plan in membershipPlans"
             :key="plan.id"
             class="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md"
-            :class="modelValue.membership_plan_id === plan.id ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500' : 'border-gray-300'"
+            :class="modelValue.membership_plan_id === plan.id ? 'border-brand bg-brand-subtle ring-2 ring-focus' : 'border-line-strong'"
             @click="selectPlan(plan.id)"
           >
             <div class="flex items-center mb-3">
@@ -36,22 +36,22 @@
                 :id="`plan_${plan.id}`"
                 :value="plan.id"
                 :checked="modelValue.membership_plan_id === plan.id"
-                class="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                class="w-4 h-4 text-brand-ink"
                 @change="selectPlan(plan.id)"
               />
-              <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-gray-900">
+              <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-ink">
                 {{ plan.name }}
               </label>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-lg font-bold text-indigo-600">
+              <span class="text-lg font-bold text-brand-ink">
                 {{ formatCurrency(plan.price) }}
               </span>
-              <span class="text-sm text-gray-500">
+              <span class="text-sm text-ink-muted">
                 / {{ formatBillingCycle(plan.billing_cycle) }}
               </span>
             </div>
-            <div class="mt-2 text-xs text-gray-500">
+            <div class="mt-2 text-xs text-ink-muted">
               <span v-if="plan.commitment_months > 0">
                 Mindestlaufzeit: {{ plan.commitment_months }} Monate
               </span>
@@ -62,7 +62,7 @@
             </div>
           </div>
         </div>
-        <p v-if="errors.membership_plan_id" class="mt-2 text-sm text-red-600">
+        <p v-if="errors.membership_plan_id" class="mt-2 text-sm text-danger">
           {{ errors.membership_plan_id }}
         </p>
       </div>
@@ -76,9 +76,9 @@
               type="checkbox"
               :checked="modelValue.allow_past_start_date"
               @change="updateField('allow_past_start_date', $event.target.checked)"
-              class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              class="w-4 h-4 text-brand-ink border-line-strong rounded"
             />
-            <span class="ml-2 text-sm text-gray-700">
+            <span class="ml-2 text-sm text-ink-secondary">
               Mitgliedschaft in der Vergangenheit beginnen lassen
             </span>
           </label>
@@ -86,29 +86,29 @@
 
         <!-- Start Date -->
         <div>
-          <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
-            Startdatum der Mitgliedschaft <span class="text-red-500">*</span>
+          <label for="start_date" class="block text-sm font-medium text-ink-secondary mb-2">
+            Startdatum der Mitgliedschaft <span class="text-danger">*</span>
           </label>
           <input
             id="start_date"
             type="date"
             :value="modelValue.start_date"
             @input="updateField('start_date', $event.target.value)"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            :class="{ 'border-red-500': errors.start_date }"
+            class="field w-full px-3 py-2"
+            :class="{ 'border-danger': errors.start_date }"
             :min="modelValue.allow_past_start_date ? null : today"
           />
-          <p v-if="errors.start_date" class="mt-1 text-sm text-red-600">
+          <p v-if="errors.start_date" class="mt-1 text-sm text-danger">
             {{ errors.start_date }}
           </p>
         </div>
 
         <!-- End Date (calculated) -->
         <div v-if="selectedPlan">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-ink-secondary mb-2">
             Vertragslaufzeit bis
           </label>
-          <div class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-600">
+          <div class="w-full px-3 py-2 bg-surface-muted border border-line-strong rounded-md text-ink-secondary">
             {{ calculatedEndDate }}
           </div>
         </div>
@@ -117,7 +117,7 @@
       <!-- Billing Anchor Date -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <div>
-          <label for="billing_anchor_date" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="billing_anchor_date" class="block text-sm font-medium text-ink-secondary mb-2">
             Erste Abrechnung am (optional)
           </label>
           <input
@@ -125,14 +125,14 @@
             type="date"
             :value="modelValue.billing_anchor_date"
             @input="updateField('billing_anchor_date', $event.target.value)"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            :class="{ 'border-red-500': errors.billing_anchor_date }"
+            class="field w-full px-3 py-2"
+            :class="{ 'border-danger': errors.billing_anchor_date }"
             :min="today"
           />
-          <p v-if="errors.billing_anchor_date" class="mt-1 text-sm text-red-600">
+          <p v-if="errors.billing_anchor_date" class="mt-1 text-sm text-danger">
             {{ errors.billing_anchor_date }}
           </p>
-          <p class="mt-1 text-xs text-gray-500">
+          <p class="mt-1 text-xs text-ink-muted">
             Wenn angegeben, wird die erste Abrechnung zu diesem Datum erstellt.
           </p>
         </div>

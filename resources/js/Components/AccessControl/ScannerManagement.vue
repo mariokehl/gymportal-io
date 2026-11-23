@@ -1,35 +1,35 @@
 <template>
     <div class="space-y-6">
         <!-- Secret Key Section -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                            <Key class="w-5 h-5 mr-2 text-gray-500" />
+                        <h3 class="text-lg leading-6 font-semibold text-ink flex items-center">
+                            <Key class="w-5 h-5 mr-2 text-ink-muted" />
                             Scanner-Secret-Key
                         </h3>
-                        <p class="mt-1 text-sm text-gray-500">
+                        <p class="mt-1 text-sm text-ink-muted">
                             Wird für die HMAC-Signatur der QR-Codes benötigt. Alle Geräte müssen diesen Key kennen.
                         </p>
                     </div>
                 </div>
 
                 <!-- Secret Key not generated yet -->
-                <div v-if="!currentSecretKey" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div v-if="!currentSecretKey" class="bg-warning-subtle border border-warning-line rounded-lg p-4">
                     <div class="flex items-start">
-                        <AlertTriangle class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
+                        <AlertTriangle class="w-5 h-5 text-warning mt-0.5 mr-2 flex-shrink-0" />
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-yellow-800">
+                            <p class="text-sm font-medium text-warning-strong">
                                 Noch kein Secret-Key generiert
                             </p>
-                            <p class="text-sm text-yellow-700 mt-1">
+                            <p class="text-sm text-warning mt-1">
                                 Sie müssen zuerst einen Secret-Key generieren, bevor Geräte die QR-Codes validieren können.
                             </p>
                             <button
                                 @click="generateSecretKey"
                                 :disabled="isRegeneratingKey"
-                                class="mt-3 inline-flex items-center px-3 py-1.5 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700 disabled:opacity-50"
+                                class="mt-3 inline-flex items-center px-3 py-1.5 bg-warning-solid text-white text-sm font-medium rounded-md hover:bg-warning-solid-strong disabled:opacity-50"
                             >
                                 <Key class="w-4 h-4 mr-1" />
                                 {{ isRegeneratingKey ? 'Generiere...' : 'Secret-Key generieren' }}
@@ -40,12 +40,12 @@
 
                 <!-- Secret Key exists -->
                 <div v-else class="flex items-center space-x-3">
-                    <div class="flex-1 font-mono text-sm bg-gray-50 px-4 py-2 rounded-lg border">
+                    <div class="flex-1 font-mono text-sm bg-surface-muted px-4 py-2 rounded-lg border">
                         {{ showSecretKey ? currentSecretKey : '••••••••••••••••••••••••••••••••' }}
                     </div>
                     <button
                         @click="showSecretKey = !showSecretKey"
-                        class="p-2 text-gray-500 hover:text-gray-700"
+                        class="p-2 text-ink-muted hover:text-ink"
                         :title="showSecretKey ? 'Verbergen' : 'Anzeigen'"
                     >
                         <Eye v-if="!showSecretKey" class="w-5 h-5" />
@@ -53,7 +53,7 @@
                     </button>
                     <button
                         @click="copySecretKey"
-                        class="p-2 text-gray-500 hover:text-gray-700"
+                        class="p-2 text-ink-muted hover:text-ink"
                         title="Kopieren"
                     >
                         <Copy class="w-5 h-5" />
@@ -70,15 +70,15 @@
         </div>
 
         <!-- Device List -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    <h3 class="text-lg leading-6 font-semibold text-ink">
                         Geräte
                     </h3>
                     <button
                         @click="openCreateModal"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                        class="inline-flex items-center px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-strong transition-colors"
                     >
                         <Plus class="w-4 h-4 mr-2" />
                         Neues Gerät
@@ -87,61 +87,61 @@
 
                 <!-- Empty State -->
                 <div v-if="scanners.length === 0" class="text-center py-12">
-                    <Scan class="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Geräte</h3>
-                    <p class="mt-1 text-sm text-gray-500">
+                    <Scan class="mx-auto h-12 w-12 text-ink-muted" />
+                    <h3 class="mt-2 text-sm font-medium text-ink">Keine Geräte</h3>
+                    <p class="mt-1 text-sm text-ink-muted">
                         Erstellen Sie Ihr erstes Gerät für die Zugangskontrolle.
                     </p>
                 </div>
 
                 <!-- Device Table -->
                 <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-surface-muted">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     #
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Name
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Geräteaufgabe
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Verknüpfte Leistung
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     IP-Adresse
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Zuletzt gesehen
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Scans heute
                                 </th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Aktionen
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="scanner in scanners" :key="scanner.id" class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                        <tbody class="bg-surface divide-y divide-line">
+                            <tr v-for="scanner in scanners" :key="scanner.id" class="hover:bg-surface-muted">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink">
                                     {{ scanner.device_number }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ scanner.device_name }}</div>
+                                    <div class="text-sm font-medium text-ink">{{ scanner.device_name }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="flex items-center text-sm leading-5 text-gray-700">
+                                    <span class="flex items-center text-sm leading-5 text-ink-secondary">
                                         <component
                                             :is="deviceTaskIcon(scanner.device_task)"
                                             v-if="deviceTaskIcon(scanner.device_task)"
-                                            class="w-4 h-4 mr-1.5 shrink-0 text-indigo-600"
+                                            class="w-4 h-4 mr-1.5 shrink-0 text-brand-ink"
                                         />
                                         {{ deviceTaskLabel(scanner.device_task) }}
                                     </span>
@@ -160,8 +160,8 @@
                                                 :class="[
                                                     'inline-flex items-center justify-center w-5 h-5 rounded-full cursor-default',
                                                     tokenExpiryState(scanner.token_expires_at) === 'expired'
-                                                        ? 'bg-red-100 text-red-600'
-                                                        : 'bg-amber-100 text-amber-600'
+                                                        ? 'bg-danger-soft text-danger'
+                                                        : 'bg-warning-soft text-warning'
                                                 ]"
                                             >
                                                 <AlertTriangle class="w-3 h-3" />
@@ -169,7 +169,7 @@
                                         </Tooltip>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                                     <template v-if="linkedAddons(scanner).length === 1">
                                         {{ linkedAddons(scanner)[0].name }}
                                     </template>
@@ -198,20 +198,20 @@
                                     </Tooltip>
                                     <template v-else>—</template>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted font-mono">
                                     {{ scanner.ip_address || '-' }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                                     {{ formatLastSeen(scanner.last_seen_at) }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink">
                                     {{ scanner.today_scans || 0 }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end space-x-2">
                                         <button
                                             @click="openEditModal(scanner)"
-                                            class="text-indigo-600 hover:text-indigo-900 p-1"
+                                            class="text-brand-ink hover:text-brand-ink-strong p-1"
                                             title="Bearbeiten"
                                         >
                                             <Settings class="w-4 h-4" />
@@ -219,7 +219,7 @@
                                         <button
                                             v-if="scanner.config_downloadable"
                                             @click="downloadConfig(scanner)"
-                                            class="text-green-600 hover:text-green-900 p-1"
+                                            class="text-success hover:text-success-strong p-1"
                                             title="Konfiguration herunterladen"
                                         >
                                             <Download class="w-4 h-4" />
@@ -231,8 +231,10 @@
                                         <Tooltip v-else position="left" teleport>
                                             <template #default>
                                                 <button
-                                                    disabled
-                                                    class="text-gray-300 cursor-not-allowed p-1 rounded opacity-50"
+                                                    type="button"
+                                                    aria-disabled="true"
+                                                    aria-label="Konfiguration herunterladen nicht möglich"
+                                                    class="text-ink-disabled cursor-not-allowed p-1 rounded"
                                                 >
                                                     <Download class="w-4 h-4" />
                                                 </button>
@@ -243,18 +245,18 @@
                                                     <AlertCircle class="w-3 h-3 mr-1" />
                                                     Download nicht möglich
                                                 </div>
-                                                <div class="text-gray-300">
+                                                <div class="text-ink-disabled">
                                                     Der API-Token ist aus Sicherheitsgründen nur als Hash gespeichert
                                                     und lässt sich nicht erneut ausgeben.
                                                 </div>
-                                                <div class="mt-2 pt-2 border-t border-gray-700 text-gray-400">
+                                                <div class="mt-2 pt-2 border-t border-gray-700 text-ink-muted">
                                                     Tipp: Token erneuern, um eine neue Konfiguration zu erhalten
                                                 </div>
                                             </template>
                                         </Tooltip>
                                         <button
                                             @click="confirmDelete(scanner)"
-                                            class="text-red-600 hover:text-red-900 p-1"
+                                            class="text-danger hover:text-danger-strong p-1"
                                             title="Löschen"
                                         >
                                             <Trash2 class="w-4 h-4" />
@@ -270,12 +272,12 @@
 
         <!-- Create/Edit Modal -->
         <div v-if="showModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="closeModal">
-            <div class="relative top-10 mx-auto p-5 border border-gray-50 w-full max-w-3xl shadow-lg rounded-md bg-white" @click.stop>
+            <div class="relative top-10 mx-auto p-5 border border-line-subtle w-full max-w-3xl shadow-lg rounded-md bg-surface" @click.stop>
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">
+                    <h3 class="text-lg font-semibold text-ink">
                         {{ editingScanner ? 'Gerät bearbeiten' : 'Neues Gerät' }}
                     </h3>
-                    <button @click="closeModal" class="text-gray-400 hover:text-gray-500">
+                    <button @click="closeModal" class="text-ink-muted hover:text-ink-secondary">
                         <X class="w-5 h-5" />
                     </button>
                 </div>
@@ -286,30 +288,30 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 md:gap-x-6 gap-y-4">
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Name <span class="text-red-500">*</span></label>
-                            <input
+                                <label for="scanner-management-form-device-name" class="block text-sm font-medium text-ink-secondary mb-2">Name <span class="text-danger">*</span></label>
+                            <input id="scanner-management-form-device-name"
                                 v-model="form.device_name"
                                 type="text"
                                 required
                                 placeholder="z.B. Getränkeautomat Theke"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                class="field w-full px-3 py-2"
                             />
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Geräteaufgabe <span class="text-red-500">*</span>
+                            <label for="scanner-management-form-device-task" class="block text-sm font-medium text-ink-secondary mb-2">
+                                Geräteaufgabe <span class="text-danger">*</span>
                             </label>
-                            <select
+                            <select id="scanner-management-form-device-task"
                                 v-model="form.device_task"
                                 required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                class="field w-full px-3 py-2"
                             >
                                 <option v-for="task in DEVICE_TASKS" :key="task.value" :value="task.value">
                                     {{ task.label }}
                                 </option>
                             </select>
-                            <p class="mt-1.5 text-xs text-gray-500">
+                            <p class="mt-1.5 text-xs text-ink-muted">
                                 {{ deviceTaskHint(form.device_task) }}
                             </p>
                         </div>
@@ -317,9 +319,9 @@
                         <!-- Quota configuration for devices settling a usage add-on -->
                         <div
                             v-if="isAddonLinkedTask(form.device_task)"
-                            class="bg-indigo-50 border border-indigo-200 rounded-lg p-4"
+                            class="bg-brand-subtle border border-brand-line rounded-lg p-4"
                         >
-                            <div class="flex items-center text-sm font-semibold text-indigo-800 mb-3">
+                            <div class="flex items-center text-sm font-semibold text-brand-ink-strong mb-3">
                                 <component
                                     :is="deviceTaskIcon(form.device_task)"
                                     v-if="deviceTaskIcon(form.device_task)"
@@ -328,21 +330,21 @@
                                 {{ form.device_task === 'dispenser' ? 'Getränkeanlage-Konfiguration' : 'Bereichs-Konfiguration' }}
                             </div>
 
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Verknüpfte Nutzungsleistungen <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                                Verknüpfte Nutzungsleistungen <span class="text-danger">*</span>
                             </label>
 
-                            <p v-if="usageAddons.length === 0" class="text-sm text-gray-600">
+                            <p v-if="usageAddons.length === 0" class="text-sm text-ink-secondary">
                                 Es ist noch keine aktive Nutzungsleistung angelegt. Legen Sie zuerst
                                 unter „Add-ons“ eine Nutzungsleistung an.
                             </p>
 
                             <template v-else>
-                                <div class="bg-white border border-gray-300 rounded-md divide-y divide-gray-100 max-h-60 overflow-y-auto">
+                                <div class="bg-surface border border-line-strong rounded-md divide-y divide-line-subtle max-h-60 overflow-y-auto">
                                     <div v-for="group in usageAddonGroups" :key="group.gymId" class="p-3">
                                         <p
                                             v-if="hasForeignAddons"
-                                            class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                            class="text-xs font-semibold uppercase tracking-wide text-ink-muted mb-2"
                                         >
                                             {{ group.isOwnLocation ? 'Dieser Standort' : group.gymName }}
                                         </p>
@@ -355,13 +357,13 @@
                                                 v-model="form.addon_ids"
                                                 type="checkbox"
                                                 :value="addon.id"
-                                                class="rounded text-indigo-600 focus:ring-indigo-500"
+                                                class="rounded text-brand-ink"
                                             />
-                                            <span class="ml-2 text-sm text-gray-700">{{ addon.name }}</span>
+                                            <span class="ml-2 text-sm text-ink-secondary">{{ addon.name }}</span>
                                         </label>
                                     </div>
                                 </div>
-                                <p class="mt-1.5 text-xs text-gray-600">
+                                <p class="mt-1.5 text-xs text-ink-secondary">
                                     Beim Zapfvorgang wird geprüft, ob das Mitglied ein gültiges
                                     Kontingent einer der ausgewählten Leistungen besitzt.
                                     <template v-if="hasForeignAddons">
@@ -371,8 +373,8 @@
                                     </template>
                                 </p>
 
-                                <div class="mt-3 bg-white border border-gray-200 rounded-lg p-3">
-                                    <p class="text-sm font-medium text-gray-900 mb-2">
+                                <div class="mt-3 bg-surface border border-line rounded-lg p-3">
+                                    <p class="text-sm font-medium text-ink mb-2">
                                         Bei jeder Nutzung
                                     </p>
                                     <label class="flex items-center mb-2 cursor-pointer">
@@ -380,9 +382,9 @@
                                             v-model="form.enforce_quota"
                                             type="radio"
                                             :value="true"
-                                            class="text-indigo-600 focus:ring-indigo-500"
+                                            class="text-brand-ink"
                                         />
-                                        <span class="ml-2 text-sm text-gray-700">
+                                        <span class="ml-2 text-sm text-ink-secondary">
                                             Kontingent prüfen &amp; Nutzung freischalten
                                         </span>
                                     </label>
@@ -391,9 +393,9 @@
                                             v-model="form.enforce_quota"
                                             type="radio"
                                             :value="false"
-                                            class="text-indigo-600 focus:ring-indigo-500"
+                                            class="text-brand-ink"
                                         />
-                                        <span class="ml-2 text-sm text-gray-700">
+                                        <span class="ml-2 text-sm text-ink-secondary">
                                             Nur protokollieren (keine Sperre)
                                         </span>
                                     </label>
@@ -406,9 +408,9 @@
                                 <input
                                     v-model="form.is_active"
                                     type="checkbox"
-                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    class="rounded border-line-strong text-brand-ink shadow-sm"
                                 />
-                                <span class="ml-2 text-sm text-gray-700">Gerät aktiv</span>
+                                <span class="ml-2 text-sm text-ink-secondary">Gerät aktiv</span>
                             </label>
                         </div>
                         </div>
@@ -416,10 +418,10 @@
                         <!-- Second column: optional security settings -->
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <label class="block text-sm font-medium text-ink-secondary mb-2">
                                     Erlaubte IP-Adressen (optional)
                             </label>
-                            <p class="text-xs text-gray-500 mb-2">
+                            <p class="text-xs text-ink-muted mb-2">
                                 Wenn gesetzt, werden nur Anfragen von diesen IP-Adressen akzeptiert.
                             </p>
                             <div class="space-y-2">
@@ -428,12 +430,12 @@
                                         v-model="form.allowed_ips[index]"
                                         type="text"
                                         placeholder="z.B. 192.168.1.100"
-                                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                                        class="field flex-1 px-3 py-2 font-mono"
                                     />
                                     <button
                                         type="button"
                                         @click="removeIp(index)"
-                                        class="p-1 text-red-500 hover:text-red-700"
+                                        class="p-1 text-danger hover:text-danger-strong"
                                     >
                                         <X class="w-4 h-4" />
                                     </button>
@@ -441,7 +443,7 @@
                                 <button
                                     type="button"
                                     @click="addIp"
-                                    class="text-sm text-indigo-600 hover:text-indigo-800"
+                                    class="text-sm text-brand-ink hover:text-brand-ink-strong"
                                 >
                                     + IP-Adresse hinzufügen
                                 </button>
@@ -449,25 +451,25 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <label for="scanner-management-form-token-expires-at" class="block text-sm font-medium text-ink-secondary mb-2">
                                 Ablaufdatum des API-Tokens
                             </label>
-                            <input
+                            <input id="scanner-management-form-token-expires-at"
                                 v-model="form.token_expires_at"
                                 type="date"
                                 :disabled="tokenNeverExpires"
                                 :min="tomorrow"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400"
+                                class="field w-full px-3 py-2 disabled:bg-fill disabled:text-ink-muted"
                             />
                             <label class="mt-2 flex items-center">
                                 <input
                                     v-model="tokenNeverExpires"
                                     type="checkbox"
-                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    class="rounded border-line-strong text-brand-ink"
                                 />
-                                <span class="ml-2 text-sm text-gray-700">Token läuft nie ab</span>
+                                <span class="ml-2 text-sm text-ink-secondary">Token läuft nie ab</span>
                             </label>
-                            <p class="mt-2 text-xs text-amber-600 flex items-start" v-if="!tokenNeverExpires">
+                            <p class="mt-2 text-xs text-warning flex items-start" v-if="!tokenNeverExpires">
                                 <AlertTriangle class="w-3.5 h-3.5 mr-1 mt-0.5 shrink-0" />
                                 <span>
                                     Nach diesem Datum verweigert das Gerät den Zutritt, bis ein neuer
@@ -479,24 +481,24 @@
                     </div>
 
                     <!-- Show Token after creation -->
-                    <div v-if="newApiToken" class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div v-if="newApiToken" class="bg-success-subtle border border-success-line rounded-lg p-4">
                         <div class="flex items-start">
-                            <CheckCircle class="w-5 h-5 text-green-500 mt-0.5 mr-2" />
+                            <CheckCircle class="w-5 h-5 text-success mt-0.5 mr-2" />
                             <div class="flex-1">
-                                <p class="text-sm font-medium text-green-800">
+                                <p class="text-sm font-medium text-success-strong">
                                     Gerät erfolgreich angelegt!
                                 </p>
-                                <p class="text-xs text-green-700 mt-1">
+                                <p class="text-xs text-success mt-1">
                                     Kopieren Sie den API-Token jetzt. Er wird nur einmal angezeigt.
                                 </p>
                                 <div class="mt-2 flex items-center space-x-2">
-                                    <code class="flex-1 text-xs bg-white px-2 py-1 rounded border font-mono break-all">
+                                    <code class="flex-1 text-xs bg-surface px-2 py-1 rounded border font-mono break-all">
                                         {{ newApiToken }}
                                     </code>
                                     <button
                                         type="button"
                                         @click="copyToken"
-                                        class="p-1 text-green-600 hover:text-green-800"
+                                        class="p-1 text-success hover:text-success-strong"
                                     >
                                         <Copy class="w-4 h-4" />
                                     </button>
@@ -512,7 +514,7 @@
                             type="button"
                             @click="regenerateToken"
                             :disabled="isRegeneratingToken"
-                            class="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
+                            class="inline-flex items-center px-4 py-2 bg-danger-solid text-white rounded-md text-sm font-medium hover:bg-danger-solid-strong disabled:opacity-50 transition-colors"
                         >
                             <RefreshCw
                                 class="w-4 h-4 mr-1"
@@ -526,7 +528,7 @@
                             <button
                                 type="button"
                                 @click="closeModal"
-                                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                class="px-4 py-2 border border-line-strong rounded-md text-sm font-medium text-ink-secondary hover:bg-surface-muted"
                             >
                                 {{ newApiToken ? 'Schließen' : 'Abbrechen' }}
                             </button>
@@ -534,7 +536,7 @@
                                 v-if="!newApiToken"
                                 type="submit"
                                 :disabled="isSaving || missingAddonLink"
-                                class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                                class="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium hover:bg-brand-strong disabled:opacity-50"
                             >
                                 {{ isSaving ? 'Speichern...' : (editingScanner ? 'Speichern' : 'Erstellen') }}
                             </button>
@@ -546,13 +548,13 @@
 
         <!-- Delete Confirmation Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="showDeleteModal = false">
-            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white" @click.stop>
+            <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface" @click.stop>
                 <div class="text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                        <AlertTriangle class="h-6 w-6 text-red-600" />
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-soft">
+                        <AlertTriangle class="h-6 w-6 text-danger" />
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900 mt-4">Gerät löschen</h3>
-                    <p class="text-sm text-gray-500 mt-2">
+                    <h3 class="text-lg font-semibold text-ink mt-4">Gerät löschen</h3>
+                    <p class="text-sm text-ink-muted mt-2">
                         Möchten Sie das Gerät "{{ scannerToDelete?.device_name }}" wirklich löschen?
                         Diese Aktion kann nicht rückgängig gemacht werden.
                     </p>
@@ -560,13 +562,13 @@
                         <button
                             @click="deleteScanner"
                             :disabled="isDeleting"
-                            class="w-full px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                            class="w-full px-4 py-2 bg-danger-solid text-white rounded-md text-sm font-medium hover:bg-danger-solid-strong disabled:opacity-50"
                         >
                             {{ isDeleting ? 'Löschen...' : 'Endgültig löschen' }}
                         </button>
                         <button
                             @click="showDeleteModal = false"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            class="w-full px-4 py-2 border border-line-strong rounded-md text-sm font-medium text-ink-secondary hover:bg-surface-muted"
                         >
                             Abbrechen
                         </button>
@@ -577,13 +579,13 @@
 
         <!-- Regenerate Secret Key Confirmation Modal -->
         <div v-if="showRegenerateKeyModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50" @click="showRegenerateKeyModal = false">
-            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white" @click.stop>
+            <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface" @click.stop>
                 <div class="text-center">
                     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100">
                         <AlertTriangle class="h-6 w-6 text-orange-600" />
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900 mt-4">Secret-Key erneuern</h3>
-                    <p class="text-sm text-gray-500 mt-2">
+                    <h3 class="text-lg font-semibold text-ink mt-4">Secret-Key erneuern</h3>
+                    <p class="text-sm text-ink-muted mt-2">
                         Wenn Sie den Secret-Key erneuern, müssen alle Geräte neu konfiguriert werden.
                         Bestehende QR-Codes werden ungültig.
                     </p>
@@ -591,13 +593,13 @@
                         <button
                             @click="regenerateSecretKey"
                             :disabled="isRegeneratingKey"
-                            class="w-full px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
+                            class="w-full px-4 py-2 bg-danger-solid text-white rounded-md text-sm font-medium hover:bg-danger-solid-strong disabled:opacity-50 transition-colors"
                         >
                             {{ isRegeneratingKey ? 'Generiere...' : 'Ja, Key erneuern' }}
                         </button>
                         <button
                             @click="showRegenerateKeyModal = false"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            class="w-full px-4 py-2 border border-line-strong rounded-md text-sm font-medium text-ink-secondary hover:bg-surface-muted"
                         >
                             Abbrechen
                         </button>
@@ -902,15 +904,15 @@ const copyToken = async () => {
 
 const getStatusClasses = (scanner) => {
     if (!scanner.is_active) {
-        return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'
+        return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-fill text-ink'
     }
     if (scanner.locked_until && new Date(scanner.locked_until) > new Date()) {
-        return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'
+        return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-soft text-warning-strong'
     }
     if (scanner.last_seen_at && isOnline(scanner.last_seen_at)) {
-        return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'
+        return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-strong'
     }
-    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800'
+    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-soft text-danger-strong'
 }
 
 const getStatusLabel = (scanner) => {

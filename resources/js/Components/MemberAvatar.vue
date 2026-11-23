@@ -1,10 +1,10 @@
 <template>
   <div class="relative inline-flex">
-    <!-- Avatar mit Initialen -->
+    <!-- Avatar with initials; white text needs ≥4.5:1, hence orange-700 / brand -->
     <div
       :class="[
         'rounded-full text-white flex items-center justify-center font-semibold',
-        isGuest ? 'bg-orange-500' : 'bg-indigo-500',
+        isGuest ? 'bg-guest-solid' : 'bg-brand',
         sizeClasses
       ]"
     >
@@ -15,7 +15,7 @@
     <span
       v-if="ageVerified"
       :class="[
-        'absolute flex items-center justify-center bg-blue-500 rounded-full border-2 border-white',
+        'absolute flex items-center justify-center bg-info-solid rounded-full border-2 border-white',
         checkmarkSizeClasses
       ]"
       :title="verifiedTooltip"

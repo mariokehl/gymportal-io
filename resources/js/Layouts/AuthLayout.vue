@@ -1,21 +1,21 @@
 <!-- resources/js/Layouts/AuthLayout.vue -->
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-surface-muted flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <Head :title="pageTitle || appName" />
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <!-- App Name Header -->
         <div class="text-center">
             <Logo class="h-8 w-auto mx-auto mb-2" />
-            <p class="text-sm text-gray-600 mb-6">Gym Management System</p>
+            <p class="text-sm text-ink-secondary mb-6">Gym Management System</p>
         </div>
 
         <!-- Page Title -->
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-ink">
             <slot name="title"></slot>
         </h2>
     </div>
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div class="bg-surface py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <slot></slot>
         </div>
     </div>

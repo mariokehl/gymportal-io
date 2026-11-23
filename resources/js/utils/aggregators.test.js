@@ -32,7 +32,10 @@ describe('aggregatorBadgeStyle', () => {
 
   it('draws a dashed outline while the link is pending', () => {
     expect(aggregatorBadgeStyle(wellpass, 'pending').border).toBe(`1px dashed ${wellpass.border}`)
-    expect(aggregatorBadgeStyle(wellpass, 'pending').background).toBe('#ffffff')
+    const style = aggregatorBadgeStyle(wellpass, 'pending')
+    // Transparent so the badge works on light and dark surfaces
+    expect(style.background).toBe('transparent')
+    expect(style.color).toBe('light-dark(#155e75, #22d3ee)')
   })
 
   it('returns no style without a provider', () => {

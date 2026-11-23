@@ -9,7 +9,8 @@
   >
     <div
       v-if="show"
-      class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
+      :role="type === 'error' ? 'alert' : 'status'"
+      class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border border-line bg-surface shadow-lg"
     >
       <div class="p-4">
         <div class="flex items-start">
@@ -17,13 +18,13 @@
             <component :is="config.icon" :class="['w-6 h-6', config.iconClass]" aria-hidden="true" />
           </div>
           <div class="ml-3 w-0 flex-1 pt-0.5">
-            <p class="text-sm font-medium text-gray-900">{{ title }}</p>
-            <p v-if="message" class="mt-1 text-sm text-gray-500">{{ message }}</p>
+            <p class="text-sm font-medium text-ink">{{ title }}</p>
+            <p v-if="message" class="mt-1 text-sm text-ink-muted">{{ message }}</p>
           </div>
           <div class="ml-4 flex flex-shrink-0">
             <button
               type="button"
-              class="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              class="inline-flex rounded-md bg-surface text-ink-muted hover:text-ink-muted"
               @click="dismiss"
             >
               <span class="sr-only">Schließen</span>
@@ -61,10 +62,10 @@ const emit = defineEmits(['dismiss'])
 const show = ref(true)
 
 const typeConfig = {
-  success: { icon: CheckCircle, iconClass: 'text-green-400' },
-  error: { icon: XCircle, iconClass: 'text-red-400' },
-  warning: { icon: AlertTriangle, iconClass: 'text-yellow-400' },
-  info: { icon: Info, iconClass: 'text-blue-400' },
+  success: { icon: CheckCircle, iconClass: 'text-success' },
+  error: { icon: XCircle, iconClass: 'text-danger' },
+  warning: { icon: AlertTriangle, iconClass: 'text-warning' },
+  info: { icon: Info, iconClass: 'text-info' },
 }
 
 const config = computed(() => typeConfig[props.type] ?? typeConfig.success)

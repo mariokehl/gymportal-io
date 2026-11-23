@@ -80,17 +80,17 @@ async function handleApiRequestNotifications(apiRequest, successMessage, errorMe
 
       if (status === 422) {
         // Laravel validation error
-        error(data?.message ?? 'Bitte überprüfe deine Eingaben.')
+        error(data?.message ?? 'Bitte überprüfen Sie Ihre Eingaben.')
       } else if (status === 403) {
         error(errorMessage ?? 'Keine Berechtigung für diese Aktion.')
       } else {
         error(
           errorMessage ?? 'Aktion fehlgeschlagen',
-          data?.message ?? 'Bitte versuche es später erneut.'
+          data?.message ?? 'Bitte versuchen Sie es später erneut.'
         )
       }
     } else {
-      error(errorMessage ?? 'Aktion fehlgeschlagen', 'Bitte versuche es später erneut.')
+      error(errorMessage ?? 'Aktion fehlgeschlagen', 'Bitte versuchen Sie es später erneut.')
     }
 
     return undefined
