@@ -42,7 +42,9 @@
          container's scroll position, since the shell outlives page visits. -->
     <div class="flex-1 min-w-0 overflow-y-auto" scroll-region>
       <!-- Header -->
-      <header class="bg-surface shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+      <!-- Same 72px height and hairline as the sidebar's brand header, so both
+           read as one strip. -->
+      <header class="h-18 px-4 bg-surface border-b border-line flex justify-between items-center sticky top-0 z-10">
         <div class="flex items-center min-w-0 flex-1">
           <!-- Hamburger (mobile only) -->
           <button
@@ -91,13 +93,8 @@
             <!-- Notification Popup Component -->
             <NotificationPopup />
 
-            <!-- User Profile -->
-            <Link :href="route('profile.index')" :aria-label="`Profil von ${user.first_name} ${user.last_name}`" class="flex items-center hover:bg-fill rounded-lg px-2 py-1 transition-colors cursor-pointer">
-              <div class="w-8 h-8 bg-brand rounded-full text-white flex items-center justify-center text-xs font-semibold">
-                {{ userInitials }}
-              </div>
-              <span class="hidden sm:inline ml-2 max-w-48 truncate text-sm font-medium">{{ user.first_name }} {{ user.last_name }}</span>
-            </Link>
+            <!-- Account: profile and signing out -->
+            <UserMenu />
           </div>
         </div>
       </header>
@@ -132,6 +129,7 @@ import { Shield, Menu, Search } from '@lucide/vue'
 import SidebarNav from '@/Components/SidebarNav.vue'
 import NotificationPopup from '@/Components/NotificationPopup.vue'
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue'
+import UserMenu from '@/Components/UserMenu.vue'
 import Chatwoot from '@/Components/Chatwoot.vue'
 import { useMemberSearchHistory } from '@/composables/useMemberSearchHistory'
 import { APP_SHELL_KEY, createAppShellState } from '@/composables/useAppShell'
@@ -232,12 +230,6 @@ const chatwootUrl = page.props.chatwoot?.baseUrl
 const chatwootIdentityHash = page.props.chatwoot?.identityHash
 
 const user = computed(() => page.props.auth.user)
-
-const userInitials = computed(() => {
-  const first = user.value.first_name?.charAt(0) || ''
-  const last = user.value.last_name?.charAt(0) || ''
-  return (first + last).toUpperCase()
-})
 
 const isAdmin = computed(() => user.value?.role_id === 1)
 

@@ -1,16 +1,13 @@
 <template>
   <div class="flex flex-col h-full">
-    <!-- Brand header -->
-    <div class="p-4 border-b border-line flex items-start justify-between">
-      <div>
-        <Logo class="h-5 w-auto" />
-        <p class="mt-1 text-xs text-ink-muted">Mitgliederverwaltung</p>
-      </div>
+    <!-- Brand header: the wordmark alone, 72px like the app header -->
+    <div class="h-18 flex-none px-4 border-b border-line flex items-center justify-between">
+      <Logo class="h-5 w-auto" />
       <!-- Close button (drawer only) -->
       <button
         v-if="dismissible"
         type="button"
-        class="lg:hidden -mr-1 -mt-1 p-2 rounded-xl text-ink-muted hover:bg-fill transition-colors"
+        class="lg:hidden -mr-1 p-2 rounded-xl text-ink-muted hover:bg-fill transition-colors"
         aria-label="Menü schließen"
         @click="$emit('close')"
       >
@@ -98,15 +95,6 @@
       </div>
     </nav>
 
-    <!-- Signing out is an action, not a destination: kept out of the nav list -->
-    <div class="px-2 pb-2">
-      <SidebarItem
-        :icon="LogOut"
-        label="Abmelden"
-        @click="handleLogout"
-      />
-    </div>
-
     <OrganizationSwitcher />
 
     <!-- Trial/Subscription Status + Version -->
@@ -147,10 +135,10 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { router, usePage, Link } from '@inertiajs/vue3'
+import { usePage, Link } from '@inertiajs/vue3'
 import {
   Users, Bell, DollarSign,
-  BarChart, Settings, LogOut,
+  BarChart, Settings,
   FilePlus, DoorOpen, ArrowDownUp, X
 } from '@lucide/vue'
 import SidebarItem from '@/Components/SidebarItem.vue'
@@ -196,12 +184,6 @@ const canAccessPremiumFeatures = computed(() => {
 const isOwnerOrAdmin = computed(() => {
   return user.value?.role_id === 1 || user.value?.role_id === 2
 })
-
-const handleLogout = () => {
-  if (confirm('Möchten Sie sich wirklich abmelden?')) {
-    router.post('/logout')
-  }
-}
 
 const quickSearch = ref(null)
 
