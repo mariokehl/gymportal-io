@@ -1,18 +1,22 @@
 <template>
-  <div v-if="showPagination" class="bg-surface px-4 py-3 flex items-center justify-between border-t border-line sm:px-6">
+  <div v-if="showPagination" ref="root" class="bg-surface px-4 py-3 flex items-center justify-between border-t border-line sm:px-6">
     <!-- Mobile Pagination -->
     <div class="flex-1 flex justify-between sm:hidden">
       <button
         v-if="data.prev_page_url"
+        :disabled="isLoading"
+        aria-keyshortcuts="ArrowLeft"
         @click="navigate(data.prev_page_url)"
-        class="relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
+        class="disabled:opacity-50 relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
       >
         Zurück
       </button>
       <button
         v-if="data.next_page_url"
+        :disabled="isLoading"
+        aria-keyshortcuts="ArrowRight"
         @click="navigate(data.next_page_url)"
-        class="ml-3 relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
+        class="disabled:opacity-50 ml-3 relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
       >
         Weiter
       </button>
@@ -36,6 +40,12 @@
           <template v-else>
             Keine {{ itemLabel }} gefunden
           </template>
+          <!-- Only where a keyboard is likely; touch screens have none. -->
+          <span v-if="data.total > 0" class="ml-3 hidden text-xs text-ink-muted pointer-fine:inline" aria-hidden="true">
+            <kbd class="rounded border border-line-strong px-1 font-sans">←</kbd>
+            <kbd class="rounded border border-line-strong px-1 font-sans">→</kbd>
+            zum Blättern
+          </span>
         </p>
       </div>
 
@@ -45,6 +55,8 @@
           <!-- Previous Button -->
           <button
             v-if="data.prev_page_url"
+            aria-keyshortcuts="ArrowLeft"
+            title="Vorherige Seite (←)"
             @click="navigate(data.prev_page_url)"
             class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-line-strong bg-surface text-sm font-medium text-ink-muted hover:bg-surface-muted focus:z-10"
             :disabled="isLoading"
@@ -87,6 +99,8 @@
           <!-- Next Button -->
           <button
             v-if="data.next_page_url"
+            aria-keyshortcuts="ArrowRight"
+            title="Nächste Seite (→)"
             @click="navigate(data.next_page_url)"
             class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-line-strong bg-surface text-sm font-medium text-ink-muted hover:bg-surface-muted focus:z-10"
             :disabled="isLoading"
@@ -107,9 +121,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
+import { focusListIfPaginating, scrollListIntoView } from '@/utils/listScroll'
+import { paginationDirection } from '@/utils/paginationKeys'
 
 // Props
 const props = defineProps({
@@ -154,6 +170,11 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // Element whose top is brought back into view on a page change (usually
+  // the list container). Give it tabindex="-1" so keyboard focus can follow.
+  scrollTarget: {
+    default: null
+  },
   // Maximum number of page links to show
   maxVisiblePages: {
     type: Number,
@@ -163,6 +184,8 @@ const props = defineProps({
 
 // Emits
 const emit = defineEmits(['navigate'])
+
+const root = ref(null)
 
 // Computed
 const showPagination = computed(() => {
@@ -189,18 +212,41 @@ const navigate = (url) => {
   if (!url || props.isLoading) return
 
   if (props.useInertia && router) {
+    // Scroll up right away, while the next page loads, so the skeleton
+    // is what the user sees instead of the stale rows at the bottom.
+    scrollListIntoView(props.scrollTarget)
+
     // Use Inertia router for navigation
     router.get(url, {}, {
       preserveState: props.preserveState,
       preserveScroll: props.preserveScroll,
       onStart: () => emit('navigate', { url, type: 'start' }),
-      onFinish: () => emit('navigate', { url, type: 'finish' })
+      onFinish: () => {
+        focusListIfPaginating(props.scrollTarget, root.value)
+        emit('navigate', { url, type: 'finish' })
+      }
     })
   } else {
     // Emit event for parent to handle
     emit('navigate', { url })
   }
 }
+
+// ← / → page through the list from anywhere on the page, unless the key
+// belongs to a field, widget, dialog or horizontal scroller.
+const onKeydown = event => {
+  if (!showPagination.value || props.isLoading) return
+
+  const direction = paginationDirection(event)
+  const url = direction === 'prev' ? props.data.prev_page_url : direction === 'next' ? props.data.next_page_url : null
+  if (!url) return
+
+  event.preventDefault()
+  navigate(url)
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 // Expose methods if needed
 defineExpose({

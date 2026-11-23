@@ -1,5 +1,7 @@
 <template>
-  <div>
+  <!-- scroll-mt clears the sticky app header when paginating scrolls the
+       table back up; tabindex lets keyboard focus follow. -->
+  <div ref="root" tabindex="-1" class="scroll-mt-24 focus:outline-none" :aria-busy="showSkeleton">
     <!-- Actions Bar -->
     <div class="bg-surface p-4 rounded-lg shadow-sm border border-line mb-4">
       <div class="flex items-center justify-between">
@@ -58,7 +60,12 @@
 
     <!-- Payments Table -->
     <div class="bg-surface rounded-lg shadow-sm border border-line overflow-hidden">
-      <div class="overflow-x-auto">
+      <!-- Dimmed right away while loading, so a click has visible effect
+           even when the response is too fast for the skeleton. -->
+      <div
+        class="overflow-x-auto transition-opacity duration-100"
+        :class="isBusy && !showSkeleton ? 'pointer-events-none opacity-50' : ''"
+      >
         <table class="min-w-full divide-y divide-line">
           <thead class="bg-surface-muted">
             <tr>
@@ -91,8 +98,16 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-surface divide-y divide-line">
-            <template v-for="payment in payments.data" :key="payment.id">
+          <tbody ref="tableBody" class="bg-surface divide-y divide-line">
+            <TableSkeletonRows
+              v-if="showSkeleton"
+              :rows="skeletonRowCount"
+              :columns="visibleColumns.length + (showCheckboxes ? 1 : 0) + (showActions ? 1 : 0)"
+              :row-height="rowHeight"
+              cell-class="px-4 2xl:px-6 py-3"
+              bar-height="h-4"
+            />
+            <template v-for="payment in (showSkeleton ? [] : payments.data)" :key="payment.id">
             <tr
               :class="[
                 rowBackgroundClass(payment),
@@ -389,7 +404,8 @@
         v-if="showPagination"
         :data="payments"
         item-label="Zahlungen"
-        :is-loading="isProcessing"
+        :is-loading="isProcessing || loading"
+        :scroll-target="root"
         @navigate="handlePaginationEvent"
       />
     </div>
@@ -416,6 +432,9 @@ import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
+import TableSkeletonRows from '@/Components/Common/TableSkeletonRows.vue'
+import { useDelayedFlag } from '@/composables/useDelayedFlag'
+import { averageRowHeight } from '@/utils/skeletonSize'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
 import PaymentDetailModal from '@/Components/PaymentDetailModal.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
@@ -501,6 +520,11 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // Set by the parent while it reloads the list (filters, sorting, page size)
+  loading: {
+    type: Boolean,
+    default: false
+  },
   showCsvExport: {
     type: Boolean,
     default: true
@@ -554,6 +578,25 @@ const selectedPayments = ref(props.selectedIds)
 const showPaymentModal = ref(false)
 const selectedPayment = ref(null)
 const isProcessing = ref(false)
+const root = ref(null)
+
+// Skeleton rows replace the table while a page loads; as many as are shown
+// now, so the layout height stays stable.
+const isBusy = computed(() => isProcessing.value || props.loading)
+const showSkeleton = useDelayedFlag(isBusy)
+const skeletonRowCount = computed(() => props.payments.data.length || 10)
+
+// Measured while the real rows are still rendered, right when loading
+// starts. Averaged over the whole body, so expanded detail rows count too
+// and the table keeps its height.
+const tableBody = ref(null)
+const rowHeight = ref(null)
+
+watch(isBusy, busy => {
+  if (!busy || showSkeleton.value) return
+
+  rowHeight.value = averageRowHeight(tableBody.value, skeletonRowCount.value) ?? rowHeight.value
+}, { flush: 'sync' })
 const expandedRows = ref(new Set())
 
 // Watch for external changes to selectedIds

@@ -1,6 +1,9 @@
 <template>
   <div
     v-if="show"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Zahlungsdetails"
     class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50"
     @click="close"
   >

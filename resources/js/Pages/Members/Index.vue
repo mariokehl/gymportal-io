@@ -14,7 +14,14 @@
         subject="Mitglieder"
       />
 
-      <section class="@container overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
+      <!-- scroll-mt clears the sticky app header when paginating scrolls
+           the list back up; tabindex lets keyboard focus follow. -->
+      <section
+        ref="listSection"
+        tabindex="-1"
+        class="@container scroll-mt-24 overflow-hidden rounded-lg border border-line bg-surface shadow-sm focus:outline-none"
+        :aria-busy="showSkeleton"
+      >
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <div class="flex items-baseline gap-2">
             <template v-if="canViewStatistics">
@@ -83,12 +90,33 @@
         <!-- relative: absolutely positioned descendants (e.g. the sr-only
              "Aktionen" heading) must be clipped by this scroll container,
              otherwise they are placed against the page and widen the window. -->
-        <div class="relative overflow-x-auto">
+        <!-- Dimmed right away while loading, so a click has visible effect
+             even when the response is too fast for the skeleton. -->
+        <div
+          class="relative overflow-x-auto transition-opacity duration-100"
+          :class="isLoading && !showSkeleton ? 'pointer-events-none opacity-50' : ''"
+        >
           <!-- Narrow cards (phones): one row per member with what identifies
                them at a glance; the full table needs ~1180px. -->
-          <ul class="@2xl:hidden divide-y divide-line-subtle">
+          <ul ref="cardList" class="@2xl:hidden divide-y divide-line-subtle">
+            <template v-if="showSkeleton">
+              <li
+                v-for="row in skeletonRowCount"
+                :key="`skeleton-${row}`"
+                class="flex items-center gap-3 px-4 py-2"
+                :style="cardRowHeight ? { height: `${cardRowHeight}px` } : null"
+                aria-hidden="true"
+              >
+                <div class="size-9 shrink-0 rounded-full bg-fill motion-safe:animate-pulse" />
+                <div class="min-w-0 flex-1 space-y-2">
+                  <div class="h-3.5 w-2/5 rounded bg-fill motion-safe:animate-pulse" />
+                  <div class="h-3 w-3/5 rounded bg-fill motion-safe:animate-pulse" />
+                </div>
+                <div class="h-5 w-16 shrink-0 rounded-full bg-fill motion-safe:animate-pulse" />
+              </li>
+            </template>
             <li
-              v-for="member in members.data"
+              v-for="member in (showSkeleton ? [] : members.data)"
               :key="member.id"
               class="flex items-center gap-2 py-2.5 pr-4"
               :class="[isSelected(member.id) ? 'bg-brand-subtle/60' : '', canExport ? 'pl-2' : 'pl-4']"
@@ -184,9 +212,16 @@
                 <th class="w-12 pr-5"><span class="sr-only">Aktionen</span></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-line-subtle">
+            <tbody ref="tableBody" class="divide-y divide-line-subtle">
+              <TableSkeletonRows
+                v-if="showSkeleton"
+                :rows="skeletonRowCount"
+                :columns="columns.length + (canExport ? 2 : 1)"
+                :row-height="tableRowHeight"
+                cell-class="px-3 py-3 first:pl-5"
+              />
               <tr
-                v-for="member in members.data"
+                v-for="member in (showSkeleton ? [] : members.data)"
                 :key="member.id"
                 :class="isSelected(member.id) ? 'bg-brand-subtle/60' : 'hover:bg-surface-muted'"
               >
@@ -314,7 +349,7 @@
             </tbody>
           </table>
 
-          <div v-if="members.data.length === 0" class="px-6 py-12 text-center">
+          <div v-if="members.data.length === 0 && !showSkeleton" class="px-6 py-12 text-center">
             <Users class="mx-auto h-12 w-12 text-ink-muted" />
             <h3 class="mt-2 text-sm font-semibold text-ink">Keine Mitglieder gefunden</h3>
             <p class="mt-1 text-sm text-ink-muted">
@@ -330,13 +365,14 @@
           item-label="Mitglieder"
           :hide-total="!canViewStatistics"
           :is-loading="isLoading"
+          :scroll-target="listSection"
           @navigate="handlePaginationEvent"
         />
       </section>
     </div>
 
     <!-- Erweitertes Lösch-Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
+    <div v-if="showDeleteModal" role="dialog" aria-modal="true" aria-label="Mitglied löschen" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface">
         <div class="mt-3 text-center">
           <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-soft">
@@ -414,6 +450,7 @@ import { debounce } from 'lodash'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import AppShell from '@/Layouts/AppShell.vue'
 import Pagination from '@/Components/Pagination.vue'
+import TableSkeletonRows from '@/Components/Common/TableSkeletonRows.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
@@ -426,6 +463,8 @@ import {
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { activeConditionCount, effectiveKey, normalizeDefinition, serializeDefinition } from '@/utils/filterBuilder'
 import { useToast } from '@/composables/useToast'
+import { useDelayedFlag } from '@/composables/useDelayedFlag'
+import { averageRowHeight } from '@/utils/skeletonSize'
 
 defineOptions({ layout: AppShell })
 
@@ -476,6 +515,27 @@ const sortDirection = ref(props.sorting.sortDirection)
 const perPage = ref(props.perPage)
 const perPageChosen = ref(false)
 const isLoading = ref(false)
+const listSection = ref(null)
+
+// Skeleton rows replace the list while a page, filter or sort loads; as many
+// as are shown now, so the layout height stays stable.
+const showSkeleton = useDelayedFlag(isLoading)
+const skeletonRowCount = computed(() => Math.min(props.members.data.length || perPage.value, perPage.value))
+
+// Measured while the real rows are still rendered, right when loading
+// starts; only the visible layout (table or cards) yields a height.
+const tableBody = ref(null)
+const cardList = ref(null)
+const tableRowHeight = ref(null)
+const cardRowHeight = ref(null)
+
+watch(isLoading, loading => {
+  if (!loading || showSkeleton.value) return
+
+  const rows = props.members.data.length
+  tableRowHeight.value = averageRowHeight(tableBody.value, rows) ?? tableRowHeight.value
+  cardRowHeight.value = averageRowHeight(cardList.value, rows) ?? cardRowHeight.value
+}, { flush: 'sync' })
 const isExporting = ref(false)
 
 const fieldsByKey = computed(() => Object.fromEntries(props.filterFields.map(field => [field.key, field])))

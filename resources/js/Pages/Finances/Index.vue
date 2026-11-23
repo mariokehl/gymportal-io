@@ -190,6 +190,7 @@
         :payments="payments"
         :columns="tableColumns"
         v-model:selectedIds="selectedPayments"
+        :loading="isLoading"
         @sort="handleSort"
       >
         <template #toolbar>
@@ -275,6 +276,16 @@ const tableColumns = ref([
 
 // Methods
 
+const isLoading = ref(false)
+
+// Reloads keep the scroll position and drive the table's loading skeleton.
+const visitOptions = {
+  preserveState: true,
+  preserveScroll: true,
+  onStart: () => { isLoading.value = true },
+  onFinish: () => { isLoading.value = false }
+}
+
 // The server remembers the last chosen size in a cookie, so once the user
 // picks one it is always sent — even the default, to overwrite the cookie.
 const perPageParams = () =>
@@ -285,8 +296,7 @@ const filterParams = () => ({ ...localFilters.value, due: localFilters.value.due
 
 const applyFilters = () => {
   router.get(route('finances.index'), { ...filterParams(), ...perPageParams() }, {
-    preserveState: true,
-    preserveScroll: true
+    ...visitOptions
   })
 }
 
@@ -323,8 +333,7 @@ const handleSort = (column) => {
     sort_order: newOrder,
     ...perPageParams()
   }, {
-    preserveState: true,
-    preserveScroll: true
+    ...visitOptions
   })
 }
 
@@ -340,8 +349,7 @@ const changePerPage = value => {
     sort_order: props.filters.sort_order,
     ...perPageParams()
   }, {
-    preserveState: true,
-    preserveScroll: true
+    ...visitOptions
   })
 }
 </script>
