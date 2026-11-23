@@ -180,6 +180,7 @@
               :class="member.age_verified ? 'bg-info-solid' : 'bg-line-strong'"
               role="switch"
               :aria-checked="member.age_verified"
+              aria-labelledby="member-age-verified-label"
             >
               <span
                 aria-hidden="true"
@@ -187,7 +188,7 @@
                 :class="member.age_verified ? 'translate-x-5' : 'translate-x-0'"
               />
             </button>
-            <span class="text-sm font-medium text-ink-secondary">Alter verifiziert</span>
+            <span id="member-age-verified-label" class="text-sm font-medium text-ink-secondary">Alter verifiziert</span>
             <span
               v-if="member.age_verified && member.age_verified_at"
               class="text-xs text-ink-muted"
@@ -206,6 +207,7 @@
               :class="member.guest_access ? 'bg-orange-500' : 'bg-line-strong'"
               role="switch"
               :aria-checked="member.guest_access"
+              aria-labelledby="member-guest-access-label"
             >
               <span
                 aria-hidden="true"
@@ -213,7 +215,7 @@
                 :class="member.guest_access ? 'translate-x-5' : 'translate-x-0'"
               />
             </button>
-            <span class="text-sm font-medium text-ink-secondary">Gastzugang</span>
+            <span id="member-guest-access-label" class="text-sm font-medium text-ink-secondary">Gastzugang</span>
             <span
               v-if="member.guest_access && member.guest_access_granted_at"
               class="text-xs text-ink-muted"

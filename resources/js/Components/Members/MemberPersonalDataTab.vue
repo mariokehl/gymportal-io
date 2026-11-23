@@ -41,11 +41,11 @@
             <!-- Salutation (25% = 2/8 columns) -->
             <div class="md:col-span-2">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Anrede</label>
+                <label for="member-personal-data-tab-form-salutation" :class="fieldLabel">Anrede</label>
                 <span v-if="changed('salutation')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.salutation || '—' }}</div>
-              <select
+              <select id="member-personal-data-tab-form-salutation"
                 v-else
                 v-model="form.salutation"
                 :class="fieldClass('salutation')"
@@ -59,34 +59,34 @@
             </div>
             <div class="md:col-span-3">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Vorname <span class="text-danger">*</span></label>
+                <label for="member-personal-data-tab-form-first-name" :class="fieldLabel">Vorname <span class="text-danger">*</span></label>
                 <span v-if="changed('first_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.first_name || '—' }}</div>
-              <input v-else v-model="form.first_name" type="text" :class="fieldClass('first_name')" />
+              <input id="member-personal-data-tab-form-first-name" v-else v-model="form.first_name" type="text" :class="fieldClass('first_name')" />
               <div v-if="form.errors.first_name" class="text-danger text-sm mt-1">{{ form.errors.first_name }}</div>
             </div>
             <div class="md:col-span-3">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Nachname <span class="text-danger">*</span></label>
+                <label for="member-personal-data-tab-form-last-name" :class="fieldLabel">Nachname <span class="text-danger">*</span></label>
                 <span v-if="changed('last_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.last_name || '—' }}</div>
-              <input v-else v-model="form.last_name" type="text" :class="fieldClass('last_name')" />
+              <input id="member-personal-data-tab-form-last-name" v-else v-model="form.last_name" type="text" :class="fieldClass('last_name')" />
               <div v-if="form.errors.last_name" class="text-danger text-sm mt-1">{{ form.errors.last_name }}</div>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-5">
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">E-Mail <span class="text-danger">*</span></label>
+                <label for="member-personal-data-tab-form-email" :class="fieldLabel">E-Mail <span class="text-danger">*</span></label>
                 <span v-if="changed('email')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div class="flex rounded-md shadow-sm">
                 <div v-if="!editMode" class="flex-1 min-w-0" :class="[readBox, hasActiveMembership ? 'rounded-r-none' : '']">
                   <span class="truncate">{{ form.email || '—' }}</span>
                 </div>
-                <input
+                <input id="member-personal-data-tab-form-email"
                   v-else
                   v-model="form.email"
                   type="email"
@@ -106,14 +106,14 @@
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Mobilfunknummer</label>
+                <label for="member-personal-data-tab-form-phone" :class="fieldLabel">Mobilfunknummer</label>
                 <span v-if="changed('phone')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div class="flex rounded-md shadow-sm">
                 <div v-if="!editMode" class="flex-1 min-w-0" :class="[readBox, (telLink || whatsappLink) ? 'rounded-r-none' : '']">
                   <span class="truncate">{{ form.phone || '—' }}</span>
                 </div>
-                <input
+                <input id="member-personal-data-tab-form-phone"
                   v-else
                   v-model="form.phone"
                   type="tel"
@@ -145,55 +145,55 @@
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Geburtsdatum</label>
+                <label for="member-personal-data-tab-form-birth-date" :class="fieldLabel">Geburtsdatum</label>
                 <span v-if="changed('birth_date')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.birth_date ? formatDate(form.birth_date) : '—' }}</div>
-              <input v-else v-model="form.birth_date" type="date" :min="earliestBirthDate()" :class="fieldClass('birth_date')" />
+              <input id="member-personal-data-tab-form-birth-date" v-else v-model="form.birth_date" type="date" :min="earliestBirthDate()" :class="fieldClass('birth_date')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Beitrittsdatum <span class="text-danger">*</span></label>
+                <label for="member-personal-data-tab-form-joined-date" :class="fieldLabel">Beitrittsdatum <span class="text-danger">*</span></label>
                 <span v-if="changed('joined_date')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.joined_date ? formatDate(form.joined_date) : '—' }}</div>
-              <input v-else v-model="form.joined_date" type="date" :class="fieldClass('joined_date')" />
+              <input id="member-personal-data-tab-form-joined-date" v-else v-model="form.joined_date" type="date" :class="fieldClass('joined_date')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Straße und Hausnummer</label>
+                <label for="member-personal-data-tab-form-address" :class="fieldLabel">Straße und Hausnummer</label>
                 <span v-if="changed('address')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.address || '—' }}</div>
-              <input v-else v-model="form.address" type="text" :class="fieldClass('address')" />
+              <input id="member-personal-data-tab-form-address" v-else v-model="form.address" type="text" :class="fieldClass('address')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Adresszusatz</label>
+                <label for="member-personal-data-tab-form-address-addition" :class="fieldLabel">Adresszusatz</label>
                 <span v-if="changed('address_addition')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.address_addition || '—' }}</div>
-              <input v-else v-model="form.address_addition" type="text" placeholder="optional" :class="fieldClass('address_addition')" />
+              <input id="member-personal-data-tab-form-address-addition" v-else v-model="form.address_addition" type="text" placeholder="optional" :class="fieldClass('address_addition')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">PLZ</label>
+                <label for="member-personal-data-tab-form-postal-code" :class="fieldLabel">PLZ</label>
                 <span v-if="changed('postal_code')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.postal_code || '—' }}</div>
-              <input v-else v-model="form.postal_code" type="text" :class="fieldClass('postal_code')" />
+              <input id="member-personal-data-tab-form-postal-code" v-else v-model="form.postal_code" type="text" :class="fieldClass('postal_code')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Stadt</label>
+                <label for="member-personal-data-tab-form-city" :class="fieldLabel">Stadt</label>
                 <span v-if="changed('city')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.city || '—' }}</div>
-              <input v-else v-model="form.city" type="text" :class="fieldClass('city')" />
+              <input id="member-personal-data-tab-form-city" v-else v-model="form.city" type="text" :class="fieldClass('city')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Land</label>
+                <label for="country" :class="fieldLabel">Land</label>
                 <span v-if="changed('country')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ countryLabel(form.country) }}</div>
@@ -205,28 +205,28 @@
             </div>
             <div class="md:col-start-1">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Notfallkontakt Name</label>
+                <label for="member-personal-data-tab-form-emergency-contact-name" :class="fieldLabel">Notfallkontakt Name</label>
                 <span v-if="changed('emergency_contact_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.emergency_contact_name || '—' }}</div>
-              <input v-else v-model="form.emergency_contact_name" type="text" :class="fieldClass('emergency_contact_name')" />
+              <input id="member-personal-data-tab-form-emergency-contact-name" v-else v-model="form.emergency_contact_name" type="text" :class="fieldClass('emergency_contact_name')" />
             </div>
             <div>
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Notfallkontakt Telefon</label>
+                <label for="member-personal-data-tab-form-emergency-contact-phone" :class="fieldLabel">Notfallkontakt Telefon</label>
                 <span v-if="changed('emergency_contact_phone')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.emergency_contact_phone || '—' }}</div>
-              <input v-else v-model="form.emergency_contact_phone" type="tel" :class="fieldClass('emergency_contact_phone')" />
+              <input id="member-personal-data-tab-form-emergency-contact-phone" v-else v-model="form.emergency_contact_phone" type="tel" :class="fieldClass('emergency_contact_phone')" />
             </div>
 
             <div class="md:col-span-2">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Notizen</label>
+                <label for="member-personal-data-tab-form-notes" :class="fieldLabel">Notizen</label>
                 <span v-if="changed('notes')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="[readBox, 'whitespace-pre-wrap min-h-[64px] items-start']">{{ form.notes || '—' }}</div>
-              <textarea v-else v-model="form.notes" rows="3" :class="fieldClass('notes')"></textarea>
+              <textarea id="member-personal-data-tab-form-notes" v-else v-model="form.notes" rows="3" :class="fieldClass('notes')"></textarea>
             </div>
 
             <!-- Legal guardian -->
@@ -237,10 +237,10 @@
 
             <!-- Link to an existing member -->
             <div class="md:col-span-2" v-if="editMode">
-              <label :class="[fieldLabel, 'block mb-1.5']">Mit Mitglied verknüpfen (optional)</label>
+              <label for="member-personal-data-tab-legal-guardian-search" :class="[fieldLabel, 'block mb-1.5']">Mit Mitglied verknüpfen (optional)</label>
               <div class="flex gap-3">
                 <div class="flex-1 relative">
-                  <input
+                  <input id="member-personal-data-tab-legal-guardian-search"
                     v-model="legalGuardianSearch"
                     type="text"
                     placeholder="Nach Mitglied suchen (Name oder Mitgliedsnummer)..."
@@ -298,19 +298,19 @@
             <!-- Manual entry (only when no member is linked) -->
             <div v-if="!form.legal_guardian_member_id">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Vorname</label>
+                <label for="member-personal-data-tab-form-legal-guardian-first-name" :class="fieldLabel">Vorname</label>
                 <span v-if="changed('legal_guardian_first_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.legal_guardian_first_name || '—' }}</div>
-              <input v-else v-model="form.legal_guardian_first_name" type="text" :class="fieldClass('legal_guardian_first_name')" />
+              <input id="member-personal-data-tab-form-legal-guardian-first-name" v-else v-model="form.legal_guardian_first_name" type="text" :class="fieldClass('legal_guardian_first_name')" />
             </div>
             <div v-if="!form.legal_guardian_member_id">
               <div :class="fieldLabelRow">
-                <label :class="fieldLabel">Nachname</label>
+                <label for="member-personal-data-tab-form-legal-guardian-last-name" :class="fieldLabel">Nachname</label>
                 <span v-if="changed('legal_guardian_last_name')" :class="changedFlag"><span :class="changedDot" />Geändert</span>
               </div>
               <div v-if="!editMode" :class="readBox">{{ form.legal_guardian_last_name || '—' }}</div>
-              <input v-else v-model="form.legal_guardian_last_name" type="text" :class="fieldClass('legal_guardian_last_name')" />
+              <input id="member-personal-data-tab-form-legal-guardian-last-name" v-else v-model="form.legal_guardian_last_name" type="text" :class="fieldClass('legal_guardian_last_name')" />
             </div>
           </div>
           <!-- Submit target for Enter key while editing; visible actions live in the header -->

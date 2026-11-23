@@ -40,8 +40,9 @@
         <!-- Remove Button -->
         <button @click="removeLogo"
                 type="button"
-                class="absolute -top-2 -right-2 bg-danger-solid text-white rounded-full p-1 hover:bg-danger-solid">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                aria-label="Logo entfernen"
+                class="touch-target absolute -top-2 -right-2 bg-danger-solid text-white rounded-full p-1 hover:bg-danger-solid">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>

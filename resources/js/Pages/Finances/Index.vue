@@ -63,10 +63,10 @@
       <div class="bg-surface p-6 rounded-lg shadow-sm border border-line">
         <div class="flex flex-wrap items-end gap-4 mb-4">
           <div class="flex-1 min-w-64">
-            <label class="block text-sm font-medium text-ink-secondary mb-1">Suchen</label>
+            <label for="finances-local-filters-search" class="block text-sm font-medium text-ink-secondary mb-1">Suchen</label>
             <div class="relative">
               <Search class="absolute left-3 top-3 h-4 w-4 text-ink-muted" />
-              <input
+              <input id="finances-local-filters-search"
                 v-model="localFilters.search"
                 type="text"
                 placeholder="Nach Mitglied, Beschreibung oder Transaktions-ID suchen..."
@@ -77,8 +77,9 @@
           </div>
 
           <div class="w-48">
-            <label class="block text-sm font-medium text-ink-secondary mb-1">Status</label>
+            <label for="finance-filter-status" class="block text-sm font-medium text-ink-secondary mb-1">Status</label>
             <select
+              id="finance-filter-status"
               v-model="localFilters.status"
               class="field w-full px-3 py-2"
               @change="applyFilters"
@@ -91,8 +92,9 @@
           </div>
 
           <div class="w-48">
-            <label class="block text-sm font-medium text-ink-secondary mb-1">Zahlungsart</label>
+            <label for="finance-filter-payment-method" class="block text-sm font-medium text-ink-secondary mb-1">Zahlungsart</label>
             <select
+              id="finance-filter-payment-method"
               v-model="localFilters.payment_method"
               class="field w-full px-3 py-2"
               @change="applyFilters"
@@ -128,8 +130,8 @@
         <div v-if="showAdvancedFilters" class="border-t border-line pt-4">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label class="block text-sm font-medium text-ink-secondary mb-1">Datum von</label>
-              <input
+              <label for="finances-local-filters-date-from" class="block text-sm font-medium text-ink-secondary mb-1">Datum von</label>
+              <input id="finances-local-filters-date-from"
                 v-model="localFilters.date_from"
                 type="date"
                 class="field w-full px-3 py-2"
@@ -138,8 +140,8 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-ink-secondary mb-1">Datum bis</label>
-              <input
+              <label for="finances-local-filters-date-to" class="block text-sm font-medium text-ink-secondary mb-1">Datum bis</label>
+              <input id="finances-local-filters-date-to"
                 v-model="localFilters.date_to"
                 type="date"
                 class="field w-full px-3 py-2"
@@ -148,8 +150,8 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-ink-secondary mb-1">Betrag von</label>
-              <input
+              <label for="finances-local-filters-amount-from" class="block text-sm font-medium text-ink-secondary mb-1">Betrag von</label>
+              <input id="finances-local-filters-amount-from"
                 v-model="localFilters.amount_from"
                 type="number"
                 step="0.01"
@@ -160,8 +162,8 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-ink-secondary mb-1">Betrag bis</label>
-              <input
+              <label for="finances-local-filters-amount-to" class="block text-sm font-medium text-ink-secondary mb-1">Betrag bis</label>
+              <input id="finances-local-filters-amount-to"
                 v-model="localFilters.amount_to"
                 type="number"
                 step="0.01"

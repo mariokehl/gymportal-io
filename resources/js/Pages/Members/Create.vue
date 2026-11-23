@@ -4,9 +4,10 @@
       <div class="flex items-center">
         <Link
           :href="route('members.index')"
-          class="text-ink-muted hover:text-ink mr-4"
+          aria-label="Zurück zur Mitgliederliste"
+          class="touch-target relative text-ink-muted hover:text-ink mr-4"
         >
-          <ArrowLeft class="w-5 h-5" />
+          <ArrowLeft class="w-5 h-5" aria-hidden="true" />
         </Link>
         Neues Mitglied anlegen
       </div>

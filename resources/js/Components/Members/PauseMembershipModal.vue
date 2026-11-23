@@ -16,10 +16,10 @@
 
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                <label for="pause-membership-modal-form-pause-start-date" class="block text-sm font-medium text-ink-secondary mb-2">
                   Pausierung beginnt am <span class="text-danger">*</span>
                 </label>
-                <input
+                <input id="pause-membership-modal-form-pause-start-date"
                   v-model="form.pause_start_date"
                   type="date"
                   :min="today"
@@ -29,10 +29,10 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                <label for="pause-membership-modal-form-pause-end-date" class="block text-sm font-medium text-ink-secondary mb-2">
                   Pausierung endet am <span class="text-danger">*</span>
                 </label>
-                <input
+                <input id="pause-membership-modal-form-pause-end-date"
                   v-model="form.pause_end_date"
                   type="date"
                   :min="form.pause_start_date"
@@ -42,10 +42,10 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                <label for="pause-membership-modal-form-reason" class="block text-sm font-medium text-ink-secondary mb-2">
                   Grund (optional)
                 </label>
-                <textarea
+                <textarea id="pause-membership-modal-form-reason"
                   v-model="form.reason"
                   rows="3"
                   placeholder="z.B. Urlaub, Verletzung, etc."

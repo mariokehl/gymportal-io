@@ -19,46 +19,46 @@
                         <form @submit.prevent="saveGymSettings" class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Name <span class="text-danger">*</span></label>
-                                    <input v-model="gymForm.name" type="text" class="field block w-full px-3 py-1.5" required />
+                                    <label for="settings-gym-form-name" class="block text-sm/6 font-medium text-ink-secondary">Name <span class="text-danger">*</span></label>
+                                    <input id="settings-gym-form-name" v-model="gymForm.name" type="text" class="field block w-full px-3 py-1.5" required />
                                     <p class="mt-1 text-xs text-ink-muted">
                                         Änderungen am Namen werden nach außen kommuniziert und beeinflussen die URL des Mitglieder-Bereichs und der PWA.
                                     </p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Anzeigename (optional)</label>
-                                    <input v-model="gymForm.display_name" type="text" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-display-name" class="block text-sm/6 font-medium text-ink-secondary">Anzeigename (optional)</label>
+                                    <input id="settings-gym-form-display-name" v-model="gymForm.display_name" type="text" class="field block w-full px-3 py-1.5" />
                                     <p class="mt-1 text-xs text-ink-muted">
                                         Wird nur intern im System und im Organisations-Wechsler angezeigt. Bei leerem Feld wird der Name verwendet.
                                     </p>
                                 </div>
 
                                 <div class="md:col-span-2">
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Beschreibung</label>
-                                    <textarea v-model="gymForm.description" rows="3" class="field block w-full px-3 py-1.5"></textarea>
+                                    <label for="settings-gym-form-description" class="block text-sm/6 font-medium text-ink-secondary">Beschreibung</label>
+                                    <textarea id="settings-gym-form-description" v-model="gymForm.description" rows="3" class="field block w-full px-3 py-1.5"></textarea>
                                 </div>
 
                                 <LogoUpload v-model="gymForm.logo_path" :current-gym="currentGym" />
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Straße und Hausnummer <span class="text-danger">*</span></label>
-                                    <input v-model="gymForm.address" type="text" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-address" class="block text-sm/6 font-medium text-ink-secondary">Straße und Hausnummer <span class="text-danger">*</span></label>
+                                    <input id="settings-gym-form-address" v-model="gymForm.address" type="text" class="field block w-full px-3 py-1.5" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Stadt <span class="text-danger">*</span></label>
-                                    <input v-model="gymForm.city" type="text" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-city" class="block text-sm/6 font-medium text-ink-secondary">Stadt <span class="text-danger">*</span></label>
+                                    <input id="settings-gym-form-city" v-model="gymForm.city" type="text" class="field block w-full px-3 py-1.5" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Postleitzahl <span class="text-danger">*</span></label>
-                                    <input v-model="gymForm.postal_code" type="text" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-postal-code" class="block text-sm/6 font-medium text-ink-secondary">Postleitzahl <span class="text-danger">*</span></label>
+                                    <input id="settings-gym-form-postal-code" v-model="gymForm.postal_code" type="text" class="field block w-full px-3 py-1.5" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-ink-secondary mb-1">Land <span class="text-danger">*</span></label>
-                                    <select v-model="gymForm.country" class="field w-full p-2">
+                                    <label for="settings-gym-form-country" class="block text-sm font-medium text-ink-secondary mb-1">Land <span class="text-danger">*</span></label>
+                                    <select id="settings-gym-form-country" v-model="gymForm.country" class="field w-full p-2">
                                         <option value="DE">Deutschland</option>
                                         <option value="AT">Österreich</option>
                                         <option value="CH">Schweiz</option>
@@ -66,34 +66,34 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Breitengrad (Latitude)</label>
-                                    <input v-model="gymForm.latitude" type="number" step="any" min="-90" max="90" placeholder="z.B. 52.520008" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-latitude" class="block text-sm/6 font-medium text-ink-secondary">Breitengrad (Latitude)</label>
+                                    <input id="settings-gym-form-latitude" v-model="gymForm.latitude" type="number" step="any" min="-90" max="90" placeholder="z.B. 52.520008" class="field block w-full px-3 py-1.5" />
                                     <p class="mt-1 text-xs text-ink-muted">
                                         Geografische Koordinate für Kartenanzeige (-90 bis 90)
                                     </p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Längengrad (Longitude)</label>
-                                    <input v-model="gymForm.longitude" type="number" step="any" min="-180" max="180" placeholder="z.B. 13.404954" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-longitude" class="block text-sm/6 font-medium text-ink-secondary">Längengrad (Longitude)</label>
+                                    <input id="settings-gym-form-longitude" v-model="gymForm.longitude" type="number" step="any" min="-180" max="180" placeholder="z.B. 13.404954" class="field block w-full px-3 py-1.5" />
                                     <p class="mt-1 text-xs text-ink-muted">
                                         Geografische Koordinate für Kartenanzeige (-180 bis 180)
                                     </p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Telefon <span class="text-danger">*</span></label>
-                                    <input v-model="gymForm.phone" type="tel" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-phone" class="block text-sm/6 font-medium text-ink-secondary">Telefon <span class="text-danger">*</span></label>
+                                    <input id="settings-gym-form-phone" v-model="gymForm.phone" type="tel" class="field block w-full px-3 py-1.5" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">E-Mail <span class="text-danger">*</span></label>
-                                    <input v-model="gymForm.email" type="email" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-email" class="block text-sm/6 font-medium text-ink-secondary">E-Mail <span class="text-danger">*</span></label>
+                                    <input id="settings-gym-form-email" v-model="gymForm.email" type="email" class="field block w-full px-3 py-1.5" />
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm/6 font-medium text-ink-secondary">Website</label>
-                                    <input v-model="gymForm.website" type="url" class="field block w-full px-3 py-1.5" />
+                                    <label for="settings-gym-form-website" class="block text-sm/6 font-medium text-ink-secondary">Website</label>
+                                    <input id="settings-gym-form-website" v-model="gymForm.website" type="url" class="field block w-full px-3 py-1.5" />
                                 </div>
                             </div>
 
@@ -109,8 +109,8 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label class="block text-sm/6 font-medium text-ink-secondary mb-1">Kontoinhaber</label>
-                                        <input
+                                        <label for="settings-gym-form-account-holder" class="block text-sm/6 font-medium text-ink-secondary mb-1">Kontoinhaber</label>
+                                        <input id="settings-gym-form-account-holder"
                                             v-model="gymForm.account_holder"
                                             type="text"
                                             placeholder="Musterfirma GmbH"
@@ -126,8 +126,8 @@
                                     </div>
 
                                     <div>
-                                        <label class="block text-sm/6 font-medium text-ink-secondary">BIC</label>
-                                        <input
+                                        <label for="settings-gym-form-bic" class="block text-sm/6 font-medium text-ink-secondary">BIC</label>
+                                        <input id="settings-gym-form-bic"
                                             v-model="gymForm.bic"
                                             type="text"
                                             maxlength="11"
@@ -139,8 +139,8 @@
                                     </div>
 
                                     <div>
-                                        <label class="block text-sm/6 font-medium text-ink-secondary">Gläubiger-Identifikationsnummer</label>
-                                        <input
+                                        <label for="settings-gym-form-creditor-identifier" class="block text-sm/6 font-medium text-ink-secondary">Gläubiger-Identifikationsnummer</label>
+                                        <input id="settings-gym-form-creditor-identifier"
                                             v-model="gymForm.creditor_identifier"
                                             type="text"
                                             maxlength="35"
@@ -256,8 +256,8 @@
                                         <div>
                                             <h4 class="text-sm font-medium text-ink">{{ method.name }}</h4>
                                             <p class="text-xs text-ink-muted">{{ method.description }}</p>
-                                            <p v-if="method.is_overridden" class="text-xs text-orange-600 mt-1">
-                                                ⚠️ Durch externe Integration überschrieben
+                                            <p v-if="method.is_overridden" class="text-xs text-warning mt-1">
+                                                Durch externe Integration überschrieben
                                             </p>
                                         </div>
                                     </div>
@@ -298,18 +298,20 @@
                                         <h4 class="text-sm font-medium text-ink">{{ method.name }}</h4>
                                         <p class="text-xs text-ink-muted">{{ method.description }}</p>
                                         <div class="flex items-center space-x-3 mt-1">
-                                            <span v-if="method.requires_mandate" class="text-xs text-orange-600">
-                                                📝 SEPA-Mandat erforderlich
+                                            <span v-if="method.requires_mandate" class="text-xs text-warning">
+                                                SEPA-Mandat erforderlich
                                             </span>
                                         </div>
-                                        <p v-if="method.is_overridden" class="text-xs text-orange-600 mt-1">
-                                            ⚠️ Durch externe Integration überschrieben
+                                        <p v-if="method.is_overridden" class="text-xs text-warning mt-1">
+                                            Durch externe Integration überschrieben
                                         </p>
                                     </div>
                                 </div>
                                 <div class="flex items-center space-x-3">
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox"
+                                            role="switch"
+                                            :aria-label="`${method.name} anbieten`"
                                             v-model="method.enabled"
                                             :disabled="method.is_overridden"
                                             @change="updateStandardMethod(method)"

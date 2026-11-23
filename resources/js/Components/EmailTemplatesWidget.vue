@@ -16,8 +16,8 @@
 
                 <!-- Template Selection -->
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Vorlage auswählen</label>
-                    <select v-model="selectedTemplateId" @change="loadSelectedTemplate"
+                    <label for="email-templates-widget-selected-template-id" class="block text-sm font-medium text-ink-secondary mb-2">Vorlage auswählen</label>
+                    <select id="email-templates-widget-selected-template-id" v-model="selectedTemplateId" @change="loadSelectedTemplate"
                         class="field w-full p-2">
                         <option value="">Bitte wählen Sie eine Vorlage aus</option>
                         <option v-for="template in templates" :key="template.id" :value="template.id">
@@ -56,16 +56,16 @@
                 <form @submit.prevent="saveTemplate" class="space-y-6">
                     <!-- Template Name -->
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Vorlagen-Name</label>
-                        <input v-model="currentTemplate.name" type="text"
+                        <label for="email-templates-widget-current-template-name" class="block text-sm font-medium text-ink-secondary mb-1">Vorlagen-Name</label>
+                        <input id="email-templates-widget-current-template-name" v-model="currentTemplate.name" type="text"
                             class="field block w-full px-3 py-1.5"
                             required />
                     </div>
 
                     <!-- Template Type -->
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Template-Typ</label>
-                        <select v-model="currentTemplate.type"
+                        <label for="email-templates-widget-current-template-type" class="block text-sm font-medium text-ink-secondary mb-1">Template-Typ</label>
+                        <select id="email-templates-widget-current-template-type" v-model="currentTemplate.type"
                             class="field w-full p-2">
                             <option value="welcome">Willkommen</option>
                             <!-- Not wired to any mailer yet, hidden until a send flow uses these types -->
@@ -82,8 +82,8 @@
 
                     <!-- Subject -->
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">E-Mail-Betreff</label>
-                        <input v-model="currentTemplate.subject" type="text"
+                        <label for="email-templates-widget-current-template-subject" class="block text-sm font-medium text-ink-secondary mb-1">E-Mail-Betreff</label>
+                        <input id="email-templates-widget-current-template-subject" v-model="currentTemplate.subject" type="text"
                             class="field block w-full px-3 py-1.5"
                             placeholder="z.B. Herzlich willkommen, [Vorname]!"
                             required />
@@ -354,15 +354,15 @@
 
                 <form @submit.prevent="createTemplate" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Vorlagen-Name</label>
-                        <input v-model="newTemplate.name" type="text"
+                        <label for="email-templates-widget-new-template-name" class="block text-sm font-medium text-ink-secondary mb-1">Vorlagen-Name</label>
+                        <input id="email-templates-widget-new-template-name" v-model="newTemplate.name" type="text"
                             class="field block w-full px-3 py-1.5"
                             required />
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Template-Typ</label>
-                        <select v-model="newTemplate.type"
+                        <label for="email-templates-widget-new-template-type" class="block text-sm font-medium text-ink-secondary mb-1">Template-Typ</label>
+                        <select id="email-templates-widget-new-template-type" v-model="newTemplate.type"
                             class="field w-full p-2">
                             <option value="welcome">Willkommen</option>
                             <!-- Not wired to any mailer yet, hidden until a send flow uses these types -->

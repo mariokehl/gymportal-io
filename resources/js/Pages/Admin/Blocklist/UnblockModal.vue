@@ -14,8 +14,8 @@
       </p>
 
       <div>
-        <label class="block text-sm font-medium text-ink-secondary mb-1">Begründung *</label>
-        <textarea
+        <label for="unblock-modal-form-unblock-reason" class="block text-sm font-medium text-ink-secondary mb-1">Begründung *</label>
+        <textarea id="unblock-modal-form-unblock-reason"
           v-model="form.unblock_reason"
           rows="3"
           placeholder="z.B. Zahlung eingegangen, Missverständnis geklärt..."

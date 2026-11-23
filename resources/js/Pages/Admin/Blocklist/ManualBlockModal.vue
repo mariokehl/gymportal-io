@@ -10,42 +10,42 @@
 
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Vorname</label>
-          <input v-model="form.first_name" type="text" class="field input-field" />
+          <label for="manual-block-modal-form-first-name" class="block text-xs font-medium text-ink-secondary mb-1">Vorname</label>
+          <input id="manual-block-modal-form-first-name" v-model="form.first_name" type="text" class="field input-field" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Nachname *</label>
-          <input v-model="form.last_name" type="text" class="field input-field" />
+          <label for="manual-block-modal-form-last-name" class="block text-xs font-medium text-ink-secondary mb-1">Nachname *</label>
+          <input id="manual-block-modal-form-last-name" v-model="form.last_name" type="text" class="field input-field" />
           <p v-if="form.errors.last_name" class="text-danger text-xs mt-1">{{ form.errors.last_name }}</p>
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Geburtsdatum</label>
-          <input v-model="form.birth_date" type="date" :min="earliestBirthDate()" class="field input-field" />
+          <label for="manual-block-modal-form-birth-date" class="block text-xs font-medium text-ink-secondary mb-1">Geburtsdatum</label>
+          <input id="manual-block-modal-form-birth-date" v-model="form.birth_date" type="date" :min="earliestBirthDate()" class="field input-field" />
           <p v-if="form.errors.birth_date" class="text-danger text-xs mt-1">{{ form.errors.birth_date }}</p>
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Mobilnummer</label>
-          <input v-model="form.phone" type="tel" placeholder="+49 151 ..." class="field input-field" />
+          <label for="manual-block-modal-form-phone" class="block text-xs font-medium text-ink-secondary mb-1">Mobilnummer</label>
+          <input id="manual-block-modal-form-phone" v-model="form.phone" type="tel" placeholder="+49 151 ..." class="field input-field" />
         </div>
         <div class="col-span-2">
-          <label class="block text-xs font-medium text-ink-secondary mb-1">IBAN</label>
-          <input v-model="form.iban" type="text" placeholder="DE89 ..." class="field input-field" />
+          <label for="manual-block-modal-form-iban" class="block text-xs font-medium text-ink-secondary mb-1">IBAN</label>
+          <input id="manual-block-modal-form-iban" v-model="form.iban" type="text" placeholder="DE89 ..." class="field input-field" />
         </div>
         <div class="col-span-2">
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Adresse</label>
-          <input v-model="form.address" type="text" class="field input-field" />
+          <label for="manual-block-modal-form-address" class="block text-xs font-medium text-ink-secondary mb-1">Adresse</label>
+          <input id="manual-block-modal-form-address" v-model="form.address" type="text" class="field input-field" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">PLZ</label>
-          <input v-model="form.postal_code" type="text" class="field input-field" />
+          <label for="manual-block-modal-form-postal-code" class="block text-xs font-medium text-ink-secondary mb-1">PLZ</label>
+          <input id="manual-block-modal-form-postal-code" v-model="form.postal_code" type="text" class="field input-field" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Stadt</label>
-          <input v-model="form.city" type="text" class="field input-field" />
+          <label for="manual-block-modal-form-city" class="block text-xs font-medium text-ink-secondary mb-1">Stadt</label>
+          <input id="manual-block-modal-form-city" v-model="form.city" type="text" class="field input-field" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Grund *</label>
-          <select v-model="form.reason" class="field input-field">
+          <label for="manual-block-modal-form-reason" class="block text-xs font-medium text-ink-secondary mb-1">Grund *</label>
+          <select id="manual-block-modal-form-reason" v-model="form.reason" class="field input-field">
             <option value="manual">Manuell</option>
             <option value="payment_failed">Zahlungsausfall</option>
             <option value="chargeback">Rückbuchung</option>
@@ -53,13 +53,13 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Gesperrt bis</label>
-          <input v-model="form.blocked_until" type="date" class="field input-field" />
+          <label for="manual-block-modal-form-blocked-until" class="block text-xs font-medium text-ink-secondary mb-1">Gesperrt bis</label>
+          <input id="manual-block-modal-form-blocked-until" v-model="form.blocked_until" type="date" class="field input-field" />
           <p class="text-xs text-ink-muted mt-0.5">Leer = permanent</p>
         </div>
         <div class="col-span-2">
-          <label class="block text-xs font-medium text-ink-secondary mb-1">Begründung * (min. 10 Zeichen)</label>
-          <textarea v-model="form.notes" rows="3" class="field input-field"
+          <label for="manual-block-modal-form-notes" class="block text-xs font-medium text-ink-secondary mb-1">Begründung * (min. 10 Zeichen)</label>
+          <textarea id="manual-block-modal-form-notes" v-model="form.notes" rows="3" class="field input-field"
             placeholder="z.B. Mehrfache Rückbuchungen, Kontakt verweigert..." />
           <p v-if="form.errors.notes" class="text-danger text-xs mt-1">{{ form.errors.notes }}</p>
         </div>

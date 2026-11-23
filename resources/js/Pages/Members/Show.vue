@@ -4,9 +4,10 @@
       <div class="flex items-center min-w-0 flex-1">
         <Link
           :href="route('members.index')"
-          class="text-ink-muted hover:text-ink mr-4 flex-shrink-0"
+          aria-label="Zurück zur Mitgliederliste"
+          class="touch-target relative text-ink-muted hover:text-ink mr-4 flex-shrink-0"
         >
-          <ArrowLeft class="w-5 h-5" />
+          <ArrowLeft class="w-5 h-5" aria-hidden="true" />
         </Link>
 
         <!-- On mobile the plain title swaps for a compact member identity once

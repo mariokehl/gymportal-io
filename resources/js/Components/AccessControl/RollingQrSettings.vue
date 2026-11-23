@@ -50,11 +50,11 @@
                     <!-- Intervall (nur sichtbar wenn aktiviert) -->
                     <div v-if="form.rolling_qr_enabled" class="ml-7 space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-1">
+                            <label for="rolling-qr-settings-form-rolling-qr-interval" class="block text-sm font-medium text-ink-secondary mb-1">
                                 Intervall
                             </label>
                             <div class="flex items-center space-x-2">
-                                <input
+                                <input id="rolling-qr-settings-form-rolling-qr-interval"
                                     v-model.number="form.rolling_qr_interval"
                                     type="number"
                                     min="1"
@@ -69,11 +69,11 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-1">
+                            <label for="rolling-qr-settings-form-rolling-qr-tolerance-windows" class="block text-sm font-medium text-ink-secondary mb-1">
                                 Toleranzfenster
                             </label>
                             <div class="flex items-center space-x-2">
-                                <input
+                                <input id="rolling-qr-settings-form-rolling-qr-tolerance-windows"
                                     v-model.number="form.rolling_qr_tolerance_windows"
                                     type="number"
                                     min="0"

@@ -266,6 +266,7 @@
       <div class="flex flex-wrap items-center gap-2.5">
         <select
           v-model="paymentStatusFilter"
+          aria-label="Zahlungen nach Status filtern"
           class="field flex-1 min-w-0 px-3 py-2"
         >
           <option value="">Alle Status</option>
@@ -363,8 +364,8 @@
               <div class="space-y-4">
                 <!-- Type (nicht änderbar) -->
                 <div>
-                  <label class="block text-sm font-medium text-ink-secondary mb-2">Typ</label>
-                  <input
+                  <label for="payments-tab-typ" class="block text-sm font-medium text-ink-secondary mb-2">Typ</label>
+                  <input id="payments-tab-typ"
                     :value="paymentMethodForm.type_text"
                     disabled
                     class="field w-full px-3 py-2 bg-surface-muted text-ink-muted"
@@ -373,8 +374,8 @@
 
                 <!-- Status -->
                 <div>
-                  <label class="block text-sm font-medium text-ink-secondary mb-2">Status</label>
-                  <select
+                  <label for="payments-tab-payment-method-form-status" class="block text-sm font-medium text-ink-secondary mb-2">Status</label>
+                  <select id="payments-tab-payment-method-form-status"
                     v-model="paymentMethodForm.status"
                     class="field w-full px-3 py-2"
                   >
@@ -388,8 +389,8 @@
                 <!-- SEPA-spezifische Felder -->
                 <template v-if="isSepaType(paymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Kontoinhaber</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-account-holder" class="block text-sm font-medium text-ink-secondary mb-2">Kontoinhaber</label>
+                    <input id="payments-tab-payment-method-form-account-holder"
                       v-model="paymentMethodForm.account_holder"
                       type="text"
                       class="field w-full px-3 py-2"
@@ -404,16 +405,16 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-bank-name" class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
+                    <input id="payments-tab-payment-method-form-bank-name"
                       v-model="paymentMethodForm.bank_name"
                       type="text"
                       class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">SEPA-Mandat Status</label>
-                    <select
+                    <label for="payments-tab-payment-method-form-sepa-mandate-status" class="block text-sm font-medium text-ink-secondary mb-2">SEPA-Mandat Status</label>
+                    <select id="payments-tab-payment-method-form-sepa-mandate-status"
                       v-model="paymentMethodForm.sepa_mandate_status"
                       class="field w-full px-3 py-2"
                     >
@@ -425,8 +426,8 @@
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">SEPA-Mandatsreferenz</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-sepa-mandate-reference" class="block text-sm font-medium text-ink-secondary mb-2">SEPA-Mandatsreferenz</label>
+                    <input id="payments-tab-payment-method-form-sepa-mandate-reference"
                       v-model="paymentMethodForm.sepa_mandate_reference"
                       type="text"
                       class="field w-full px-3 py-2"
@@ -437,8 +438,8 @@
                 <!-- Kreditkarten-spezifische Felder -->
                 <template v-if="isCreditCardType(paymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Letzte 4 Ziffern</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-last-four" class="block text-sm font-medium text-ink-secondary mb-2">Letzte 4 Ziffern</label>
+                    <input id="payments-tab-payment-method-form-last-four"
                       v-model="paymentMethodForm.last_four"
                       type="text"
                       maxlength="4"
@@ -447,16 +448,16 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Karteninhaber</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-cardholder-name" class="block text-sm font-medium text-ink-secondary mb-2">Karteninhaber</label>
+                    <input id="payments-tab-payment-method-form-cardholder-name"
                       v-model="paymentMethodForm.cardholder_name"
                       type="text"
                       class="field w-full px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Ablaufdatum</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-expiry-date" class="block text-sm font-medium text-ink-secondary mb-2">Ablaufdatum</label>
+                    <input id="payments-tab-payment-method-form-expiry-date"
                       v-model="paymentMethodForm.expiry_date"
                       type="date"
                       class="field w-full px-3 py-2"
@@ -467,8 +468,8 @@
                 <!-- Banküberweisung-spezifische Felder -->
                 <template v-if="isBankTransferType(paymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
-                    <input
+                    <label for="payments-tab-payment-method-form-bank-name-2" class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
+                    <input id="payments-tab-payment-method-form-bank-name-2"
                       v-model="paymentMethodForm.bank_name"
                       type="text"
                       class="field w-full px-3 py-2"
@@ -534,8 +535,8 @@
               <div class="space-y-4">
                 <!-- Type (auswählbar bei neuer Zahlungsmethode) -->
                 <div>
-                  <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsmethode <span class="text-danger">*</span></label>
-                  <select
+                  <label for="payments-tab-new-payment-method-form-type" class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsmethode <span class="text-danger">*</span></label>
+                  <select id="payments-tab-new-payment-method-form-type"
                     v-model="newPaymentMethodForm.type"
                     class="field w-full px-3 py-2"
                   >
@@ -562,8 +563,8 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Kontoinhaber</label>
-                    <input
+                    <label for="payments-tab-new-payment-method-form-account-holder" class="block text-sm font-medium text-ink-secondary mb-2">Kontoinhaber</label>
+                    <input id="payments-tab-new-payment-method-form-account-holder"
                       v-model="newPaymentMethodForm.account_holder"
                       type="text"
                       placeholder="Max Mustermann"
@@ -571,8 +572,8 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
-                    <input
+                    <label for="payments-tab-new-payment-method-form-bank-name" class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
+                    <input id="payments-tab-new-payment-method-form-bank-name"
                       v-model="newPaymentMethodForm.bank_name"
                       type="text"
                       placeholder="Commerzbank"
@@ -600,8 +601,8 @@
                 <!-- Kreditkarten-spezifische Felder -->
                 <template v-if="isCreditCardType(newPaymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Kartennummer <span class="text-danger">*</span></label>
-                    <input
+                    <label for="payments-tab-new-payment-method-form-card-number" class="block text-sm font-medium text-ink-secondary mb-2">Kartennummer <span class="text-danger">*</span></label>
+                    <input id="payments-tab-new-payment-method-form-card-number"
                       v-model="newPaymentMethodForm.card_number"
                       type="text"
                       placeholder="**** **** **** 1234"
@@ -610,8 +611,8 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Karteninhaber <span class="text-danger">*</span></label>
-                    <input
+                    <label for="payments-tab-new-payment-method-form-cardholder-name" class="block text-sm font-medium text-ink-secondary mb-2">Karteninhaber <span class="text-danger">*</span></label>
+                    <input id="payments-tab-new-payment-method-form-cardholder-name"
                       v-model="newPaymentMethodForm.cardholder_name"
                       type="text"
                       placeholder="Max Mustermann"
@@ -620,8 +621,8 @@
                   </div>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-ink-secondary mb-2">Ablaufdatum <span class="text-danger">*</span></label>
-                      <input
+                      <label for="payments-tab-new-payment-method-form-expiry-date" class="block text-sm font-medium text-ink-secondary mb-2">Ablaufdatum <span class="text-danger">*</span></label>
+                      <input id="payments-tab-new-payment-method-form-expiry-date"
                         v-model="newPaymentMethodForm.expiry_date"
                         type="month"
                         :min="currentMonth"
@@ -629,8 +630,8 @@
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-ink-secondary mb-2">CVV <span class="text-danger">*</span></label>
-                      <input
+                      <label for="payments-tab-new-payment-method-form-cvv" class="block text-sm font-medium text-ink-secondary mb-2">CVV <span class="text-danger">*</span></label>
+                      <input id="payments-tab-new-payment-method-form-cvv"
                         v-model="newPaymentMethodForm.cvv"
                         type="text"
                         maxlength="4"
@@ -644,8 +645,8 @@
                 <!-- Banküberweisung-spezifische Felder -->
                 <template v-if="isBankTransferType(newPaymentMethodForm.type)">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
-                    <input
+                    <label for="payments-tab-new-payment-method-form-bank-name-2" class="block text-sm font-medium text-ink-secondary mb-2">Bank Name</label>
+                    <input id="payments-tab-new-payment-method-form-bank-name-2"
                       v-model="newPaymentMethodForm.bank_name"
                       type="text"
                       placeholder="Commerzbank"
@@ -653,8 +654,8 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Notizen</label>
-                    <textarea
+                    <label for="payments-tab-new-payment-method-form-notes" class="block text-sm font-medium text-ink-secondary mb-2">Notizen</label>
+                    <textarea id="payments-tab-new-payment-method-form-notes"
                       v-model="newPaymentMethodForm.notes"
                       rows="2"
                       placeholder="z.B. Verwendungszweck-Vorgaben"
@@ -767,8 +768,8 @@
 
                 <div class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Betrag <span class="text-danger">*</span></label>
-                    <input
+                    <label for="payments-tab-new-payment-form-amount" class="block text-sm font-medium text-ink-secondary mb-2">Betrag <span class="text-danger">*</span></label>
+                    <input id="payments-tab-new-payment-form-amount"
                       v-model="newPaymentForm.amount"
                       type="number"
                       step="0.01"
@@ -778,8 +779,8 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung <span class="text-danger">*</span></label>
-                    <input
+                    <label for="payments-tab-new-payment-form-description" class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung <span class="text-danger">*</span></label>
+                    <input id="payments-tab-new-payment-form-description"
                       v-model="newPaymentForm.description"
                       type="text"
                       placeholder="z.B. Guthaben-Aufladung: Überweisung"
@@ -788,16 +789,16 @@
                   </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-ink-secondary mb-2">Eingangsdatum</label>
-                      <input
+                      <label for="payments-tab-new-payment-form-paid-date" class="block text-sm font-medium text-ink-secondary mb-2">Eingangsdatum</label>
+                      <input id="payments-tab-new-payment-form-paid-date"
                         v-model="newPaymentForm.paid_date"
                         type="date"
                         class="field w-full px-3 py-2"
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsart</label>
-                      <select
+                      <label for="payments-tab-new-payment-form-payment-method" class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsart</label>
+                      <select id="payments-tab-new-payment-form-payment-method"
                         v-model="newPaymentForm.payment_method"
                         class="field w-full px-3 py-2"
                       >
@@ -829,8 +830,8 @@
               <template v-else>
                 <div class="space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Betrag <span class="text-danger">*</span></label>
-                    <input
+                    <label for="payments-tab-new-payment-form-amount-2" class="block text-sm font-medium text-ink-secondary mb-2">Betrag <span class="text-danger">*</span></label>
+                    <input id="payments-tab-new-payment-form-amount-2"
                       v-model="newPaymentForm.amount"
                       type="number"
                       step="0.01"
@@ -841,8 +842,8 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung <span class="text-danger">*</span></label>
-                    <input
+                    <label for="payments-tab-new-payment-form-description-2" class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung <span class="text-danger">*</span></label>
+                    <input id="payments-tab-new-payment-form-description-2"
                       v-model="newPaymentForm.description"
                       type="text"
                       placeholder="z.B. Monatsbeitrag Januar 2024"
@@ -851,8 +852,8 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Fälligkeitsdatum</label>
-                    <input
+                    <label for="payments-tab-new-payment-form-due-date" class="block text-sm font-medium text-ink-secondary mb-2">Fälligkeitsdatum</label>
+                    <input id="payments-tab-new-payment-form-due-date"
                       v-model="newPaymentForm.due_date"
                       type="date"
                       class="field w-full px-3 py-2"
@@ -860,8 +861,8 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsmethode</label>
-                    <select
+                    <label for="payments-tab-new-payment-form-payment-method-2" class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsmethode</label>
+                    <select id="payments-tab-new-payment-form-payment-method-2"
                       v-model="newPaymentForm.payment_method"
                       class="field w-full px-3 py-2"
                     >
@@ -885,8 +886,8 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Status</label>
-                    <select
+                    <label for="payments-tab-new-payment-form-status" class="block text-sm font-medium text-ink-secondary mb-2">Status</label>
+                    <select id="payments-tab-new-payment-form-status"
                       v-model="newPaymentForm.status"
                       class="field w-full px-3 py-2"
                     >
@@ -896,8 +897,8 @@
                   </div>
 
                   <div v-if="newPaymentForm.status === 'paid'">
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Bezahlt am</label>
-                    <input
+                    <label for="payments-tab-new-payment-form-paid-date-2" class="block text-sm font-medium text-ink-secondary mb-2">Bezahlt am</label>
+                    <input id="payments-tab-new-payment-form-paid-date-2"
                       v-model="newPaymentForm.paid_date"
                       type="date"
                       class="field w-full px-3 py-2"
@@ -905,8 +906,8 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">Notizen</label>
-                    <textarea
+                    <label for="payments-tab-new-payment-form-notes" class="block text-sm font-medium text-ink-secondary mb-2">Notizen</label>
+                    <textarea id="payments-tab-new-payment-form-notes"
                       v-model="newPaymentForm.notes"
                       rows="2"
                       placeholder="Optionale Notizen zur Zahlung"

@@ -39,7 +39,7 @@
                         <p class="text-sm text-ink-muted">Macht die Mitglieder-App als installierbare PWA verfügbar</p>
                     </div>
                     <div class="relative inline-block w-11 h-5">
-                        <input v-model="form.pwa_enabled" id="pwa-switch" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-brand cursor-pointer transition-colors duration-300" />
+                        <input v-model="form.pwa_enabled" id="pwa-switch" type="checkbox" role="switch" aria-label="Mitglieder-App aktivieren" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-brand cursor-pointer transition-colors duration-300" />
                         <label for="pwa-switch" class="absolute top-0 left-0 w-5 h-5 bg-surface rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-brand cursor-pointer"></label>
                     </div>
                 </div>
@@ -51,8 +51,8 @@
                         App-Beschreibung
                     </h4>
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung für die Mitglieder-App</label>
-                        <textarea
+                        <label for="pwa-settings-widget-form-member-app-description" class="block text-sm font-medium text-ink-secondary mb-2">Beschreibung für die Mitglieder-App</label>
+                        <textarea id="pwa-settings-widget-form-member-app-description"
                             v-model="form.member_app_description"
                             rows="3"
                             class="field w-full px-3 py-2"
@@ -72,11 +72,12 @@
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Primärfarbe</label>
+                            <label for="pwa-settings-widget-form-primary-color" class="block text-sm font-medium text-ink-secondary mb-2">Primärfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="pwa-settings-widget-form-primary-color"
                                     type="color"
                                     v-model="form.primary_color"
+                                    aria-label="Primärfarbe wählen"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
@@ -88,11 +89,12 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Sekundärfarbe</label>
+                            <label for="pwa-settings-widget-form-secondary-color" class="block text-sm font-medium text-ink-secondary mb-2">Sekundärfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="pwa-settings-widget-form-secondary-color"
                                     type="color"
                                     v-model="form.secondary_color"
+                                    aria-label="Sekundärfarbe wählen"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
@@ -104,11 +106,12 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Akzentfarbe</label>
+                            <label for="pwa-settings-widget-form-accent-color" class="block text-sm font-medium text-ink-secondary mb-2">Akzentfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="pwa-settings-widget-form-accent-color"
                                     type="color"
                                     v-model="form.accent_color"
+                                    aria-label="Akzentfarbe wählen"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
@@ -120,11 +123,12 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Hintergrundfarbe</label>
+                            <label for="pwa-settings-widget-form-background-color" class="block text-sm font-medium text-ink-secondary mb-2">Hintergrundfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="pwa-settings-widget-form-background-color"
                                     type="color"
                                     v-model="form.background_color"
+                                    aria-label="Hintergrundfarbe wählen"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
@@ -136,11 +140,12 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Textfarbe</label>
+                            <label for="pwa-settings-widget-form-text-color" class="block text-sm font-medium text-ink-secondary mb-2">Textfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="pwa-settings-widget-form-text-color"
                                     type="color"
                                     v-model="form.text_color"
+                                    aria-label="Textfarbe wählen"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
                                 >
                                 <input
@@ -162,8 +167,8 @@
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">PWA Logo URL</label>
-                            <input
+                            <label for="pwa-settings-widget-form-pwa-logo-url" class="block text-sm font-medium text-ink-secondary mb-2">PWA Logo URL</label>
+                            <input id="pwa-settings-widget-form-pwa-logo-url"
                                 type="url"
                                 v-model="form.pwa_logo_url"
                                 class="field w-full px-3 py-2"
@@ -174,8 +179,8 @@
                             </p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Favicon URL</label>
-                            <input
+                            <label for="pwa-settings-widget-form-favicon-url" class="block text-sm font-medium text-ink-secondary mb-2">Favicon URL</label>
+                            <input id="pwa-settings-widget-form-favicon-url"
                                 type="url"
                                 v-model="form.favicon_url"
                                 class="field w-full px-3 py-2"
@@ -215,12 +220,14 @@
                                     <input
                                         type="time"
                                         v-model="form.opening_hours[key].open"
+                                        :aria-label="`${day} geöffnet ab`"
                                         class="field px-2 py-1"
                                     >
                                     <span class="text-ink-muted">-</span>
                                     <input
                                         type="time"
                                         v-model="form.opening_hours[key].close"
+                                        :aria-label="`${day} geöffnet bis`"
                                         class="field px-2 py-1"
                                     >
                                 </template>
@@ -237,11 +244,11 @@
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="pwa-settings-widget-form-social-media-instagram" class="block text-sm font-medium text-ink-secondary mb-2">
                                 <component :is="Instagram" class="w-4 h-4 inline mr-1" />
                                 Instagram
                             </label>
-                            <input
+                            <input id="pwa-settings-widget-form-social-media-instagram"
                                 type="url"
                                 v-model="form.social_media.instagram"
                                 class="field w-full px-3 py-2"
@@ -249,11 +256,11 @@
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="pwa-settings-widget-form-social-media-facebook" class="block text-sm font-medium text-ink-secondary mb-2">
                                 <component :is="Facebook" class="w-4 h-4 inline mr-1" />
                                 Facebook
                             </label>
-                            <input
+                            <input id="pwa-settings-widget-form-social-media-facebook"
                                 type="url"
                                 v-model="form.social_media.facebook"
                                 class="field w-full px-3 py-2"
@@ -261,11 +268,11 @@
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="pwa-settings-widget-form-social-media-youtube" class="block text-sm font-medium text-ink-secondary mb-2">
                                 <component :is="Youtube" class="w-4 h-4 inline mr-1" />
                                 YouTube
                             </label>
-                            <input
+                            <input id="pwa-settings-widget-form-social-media-youtube"
                                 type="url"
                                 v-model="form.social_media.youtube"
                                 class="field w-full px-3 py-2"
@@ -273,11 +280,11 @@
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="pwa-settings-widget-form-social-media-twitter" class="block text-sm font-medium text-ink-secondary mb-2">
                                 <component :is="Twitter" class="w-4 h-4 inline mr-1" />
                                 X (Twitter)
                             </label>
-                            <input
+                            <input id="pwa-settings-widget-form-social-media-twitter"
                                 type="url"
                                 v-model="form.social_media.twitter"
                                 class="field w-full px-3 py-2"
@@ -285,11 +292,11 @@
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="pwa-settings-widget-form-social-media-linkedin" class="block text-sm font-medium text-ink-secondary mb-2">
                                 <component :is="Linkedin" class="w-4 h-4 inline mr-1" />
                                 LinkedIn
                             </label>
-                            <input
+                            <input id="pwa-settings-widget-form-social-media-linkedin"
                                 type="url"
                                 v-model="form.social_media.linkedin"
                                 class="field w-full px-3 py-2"
@@ -297,11 +304,11 @@
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="pwa-settings-widget-form-social-media-tiktok" class="block text-sm font-medium text-ink-secondary mb-2">
                                 <component :is="Globe" class="w-4 h-4 inline mr-1" />
                                 TikTok
                             </label>
-                            <input
+                            <input id="pwa-settings-widget-form-social-media-tiktok"
                                 type="url"
                                 v-model="form.social_media.tiktok"
                                 class="field w-full px-3 py-2"
@@ -327,7 +334,7 @@
                             </p>
                         </div>
                         <div class="relative inline-block w-11 h-5">
-                            <input v-model="form.pwa_settings.pwa_login_disabled" id="pwa-login-switch" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-rose-600 cursor-pointer transition-colors duration-300" />
+                            <input v-model="form.pwa_settings.pwa_login_disabled" role="switch" aria-label="Login in der App deaktivieren" id="pwa-login-switch" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-rose-600 cursor-pointer transition-colors duration-300" />
                             <label for="pwa-login-switch" class="absolute top-0 left-0 w-5 h-5 bg-surface rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-rose-600 cursor-pointer"></label>
                         </div>
                     </div>
@@ -345,11 +352,11 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                                <label for="pwa-settings-widget-form-pwa-settings-app-store-url-ios" class="block text-sm font-medium text-ink-secondary mb-2">
                                     <component :is="Apple" class="w-4 h-4 inline mr-1" />
                                     Apple App Store
                                 </label>
-                                <input
+                                <input id="pwa-settings-widget-form-pwa-settings-app-store-url-ios"
                                     type="url"
                                     v-model="form.pwa_settings.app_store_url_ios"
                                     class="field w-full px-3 py-2"
@@ -358,11 +365,11 @@
                                 <p class="mt-1 text-xs text-ink-muted">Link zur App im Apple App Store</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                                <label for="pwa-settings-widget-form-pwa-settings-app-store-url-android" class="block text-sm font-medium text-ink-secondary mb-2">
                                     <component :is="Play" class="w-4 h-4 inline mr-1" />
                                     Google Play Store
                                 </label>
-                                <input
+                                <input id="pwa-settings-widget-form-pwa-settings-app-store-url-android"
                                     type="url"
                                     v-model="form.pwa_settings.app_store_url_android"
                                     class="field w-full px-3 py-2"
@@ -435,8 +442,8 @@
                         Benutzerdefiniertes CSS
                     </h4>
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-2">Custom CSS</label>
-                        <textarea
+                        <label for="pwa-settings-widget-form-custom-css" class="block text-sm font-medium text-ink-secondary mb-2">Custom CSS</label>
+                        <textarea id="pwa-settings-widget-form-custom-css"
                             v-model="form.custom_css"
                             rows="6"
                             class="field w-full px-3 py-2 font-mono"

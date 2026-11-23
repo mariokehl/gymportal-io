@@ -17,6 +17,8 @@
                     <input
                         v-model="guestEnabled"
                         type="checkbox"
+                        role="switch"
+                        aria-label="Gästeportal aktivieren"
                         class="sr-only peer"
                         :disabled="loading || savingPortal"
                         @change="savePortal"
@@ -57,8 +59,8 @@
             <form v-if="form" class="mb-6 rounded-lg border border-line p-4 space-y-4" @submit.prevent="saveProduct">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Art</label>
-                        <select
+                        <label for="guest-portal-settings-widget-form-type" class="block text-sm font-medium text-ink-secondary mb-1">Art</label>
+                        <select id="guest-portal-settings-widget-form-type"
                             v-model="form.type"
                             :disabled="!!form.id"
                             class="field w-full px-3 py-2 disabled:bg-surface-muted"
@@ -67,24 +69,24 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Name</label>
-                        <input v-model="form.name" type="text" maxlength="255" required class="field w-full px-3 py-2" :placeholder="namePlaceholder">
+                        <label for="guest-portal-settings-widget-form-name" class="block text-sm font-medium text-ink-secondary mb-1">Name</label>
+                        <input id="guest-portal-settings-widget-form-name" v-model="form.name" type="text" maxlength="255" required class="field w-full px-3 py-2" :placeholder="namePlaceholder">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Preis (€)</label>
-                        <input v-model="form.price" type="number" min="0.5" step="0.01" required class="field w-full px-3 py-2">
+                        <label for="guest-portal-settings-widget-form-price" class="block text-sm font-medium text-ink-secondary mb-1">Preis (€)</label>
+                        <input id="guest-portal-settings-widget-form-price" v-model="form.price" type="number" min="0.5" step="0.01" required class="field w-full px-3 py-2">
                     </div>
                     <div v-if="form.type !== 'day_pass'">
                         <label class="block text-sm font-medium text-ink-secondary mb-1">{{ form.type === 'solarium_minutes' ? 'Minuten' : 'Eintritte' }}</label>
                         <input v-model="form.quantity" type="number" min="1" max="1000" step="1" required class="field w-full px-3 py-2">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Beschreibung (optional)</label>
-                        <textarea v-model="form.description" rows="2" maxlength="1000" class="field w-full px-3 py-2"></textarea>
+                        <label for="guest-portal-settings-widget-form-description" class="block text-sm font-medium text-ink-secondary mb-1">Beschreibung (optional)</label>
+                        <textarea id="guest-portal-settings-widget-form-description" v-model="form.description" rows="2" maxlength="1000" class="field w-full px-3 py-2"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Reihenfolge</label>
-                        <input v-model="form.sort_order" type="number" min="0" max="999" class="field w-full px-3 py-2">
+                        <label for="guest-portal-settings-widget-form-sort-order" class="block text-sm font-medium text-ink-secondary mb-1">Reihenfolge</label>
+                        <input id="guest-portal-settings-widget-form-sort-order" v-model="form.sort_order" type="number" min="0" max="999" class="field w-full px-3 py-2">
                     </div>
                     <label class="flex items-center gap-2 self-end pb-2 text-sm text-ink-secondary">
                         <input v-model="form.active" type="checkbox" class="rounded border-line-strong text-brand">

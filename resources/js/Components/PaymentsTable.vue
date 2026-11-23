@@ -67,6 +67,7 @@
                   type="checkbox"
                   :checked="isAllSelected"
                   @change="toggleSelectAll"
+                  aria-label="Alle Zahlungen dieser Seite auswählen"
                   class="h-4 w-4 text-brand border-line-strong rounded"
                 />
               </th>
@@ -103,6 +104,7 @@
                   type="checkbox"
                   :value="payment.id"
                   v-model="selectedPayments"
+                  :aria-label="`Zahlung #${payment.id} auswählen`"
                   :disabled="executingPaymentId === payment.id || batchExecutingPayments"
                   class="h-4 w-4 text-brand border-line-strong rounded disabled:opacity-50"
                 />

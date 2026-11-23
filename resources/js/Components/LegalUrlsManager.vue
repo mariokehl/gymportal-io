@@ -65,8 +65,8 @@
                     <form @submit.prevent="saveUrl" class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-ink-secondary mb-1">Dokumenttyp</label>
-                                <select v-model="form.type"
+                                <label for="legal-urls-manager-form-type" class="block text-sm font-medium text-ink-secondary mb-1">Dokumenttyp</label>
+                                <select id="legal-urls-manager-form-type" v-model="form.type"
                                     :disabled="isEditing"
                                     class="field w-full p-2 disabled:bg-fill"
                                     required>
@@ -77,8 +77,8 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-ink-secondary mb-1">URL</label>
-                                <input v-model="form.url" type="url" required
+                                <label for="legal-urls-manager-form-url" class="block text-sm font-medium text-ink-secondary mb-1">URL</label>
+                                <input id="legal-urls-manager-form-url" v-model="form.url" type="url" required
                                     placeholder="https://example.com/document.pdf"
                                     class="field block w-full px-3 py-1.5" />
                             </div>

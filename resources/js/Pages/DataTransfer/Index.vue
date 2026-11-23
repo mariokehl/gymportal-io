@@ -396,8 +396,8 @@
             <div v-if="csvValidationResult?.valid" class="mt-6 space-y-4">
               <!-- Start Date -->
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">Vertragsbeginn</label>
-                <input
+                <label for="data-transfer-csv-start-date" class="block text-sm font-medium text-ink-secondary mb-2">Vertragsbeginn</label>
+                <input id="data-transfer-csv-start-date"
                   type="date"
                   v-model="csvStartDate"
                   class="field w-full px-3 py-2"
@@ -407,8 +407,8 @@
 
               <!-- Payment Method -->
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsart</label>
-                <select
+                <label for="data-transfer-csv-payment-method-type" class="block text-sm font-medium text-ink-secondary mb-2">Zahlungsart</label>
+                <select id="data-transfer-csv-payment-method-type"
                   v-model="csvPaymentMethodType"
                   class="field w-full px-3 py-2"
                 >

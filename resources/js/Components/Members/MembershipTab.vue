@@ -395,10 +395,10 @@
               <div class="space-y-4">
                 <!-- Start Date -->
                 <div>
-                  <label class="block text-sm font-medium text-ink-secondary mb-1">
+                  <label for="membership-tab-free-period-form-start-date" class="block text-sm font-medium text-ink-secondary mb-1">
                     Startdatum
                   </label>
-                  <input
+                  <input id="membership-tab-free-period-form-start-date"
                     type="date"
                     v-model="freePeriodForm.start_date"
                     class="field w-full px-3 py-2"
@@ -411,10 +411,10 @@
 
                 <!-- End Date -->
                 <div>
-                  <label class="block text-sm font-medium text-ink-secondary mb-1">
+                  <label for="membership-tab-free-period-form-end-date" class="block text-sm font-medium text-ink-secondary mb-1">
                     Enddatum
                   </label>
-                  <input
+                  <input id="membership-tab-free-period-form-end-date"
                     type="date"
                     v-model="freePeriodForm.end_date"
                     class="field w-full px-3 py-2"
@@ -427,10 +427,10 @@
 
                 <!-- Link to Membership (optional) -->
                 <div v-if="linkableMemberships.length > 0">
-                  <label class="block text-sm font-medium text-ink-secondary mb-1">
+                  <label for="membership-tab-free-period-form-linked-membership-id" class="block text-sm font-medium text-ink-secondary mb-1">
                     Mit Mitgliedschaft verknüpfen (optional)
                   </label>
-                  <select
+                  <select id="membership-tab-free-period-form-linked-membership-id"
                     v-model="freePeriodForm.linked_membership_id"
                     class="field w-full px-3 py-2"
                   >

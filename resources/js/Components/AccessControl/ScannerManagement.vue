@@ -231,8 +231,10 @@
                                         <Tooltip v-else position="left" teleport>
                                             <template #default>
                                                 <button
-                                                    disabled
-                                                    class="text-ink-disabled cursor-not-allowed p-1 rounded opacity-50"
+                                                    type="button"
+                                                    aria-disabled="true"
+                                                    aria-label="Konfiguration herunterladen nicht möglich"
+                                                    class="text-ink-disabled cursor-not-allowed p-1 rounded"
                                                 >
                                                     <Download class="w-4 h-4" />
                                                 </button>
@@ -286,8 +288,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 md:gap-x-6 gap-y-4">
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-ink-secondary mb-2">Name <span class="text-danger">*</span></label>
-                            <input
+                                <label for="scanner-management-form-device-name" class="block text-sm font-medium text-ink-secondary mb-2">Name <span class="text-danger">*</span></label>
+                            <input id="scanner-management-form-device-name"
                                 v-model="form.device_name"
                                 type="text"
                                 required
@@ -297,10 +299,10 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="scanner-management-form-device-task" class="block text-sm font-medium text-ink-secondary mb-2">
                                 Geräteaufgabe <span class="text-danger">*</span>
                             </label>
-                            <select
+                            <select id="scanner-management-form-device-task"
                                 v-model="form.device_task"
                                 required
                                 class="field w-full px-3 py-2"
@@ -449,10 +451,10 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">
+                            <label for="scanner-management-form-token-expires-at" class="block text-sm font-medium text-ink-secondary mb-2">
                                 Ablaufdatum des API-Tokens
                             </label>
-                            <input
+                            <input id="scanner-management-form-token-expires-at"
                                 v-model="form.token_expires_at"
                                 type="date"
                                 :disabled="tokenNeverExpires"

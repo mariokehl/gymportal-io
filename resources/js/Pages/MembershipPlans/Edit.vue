@@ -222,6 +222,7 @@
               />
               <select
                 id="cancellation_period_unit"
+                aria-label="Einheit der Kündigungsfrist"
                 v-model="form.cancellation_period_unit"
                 class="field w-28 px-3 py-2"
                 :class="{ 'border-danger': errors.cancellation_period_unit }"

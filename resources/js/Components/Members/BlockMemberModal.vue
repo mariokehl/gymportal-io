@@ -16,8 +16,8 @@
         </p>
 
         <div>
-          <label class="block text-sm font-medium text-ink-secondary mb-1">Grund *</label>
-          <select v-model="form.reason" class="field w-full px-3 py-2">
+          <label for="block-member-modal-form-reason" class="block text-sm font-medium text-ink-secondary mb-1">Grund *</label>
+          <select id="block-member-modal-form-reason" v-model="form.reason" class="field w-full px-3 py-2">
             <option value="payment_failed">Zahlungsausfall</option>
             <option value="chargeback">Rückbuchung</option>
             <option value="fraud">Betrugsverdacht</option>
@@ -26,8 +26,8 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-ink-secondary mb-1">Begründung * (min. 10 Zeichen)</label>
-          <textarea
+          <label for="block-member-modal-form-notes" class="block text-sm font-medium text-ink-secondary mb-1">Begründung * (min. 10 Zeichen)</label>
+          <textarea id="block-member-modal-form-notes"
             v-model="form.notes"
             rows="3"
             placeholder="z.B. Mehrfache SEPA-Rücklastschriften, kein Kontakt möglich..."

@@ -2,7 +2,7 @@
     <AppLayout title="Neue Organisation erstellen">
         <template #header>
             <div class="flex items-center">
-                <button @click="goBack" class="mr-4 p-2 hover:bg-fill rounded-lg transition-colors">
+                <button type="button" @click="goBack" aria-label="Zurück" class="touch-target relative mr-4 p-2 hover:bg-fill rounded-lg transition-colors">
                     <component :is="ArrowLeft" class="w-5 h-5 text-ink-secondary" />
                 </button>
                 Neue Organisation erstellen
@@ -85,10 +85,10 @@
 
                             <!-- Country -->
                             <div>
-                                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                                <label for="create-form-country" class="block text-sm font-medium text-ink-secondary mb-2">
                                     Land <span class="text-danger">*</span>
                                 </label>
-                                <select v-model="form.country" class="field w-full p-2">
+                                <select id="create-form-country" v-model="form.country" class="field w-full p-2">
                                     <option value="DE">Deutschland</option>
                                     <option value="AT">Österreich</option>
                                     <option value="CH">Schweiz</option>

@@ -224,10 +224,10 @@
       <!-- Import Configuration -->
       <div v-if="archiveValidationResult && archiveValidationResult.valid && !archiveImportResult" class="mt-6 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-ink-secondary mb-1">
+          <label for="migration-import-card-archive-fallback-start-date" class="block text-sm font-medium text-ink-secondary mb-1">
             Stichtag für Akten ohne &bdquo;Bezahlt bis&ldquo;
           </label>
-          <input
+          <input id="migration-import-card-archive-fallback-start-date"
             v-model="archiveFallbackStartDate"
             type="date"
             class="field block w-full max-w-xs"

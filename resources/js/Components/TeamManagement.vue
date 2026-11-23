@@ -82,6 +82,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <select v-model="gymUser.role" @change="updateUserRole(gymUser)"
+                                        :aria-label="`Rolle von ${gymUser.user?.first_name ?? ''} ${gymUser.user?.last_name ?? ''}`.trim()"
                                         :disabled="gymUser.user?.id === currentUser.id || gymUser.isUpdating"
                                         class="field w-full p-2 disabled:bg-fill">
                                         <option value="admin">Admin</option>
@@ -95,7 +96,9 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button v-if="gymUser.user?.id !== currentUser.id" @click="removeUser(gymUser)"
                                         :disabled="gymUser.isRemoving"
-                                        class="text-danger hover:text-danger-strong disabled:opacity-50">
+                                        :aria-label="`${gymUser.user?.first_name ?? ''} ${gymUser.user?.last_name ?? ''} aus dem Team entfernen`.trim()"
+                                        title="Aus dem Team entfernen"
+                                        class="touch-target relative text-danger hover:text-danger-strong disabled:opacity-50">
                                         <component :is="Trash2" class="w-4 h-4" />
                                     </button>
                                     <span v-else class="text-ink-muted text-xs">
@@ -182,16 +185,16 @@
 
                     <form @submit.prevent="inviteUser" class="space-y-4">
                         <div>
-                            <label class="block text-sm/6 font-medium text-ink-secondary">E-Mail-Adresse</label>
-                            <input v-model="userForm.email" type="email"
+                            <label for="team-management-user-form-email" class="block text-sm/6 font-medium text-ink-secondary">E-Mail-Adresse</label>
+                            <input id="team-management-user-form-email" v-model="userForm.email" type="email"
                                 class="field block w-full px-3 py-1.5"
                                 required />
                             <p v-if="formErrors.email" class="mt-1 text-sm text-danger">{{ formErrors.email }}</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm/6 font-medium text-ink-secondary">Rolle</label>
-                            <select v-model="userForm.role"
+                            <label for="team-management-user-form-role" class="block text-sm/6 font-medium text-ink-secondary">Rolle</label>
+                            <select id="team-management-user-form-role" v-model="userForm.role"
                                 class="field w-full p-2"
                                 required>
                                 <option value="admin">Admin</option>

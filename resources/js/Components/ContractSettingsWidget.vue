@@ -46,10 +46,10 @@
 
                     <!-- Textfeld: Name der Gratis-Mitgliedschaft (nur sichtbar wenn Toggle aktiv) -->
                     <div v-if="contractsStartFirstOfMonth" class="ml-7">
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">
+                        <label for="contract-settings-widget-free-trial-membership-name" class="block text-sm font-medium text-ink-secondary mb-1">
                             Name der Gratis-Mitgliedschaft
                         </label>
-                        <input
+                        <input id="contract-settings-widget-free-trial-membership-name"
                             v-model="freeTrialMembershipName"
                             type="text"
                             placeholder="Gratis-Testzeitraum"
@@ -107,8 +107,8 @@
                 <div class="space-y-6">
                     <!-- Subject -->
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Vertrags-Betreff</label>
-                        <input
+                        <label for="contract-settings-widget-contract-template-subject" class="block text-sm font-medium text-ink-secondary mb-1">Vertrags-Betreff</label>
+                        <input id="contract-settings-widget-contract-template-subject"
                             v-model="contractTemplateSubject"
                             type="text"
                             class="field block w-full px-3 py-1.5"
@@ -179,8 +179,8 @@
 
                     <!-- Body Textarea -->
                     <div>
-                        <label class="block text-sm font-medium text-ink-secondary mb-1">Vertragsinhalt (HTML)</label>
-                        <textarea
+                        <label for="contract-settings-widget-contract-template-body" class="block text-sm font-medium text-ink-secondary mb-1">Vertragsinhalt (HTML)</label>
+                        <textarea id="contract-settings-widget-contract-template-body"
                             ref="bodyTextarea"
                             v-model="contractTemplateBody"
                             rows="20"

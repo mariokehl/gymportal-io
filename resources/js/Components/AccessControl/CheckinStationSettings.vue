@@ -77,6 +77,7 @@
                     <div class="flex items-center space-x-2">
                         <input
                             :value="checkinStation.scan_url"
+                            aria-label="Check-in-Adresse der Station"
                             type="text"
                             readonly
                             class="field flex-1 p-2 bg-surface-muted font-mono"

@@ -39,7 +39,7 @@
                         <p class="text-sm text-ink-muted">Macht das Widget auf deiner Website verfügbar</p>
                     </div>
                     <div class="relative inline-block w-11 h-5">
-                        <input v-model="settings.widget_enabled" id="switch-component-blue" type="checkbox" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-brand cursor-pointer transition-colors duration-300" />
+                        <input v-model="settings.widget_enabled" id="switch-component-blue" type="checkbox" role="switch" aria-label="Online-Widget aktivieren" class="peer appearance-none w-11 h-5 bg-slate-100 rounded-full checked:bg-brand cursor-pointer transition-colors duration-300" />
                         <label for="switch-component-blue" class="absolute top-0 left-0 w-5 h-5 bg-surface rounded-full border border-slate-300 shadow-sm transition-transform duration-300 peer-checked:translate-x-6 peer-checked:border-brand cursor-pointer"></label>
                     </div>
                 </div>
@@ -52,9 +52,9 @@
                     </h4>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Primärfarbe</label>
+                            <label for="contract-widget-settings-colors-primary" class="block text-sm font-medium text-ink-secondary mb-2">Primärfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="contract-widget-settings-colors-primary"
                                     type="color"
                                     v-model="settings.colors.primary"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
@@ -63,13 +63,14 @@
                                     type="text"
                                     v-model="settings.colors.primary"
                                     class="field flex-1 px-3 py-2"
+                                    aria-label="Primärfarbe als Hex-Wert"
                                 >
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Sekundärfarbe</label>
+                            <label for="contract-widget-settings-colors-secondary" class="block text-sm font-medium text-ink-secondary mb-2">Sekundärfarbe</label>
                             <div class="flex items-center space-x-3">
-                                <input
+                                <input id="contract-widget-settings-colors-secondary"
                                     type="color"
                                     v-model="settings.colors.secondary"
                                     class="w-12 h-10 rounded border border-line-strong cursor-pointer"
@@ -78,6 +79,7 @@
                                     type="text"
                                     v-model="settings.colors.secondary"
                                     class="field flex-1 px-3 py-2"
+                                    aria-label="Sekundärfarbe als Hex-Wert"
                                 >
                             </div>
                         </div>
@@ -92,8 +94,8 @@
                     </h4>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Widget-Titel</label>
-                            <input
+                            <label for="contract-widget-settings-texts-title" class="block text-sm font-medium text-ink-secondary mb-2">Widget-Titel</label>
+                            <input id="contract-widget-settings-texts-title"
                                 type="text"
                                 v-model="settings.texts.title"
                                 class="field w-full px-3 py-2"
@@ -101,8 +103,8 @@
                             >
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-2">Willkommensnachricht</label>
-                            <textarea
+                            <label for="contract-widget-settings-texts-welcome-message" class="block text-sm font-medium text-ink-secondary mb-2">Willkommensnachricht</label>
+                            <textarea id="contract-widget-settings-texts-welcome-message"
                                 v-model="settings.texts.welcome_message"
                                 rows="3"
                                 class="field w-full px-3 py-2"
@@ -151,13 +153,14 @@
                                         :class="[
                                             'p-3 bg-surface rounded-md border cursor-pointer transition-all',
                                             isContractSelected(contract.id)
-                                                ? 'border-line-strong opacity-50 cursor-not-allowed'
+                                                ? 'border-line-strong bg-surface-muted cursor-not-allowed'
                                                 : 'border-line hover:border-brand-line hover:shadow-sm'
                                         ]"
                                         :disabled="isContractSelected(contract.id) || selectedContracts.length >= 3">
                                         <div class="flex items-center justify-between">
                                             <div class="flex items-center">
                                                 <input type="checkbox"
+                                                    :aria-label="`${contract.name} im Widget anbieten`"
                                                     :checked="isContractSelected(contract.id)"
                                                     :disabled="!isContractSelected(contract.id) && selectedContracts.length >= 3"
                                                     class="mr-3 rounded border-line-strong text-brand"
@@ -222,7 +225,9 @@
                                                         </div>
                                                     </div>
                                                     <button @click="removeContract(element.id)"
-                                                            class="ml-3 text-ink-muted hover:text-danger-strong transition-colors">
+                                                            type="button"
+                                                            :aria-label="`${element.name} aus dem Widget entfernen`"
+                                                            class="touch-target relative ml-3 text-ink-muted hover:text-danger-strong transition-colors">
                                                         <component :is="X" class="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -411,6 +416,7 @@
                     <div class="relative">
                         <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ scriptCode }}</pre>
                         <button @click="copyToClipboard(scriptCode)"
+                                aria-label="Code kopieren"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                             <component :is="Copy" class="w-4 h-4" />
                         </button>
@@ -443,6 +449,7 @@
                     <div class="relative">
                         <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ iframeCode }}</pre>
                         <button @click="copyToClipboard(iframeCode)"
+                                aria-label="Code kopieren"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                             <component :is="Copy" class="w-4 h-4" />
                         </button>
@@ -475,6 +482,7 @@
                     <div class="relative">
                         <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ webComponentCode }}</pre>
                         <button @click="copyToClipboard(webComponentCode)"
+                                aria-label="Code kopieren"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                             <component :is="Copy" class="w-4 h-4" />
                         </button>
@@ -508,6 +516,7 @@
                         <div class="relative">
                             <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ apiEndpoints }}</pre>
                             <button @click="copyToClipboard(apiEndpoints)"
+                                    aria-label="Code kopieren"
                                     class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                                 <component :is="Copy" class="w-4 h-4" />
                             </button>
@@ -521,6 +530,7 @@
                         <div class="relative">
                             <pre class="bg-inverse text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ sdkCode }}</pre>
                             <button @click="copyToClipboard(sdkCode)"
+                                    aria-label="Code kopieren"
                                     class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-xs">
                                 <component :is="Copy" class="w-4 h-4" />
                             </button>
@@ -554,13 +564,13 @@
             <!-- API Keys Content -->
             <div v-else class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">
+                    <label for="contract-widget-public-key-f-r-frontend-integration" class="block text-sm font-medium text-ink-secondary mb-2">
                         Public Key (für Frontend-Integration):
                     </label>
                     <div class="flex items-center space-x-2">
-                        <input :value="apiKeys.public" type="text" readonly
+                        <input id="contract-widget-public-key-f-r-frontend-integration" :value="apiKeys.public" type="text" readonly
                             class="field flex-1 p-2 bg-surface-muted font-mono">
-                        <button @click="copyToClipboard(apiKeys.public)"
+                        <button @click="copyToClipboard(apiKeys.public)" aria-label="Öffentlichen Schlüssel kopieren"
                                 :disabled="!apiKeys.public"
                                 class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded">
                             <component :is="Copy" class="w-4 h-4" />
@@ -569,19 +579,19 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-2">
+                    <label for="contract-widget-private-key-f-r-server-integration" class="block text-sm font-medium text-ink-secondary mb-2">
                         Private Key (für Server-Integration):
                     </label>
                     <div class="flex items-center space-x-2">
-                        <input :value="showPrivateKey ? apiKeys.private : '••••••••••••••••••••••••••••••••'"
+                        <input id="contract-widget-private-key-f-r-server-integration" :value="showPrivateKey ? apiKeys.private : '••••••••••••••••••••••••••••••••'"
                             type="text" readonly
                             class="field flex-1 p-2 bg-surface-muted font-mono">
-                        <button @click="togglePrivateKey"
+                        <button @click="togglePrivateKey" :aria-label="showPrivateKey ? 'Privaten Schlüssel verbergen' : 'Privaten Schlüssel anzeigen'"
                                 :disabled="!apiKeys.private"
                                 class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded">
                             <component :is="showPrivateKey ? EyeOff : Eye" class="w-4 h-4" />
                         </button>
-                        <button @click="copyToClipboard(apiKeys.private)"
+                        <button @click="copyToClipboard(apiKeys.private)" aria-label="Privaten Schlüssel kopieren"
                                 :disabled="!apiKeys.private"
                                 class="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white p-2 rounded">
                             <component :is="Copy" class="w-4 h-4" />

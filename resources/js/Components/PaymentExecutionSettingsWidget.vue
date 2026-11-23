@@ -13,8 +13,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-ink-secondary mb-1.5">Beispiel-Fälligkeit</label>
-                    <input
+                    <label for="payment-execution-settings-widget-sample-due-date" class="block text-sm font-medium text-ink-secondary mb-1.5">Beispiel-Fälligkeit</label>
+                    <input id="payment-execution-settings-widget-sample-due-date"
                         v-model="sampleDueDate"
                         type="date"
                         class="field block px-3 py-1.5" />
@@ -142,6 +142,8 @@
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
+                                role="switch"
+                                :aria-label="`Eigenen Ausführungstag für ${method.name} festlegen`"
                                 class="sr-only peer"
                                 :checked="method.is_custom"
                                 :disabled="isSaving"
@@ -163,7 +165,7 @@
                 <div
                     v-for="method in inactiveMethods"
                     :key="method.key"
-                    class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_104px] gap-4 lg:gap-5 items-center py-4 border-b border-line-subtle opacity-60">
+                    class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,2fr)_104px] gap-4 lg:gap-5 items-center py-4 border-b border-line-subtle">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-9 h-9 flex-none rounded-lg bg-fill text-ink-muted flex items-center justify-center">
                             <component :is="Lock" class="w-4 h-4" />

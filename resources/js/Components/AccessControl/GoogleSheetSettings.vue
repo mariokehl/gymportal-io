@@ -81,10 +81,10 @@
                     <div v-if="form.enabled" class="ml-7 space-y-4">
                         <!-- JSON-Key Upload -->
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-1">
+                            <label for="google-sheet-settings-service-account-schl-ssel-json" class="block text-sm font-medium text-ink-secondary mb-1">
                                 Service-Account-Schlüssel (JSON)
                             </label>
-                            <input
+                            <input id="google-sheet-settings-service-account-schl-ssel-json"
                                 ref="fileInput"
                                 type="file"
                                 accept="application/json,.json"
@@ -120,10 +120,10 @@
 
                         <!-- Sheet-URL -->
                         <div>
-                            <label class="block text-sm font-medium text-ink-secondary mb-1">
+                            <label for="google-sheet-settings-form-sheet-url" class="block text-sm font-medium text-ink-secondary mb-1">
                                 Google-Sheet-URL
                             </label>
-                            <input
+                            <input id="google-sheet-settings-form-sheet-url"
                                 v-model="form.sheet_url"
                                 type="url"
                                 placeholder="https://docs.google.com/spreadsheets/d/..."

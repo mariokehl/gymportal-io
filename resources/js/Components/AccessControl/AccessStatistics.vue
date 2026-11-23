@@ -7,6 +7,7 @@
                     <h3 class="text-lg font-semibold text-ink">Statistiken</h3>
                     <select
                         v-model="selectedPeriod"
+                        aria-label="Zeitraum"
                         @change="loadStatistics"
                         class="field p-2"
                     >

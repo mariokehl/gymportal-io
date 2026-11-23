@@ -71,6 +71,7 @@
                 <div v-if="showFilters" class="mt-5 pt-5 border-t border-line flex flex-wrap gap-3">
                     <select
                         v-model="filters.scanner"
+                        aria-label="Nach Scanner filtern"
                         @change="applyFilters"
                         class="field p-2"
                     >
@@ -82,6 +83,7 @@
 
                     <select
                         v-model="filters.type"
+                        aria-label="Nach Typ filtern"
                         @change="applyFilters"
                         class="field p-2"
                     >
@@ -92,6 +94,7 @@
 
                     <select
                         v-model="filters.task"
+                        aria-label="Nach Aufgabe filtern"
                         @change="applyFilters"
                         class="field p-2"
                     >

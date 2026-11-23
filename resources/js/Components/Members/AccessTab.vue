@@ -18,6 +18,8 @@
             <input
               v-model="accessForm.qr_code_enabled"
               type="checkbox"
+              role="switch"
+              aria-label="QR-Code Zugang"
               class="sr-only peer"
               @change="updateAccessSettings"
             >
@@ -71,6 +73,8 @@
             <input
               v-model="accessForm.nfc_enabled"
               type="checkbox"
+              role="switch"
+              aria-label="NFC-Tag Zugang"
               class="sr-only peer"
               @change="updateAccessSettings"
             >
@@ -314,6 +318,8 @@
               <input
                 v-model="accessForm.solarium_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Solarium"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
@@ -339,6 +345,8 @@
               <input
                 v-model="accessForm.vending_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Vending Machine"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
@@ -364,6 +372,8 @@
               <input
                 v-model="accessForm.massage_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Massagestuhl"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
@@ -389,6 +399,8 @@
               <input
                 v-model="accessForm.coffee_flat_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Kaffee-Flatrate"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
@@ -474,6 +486,8 @@
               <input
                 v-model="accessForm.day_pass_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Tageskarte"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >
@@ -499,6 +513,8 @@
               <input
                 v-model="accessForm.visit_card_enabled"
                 type="checkbox"
+                role="switch"
+                aria-label="Mehrfachkarte"
                 class="sr-only peer"
                 @change="updateAccessSettings"
               >

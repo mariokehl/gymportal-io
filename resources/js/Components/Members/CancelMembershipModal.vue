@@ -52,10 +52,10 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                <label for="cancel-membership-modal-form-cancellation-date" class="block text-sm font-medium text-ink-secondary mb-2">
                   Kündigungsdatum <span class="text-danger">*</span>
                 </label>
-                <input
+                <input id="cancel-membership-modal-form-cancellation-date"
                   v-model="form.cancellation_date"
                   type="date"
                   :min="isExtraordinary ? today : (form.min_cancellation_date || today)"
@@ -101,10 +101,10 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-ink-secondary mb-2">
+                <label for="cancel-membership-modal-form-cancellation-reason" class="block text-sm font-medium text-ink-secondary mb-2">
                   Kündigungsgrund <span class="text-danger">*</span>
                 </label>
-                <select
+                <select id="cancel-membership-modal-form-cancellation-reason"
                   v-model="form.cancellation_reason"
                   class="field w-full px-3 py-2"
                   required
