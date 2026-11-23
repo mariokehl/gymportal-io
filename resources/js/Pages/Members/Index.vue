@@ -19,7 +19,7 @@
       <section
         ref="listSection"
         tabindex="-1"
-        class="@container scroll-mt-24 overflow-hidden rounded-lg border border-line bg-surface shadow-sm focus:outline-none"
+        class="@container scroll-mt-24 overflow-clip rounded-lg border border-line bg-surface shadow-sm focus:outline-none"
         :aria-busy="showSkeleton"
       >
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
@@ -92,8 +92,8 @@
              otherwise they are placed against the page and widen the window. -->
         <!-- Dimmed right away while loading, so a click has visible effect
              even when the response is too fast for the skeleton. -->
-        <div
-          class="relative overflow-x-auto transition-opacity duration-100"
+        <HorizontalScroller
+          class="relative transition-opacity duration-100"
           :class="isLoading && !showSkeleton ? 'pointer-events-none opacity-50' : ''"
         >
           <!-- Narrow cards (phones): one row per member with what identifies
@@ -358,7 +358,7 @@
                 : 'Beginnen Sie mit dem Hinzufügen Ihres ersten Mitglieds.' }}
             </p>
           </div>
-        </div>
+        </HorizontalScroller>
 
         <Pagination
           :data="members"
@@ -451,6 +451,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import AppShell from '@/Layouts/AppShell.vue'
 import Pagination from '@/Components/Pagination.vue'
 import TableSkeletonRows from '@/Components/Common/TableSkeletonRows.vue'
+import HorizontalScroller from '@/Components/Common/HorizontalScroller.vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'

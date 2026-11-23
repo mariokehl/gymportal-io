@@ -59,11 +59,12 @@
     </div>
 
     <!-- Payments Table -->
-    <div class="bg-surface rounded-lg shadow-sm border border-line overflow-hidden">
+    <!-- overflow-clip, not hidden: hidden would trap the sticky scrollbar. -->
+    <div class="bg-surface rounded-lg shadow-sm border border-line overflow-clip">
       <!-- Dimmed right away while loading, so a click has visible effect
            even when the response is too fast for the skeleton. -->
-      <div
-        class="overflow-x-auto transition-opacity duration-100"
+      <HorizontalScroller
+        class="transition-opacity duration-100"
         :class="isBusy && !showSkeleton ? 'pointer-events-none opacity-50' : ''"
       >
         <table class="min-w-full divide-y divide-line">
@@ -402,7 +403,7 @@
             </template>
           </tbody>
         </table>
-      </div>
+      </HorizontalScroller>
 
       <!-- Pagination with Pagination Component -->
       <Pagination
@@ -438,6 +439,7 @@ import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
 import TableSkeletonRows from '@/Components/Common/TableSkeletonRows.vue'
+import HorizontalScroller from '@/Components/Common/HorizontalScroller.vue'
 import Tooltip from '@/Components/Tooltip.vue'
 import { useDelayedFlag } from '@/composables/useDelayedFlag'
 import { averageRowHeight } from '@/utils/skeletonSize'
