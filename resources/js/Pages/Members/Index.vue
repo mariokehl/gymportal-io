@@ -57,16 +57,16 @@
         </div>
 
         <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-3 border-b border-brand-line bg-brand-subtle px-5 py-2.5">
-          <span class="text-sm font-semibold text-brand-strong">{{ selectionLabel }}</span>
+          <span class="text-sm font-semibold text-brand-ink-strong">{{ selectionLabel }}</span>
           <button
             v-if="offerSelectAll"
             type="button"
-            class="px-1 py-0.5 text-sm font-medium text-brand underline underline-offset-[3px]"
+            class="px-1 py-0.5 text-sm font-medium text-brand-ink underline underline-offset-[3px]"
             @click="selectAllMatching"
           >
             Alle {{ members.total }} gefilterten Mitglieder auswählen
           </button>
-          <button type="button" class="px-1 py-0.5 text-sm text-brand-strong" @click="clearSelection">Auswahl aufheben</button>
+          <button type="button" class="px-1 py-0.5 text-sm text-brand-ink-strong" @click="clearSelection">Auswahl aufheben</button>
           <div class="ml-auto flex flex-wrap items-center gap-2">
             <button
               type="button"

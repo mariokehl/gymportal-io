@@ -42,7 +42,7 @@
                                     <div class="flex items-center">
                                         <div
                                             class="w-10 h-10 bg-brand-soft rounded-full flex items-center justify-center">
-                                            <span class="text-brand font-medium text-sm">
+                                            <span class="text-brand-ink font-medium text-sm">
                                                 {{ getUserInitials(gymUser.user) }}
                                             </span>
                                         </div>
@@ -52,7 +52,7 @@
                                                 class="group flex items-center text-sm font-medium text-ink">
                                                 <span>{{ gymUser.user?.first_name }} {{ gymUser.user?.last_name }}</span>
                                                 <button v-if="isGymOwner" @click="startEditName(gymUser)"
-                                                    class="ml-2 text-ink-muted hover:text-brand-strong opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                                    class="ml-2 text-ink-muted hover:text-brand-ink-strong opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                                                     title="Namen bearbeiten">
                                                     <component :is="Pencil" class="w-3.5 h-3.5" />
                                                 </button>
@@ -155,7 +155,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                     <button @click="resendInvitation(invitation)"
                                         :disabled="invitation.isBusy"
-                                        class="text-brand hover:text-brand-strong disabled:opacity-50"
+                                        class="text-brand-ink hover:text-brand-ink-strong disabled:opacity-50"
                                         title="Einladung erneut senden">
                                         <component :is="Send" class="w-4 h-4 inline" />
                                     </button>

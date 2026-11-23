@@ -9,7 +9,7 @@
       <div class="flex justify-between items-center mb-6">
         <div class="flex items-center space-x-4">
           <h2 class="text-2xl font-bold text-ink tabular-nums">Alle Benachrichtigungen</h2>
-          <span class="bg-brand-soft text-brand-strong px-3 py-1 rounded-full text-sm font-medium">
+          <span class="bg-brand-soft text-brand-ink-strong px-3 py-1 rounded-full text-sm font-medium">
             {{ unreadCount }} ungelesen
           </span>
         </div>
@@ -82,7 +82,7 @@
                 <button
                   v-if="!notification.read_at"
                   @click.stop="markAsRead(notification)"
-                  class="text-brand hover:text-brand-strong text-sm font-medium"
+                  class="text-brand-ink hover:text-brand-ink-strong text-sm font-medium"
                 >
                   Als gelesen markieren
                 </button>
@@ -255,7 +255,7 @@ const getTypeBadgeClass = (type) => {
     'contract_cancelled': 'bg-info-soft text-info-strong',
     'suspicious_registration': 'bg-orange-100 text-orange-800',
     'payment_failed': 'bg-danger-soft text-danger-strong',
-    'announcement': 'bg-brand-soft text-brand-strong',
+    'announcement': 'bg-brand-soft text-brand-ink-strong',
     'promotion': 'bg-purple-100 text-purple-800',
     'system': 'bg-fill text-ink',
     'reminder': 'bg-orange-100 text-orange-800'

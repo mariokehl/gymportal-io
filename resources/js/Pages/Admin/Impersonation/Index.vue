@@ -79,7 +79,7 @@
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                       <div class="flex-shrink-0 h-10 w-10">
-                        <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <div class="h-10 w-10 rounded-full bg-brand flex items-center justify-center">
                           <span class="text-white font-medium text-sm">
                             {{ getInitials(user.first_name, user.last_name) }}
                           </span>

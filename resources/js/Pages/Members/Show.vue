@@ -71,7 +71,7 @@
             @click="savePersonalData"
             :disabled="!isDirty || isSaving"
             class="px-2 py-2 text-sm font-bold"
-            :class="(!isDirty || isSaving) ? 'text-ink-muted' : 'text-brand'"
+            :class="(!isDirty || isSaving) ? 'text-ink-muted' : 'text-brand-ink'"
           >
             {{ isSaving ? 'Speichern...' : 'Speichern' }}
           </button>
@@ -146,7 +146,7 @@
           <span
             v-if="tab.id === 'history' && member.status_history?.length > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-strong'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-ink-strong'"
           >{{ member.status_history.length }}</span>
           <span
             v-if="tab.id === 'membership' && membershipBadge"
@@ -181,12 +181,12 @@
           <span
             v-if="tab.id === 'documents' && documentCount > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-strong'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-ink-strong'"
           >{{ documentCount }}</span>
           <span
             v-if="tab.id === 'checkins' && checkInsTotal > 0"
             class="ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-strong'"
+            :class="active ? 'bg-surface/25 text-white' : 'bg-brand-soft text-brand-ink-strong'"
           >{{ checkInsTotal }}</span>
           <span
             v-if="tab.id === 'access' && activeAccessCount > 0"

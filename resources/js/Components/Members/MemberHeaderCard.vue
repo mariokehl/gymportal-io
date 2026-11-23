@@ -62,7 +62,7 @@
               />
 
               <!-- Age -->
-              <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-subtle text-brand-strong">
+              <span v-if="memberAge !== null" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-subtle text-brand-ink-strong">
                 {{ memberAge }} Jahre
               </span>
             </div>
@@ -143,7 +143,7 @@
                     role="menuitem"
                     @click="showActionMenu = false"
                   >
-                    <Plus class="w-4 h-4 text-brand" />
+                    <Plus class="w-4 h-4 text-brand-ink" />
                     Neues Mitglied
                   </Link>
                   <button
@@ -226,14 +226,14 @@
         </div>
 
         <!-- Credit tile: available balance + top-up action (right, under the action buttons) -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-brand-line bg-gradient-to-r from-indigo-50 to-white px-3.5 py-3 flex-none lg:ml-auto lg:max-w-md">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-brand-line bg-brand-subtle px-3.5 py-3 flex-none lg:ml-auto lg:max-w-md">
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-9 h-9 rounded-full bg-brand-soft text-brand flex items-center justify-center flex-none">
+            <div class="w-9 h-9 rounded-full bg-brand-soft text-brand-ink flex items-center justify-center flex-none">
               <Wallet class="w-5 h-5" />
             </div>
             <div class="min-w-0">
-              <div class="text-2xs font-semibold text-ink-muted uppercase tracking-wide">Verfügbares Guthaben</div>
-              <div class="text-2xl font-bold text-brand leading-tight tabular-nums">
+              <div class="text-xs font-medium text-ink-muted">Verfügbares Guthaben</div>
+              <div class="text-2xl font-bold text-brand-ink leading-tight tabular-nums">
                 {{ member.credit_balance_formatted ?? '0,00 €' }}
               </div>
             </div>
@@ -241,7 +241,7 @@
           <button
             type="button"
             @click="$emit('topup')"
-            class="inline-flex items-center justify-center gap-1.5 rounded-md border border-brand-line bg-surface px-3.5 py-2 text-compact font-semibold text-brand hover:bg-brand-subtle transition-colors whitespace-nowrap flex-none"
+            class="inline-flex items-center justify-center gap-1.5 rounded-md border border-brand-line bg-surface px-3.5 py-2 text-compact font-semibold text-brand-ink hover:bg-brand-subtle transition-colors whitespace-nowrap flex-none"
           >
             <Plus class="w-[15px] h-[15px]" />
             Aufladen
@@ -294,7 +294,7 @@
                 class="w-full flex items-center gap-3.5 px-4 py-4 text-base font-medium text-ink border-t border-line-subtle hover:bg-surface-muted"
                 @click="showActionSheet = false"
               >
-                <Plus class="w-5 h-5 text-brand" />
+                <Plus class="w-5 h-5 text-brand-ink" />
                 Neues Mitglied
               </Link>
               <button
@@ -317,7 +317,7 @@
             <button
               type="button"
               @click="showActionSheet = false"
-              class="w-full mt-2 py-4 rounded-2xl bg-surface text-base font-semibold text-brand shadow-[0_-2px_30px_rgba(0,0,0,0.10)]"
+              class="w-full mt-2 py-4 rounded-2xl bg-surface text-base font-semibold text-brand-ink shadow-[0_-2px_30px_rgba(0,0,0,0.10)]"
             >
               Abbrechen
             </button>

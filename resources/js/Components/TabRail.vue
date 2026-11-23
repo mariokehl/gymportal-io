@@ -16,7 +16,7 @@
       @click="$emit('update:modelValue', tab.id)"
       :class="[
         modelValue === tab.id
-          ? 'bg-brand text-white border-transparent shadow-[0_2px_8px_rgba(79,70,229,0.3)]'
+          ? 'bg-brand text-white border-transparent'
           : 'bg-surface text-ink-secondary border-line shadow-sm hover:border-line-strong',
         'flex-none whitespace-nowrap flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors'
       ]"

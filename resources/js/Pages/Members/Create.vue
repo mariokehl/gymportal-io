@@ -27,7 +27,7 @@
                 <span v-else>{{ step.id }}</span>
               </div>
               <div class="ml-3">
-                <p class="text-sm font-medium" :class="index <= currentStep ? 'text-brand' : 'text-ink-muted'">
+                <p class="text-sm font-medium" :class="index <= currentStep ? 'text-brand-ink' : 'text-ink-muted'">
                   {{ step.name }}
                 </p>
               </div>
@@ -405,7 +405,7 @@
                   :id="`plan_${plan.id}`"
                   :value="plan.id"
                   v-model="form.membership_plan_id"
-                  class="w-4 h-4 text-brand"
+                  class="w-4 h-4 text-brand-ink"
                 />
                 <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-ink">
                   {{ plan.name }}
@@ -413,7 +413,7 @@
               </div>
               <p class="text-sm text-ink-secondary mb-3">{{ plan.description }}</p>
               <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-brand">
+                <span class="text-lg font-bold text-brand-ink">
                   {{ formatCurrency(plan.price) }}
                 </span>
                 <span class="text-sm text-ink-muted">
@@ -436,7 +436,7 @@
                 <input
                   type="checkbox"
                   v-model="form.allow_past_start_date"
-                  class="w-4 h-4 text-brand border-line-strong rounded"
+                  class="w-4 h-4 text-brand-ink border-line-strong rounded"
                 />
                 <span class="ml-2 text-sm text-ink-secondary">
                   Mitgliedschaft in der Vergangenheit beginnen lassen
@@ -527,7 +527,7 @@
                 <input
                   type="checkbox"
                   v-model="form.start_immediately"
-                  class="w-4 h-4 text-brand border-line-strong rounded"
+                  class="w-4 h-4 text-brand-ink border-line-strong rounded"
                 />
                 <span class="ml-2 text-sm text-ink-secondary">
                   Vertrag beginnt sofort (ohne Gratis-Zeitraum)
@@ -580,7 +580,7 @@
                   :id="`payment_${method.key}`"
                   :value="method.key"
                   v-model="form.payment_method"
-                  class="w-4 h-4 text-brand"
+                  class="w-4 h-4 text-brand-ink"
                 />
                 <div class="ml-3">
                   <label :for="`payment_${method.key}`" class="font-medium text-ink">
@@ -598,8 +598,8 @@
 
           <!-- Zusätzliche Informationen für SEPA -->
           <div v-if="form.payment_method === 'sepa_direct_debit'" class="mt-6 p-4 bg-brand-subtle rounded-lg">
-            <h4 class="font-medium text-brand-strong mb-2">SEPA-Lastschrift</h4>
-            <p class="text-sm text-brand-strong">
+            <h4 class="font-medium text-brand-ink-strong mb-2">SEPA-Lastschrift</h4>
+            <p class="text-sm text-brand-ink-strong">
               Die Kontodaten können nach der Registrierung im Mitgliederbereich hinterlegt werden.
               Der erste Beitrag wird 7 Tage nach Vertragsstart eingezogen.
             </p>
@@ -681,11 +681,11 @@
                 id="accept_terms"
                 v-model="form.accept_terms"
                 type="checkbox"
-                class="mt-1 w-4 h-4 text-brand border-line-strong rounded"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong rounded"
               />
               <label for="accept_terms" class="ml-2 text-sm text-ink-secondary">
-                Ich akzeptiere die <a href="#" class="text-brand hover:underline">Allgemeinen Geschäftsbedingungen</a>
-                und die <a href="#" class="text-brand hover:underline">Datenschutzerklärung</a>. <span class="text-danger">*</span>
+                Ich akzeptiere die <a href="#" class="text-brand-ink hover:underline">Allgemeinen Geschäftsbedingungen</a>
+                und die <a href="#" class="text-brand-ink hover:underline">Datenschutzerklärung</a>. <span class="text-danger">*</span>
               </label>
             </div>
             <p v-if="errors.accept_terms" class="mt-2 text-sm text-danger">
@@ -1109,7 +1109,7 @@ const getStepClasses = (index) => {
   if (index < currentStep.value) {
     return 'bg-brand border-brand text-white'
   } else if (index === currentStep.value) {
-    return 'bg-brand-soft border-brand text-brand'
+    return 'bg-brand-soft border-brand text-brand-ink'
   } else {
     return 'bg-surface border-line-strong text-ink-muted'
   }

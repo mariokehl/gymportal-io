@@ -50,7 +50,7 @@
             id="remember"
             v-model="form.remember"
             type="checkbox"
-            class="h-4 w-4 text-brand border-line-strong rounded"
+            class="h-4 w-4 text-brand-ink border-line-strong rounded"
           />
           <label for="remember" class="ml-2 block text-sm text-ink">
             Angemeldet bleiben
@@ -58,7 +58,7 @@
         </div>
 
         <div class="text-sm">
-          <Link href="/forgot-password" class="font-medium text-brand hover:text-brand-strong">
+          <Link href="/forgot-password" class="font-medium text-brand-ink hover:text-brand-ink-strong">
             Passwort vergessen?
           </Link>
         </div>
@@ -76,7 +76,7 @@
       </div>
 
       <div class="text-center">
-        <Link href="/register" class="text-sm text-brand hover:text-brand-strong">
+        <Link href="/register" class="text-sm text-brand-ink hover:text-brand-ink-strong">
           Noch kein Konto? Hier registrieren
         </Link>
       </div>

@@ -6,11 +6,11 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-brand hover:text-brand-strong">
+      <Link :href="route('contracts.index')" class="text-brand-ink underline decoration-brand-line underline-offset-4 hover:text-brand-ink-strong hover:decoration-current">
         Verträge
       </Link>
       <span class="text-ink-muted mx-2">/</span>
-      <Link :href="route('contracts.addons.index')" class="text-brand hover:text-brand-strong">
+      <Link :href="route('contracts.addons.index')" class="text-brand-ink hover:text-brand-ink-strong">
         Add-ons
       </Link>
       <span class="text-ink-muted mx-2">/</span>

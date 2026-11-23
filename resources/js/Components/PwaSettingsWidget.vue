@@ -26,7 +26,7 @@
         <div class="bg-surface rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
-                    <component :is="Settings" class="w-6 h-6 text-brand mr-3" />
+                    <component :is="Settings" class="w-6 h-6 text-brand-ink mr-3" />
                     <h3 class="text-xl font-semibold text-ink">PWA-Einstellungen</h3>
                 </div>
             </div>
@@ -212,7 +212,7 @@
                                     <input
                                         type="checkbox"
                                         v-model="form.opening_hours[key].closed"
-                                        class="rounded border-line-strong text-brand mr-2"
+                                        class="rounded border-line-strong text-brand-ink mr-2"
                                     >
                                     <span class="text-sm text-ink-secondary">Geschlossen</span>
                                 </label>
@@ -396,7 +396,7 @@
                             <input
                                 type="checkbox"
                                 v-model="form.pwa_settings.install_prompt_enabled"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
@@ -407,7 +407,7 @@
                             <input
                                 type="checkbox"
                                 v-model="form.pwa_settings.offline_support_enabled"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
@@ -418,7 +418,7 @@
                             <input
                                 type="checkbox"
                                 v-model="form.pwa_settings.push_notifications_enabled"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
@@ -429,7 +429,7 @@
                             <input
                                 type="checkbox"
                                 v-model="form.pwa_settings.background_sync_enabled"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                     </div>
@@ -602,7 +602,7 @@ onMounted(() => {
 <style scoped>
 /* Toggle Switch Styles */
 .peer:checked + div {
-    background-color: #2563eb;
+    background-color: var(--brand);
 }
 
 .peer:checked + div:after {

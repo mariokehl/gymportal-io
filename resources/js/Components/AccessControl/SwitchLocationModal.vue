@@ -14,7 +14,7 @@
                 <!-- Kopf -->
                 <div class="px-6 pt-6 flex items-start gap-3.5">
                     <span class="flex-none w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center">
-                        <ArrowUpDown class="w-5 h-5 text-brand" />
+                        <ArrowUpDown class="w-5 h-5 text-brand-ink" />
                     </span>
                     <div class="min-w-0">
                         <h3 class="text-lg font-semibold text-ink">Standort wechseln</h3>
@@ -53,10 +53,10 @@
                         <ArrowRight class="w-5 h-5 text-ink-muted flex-none" />
 
                         <div class="flex-1 min-w-0 bg-brand-subtle border border-brand-line rounded-lg px-3.5 py-3">
-                            <div class="text-xs font-medium uppercase tracking-wide text-brand">
+                            <div class="text-xs font-medium uppercase tracking-wide text-brand-ink">
                                 Wechsel nach
                             </div>
-                            <div class="mt-1 font-medium text-brand-strong truncate">{{ log.home_gym_name }}</div>
+                            <div class="mt-1 font-medium text-brand-ink-strong truncate">{{ log.home_gym_name }}</div>
                         </div>
                     </div>
 

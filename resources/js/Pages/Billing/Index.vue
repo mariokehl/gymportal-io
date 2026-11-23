@@ -41,19 +41,19 @@
 
               <!-- Terms Link -->
               <div class="pt-4 border-t border-line">
-                <a href="https://gymportal.io/terms" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-brand hover:text-brand-strong transition-colors">
+                <a href="https://gymportal.io/terms" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-brand-ink hover:text-brand-ink-strong transition-colors">
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
                   AGB
                 </a>
-                <a href="https://gymportal.io/privacy" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-brand hover:text-brand-strong transition-colors">
+                <a href="https://gymportal.io/privacy" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-brand-ink hover:text-brand-ink-strong transition-colors">
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
                   Datenschutz
                 </a>
-                <a href="https://gymportal.io/#pricing" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-brand hover:text-brand-strong transition-colors">
+                <a href="https://gymportal.io/#pricing" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-brand-ink hover:text-brand-ink-strong transition-colors">
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
@@ -93,7 +93,7 @@
                     <a href="https://mariokehl.com"
                        target="_blank"
                        rel="noopener noreferrer"
-                       class="flex items-center text-sm text-brand hover:text-brand-strong transition-colors">
+                       class="flex items-center text-sm text-brand-ink hover:text-brand-ink-strong transition-colors">
                        Mario Kehl IT GmbH
                     </a>
                 </p>
@@ -109,13 +109,13 @@
             <div v-if="trial.is_active" class="bg-brand-subtle border border-brand-line rounded-lg p-6">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <svg class="h-6 w-6 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg class="h-6 w-6 text-brand-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <h3 class="text-sm font-medium text-brand-strong">Testphase aktiv</h3>
-                  <div class="mt-2 text-sm text-brand-strong">
+                  <h3 class="text-sm font-medium text-brand-ink-strong">Testphase aktiv</h3>
+                  <div class="mt-2 text-sm text-brand-ink-strong">
                     <p>
                         Ihre Testphase endet am {{ trial.ends_at }}. Sie haben also noch {{ roundedTrialDaysLeft }} {{ roundedTrialDaysLeft === 1 ? 'Tag' : 'Tage' }} Zeit.
                         Wählen Sie danach oder vorher eines der unten aufgeführten Abonnements. Sie können das Abonnement jederzeit ändern oder kündigen.

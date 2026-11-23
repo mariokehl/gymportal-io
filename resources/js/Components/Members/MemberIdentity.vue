@@ -16,7 +16,7 @@
     <div class="ml-3 min-w-0" :style="maxWidth ? { maxWidth } : null">
       <p
         class="text-sm font-medium text-ink truncate"
-        :class="memberLink ? 'group-hover:text-brand-strong transition-colors' : null"
+        :class="memberLink ? 'group-hover:text-brand-ink-strong transition-colors' : null"
         :title="displayName"
       >
         {{ displayName }}

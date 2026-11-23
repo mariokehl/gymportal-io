@@ -46,7 +46,7 @@
             type="button"
             @click="emit('confirm')"
             :disabled="processing"
-            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-danger-solid text-base font-medium text-white hover:bg-danger-solid-strong sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
           >
             {{ processing ? 'Wird widerrufen...' : 'Mitgliedschaft widerrufen' }}
           </button>

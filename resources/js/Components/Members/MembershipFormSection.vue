@@ -36,7 +36,7 @@
                 :id="`plan_${plan.id}`"
                 :value="plan.id"
                 :checked="modelValue.membership_plan_id === plan.id"
-                class="w-4 h-4 text-brand"
+                class="w-4 h-4 text-brand-ink"
                 @change="selectPlan(plan.id)"
               />
               <label :for="`plan_${plan.id}`" class="ml-2 font-medium text-ink">
@@ -44,7 +44,7 @@
               </label>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-lg font-bold text-brand">
+              <span class="text-lg font-bold text-brand-ink">
                 {{ formatCurrency(plan.price) }}
               </span>
               <span class="text-sm text-ink-muted">
@@ -76,7 +76,7 @@
               type="checkbox"
               :checked="modelValue.allow_past_start_date"
               @change="updateField('allow_past_start_date', $event.target.checked)"
-              class="w-4 h-4 text-brand border-line-strong rounded"
+              class="w-4 h-4 text-brand-ink border-line-strong rounded"
             />
             <span class="ml-2 text-sm text-ink-secondary">
               Mitgliedschaft in der Vergangenheit beginnen lassen

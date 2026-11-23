@@ -6,9 +6,9 @@
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            <!-- Key figures carry the card on their own: label, value, change -->
             <div v-for="(stat, index) in stats.main_stats" :key="index" class="bg-surface p-6 rounded-lg shadow-sm">
-                <div class="flex justify-between items-start">
-                    <div>
+                <div>
                         <p class="text-sm text-ink-muted">{{ stat.title }}</p>
                         <!-- Value is redacted server-side for staff; render a blurred placeholder instead -->
                         <div v-if="isRedacted(stat)" class="blur-sm select-none" aria-hidden="true">
@@ -22,10 +22,6 @@
                                 {{ stat.change }} gegenüber letztem Monat
                             </span>
                         </template>
-                    </div>
-                    <div class="p-2 bg-brand-subtle rounded-lg">
-                        <component :is="getIcon(stat.icon)" class="w-6 h-6 text-brand" />
-                    </div>
                 </div>
             </div>
         </div>
@@ -89,7 +85,7 @@
                                         </Link>
                                         <Link
                                             :href="route('members.show', member.id) + '?edit=true'"
-                                            class="touch-target relative text-brand hover:text-brand-strong p-1 rounded"
+                                            class="touch-target relative text-brand-ink hover:text-brand-ink-strong p-1 rounded"
                                             title="Bearbeiten">
                                             <Edit class="w-4 h-4" />
                                         </Link>
@@ -145,7 +141,7 @@
                     <Link
                         v-if="notifications.length > 0"
                         :href="route('notifications.index')"
-                        class="mt-4 text-brand text-sm font-medium flex items-center hover:text-brand-strong transition-colors"
+                        class="mt-4 text-brand-ink text-sm font-medium flex items-center hover:text-brand-ink-strong transition-colors"
                     >
                         Alle anzeigen
                         <ChevronRight class="w-4 h-4 ml-1" />
@@ -163,7 +159,7 @@
                         >
                             <Link
                                 :href="route('members.show', checkIn.member_id)"
-                                class="w-10 h-10 rounded-full bg-brand-soft text-brand flex items-center justify-center font-medium text-sm hover:bg-brand-line transition-colors"
+                                class="w-10 h-10 rounded-full bg-brand-soft text-brand-ink flex items-center justify-center font-medium text-sm hover:bg-brand-line transition-colors"
                             >
                                 {{ checkIn.member_initials }}
                             </Link>
@@ -189,10 +185,7 @@
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import AppShell from '@/Layouts/AppShell.vue'
-import {
-    Users, FilePlus, DollarSign, BarChart,
-    Plus, Edit, ChevronRight, Eye
-} from '@lucide/vue'
+import { Plus, Edit, ChevronRight, Eye } from '@lucide/vue'
 import MemberStatusBadge from '@/Components/MemberStatusBadge.vue'
 import MemberIdentity from '@/Components/Members/MemberIdentity.vue'
 import Tooltip from '@/Components/Tooltip.vue'
@@ -228,14 +221,4 @@ const TREND_CLASSES = {
     gray: 'text-ink-muted',
 }
 const trendClass = (color) => TREND_CLASSES[color] ?? 'text-ink-muted'
-
-const getIcon = (iconName) => {
-    const icons = {
-        users: Users,
-        'file-plus': FilePlus,
-        'dollar-sign': DollarSign,
-        'bar-chart': BarChart
-    }
-    return icons[iconName] || BarChart
-}
 </script>

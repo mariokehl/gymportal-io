@@ -2,7 +2,7 @@
   <div class="flex h-dvh bg-canvas">
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-strong focus:shadow-md"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-ink-strong focus:shadow-md"
     >
       Zum Inhalt springen
     </a>
@@ -83,8 +83,8 @@
             :class="shell.pageOptions.hideHeaderUserOnMobile ? 'hidden lg:flex' : 'flex'"
           >
             <!-- Admin Badge -->
-            <Link v-if="isAdmin" :href="route('impersonate.index')" class="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors cursor-pointer">
-              <Shield class="h-3 w-3 mr-1" />
+            <Link v-if="isAdmin" :href="route('impersonate.index')" class="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-ink-secondary hover:bg-fill transition-colors">
+              <Shield class="h-3.5 w-3.5" aria-hidden="true" />
               <span class="text-xs font-medium">Admin</span>
             </Link>
 

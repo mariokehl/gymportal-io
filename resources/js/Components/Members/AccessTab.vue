@@ -7,7 +7,7 @@
       <!-- QR Code Section -->
       <div class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden">
         <div class="flex items-center gap-3 p-4">
-          <div class="w-11 h-11 rounded-xl bg-brand-subtle text-brand flex items-center justify-center flex-none">
+          <div class="w-11 h-11 rounded-xl bg-brand-subtle text-brand-ink flex items-center justify-center flex-none">
             <QrCode class="w-[22px] h-[22px]" />
           </div>
           <div class="flex-1 min-w-0">
@@ -51,7 +51,7 @@
           <button
             @click="sendQrCodeToMember"
             type="button"
-            class="text-sm font-semibold text-brand hover:text-brand-strong flex items-center gap-1.5"
+            class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong flex items-center gap-1.5"
           >
             <Mail class="w-4 h-4" />
             App-Link per E-Mail senden
@@ -107,7 +107,7 @@
             <button
               @click="startNfcEdit"
               type="button"
-              class="text-sm font-semibold text-brand hover:text-brand-strong"
+              class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
             >
               Bearbeiten
             </button>
@@ -146,7 +146,7 @@
                 <button
                   @click="startNfcEdit"
                   type="button"
-                  class="flex-1 sm:flex-none px-4 py-2 text-brand border border-brand rounded-md hover:bg-brand-subtle text-sm font-medium"
+                  class="flex-1 sm:flex-none px-4 py-2 text-brand-ink border border-brand rounded-md hover:bg-brand-subtle text-sm font-medium"
                 >
                   Bearbeiten
                 </button>
@@ -222,7 +222,7 @@
               v-if="!addingNfcTag"
               @click="startNfcTagAdd"
               type="button"
-              class="text-sm font-semibold text-brand hover:text-brand-strong flex items-center gap-1.5"
+              class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong flex items-center gap-1.5"
             >
               <Plus class="w-4 h-4" />
               Hinzufügen
@@ -626,7 +626,7 @@
               v-if="!isExternMember"
               @click="startStaticCodeEdit"
               type="button"
-              class="text-sm font-semibold text-brand hover:text-brand-strong flex items-center gap-1.5"
+              class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong flex items-center gap-1.5"
             >
               <KeyRound class="w-4 h-4" />
               {{ hasStaticLoginCode ? 'Code neu setzen' : 'Code festlegen' }}

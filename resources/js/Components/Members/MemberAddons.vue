@@ -8,7 +8,7 @@
     <div class="flex gap-3 items-start min-w-0">
       <span
         class="w-8 h-8 rounded-lg flex items-center justify-center flex-none"
-        :class="addon.isUsageService ? 'bg-brand-subtle text-brand' : 'bg-fill text-ink-muted'"
+        :class="addon.isUsageService ? 'bg-brand-subtle text-brand-ink' : 'bg-fill text-ink-muted'"
       >
         <component :is="addon.isUsageService ? CupSoda : BadgeCheck" class="w-4 h-4" />
       </span>
@@ -24,7 +24,7 @@
           </span>
           <span
             v-else
-            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-soft text-brand-strong"
+            class="px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-soft text-brand-ink-strong"
           >
             Optional
           </span>
@@ -167,7 +167,7 @@
                     class="px-2 py-0.5 rounded-full text-xs font-semibold"
                     :class="addon.mode === 'included'
                       ? 'bg-success-soft text-success-strong'
-                      : 'bg-brand-soft text-brand-strong'"
+                      : 'bg-brand-soft text-brand-ink-strong'"
                   >
                     {{ addon.mode === 'included' ? 'Inklusive' : 'Optional' }}
                   </span>

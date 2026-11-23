@@ -11,12 +11,12 @@
             <!-- Zusammenspiel mit dem Vertrag -->
             <div class="bg-brand-subtle border border-brand-line rounded-lg p-4 mb-6">
                 <div class="flex items-start">
-                    <Info class="w-5 h-5 text-brand mt-0.5 mr-2 flex-shrink-0" />
+                    <Info class="w-5 h-5 text-brand-ink mt-0.5 mr-2 flex-shrink-0" />
                     <div>
-                        <p class="text-sm font-medium text-brand-strong">
+                        <p class="text-sm font-medium text-brand-ink-strong">
                             Zusammenspiel mit dem Vertrag
                         </p>
-                        <p class="text-sm text-brand-strong mt-1">
+                        <p class="text-sm text-brand-ink-strong mt-1">
                             Ein Fremd-Check-in gelingt nur, wenn dieser Standort die Mitglieder zulässt
                             <em>und</em> der Vertrag des Mitglieds diesen Standort erlaubt.
                             Die Vertragsregel pflegen Sie unter
@@ -43,7 +43,7 @@
                         <span
                             v-for="name in allowedNames"
                             :key="name"
-                            class="bg-brand-subtle text-brand-strong rounded-full px-3 py-1 text-xs font-medium"
+                            class="bg-brand-subtle text-brand-ink-strong rounded-full px-3 py-1 text-xs font-medium"
                         >
                             {{ name }}
                         </span>
@@ -72,7 +72,7 @@
                             type="radio"
                             name="cross-location-rule"
                             :value="option.value"
-                            class="mt-0.5 h-4 w-4 text-brand border-line-strong"
+                            class="mt-0.5 h-4 w-4 text-brand-ink border-line-strong"
                         />
                         <span>
                             <span class="block text-sm font-medium text-ink-secondary">{{ option.title }}</span>
@@ -95,7 +95,7 @@
                             v-model="form.allowed_gym_ids"
                             type="checkbox"
                             :value="location.id"
-                            class="h-4 w-4 text-brand border-line-strong rounded"
+                            class="h-4 w-4 text-brand-ink border-line-strong rounded"
                         />
                         <span class="flex-1 min-w-0">
                             <span class="block text-sm font-medium text-ink">{{ location.name }}</span>
@@ -164,7 +164,7 @@
                                         <span class="text-sm font-medium text-ink">{{ location.name }}</span>
                                         <span
                                             v-if="location.is_current"
-                                            class="bg-brand-subtle text-brand-strong rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                            class="bg-brand-subtle text-brand-ink-strong rounded-full px-2.5 py-0.5 text-xs font-medium"
                                         >
                                             Aktuell
                                         </span>
@@ -247,7 +247,7 @@ const locationAddress = (location) =>
 
 const ruleBadgeClass = (rule) => ({
     own: 'bg-fill text-ink-secondary',
-    selected: 'bg-brand-subtle text-brand-strong',
+    selected: 'bg-brand-subtle text-brand-ink-strong',
     all: 'bg-success-soft text-success-strong'
 }[rule] ?? 'bg-fill text-ink-secondary')
 

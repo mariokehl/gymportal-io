@@ -24,19 +24,19 @@
                     class="flex items-center justify-between p-4 border border-line rounded-lg bg-surface-muted group hover:bg-fill transition-colors">
                     <div class="flex items-center flex-1 min-w-0">
                         <div class="w-10 h-10 bg-brand-soft rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                            <component :is="getTypeIcon(legalUrl.type)" class="w-5 h-5 text-brand" />
+                            <component :is="getTypeIcon(legalUrl.type)" class="w-5 h-5 text-brand-ink" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <h4 class="text-sm font-medium text-ink">{{ legalUrl.label }}</h4>
                             <a :href="legalUrl.url" target="_blank" rel="noopener noreferrer"
-                                class="text-sm text-brand hover:text-brand-strong truncate block max-w-md">
+                                class="text-sm text-brand-ink hover:text-brand-ink-strong truncate block max-w-md">
                                 {{ legalUrl.url }}
                             </a>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2 ml-4">
                         <button @click="editUrl(legalUrl)"
-                            class="p-2 text-ink-muted hover:text-brand-strong transition-colors"
+                            class="p-2 text-ink-muted hover:text-brand-ink-strong transition-colors"
                             title="Bearbeiten">
                             <component :is="Pencil" class="w-4 h-4" />
                         </button>
@@ -99,7 +99,7 @@
                 <!-- Add Button -->
                 <button v-if="!isAdding && !isEditing && hasAvailableTypes"
                     @click="startAdding"
-                    class="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-line-strong rounded-lg text-sm font-medium text-ink-secondary hover:border-brand hover:text-brand-strong transition-colors">
+                    class="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-line-strong rounded-lg text-sm font-medium text-ink-secondary hover:border-brand hover:text-brand-ink-strong transition-colors">
                     <component :is="Plus" class="w-5 h-5 mr-2" />
                     URL hinzufügen
                 </button>

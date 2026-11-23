@@ -2,7 +2,7 @@
   <div class="bg-surface rounded-lg shadow-sm border border-line">
     <!-- Header with enable toggle -->
     <div class="p-5 border-b border-line-subtle flex items-start gap-3">
-      <div class="w-10 h-10 flex-none rounded-lg bg-brand-subtle text-brand flex items-center justify-center">
+      <div class="w-10 h-10 flex-none rounded-lg bg-brand-subtle text-brand-ink flex items-center justify-center">
         <Tags class="w-5 h-5" />
       </div>
       <div class="flex-1 min-w-0">
@@ -86,7 +86,7 @@
                 <span class="text-sm font-semibold text-ink">{{ index + 1 }}. Phase</span>
                 <span
                   v-if="rangeLabel(index)"
-                  class="text-xs font-medium text-brand bg-brand-subtle px-2 py-0.5 rounded-full"
+                  class="text-xs font-medium text-brand-ink bg-brand-subtle px-2 py-0.5 rounded-full"
                 >
                   {{ rangeLabel(index) }}
                 </span>
@@ -172,7 +172,7 @@
         <!-- Add phase -->
         <button
           type="button"
-          class="w-full text-sm font-medium py-2.5 border border-dashed border-brand-line rounded-lg bg-brand-subtle text-brand hover:bg-brand-soft transition-colors flex items-center justify-center gap-1.5"
+          class="w-full text-sm font-medium py-2.5 border border-dashed border-brand-line rounded-lg bg-brand-subtle text-brand-ink hover:bg-brand-soft transition-colors flex items-center justify-center gap-1.5"
           :class="phases.length > 0 ? 'mt-3' : ''"
           @click="addPhase"
         >

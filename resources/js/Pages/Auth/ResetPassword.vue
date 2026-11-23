@@ -72,7 +72,7 @@
       </div>
 
       <div class="text-center">
-        <Link href="/login" class="text-sm text-brand hover:text-brand-strong">
+        <Link href="/login" class="text-sm text-brand-ink hover:text-brand-ink-strong">
           Zurück zur Anmeldung
         </Link>
       </div>

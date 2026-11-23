@@ -6,7 +6,7 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-brand hover:text-brand-strong">
+      <Link :href="route('contracts.index')" class="text-brand-ink hover:text-brand-ink-strong">
         Verträge
       </Link>
       <span class="text-ink-muted mx-2">/</span>
@@ -116,7 +116,7 @@
         <div class="bg-surface rounded-lg shadow-sm border border-line p-6">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold text-ink">Aktive Mitgliedschaften</h2>
-            <span class="bg-brand-soft text-brand-strong px-3 py-1 rounded-full text-sm font-medium">
+            <span class="bg-brand-soft text-brand-ink-strong px-3 py-1 rounded-full text-sm font-medium">
               {{ activeMembersCount }} {{ activeMembersCount === 1 ? 'Mitglied' : 'Mitglieder' }}
             </span>
           </div>
@@ -162,7 +162,7 @@
           <div class="space-y-4">
             <div class="flex justify-between items-center">
               <span class="text-ink-secondary">Aktive Mitglieder</span>
-              <span class="text-2xl font-bold text-brand tabular-nums">{{ activeMembersCount }}</span>
+              <span class="text-2xl font-bold text-brand-ink tabular-nums">{{ activeMembersCount }}</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-ink-secondary">Monatlicher Umsatz</span>

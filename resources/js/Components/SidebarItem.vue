@@ -10,7 +10,7 @@
       :class="[
         'w-full flex items-center px-4 py-3 text-sm font-medium text-left transition-colors',
         {
-          'bg-brand-subtle text-brand border-r-2 border-brand': active && !disabled,
+          'bg-brand-subtle text-brand-ink border-r-2 border-brand': active && !disabled,
           'text-ink-secondary hover:bg-surface-muted hover:text-ink': !active && !disabled,
           'text-ink-disabled cursor-not-allowed': disabled,
         }
@@ -22,7 +22,7 @@
         :class="[
           'w-5 h-5 mr-3',
           {
-            'text-brand': active && !disabled,
+            'text-brand-ink': active && !disabled,
             'text-ink-secondary': !active && !disabled,
             'text-ink-disabled': disabled,
           }

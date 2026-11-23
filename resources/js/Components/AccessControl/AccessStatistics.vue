@@ -24,7 +24,7 @@
             <div class="bg-surface shadow-sm rounded-lg p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 p-3 bg-brand-soft rounded-lg">
-                        <Activity class="w-6 h-6 text-brand" />
+                        <Activity class="w-6 h-6 text-brand-ink" />
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-ink-muted">Gesamt Scans</p>

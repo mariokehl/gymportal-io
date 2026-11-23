@@ -4,7 +4,7 @@
     <div
       :class="[
         'rounded-full text-white flex items-center justify-center font-semibold',
-        isGuest ? 'bg-orange-700' : 'bg-brand',
+        isGuest ? 'bg-guest-solid' : 'bg-brand',
         sizeClasses
       ]"
     >

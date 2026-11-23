@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-6">
     <!-- Loading State -->
     <div v-if="loading" class="bg-surface rounded-lg border border-line shadow-sm text-center py-12">
-      <Loader2 class="w-8 h-8 text-brand mx-auto mb-4 animate-spin" />
+      <Loader2 class="w-8 h-8 text-brand-ink mx-auto mb-4 animate-spin" />
       <p class="text-ink-muted">Dokumente werden geladen...</p>
     </div>
 
@@ -28,7 +28,7 @@
               <tbody class="divide-y divide-line-subtle">
                 <tr v-for="doc in documents" :key="doc.id" class="hover:bg-surface-muted">
                   <td class="px-3.5 py-3.5">
-                    <FileText class="w-[22px] h-[22px] text-brand" />
+                    <FileText class="w-[22px] h-[22px] text-brand-ink" />
                   </td>
                   <td class="px-3.5 py-3.5 text-sm font-medium text-ink whitespace-nowrap">{{ doc.name }}</td>
                   <td class="px-3.5 py-3.5 text-sm text-ink-secondary whitespace-nowrap">{{ doc.plan_name }}</td>
@@ -36,7 +36,7 @@
                   <td class="px-3.5 py-3.5 text-right whitespace-nowrap">
                     <a
                       :href="`/members/${member.id}/documents/${doc.membership_id}/download`"
-                      class="inline-flex items-center gap-1.5 text-brand hover:text-brand-strong text-sm font-semibold"
+                      class="inline-flex items-center gap-1.5 text-brand-ink hover:text-brand-ink-strong text-sm font-semibold"
                     >
                       <Download class="w-4 h-4" />
                       Download

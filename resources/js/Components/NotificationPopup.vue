@@ -36,7 +36,7 @@
           v-if="unreadCount > 0"
           type="button"
           @click="markAllAsRead"
-          class="text-sm text-right text-brand hover:text-brand-strong"
+          class="text-sm text-right text-brand-ink hover:text-brand-ink-strong"
         >
           Alle als gelesen markieren
         </button>
@@ -54,7 +54,7 @@
         <button
           type="button"
           @click="loadNotifications"
-          class="mt-3 text-sm font-medium text-brand hover:text-brand-strong"
+          class="mt-3 text-sm font-medium text-brand-ink hover:text-brand-ink-strong"
         >
           Erneut versuchen
         </button>
@@ -102,7 +102,7 @@
       <div class="p-4 border-t border-line">
         <Link
           :href="route('notifications.index')"
-          class="block w-full text-center text-sm text-brand hover:text-brand-strong"
+          class="block w-full text-center text-sm text-brand-ink hover:text-brand-ink-strong"
           @click="closePopup"
         >
           Alle Benachrichtigungen anzeigen

@@ -53,7 +53,7 @@
             <span class="flex items-center gap-2.5">
               <span
                 class="w-8.5 h-8.5 rounded-lg flex items-center justify-center shrink-0"
-                :class="form.service_type === type.value ? 'bg-brand-soft text-brand' : 'bg-fill text-ink-muted'"
+                :class="form.service_type === type.value ? 'bg-brand-soft text-brand-ink' : 'bg-fill text-ink-muted'"
               >
                 <component :is="type.icon" class="w-4.5 h-4.5" />
               </span>
@@ -98,8 +98,8 @@
         <!-- Recurring details -->
         <div v-if="isRecurring" class="mt-3.5 bg-brand-subtle border border-brand-line rounded-lg p-4">
           <div class="flex gap-2.5">
-            <Info class="w-4.5 h-4.5 text-brand-strong shrink-0 mt-px" />
-            <p class="text-sm text-brand-strong leading-relaxed">
+            <Info class="w-4.5 h-4.5 text-brand-ink-strong shrink-0 mt-px" />
+            <p class="text-sm text-brand-ink-strong leading-relaxed">
               <strong>Synchron zum Mitgliedsbeitrag.</strong> Die Leistung wird gemeinsam mit dem Beitrag zum
               selben Fälligkeitsdatum abgerechnet – so entstehen keine abweichenden Zeiträume oder
               Nachberechnungen bei Kündigung.
@@ -194,7 +194,7 @@
         class="mt-5.5 border border-line rounded-lg p-4.5 bg-surface-muted"
       >
         <h3 id="price-display-heading" class="flex items-center gap-2 text-sm font-semibold text-ink">
-          <Tag class="w-4 h-4 text-brand" />
+          <Tag class="w-4 h-4 text-brand-ink" />
           Preisdarstellung im Widget
         </h3>
 
@@ -210,7 +210,7 @@
             type="button"
             class="border rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
             :class="form.price_display === display.value
-              ? 'border-brand bg-brand-subtle text-brand'
+              ? 'border-brand bg-brand-subtle text-brand-ink'
               : 'border-line-strong bg-surface text-ink-secondary hover:border-line-strong'"
             :aria-pressed="form.price_display === display.value"
             @click="form.price_display = display.value"
@@ -248,7 +248,7 @@
         class="mt-6 border border-line rounded-lg p-4.5 bg-surface-muted"
       >
         <h3 id="usage-quota-heading" class="flex items-center gap-2 text-sm font-semibold text-ink mb-3.5">
-          <Gauge class="w-4 h-4 text-brand" />
+          <Gauge class="w-4 h-4 text-brand-ink" />
           Nutzung &amp; Kontingent
         </h3>
 
@@ -304,7 +304,7 @@
               type="button"
               class="border rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
               :class="hasUnlimitedQuota
-                ? 'border-brand bg-brand-subtle text-brand'
+                ? 'border-brand bg-brand-subtle text-brand-ink'
                 : 'border-line-strong bg-surface text-ink-secondary hover:border-line-strong'"
               :aria-pressed="hasUnlimitedQuota"
               @click="setUnlimitedQuota"
@@ -315,7 +315,7 @@
               type="button"
               class="border rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
               :class="!hasUnlimitedQuota
-                ? 'border-brand bg-brand-subtle text-brand'
+                ? 'border-brand bg-brand-subtle text-brand-ink'
                 : 'border-line-strong bg-surface text-ink-secondary hover:border-line-strong'"
               :aria-pressed="!hasUnlimitedQuota"
               @click="setLimitedQuota"
@@ -374,7 +374,7 @@
               <Link
                 v-if="form.settled_via_device"
                 :href="route('access-control.index')"
-                class="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-brand hover:text-brand-strong"
+                class="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
               >
                 In Zugangskontrolle anlegen
                 <ArrowRight class="w-3.5 h-3.5" />
@@ -389,7 +389,7 @@
         <input
           v-model="form.is_active"
           type="checkbox"
-          class="w-4 h-4 text-brand border-line-strong rounded"
+          class="w-4 h-4 text-brand-ink border-line-strong rounded"
         />
         <span class="text-sm text-ink-secondary">Add-on ist aktiv und kann im Widget angezeigt werden</span>
       </label>
@@ -446,7 +446,7 @@
             type="button"
             class="border rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors"
             :class="planStatusFilter === option.value
-              ? 'border-brand bg-brand-subtle text-brand'
+              ? 'border-brand bg-brand-subtle text-brand-ink'
               : 'border-line-strong bg-surface text-ink-secondary hover:border-line-strong'"
             :aria-pressed="planStatusFilter === option.value"
             @click="planStatusFilter = option.value"

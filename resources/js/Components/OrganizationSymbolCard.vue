@@ -200,7 +200,7 @@ const comparisonOrganizations = computed(() => {
 const colorSwatchStyle = (value) => {
     return {
         backgroundColor: value,
-        boxShadow: value === symbolColor.value ? `0 0 0 2px #fff, 0 0 0 4px ${value}` : 'none',
+        boxShadow: value === symbolColor.value ? `0 0 0 2px var(--surface), 0 0 0 4px ${value}` : 'none',
     }
 }
 

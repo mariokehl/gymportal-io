@@ -8,7 +8,7 @@
             Mitgliedschaften<span class="lg:hidden"> · {{ membershipEntries.length }}</span>
             <span
               v-if="membershipEntries.length > 0"
-              class="hidden lg:inline-flex ml-1.5 align-middle text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] justify-center bg-brand-soft text-brand-strong"
+              class="hidden lg:inline-flex ml-1.5 align-middle text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] justify-center bg-brand-soft text-brand-ink-strong"
             >{{ membershipEntries.length }}</span>
           </h3>
           <div class="flex gap-1 lg:gap-1.5">
@@ -25,7 +25,7 @@
               @click="openAddMembershipModal"
               type="button"
               title="Neue Mitgliedschaft"
-              class="inline-flex items-center justify-center gap-1 h-9 pl-2 text-compact font-medium text-brand transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:bg-brand lg:text-white lg:hover:bg-brand-strong"
+              class="inline-flex items-center justify-center gap-1 h-9 pl-2 text-compact font-medium text-brand-ink transition-colors lg:w-9 lg:px-0 lg:rounded-lg lg:bg-brand lg:text-white lg:hover:bg-brand-strong"
             >
               <Plus class="w-3.5 h-3.5 lg:w-4 lg:h-4 flex-none" />
               <span class="lg:hidden">Neu</span>
@@ -330,7 +330,7 @@
               v-if="selectedBookableAddons.length > 0"
               @click="memberAddons?.openBookingDialog()"
               type="button"
-              class="w-full h-11 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-line bg-brand-subtle text-brand-strong text-sm font-medium"
+              class="w-full h-11 inline-flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-brand-line bg-brand-subtle text-brand-ink-strong text-sm font-medium"
             >
               <Plus class="w-4 h-4" /> Add-on zu {{ selectedEntry.membership.membership_plan?.name }} hinzufügen
             </button>

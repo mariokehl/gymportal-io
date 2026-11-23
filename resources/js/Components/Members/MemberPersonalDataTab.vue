@@ -25,8 +25,8 @@
         v-else
         class="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-subtle border border-brand-line"
       >
-        <Edit class="w-4 h-4 text-brand flex-shrink-0" />
-        <div class="text-sm text-brand-strong">
+        <Edit class="w-4 h-4 text-brand-ink flex-shrink-0" />
+        <div class="text-sm text-brand-ink-strong">
           Bearbeitungsmodus aktiv — Felder anpassen, dann speichern.
         </div>
       </div>
@@ -95,7 +95,7 @@
                 <button
                   v-if="hasActiveMembership"
                   @click="sendWelcomeToMember"
-                  class="px-3 bg-surface-muted border border-l-0 border-line-strong rounded-r-md text-sm text-brand hover:text-brand-strong hover:bg-fill flex items-center gap-1 flex-none"
+                  class="px-3 bg-surface-muted border border-l-0 border-line-strong rounded-r-md text-sm text-brand-ink hover:text-brand-ink-strong hover:bg-fill flex items-center gap-1 flex-none"
                   type="button"
                 >
                   <Mail class="w-4 h-4" />
@@ -122,7 +122,7 @@
                 <a
                   v-if="telLink"
                   :href="telLink"
-                  class="px-3 bg-surface-muted border border-l-0 border-line-strong hover:bg-fill text-ink-muted hover:text-brand-strong flex items-center justify-center flex-none"
+                  class="px-3 bg-surface-muted border border-l-0 border-line-strong hover:bg-fill text-ink-muted hover:text-brand-ink-strong flex items-center justify-center flex-none"
                   :class="{ 'rounded-r-md': !whatsappLink }"
                   title="Anrufen"
                 >
@@ -287,7 +287,7 @@
               <div class="p-3 bg-brand-subtle rounded-md">
                 <Link
                   :href="route('members.show', member.legal_guardian.id)"
-                  class="text-brand hover:text-brand-strong font-medium"
+                  class="text-brand-ink hover:text-brand-ink-strong font-medium"
                 >
                   {{ member.legal_guardian.first_name }} {{ member.legal_guardian.last_name }}
                   <span class="text-ink-muted">#{{ member.legal_guardian.member_number }}</span>

@@ -29,7 +29,7 @@
                 <!-- Step 1: Willkommen -->
                 <div v-if="currentStep === 0" class="text-center">
                     <div class="mx-auto w-16 h-16 bg-brand-soft rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-brand-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1">
                             </path>
@@ -56,7 +56,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         <div class="text-center p-4 border border-line rounded-lg">
                             <div class="w-12 h-12 bg-brand-soft rounded-lg mx-auto mb-3 flex items-center justify-center">
-                                <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor"
+                                <svg class="w-6 h-6 text-brand-ink" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -102,11 +102,11 @@
                         Mollie Dashboard unter
                         <a href="https://www.mollie.com/dashboard/developers/api-keys"
                             target="_blank"
-                            class="text-brand hover:underline">API-Schlüssel</a>
+                            class="text-brand-ink hover:underline">API-Schlüssel</a>
                         und
                         <a href="https://my.mollie.com/dashboard/developers/organization-access-tokens"
                             target="_blank"
-                            class="text-brand hover:underline">Unternehmenszugriffs-Tokens</a>.
+                            class="text-brand-ink hover:underline">Unternehmenszugriffs-Tokens</a>.
                     </p>
 
                     <form @submit.prevent="validateApiKey" class="space-y-6">
@@ -144,7 +144,7 @@
 
                         <div class="flex items-center">
                             <input id="test_mode" v-model="form.test_mode" type="checkbox"
-                                class="h-4 w-4 text-brand border-line-strong rounded">
+                                class="h-4 w-4 text-brand-ink border-line-strong rounded">
                             <label for="test_mode" class="ml-2 block text-sm text-ink-secondary">
                                 Test-Modus aktivieren
                             </label>
@@ -186,17 +186,17 @@
                         <!-- OAuth Token Hinweis -->
                         <div v-if="form.oauth_token" class="bg-brand-subtle border border-brand-line rounded-lg p-4">
                             <div class="flex">
-                                <svg class="w-5 h-5 text-brand" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-5 h-5 text-brand-ink" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
                                         d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                         clip-rule="evenodd"></path>
                                 </svg>
                                 <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-brand-strong">OAuth Token Berechtigungen</h3>
-                                    <p class="text-sm text-brand-strong mt-1">
+                                    <h3 class="text-sm font-medium text-brand-ink-strong">OAuth Token Berechtigungen</h3>
+                                    <p class="text-sm text-brand-ink-strong mt-1">
                                         Stellen Sie sicher, dass Ihr OAuth Token folgende Berechtigungen hat:
                                     </p>
-                                    <ul class="text-sm text-brand-strong mt-1 list-disc list-inside">
+                                    <ul class="text-sm text-brand-ink-strong mt-1 list-disc list-inside">
                                         <li>payment-links.read</li>
                                         <li>webhooks.read</li>
                                         <li>webhooks.write</li>
@@ -269,7 +269,7 @@
                             <div class="flex items-center">
                                 <input :id="method.id" :checked="form.enabled_methods.includes(method.id)"
                                     type="checkbox"
-                                    class="h-4 w-4 text-brand border-line-strong rounded pointer-events-none">
+                                    class="h-4 w-4 text-brand-ink border-line-strong rounded pointer-events-none">
                                 <div class="ml-3 flex-1">
                                     <div class="flex items-center">
                                         <div class="w-8 h-8 bg-fill rounded mr-2 flex items-center justify-center">
@@ -488,7 +488,7 @@
                                         </p>
                                         <div v-if="testResult.success && testResult.payment_url" class="mt-2">
                                             <a :href="testResult.payment_url" target="_blank"
-                                                class="text-sm text-brand hover:underline">
+                                                class="text-sm text-brand-ink hover:underline">
                                                 Test-Zahlung öffnen →
                                             </a>
                                         </div>
@@ -806,7 +806,7 @@ export default {
             if (index < this.currentStep) {
                 return 'bg-brand text-white';
             } else if (index === this.currentStep) {
-                return 'bg-brand-soft text-brand border-2 border-brand';
+                return 'bg-brand-soft text-brand-ink border-2 border-brand';
             } else {
                 return 'bg-fill-strong text-ink-secondary';
             }

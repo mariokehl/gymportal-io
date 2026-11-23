@@ -28,7 +28,7 @@
         <div class="bg-surface shadow-sm rounded-lg overflow-hidden">
           <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg font-semibold text-ink mb-4 flex items-center">
-              <Download class="w-5 h-5 mr-2 text-brand" />
+              <Download class="w-5 h-5 mr-2 text-brand-ink" />
               Daten exportieren
             </h3>
 
@@ -87,7 +87,7 @@
               <div class="text-center">
                 <FileJson class="mx-auto h-12 w-12 text-ink-muted" />
                 <div class="mt-4 flex text-sm text-ink-secondary">
-                  <label class="relative cursor-pointer rounded-md font-semibold text-brand hover:text-brand-strong">
+                  <label class="relative cursor-pointer rounded-md font-semibold text-brand-ink hover:text-brand-ink-strong">
                     <span>Datei auswählen</span>
                     <input
                       type="file"
@@ -107,7 +107,7 @@
             <div v-if="selectedFile" class="mt-4 p-4 bg-surface-muted rounded-lg">
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                  <FileJson class="w-8 h-8 text-brand mr-3" />
+                  <FileJson class="w-8 h-8 text-brand-ink mr-3" />
                   <div>
                     <p class="font-medium text-ink">{{ selectedFile.name }}</p>
                     <p class="text-sm text-ink-muted">{{ formatFileSize(selectedFile.size) }}</p>
@@ -173,7 +173,7 @@
                     type="radio"
                     v-model="importMode"
                     value="append"
-                    class="mt-1 mr-3 text-brand"
+                    class="mt-1 mr-3 text-brand-ink"
                   >
                   <div>
                     <span class="font-medium text-ink">Hinzufügen (Append)</span>
@@ -487,7 +487,7 @@
               <button
                 @click="handleCsvImport"
                 :disabled="!canCsvImport"
-                class="w-full inline-flex items-center justify-center px-4 py-3 bg-orange-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full inline-flex items-center justify-center px-4 py-3 bg-brand border border-transparent rounded-lg font-medium text-sm text-white hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Loader2 v-if="csvIsImporting" class="w-4 h-4 mr-2 animate-spin" />
                 <Upload v-else class="w-4 h-4 mr-2" />

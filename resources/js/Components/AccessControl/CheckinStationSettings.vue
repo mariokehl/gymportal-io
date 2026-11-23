@@ -36,7 +36,7 @@
                                 id="checkin_station_enabled"
                                 v-model="form.checkin_station_enabled"
                                 type="checkbox"
-                                class="h-4 w-4 text-brand border-line-strong rounded"
+                                class="h-4 w-4 text-brand-ink border-line-strong rounded"
                             />
                         </div>
                         <div class="ml-3">

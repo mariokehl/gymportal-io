@@ -26,7 +26,7 @@
         <div class="bg-surface rounded-lg shadow p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
-                    <component :is="Settings" class="w-6 h-6 text-brand mr-3" />
+                    <component :is="Settings" class="w-6 h-6 text-brand-ink mr-3" />
                     <h3 class="text-xl font-semibold text-ink">Widget-Einstellungen</h3>
                 </div>
             </div>
@@ -140,7 +140,7 @@
                                     <component :is="Package" class="w-8 h-8 mx-auto mb-2" />
                                     <p class="text-sm">Keine Verträge verfügbar</p>
                                     <button @click="loadAvailableContracts"
-                                            class="mt-2 text-xs text-brand hover:text-brand-strong">
+                                            class="mt-2 text-xs text-brand-ink hover:text-brand-ink-strong">
                                         Erneut versuchen
                                     </button>
                                 </div>
@@ -163,7 +163,7 @@
                                                     :aria-label="`${contract.name} im Widget anbieten`"
                                                     :checked="isContractSelected(contract.id)"
                                                     :disabled="!isContractSelected(contract.id) && selectedContracts.length >= 3"
-                                                    class="mr-3 rounded border-line-strong text-brand"
+                                                    class="mr-3 rounded border-line-strong text-brand-ink"
                                                     @click.stop="toggleContract(contract)">
                                                 <div>
                                                     <p class="font-medium text-sm text-ink">{{ contract.name }}</p>
@@ -195,7 +195,7 @@
                             </div>
                             <div class="bg-brand-subtle rounded-lg p-4 min-h-[200px]">
                                 <div v-if="selectedContracts.length === 0"
-                                    class="text-center text-brand py-8">
+                                    class="text-center text-brand-ink py-8">
                                     <component :is="MousePointerClick" class="w-8 h-8 mx-auto mb-2" />
                                     <p class="text-sm">Wähle Verträge aus der linken Liste</p>
                                 </div>
@@ -238,7 +238,7 @@
 
                                 <!-- Hinweis -->
                                 <div v-if="selectedContracts.length === 3"
-                                    class="mt-3 p-2 bg-brand-soft rounded text-xs text-brand-strong">
+                                    class="mt-3 p-2 bg-brand-soft rounded text-xs text-brand-ink-strong">
                                     <component :is="Info" class="w-3 h-3 inline mr-1" />
                                     Maximale Anzahl erreicht
                                 </div>
@@ -255,7 +255,7 @@
                             </div>
                             <input type="checkbox"
                                 v-model="settings.contracts.auto_sort"
-                                class="rounded border-line-strong text-brand">
+                                class="rounded border-line-strong text-brand-ink">
                         </label>
                     </div>
                 </div>
@@ -275,7 +275,7 @@
                             <input
                                 type="checkbox"
                                 v-model="settings.features.show_duration_selector"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
@@ -286,7 +286,7 @@
                             <input
                                 type="checkbox"
                                 v-model="settings.features.show_goals_selection"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg cursor-pointer">
@@ -297,7 +297,7 @@
                             <input
                                 type="checkbox"
                                 v-model="settings.features.require_birth_date"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <label class="flex items-center justify-between p-3 bg-surface-muted rounded-lg">
@@ -331,7 +331,7 @@
                             <input
                                 type="checkbox"
                                 v-model="allowAllOrigins"
-                                class="rounded border-line-strong text-brand"
+                                class="rounded border-line-strong text-brand-ink"
                             >
                         </label>
                         <div v-if="!allowAllOrigins" class="p-3 bg-surface-muted rounded-lg">
@@ -381,7 +381,7 @@
         <!-- Integration Methods -->
         <div class="bg-surface rounded-lg shadow p-6 mb-6">
             <div class="flex items-center mb-4">
-                <component :is="ToyBrick" class="w-6 h-6 text-brand mr-3" />
+                <component :is="ToyBrick" class="w-6 h-6 text-brand-ink mr-3" />
                 <h3 class="text-xl font-semibold text-ink">Integration-Methoden</h3>
             </div>
 
@@ -393,7 +393,7 @@
                             :class="[
                                 'py-2 px-1 border-b-2 font-medium text-sm',
                                 activeMethod === method.key
-                                    ? 'border-brand text-brand'
+                                    ? 'border-brand text-brand-ink'
                                     : 'border-transparent text-ink-muted hover:text-ink hover:border-line-strong'
                             ]">
                         <component :is="method.icon" class="w-4 h-4 mr-2 inline" />
@@ -405,8 +405,8 @@
             <!-- Script Integration -->
             <div v-if="activeMethod === 'script'" class="space-y-4">
                 <div class="bg-brand-subtle border border-brand-line rounded-lg p-4">
-                    <h4 class="font-medium text-brand-strong mb-2">Script Integration (Empfohlen)</h4>
-                    <p class="text-brand-strong text-sm">Einfachste Integration - fügen Sie nur den Code in Ihre Website ein.</p>
+                    <h4 class="font-medium text-brand-ink-strong mb-2">Script Integration (Empfohlen)</h4>
+                    <p class="text-brand-ink-strong text-sm">Einfachste Integration - fügen Sie nur den Code in Ihre Website ein.</p>
                 </div>
 
                 <div>
@@ -543,7 +543,7 @@
         <!-- API Keys -->
         <div class="bg-surface rounded-lg shadow p-6">
             <div class="flex items-center mb-4">
-                <component :is="Key" class="w-6 h-6 text-brand mr-3" />
+                <component :is="Key" class="w-6 h-6 text-brand-ink mr-3" />
                 <h3 class="text-xl font-semibold text-ink">API-Schlüssel</h3>
             </div>
 
@@ -991,7 +991,7 @@ onMounted(() => {
 <style scoped>
 /* Toggle Switch Styles */
 .peer:checked + div {
-    background-color: #2563eb;
+    background-color: var(--brand);
 }
 
 .peer:checked + div:after {
@@ -1001,7 +1001,7 @@ onMounted(() => {
 
 /* Code block styling */
 pre {
-    font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.875rem;
     line-height: 1.5;
 }

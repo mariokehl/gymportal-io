@@ -33,13 +33,13 @@ export const statusConfig = {
   refunded: {
     label: 'Erstattet',
     color: 'blue',
-    classes: 'bg-brand-soft text-brand-strong',
+    classes: 'bg-brand-soft text-brand-ink-strong',
     filled: true
   },
   partially_refunded: {
     label: 'Teilweise erstattet',
     color: 'blue',
-    classes: 'bg-brand-soft text-brand-strong',
+    classes: 'bg-brand-soft text-brand-ink-strong',
     filled: true
   },
   chargeback: {
@@ -111,7 +111,7 @@ export const refundStatusConfig = {
   processing: {
     label: 'In Bearbeitung',
     color: 'blue',
-    classes: 'bg-brand-soft text-brand-strong',
+    classes: 'bg-brand-soft text-brand-ink-strong',
     filled: false
   },
   refunded: {

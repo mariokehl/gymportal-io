@@ -6,7 +6,7 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-brand hover:text-brand-strong">
+      <Link :href="route('contracts.index')" class="text-brand-ink hover:text-brand-ink-strong">
         Verträge
       </Link>
       <span class="text-ink-muted mx-2">/</span>
@@ -60,7 +60,7 @@
         <div class="flex items-center gap-2.5 flex-wrap mb-1">
           <span
             class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            :class="isUsageService(addon) ? 'bg-brand-subtle text-brand' : 'bg-fill text-ink-muted'"
+            :class="isUsageService(addon) ? 'bg-brand-subtle text-brand-ink' : 'bg-fill text-ink-muted'"
           >
             <component :is="isUsageService(addon) ? CupSoda : BadgeCheck" class="w-4.5 h-4.5" />
           </span>
@@ -76,7 +76,7 @@
         <div class="flex gap-1.5 flex-wrap my-1.5">
           <span
             class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-            :class="isUsageService(addon) ? 'bg-brand-soft text-brand-strong' : 'bg-fill text-ink-secondary'"
+            :class="isUsageService(addon) ? 'bg-brand-soft text-brand-ink-strong' : 'bg-fill text-ink-secondary'"
           >
             {{ isUsageService(addon) ? 'Nutzungsleistung' : 'Zusatzleistung' }}
           </span>
@@ -109,7 +109,7 @@
             <div v-if="addon.settled_via_device" class="flex justify-between items-center gap-2">
               <span class="text-ink-muted">Gerät</span>
               <span class="inline-flex items-center gap-1.5 text-ink-secondary">
-                <CupSoda class="w-3.5 h-3.5 text-brand" />
+                <CupSoda class="w-3.5 h-3.5 text-brand-ink" />
                 Ausgabeautomat
               </span>
             </div>
@@ -122,7 +122,7 @@
           </div>
           <div class="flex justify-between gap-2">
             <span class="text-ink-muted">Zugeordnete Verträge</span>
-            <span class="font-semibold text-brand">{{ addon.membership_plans_count || 0 }}</span>
+            <span class="font-semibold text-brand-ink">{{ addon.membership_plans_count || 0 }}</span>
           </div>
         </div>
 
@@ -130,7 +130,7 @@
           <Link
             v-if="isOwnerOrAdmin"
             :href="route('contracts.addons.edit', addon.id)"
-            class="flex-1 bg-brand-soft hover:bg-brand-line text-brand-strong px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
+            class="flex-1 bg-brand-soft hover:bg-brand-line text-brand-ink-strong px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
           >
             Bearbeiten
           </Link>

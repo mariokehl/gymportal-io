@@ -296,7 +296,7 @@
         <button
           @click="startArchiveImport"
           :disabled="!canArchiveImport"
-          class="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="inline-flex items-center px-4 py-2 bg-brand border border-transparent rounded-lg font-medium text-sm text-white hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Loader2 v-if="archiveIsImporting" class="w-4 h-4 mr-2 animate-spin" />
           <Upload v-else class="w-4 h-4 mr-2" />

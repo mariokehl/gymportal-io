@@ -111,7 +111,7 @@
               v-model="form.terms_accepted"
               type="checkbox"
               required
-              class="h-4 w-4 text-brand border-line-strong rounded"
+              class="h-4 w-4 text-brand-ink border-line-strong rounded"
               :class="{ 'border-danger': errors.terms_accepted }"
             />
           </div>
@@ -122,13 +122,13 @@
                 href="https://gymportal.io/terms"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-brand hover:text-brand-strong underline">AGB</a>
+                class="text-brand-ink hover:text-brand-ink-strong underline">AGB</a>
               und dem
               <a
                 href="https://gymportal.io/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-brand hover:text-brand-strong underline">Datenschutz</a>
+                class="text-brand-ink hover:text-brand-ink-strong underline">Datenschutz</a>
               zu
             </label>
           </div>
@@ -150,7 +150,7 @@
       </div>
 
       <div class="text-center">
-        <Link href="/login" class="text-sm text-brand hover:text-brand-strong">
+        <Link href="/login" class="text-sm text-brand-ink hover:text-brand-ink-strong">
           Bereits registriert? Hier anmelden
         </Link>
       </div>

@@ -6,7 +6,7 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-brand hover:text-brand-strong">
+      <Link :href="route('contracts.index')" class="text-brand-ink hover:text-brand-ink-strong">
         Verträge
       </Link>
       <span class="text-ink-muted mx-2">/</span>
@@ -247,7 +247,7 @@
                 v-model="form.auto_renew_type"
                 type="radio"
                 value="indefinite"
-                class="mt-1 w-4 h-4 text-brand border-line-strong"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
                 <span class="text-sm font-medium text-ink-secondary">Unbefristet</span>
@@ -259,7 +259,7 @@
                 v-model="form.auto_renew_type"
                 type="radio"
                 value="monthly"
-                class="mt-1 w-4 h-4 text-brand border-line-strong"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
                 <span class="text-sm font-medium text-ink-secondary">Monatlich rollierend</span>
@@ -271,7 +271,7 @@
                 v-model="form.auto_renew_type"
                 type="radio"
                 value="fixed"
-                class="mt-1 w-4 h-4 text-brand border-line-strong"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
                 <span class="text-sm font-medium text-ink-secondary">Feste Verlängerung (Altverträge)</span>
@@ -304,7 +304,7 @@
                 v-model="form.start_date_mode"
                 type="radio"
                 value="next_possible"
-                class="mt-1 w-4 h-4 text-brand border-line-strong"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
                 <span class="text-sm font-medium text-ink-secondary">Nächstmöglich</span>
@@ -316,7 +316,7 @@
                 v-model="form.start_date_mode"
                 type="radio"
                 value="fixed"
-                class="mt-1 w-4 h-4 text-brand border-line-strong"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
                 <span class="text-sm font-medium text-ink-secondary">Fester Starttermin</span>
@@ -349,7 +349,7 @@
               id="is_active"
               v-model="form.is_active"
               type="checkbox"
-              class="mt-0.5 w-4 h-4 text-brand border-line-strong rounded"
+              class="mt-0.5 w-4 h-4 text-brand-ink border-line-strong rounded"
             />
             <span class="text-sm font-medium text-ink-secondary">
               Vertrag ist aktiv und kann von Mitgliedern gewählt werden

@@ -19,7 +19,7 @@
           v-for="field in group.fields"
           :key="field.key"
           type="button"
-          class="flex w-full items-center justify-between gap-3 px-3 py-[7px] text-left text-sm text-ink hover:bg-brand-subtle hover:text-brand-strong"
+          class="flex w-full items-center justify-between gap-3 px-3 py-[7px] text-left text-sm text-ink hover:bg-brand-subtle hover:text-brand-ink-strong"
           @click="emit('select', field)"
         >
           <span>{{ field.label }}</span>

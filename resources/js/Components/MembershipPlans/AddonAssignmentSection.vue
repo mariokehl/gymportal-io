@@ -2,7 +2,7 @@
   <div class="bg-surface rounded-lg shadow-sm border border-line">
     <!-- Header -->
     <div class="p-5 border-b border-line-subtle flex items-start gap-3">
-      <div class="w-10 h-10 flex-none rounded-lg bg-brand-subtle text-brand flex items-center justify-center">
+      <div class="w-10 h-10 flex-none rounded-lg bg-brand-subtle text-brand-ink flex items-center justify-center">
         <Package class="w-5 h-5" />
       </div>
       <div class="flex-1 min-w-0">
@@ -13,7 +13,7 @@
       </div>
       <span
         v-if="addons.length > 0"
-        class="flex-none text-xs font-semibold text-brand bg-brand-subtle px-2.5 py-1 rounded-full mt-0.5 whitespace-nowrap"
+        class="flex-none text-xs font-semibold text-brand-ink bg-brand-subtle px-2.5 py-1 rounded-full mt-0.5 whitespace-nowrap"
       >
         {{ assignedCount }} zugeordnet
       </span>
@@ -70,7 +70,7 @@
            than this card can sensibly ask for. -->
       <Link
         :href="route('contracts.addons.create')"
-        class="w-full mt-3 text-sm font-medium py-2.5 border border-dashed border-brand-line rounded-lg bg-brand-subtle text-brand hover:bg-brand-soft transition-colors flex items-center justify-center gap-1.5"
+        class="w-full mt-3 text-sm font-medium py-2.5 border border-dashed border-brand-line rounded-lg bg-brand-subtle text-brand-ink hover:bg-brand-soft transition-colors flex items-center justify-center gap-1.5"
       >
         <Plus class="w-4 h-4" />
         Neues Add-on anlegen

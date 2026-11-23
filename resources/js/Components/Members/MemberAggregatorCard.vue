@@ -35,7 +35,7 @@
             type="button"
             title="Bearbeiten"
             aria-label="Aggregator bearbeiten"
-            class="p-1.5 rounded-md text-brand hover:bg-brand-subtle"
+            class="p-1.5 rounded-md text-brand-ink hover:bg-brand-subtle"
             @click="startEdit"
           >
             <Pencil class="w-4 h-4" />

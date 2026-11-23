@@ -14,7 +14,7 @@
               <p class="text-2xl font-bold text-ink tabular-nums">{{ formatCurrency(statistics.total_amount) }}</p>
             </div>
             <div class="p-3 bg-brand-soft rounded-full">
-              <DollarSign class="w-6 h-6 text-brand" />
+              <DollarSign class="w-6 h-6 text-brand-ink" />
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@
             <input
               v-model="localFilters.due"
               type="checkbox"
-              class="h-4 w-4 rounded border-line-strong text-brand"
+              class="h-4 w-4 rounded border-line-strong text-brand-ink"
               @change="applyFilters"
             />
             Nur fällige

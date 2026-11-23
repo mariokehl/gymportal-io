@@ -6,7 +6,7 @@
         <button
           type="button"
           title="Verknüpfung der Gruppen umschalten"
-          class="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-surface px-3 py-1 text-xs font-semibold tracking-wider text-brand-strong hover:bg-brand-subtle"
+          class="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-surface px-3 py-1 text-xs font-semibold tracking-wider text-brand-ink-strong hover:bg-brand-subtle"
           @click="emitDefinition({ rootLogic: toggleLogic(modelValue.rootLogic) })"
         >
           {{ LOGIC_LABELS[modelValue.rootLogic] }}
@@ -67,7 +67,7 @@
         <div>
           <button
             type="button"
-            class="-ml-1.5 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-brand hover:bg-brand-subtle"
+            class="-ml-1.5 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-brand-ink hover:bg-brand-subtle"
             @click="addCondition(group.id)"
           >
             <Plus class="h-4 w-4" />
@@ -81,7 +81,7 @@
       <button
         v-if="modelValue.groups.length < MAX_GROUPS"
         type="button"
-        class="inline-flex h-[34px] items-center gap-1.5 rounded-md border border-dashed border-brand-line bg-surface px-3 text-sm font-medium text-brand-strong hover:bg-brand-subtle"
+        class="inline-flex h-[34px] items-center gap-1.5 rounded-md border border-dashed border-brand-line bg-surface px-3 text-sm font-medium text-brand-ink-strong hover:bg-brand-subtle"
         @click="addGroup"
       >
         <Layers class="h-4 w-4" />
@@ -95,12 +95,12 @@
       <span>
         <span v-if="summary.length === 0" class="text-ink-muted">keine Einschränkung gilt (alle {{ subject }})</span>
         <template v-for="(token, index) in summary" :key="index">
-          <span v-if="token.kind === 'logic'" class="mr-1 rounded-full bg-brand-subtle px-[7px] py-0.5 text-2xs font-semibold tracking-wider text-brand-strong">{{ token.text }}</span>
+          <span v-if="token.kind === 'logic'" class="mr-1 rounded-full bg-brand-subtle px-[7px] py-0.5 text-2xs font-semibold tracking-wider text-brand-ink-strong">{{ token.text }}</span>
           <span v-else-if="token.kind === 'paren'" class="mr-1 font-semibold text-ink-muted">{{ token.text }}</span>
           <template v-else>
             <span class="mr-1 font-semibold text-ink">{{ token.field }}</span>
             <span v-if="token.operator" class="mr-1 text-ink-muted">{{ token.operator }}</span>
-            <span v-if="token.value" class="mr-1 font-medium text-brand-strong">{{ token.value }}</span>
+            <span v-if="token.value" class="mr-1 font-medium text-brand-ink-strong">{{ token.value }}</span>
           </template>
         </template>
       </span>

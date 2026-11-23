@@ -243,7 +243,7 @@ const termText = computed(() => {
 
 const priceColorClass = computed(() => {
   if (props.membership.is_free_trial) {
-    return props.isSecondary ? 'text-ink-muted' : 'text-brand'
+    return props.isSecondary ? 'text-ink-muted' : 'text-brand-ink'
   }
   return props.isSecondary ? 'text-ink-muted' : 'text-ink'
 })

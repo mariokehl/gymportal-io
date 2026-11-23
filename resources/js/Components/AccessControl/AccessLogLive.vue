@@ -50,7 +50,7 @@
                             :key="chip.key"
                             type="button"
                             @click="chip.clear()"
-                            class="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1 rounded-full border border-brand-line bg-brand-subtle text-brand-strong text-xs font-medium hover:bg-brand-soft"
+                            class="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1 rounded-full border border-brand-line bg-brand-subtle text-brand-ink-strong text-xs font-medium hover:bg-brand-soft"
                         >
                             {{ chip.label }}
                             <X class="w-3 h-3" />
@@ -153,7 +153,7 @@
                         class="text-left border border-line rounded-lg px-4 py-3.5 bg-surface hover:bg-surface-muted"
                     >
                         <div class="text-xs font-medium uppercase tracking-wide text-ink-muted">Fremd-Check-ins</div>
-                        <div class="mt-1.5 text-2xl font-bold text-brand tabular-nums">{{ summary.guests }}</div>
+                        <div class="mt-1.5 text-2xl font-bold text-brand-ink tabular-nums">{{ summary.guests }}</div>
                     </button>
 
                     <button
@@ -303,7 +303,7 @@
                                                 <a
                                                     v-if="log.member_url"
                                                     :href="log.member_url"
-                                                    class="text-sm font-medium text-ink hover:text-brand-strong"
+                                                    class="text-sm font-medium text-ink hover:text-brand-ink-strong"
                                                 >
                                                     {{ log.member_name }}
                                                 </a>
@@ -312,7 +312,7 @@
                                                     v-else-if="log.member_name && log.is_cross_location && log.member_id"
                                                     type="button"
                                                     @click="openSwitch(log, 'member')"
-                                                    class="text-sm font-medium text-ink hover:text-brand-strong"
+                                                    class="text-sm font-medium text-ink hover:text-brand-ink-strong"
                                                 >
                                                     {{ log.member_name }}
                                                 </button>
@@ -362,7 +362,7 @@
                                                     v-if="log.denial_kind === 'contract' && log.is_cross_location"
                                                     type="button"
                                                     @click="openSwitch(log, 'contract')"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-brand-line bg-brand-subtle text-brand-strong text-xs font-medium hover:bg-brand-soft"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-brand-line bg-brand-subtle text-brand-ink-strong text-xs font-medium hover:bg-brand-soft"
                                                 >
                                                     Vertrag prüfen
                                                     <ChevronRight class="w-3 h-3" />
@@ -371,7 +371,7 @@
                                                 <Link
                                                     v-else-if="log.denial_kind === 'contract'"
                                                     :href="route('contracts.index')"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-brand-line bg-brand-subtle text-brand-strong text-xs font-medium hover:bg-brand-soft"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-brand-line bg-brand-subtle text-brand-ink-strong text-xs font-medium hover:bg-brand-soft"
                                                 >
                                                     Vertrag prüfen
                                                     <ChevronRight class="w-3 h-3" />
@@ -381,7 +381,7 @@
                                                     v-else-if="log.denial_kind === 'location'"
                                                     type="button"
                                                     @click="emit('open-config')"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-brand-line bg-brand-subtle text-brand-strong text-xs font-medium hover:bg-brand-soft"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-brand-line bg-brand-subtle text-brand-ink-strong text-xs font-medium hover:bg-brand-soft"
                                                 >
                                                     Standortfreigabe prüfen
                                                     <ChevronRight class="w-3 h-3" />

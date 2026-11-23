@@ -71,7 +71,7 @@
                       text="IBAN wird von Mollie verwaltet"
                     >
                       <Link2
-                        class="w-4 h-4 text-brand"
+                        class="w-4 h-4 text-brand-ink"
                         aria-label="IBAN wird von Mollie verwaltet"
                       />
                     </Tooltip>
@@ -105,7 +105,7 @@
                       type="button"
                       @click="syncMollieMandate(paymentMethod)"
                       :disabled="syncingMandate === paymentMethod.id"
-                      class="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-strong hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                      class="inline-flex items-center gap-1 text-xs font-semibold text-brand-ink hover:text-brand-ink-strong hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                     >
                       <RefreshCw
                         class="w-3.5 h-3.5"
@@ -200,7 +200,7 @@
                   v-if="!paymentMethod.is_default && paymentMethod.status === 'active'"
                   @click="setAsDefault(paymentMethod)"
                   type="button"
-                  class="text-sm font-semibold text-brand hover:text-brand-strong"
+                  class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
                   :disabled="settingDefault === paymentMethod.id"
                 >
                   {{ settingDefault === paymentMethod.id ? 'Wird gesetzt...' : 'Als Standard setzen' }}
@@ -208,7 +208,7 @@
                 <button
                   @click="openEditPaymentMethod(paymentMethod)"
                   type="button"
-                  class="text-sm font-semibold text-brand hover:text-brand-strong"
+                  class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
                 >
                   Bearbeiten
                 </button>
@@ -325,7 +325,7 @@
               @click="handleExecutePayment(payment)"
               type="button"
               :disabled="isPaymentExecuting(payment.id) || executingBatch || payment.mollie_payment_id"
-              class="text-brand hover:text-brand-strong disabled:opacity-50 disabled:cursor-not-allowed"
+              class="text-brand-ink hover:text-brand-ink-strong disabled:opacity-50 disabled:cursor-not-allowed"
               :title="isPaymentExecuting(payment.id) ? 'Wird ausgeführt...' : 'Zahlung ausführen'"
             >
               <PlayCircle v-if="!isPaymentExecuting(payment.id)" class="w-4 h-4" />
@@ -483,7 +483,7 @@
                     <input
                       v-model="paymentMethodForm.is_default"
                       type="checkbox"
-                      class="rounded border-line-strong text-brand"
+                      class="rounded border-line-strong text-brand-ink"
                     />
                     <span class="ml-2 text-sm text-ink-secondary">Als Standard-Zahlungsmethode setzen</span>
                   </label>
@@ -585,7 +585,7 @@
                       <input
                         v-model="newPaymentMethodForm.sepa_mandate_acknowledged"
                         type="checkbox"
-                        class="rounded border-line-strong text-brand"
+                        class="rounded border-line-strong text-brand-ink"
                         :disabled="!ibanValidation.newPaymentMethod.isValid"
                       />
                       <span class="ml-2 text-sm text-ink-secondary">
@@ -670,7 +670,7 @@
                     <input
                       v-model="newPaymentMethodForm.is_default"
                       type="checkbox"
-                      class="rounded border-line-strong text-brand"
+                      class="rounded border-line-strong text-brand-ink"
                     />
                     <span class="ml-2 text-sm text-ink-secondary">Als Standard-Zahlungsmethode setzen</span>
                   </label>
@@ -730,7 +730,7 @@
                     @click="newPaymentForm.payment_type = 'regular'"
                     class="text-left rounded-lg border px-4 py-3.5 transition-colors"
                     :class="newPaymentForm.payment_type === 'regular'
-                      ? 'border-brand bg-brand-subtle text-brand-strong'
+                      ? 'border-brand bg-brand-subtle text-brand-ink-strong'
                       : 'border-line bg-surface text-ink-secondary hover:border-line-strong'"
                   >
                     <div class="flex items-center gap-2.5">
@@ -744,7 +744,7 @@
                     @click="newPaymentForm.payment_type = 'topup'"
                     class="text-left rounded-lg border px-4 py-3.5 transition-colors"
                     :class="newPaymentForm.payment_type === 'topup'
-                      ? 'border-brand bg-brand-subtle text-brand-strong'
+                      ? 'border-brand bg-brand-subtle text-brand-ink-strong'
                       : 'border-line bg-surface text-ink-secondary hover:border-line-strong'"
                   >
                     <div class="flex items-center gap-2.5">
@@ -759,8 +759,8 @@
               <!-- Top-up branch -->
               <template v-if="newPaymentForm.payment_type === 'topup'">
                 <div class="flex gap-3 bg-brand-subtle border border-brand-line rounded-lg px-4 py-3.5 mb-5">
-                  <Info class="w-5 h-5 text-brand flex-none" />
-                  <div class="text-compact text-brand-strong leading-relaxed">
+                  <Info class="w-5 h-5 text-brand-ink flex-none" />
+                  <div class="text-compact text-brand-ink-strong leading-relaxed">
                     Der Betrag wird dem Mitgliedskonto als Guthaben gutgeschrieben und bei zukünftigen Abbuchungen
                     <strong>automatisch vorrangig</strong> verwendet. Ideal für Voraus- und Jahreszahlungen per Überweisung.
                   </div>
@@ -821,7 +821,7 @@
                   </div>
                   <div class="flex items-center justify-between gap-3 bg-surface-muted border border-dashed border-line-strong rounded-md px-4 py-3.5">
                     <span class="text-sm text-ink-secondary">{{ isMollieTopupMethod ? 'Guthaben-Stand nach Zahlungseingang' : 'Neuer Guthaben-Stand nach Aufladung' }}</span>
-                    <span class="text-lg font-bold text-brand whitespace-nowrap flex-none">{{ newBalancePreview }}</span>
+                    <span class="text-lg font-bold text-brand-ink whitespace-nowrap flex-none">{{ newBalancePreview }}</span>
                   </div>
                 </div>
               </template>

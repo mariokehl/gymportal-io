@@ -84,7 +84,7 @@
                   <button
                     v-if="isActive(entry)"
                     @click="showUnblock = entry"
-                    class="text-sm text-brand hover:text-brand-strong font-medium"
+                    class="text-sm text-brand-ink hover:text-brand-ink-strong font-medium"
                   >
                     Entsperren
                   </button>

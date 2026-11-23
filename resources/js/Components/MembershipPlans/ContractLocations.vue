@@ -35,7 +35,7 @@
             </p>
             <Link
               :href="route('access-control.index')"
-              class="inline-block mt-2 text-sm font-medium text-brand hover:text-brand-strong"
+              class="inline-block mt-2 text-sm font-medium text-brand-ink hover:text-brand-ink-strong"
             >
               Zur Zugangskontrolle
             </Link>
@@ -56,7 +56,7 @@
               name="contract-location-scope"
               :value="option.value"
               :disabled="isLocked"
-              class="mt-0.5 h-4 w-4 text-brand border-line-strong"
+              class="mt-0.5 h-4 w-4 text-brand-ink border-line-strong"
             />
             <span>
               <span class="block text-sm font-medium text-ink-secondary">{{ option.title }}</span>
@@ -85,7 +85,7 @@
               :checked="location.is_current || form.allowed_gym_ids.includes(location.id)"
               :disabled="location.is_current || isLocked"
               @change="toggleLocation(location.id)"
-              class="h-4 w-4 text-brand border-line-strong rounded"
+              class="h-4 w-4 text-brand-ink border-line-strong rounded"
             />
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-medium text-ink">{{ location.name }}</span>

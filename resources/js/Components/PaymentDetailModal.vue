@@ -57,12 +57,12 @@
             <p class="mt-1 text-sm text-ink inline-flex items-center gap-1.5">
               <BanknoteArrowUp
                 v-if="isCreditTopup(payment)"
-                class="w-4 h-4 text-brand flex-none"
+                class="w-4 h-4 text-brand-ink flex-none"
                 title="Guthaben-Aufladung"
               />
               <BanknoteArrowDown
                 v-else-if="hasCreditRedemption(payment)"
-                class="w-4 h-4 text-brand flex-none"
+                class="w-4 h-4 text-brand-ink flex-none"
                 title="Guthaben-Einlösung"
               />
               {{ payment.payment_method_text }}
@@ -104,7 +104,7 @@
               <button
                 v-if="canEditExecutionDate && !editingExecutionDate"
                 @click="startEditingExecutionDate"
-                class="text-ink-muted hover:text-brand-strong transition-colors"
+                class="text-ink-muted hover:text-brand-ink-strong transition-colors"
                 title="Ausführungsdatum bearbeiten"
               >
                 <Pencil class="w-3.5 h-3.5" />
@@ -141,7 +141,7 @@
               </div>
             </div>
             <p v-else-if="payment.execution_date" class="mt-1 text-sm text-ink">{{ formatDate(payment.execution_date) }}</p>
-            <p v-else class="mt-1 text-sm text-ink-muted italic cursor-pointer hover:text-brand-strong" @click="startEditingExecutionDate">Ausführungsdatum festlegen...</p>
+            <p v-else class="mt-1 text-sm text-ink-muted italic cursor-pointer hover:text-brand-ink-strong" @click="startEditingExecutionDate">Ausführungsdatum festlegen...</p>
           </div>
           <div v-if="payment.due_date">
             <label class="block text-sm font-medium text-ink-muted">Fälligkeitsdatum</label>
@@ -194,7 +194,7 @@
             <button
               v-if="!editingNotes"
               @click="startEditingNotes"
-              class="text-ink-muted hover:text-brand-strong transition-colors"
+              class="text-ink-muted hover:text-brand-ink-strong transition-colors"
               title="Notizen bearbeiten"
             >
               <Pencil class="w-3.5 h-3.5" />
@@ -231,7 +231,7 @@
             </div>
           </div>
           <p v-else-if="payment.notes" class="mt-1 text-sm text-ink whitespace-pre-line">{{ payment.notes }}</p>
-          <p v-else class="mt-1 text-sm text-ink-muted italic cursor-pointer hover:text-brand-strong" @click="startEditingNotes">Notiz hinzufügen...</p>
+          <p v-else class="mt-1 text-sm text-ink-muted italic cursor-pointer hover:text-brand-ink-strong" @click="startEditingNotes">Notiz hinzufügen...</p>
         </div>
 
         <!-- Mollie Zahlungslink -->
@@ -241,13 +241,13 @@
         >
           <div v-if="payment.checkout_url" class="flex items-center justify-between gap-3 bg-brand-subtle border border-brand-line rounded-lg px-4 py-3">
             <div class="flex items-center gap-2 min-w-0">
-              <Link2 class="w-4 h-4 text-brand shrink-0" />
-              <span class="text-sm font-medium text-brand-strong truncate">{{ payment.checkout_url }}</span>
+              <Link2 class="w-4 h-4 text-brand-ink shrink-0" />
+              <span class="text-sm font-medium text-brand-ink-strong truncate">{{ payment.checkout_url }}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button
                 @click="copyPaymentLink"
-                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-brand-strong bg-surface border border-brand-line rounded-md hover:bg-brand-subtle transition-colors"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-brand-ink-strong bg-surface border border-brand-line rounded-md hover:bg-brand-subtle transition-colors"
               >
                 <component :is="paymentLinkCopied ? ClipboardCheck : Clipboard" class="w-3.5 h-3.5" />
                 {{ paymentLinkCopied ? 'Kopiert!' : 'Kopieren' }}
@@ -256,7 +256,7 @@
                 :href="payment.checkout_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-brand-strong bg-surface border border-brand-line rounded-md hover:bg-brand-subtle transition-colors"
+                class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-brand-ink-strong bg-surface border border-brand-line rounded-md hover:bg-brand-subtle transition-colors"
                 title="Link extern öffnen"
               >
                 <ExternalLink class="w-3.5 h-3.5" />
@@ -267,7 +267,7 @@
             v-else
             @click="createPaymentLink"
             :disabled="creatingPaymentLink"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-strong bg-brand-subtle border border-brand-line rounded-lg hover:bg-brand-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-ink-strong bg-brand-subtle border border-brand-line rounded-lg hover:bg-brand-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <template v-if="creatingPaymentLink">
               <div class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>

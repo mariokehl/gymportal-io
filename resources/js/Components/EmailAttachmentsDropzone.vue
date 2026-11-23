@@ -6,7 +6,7 @@
                 class="flex items-center justify-between p-3 border border-line rounded-lg bg-surface-muted group hover:bg-fill transition-colors">
                 <div class="flex items-center min-w-0 flex-1">
                     <div class="w-8 h-8 bg-brand-soft rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                        <component :is="FileText" class="w-4 h-4 text-brand" />
+                        <component :is="FileText" class="w-4 h-4 text-brand-ink" />
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-medium text-ink truncate">{{ attachment.file_name }}</p>
@@ -37,14 +37,14 @@
                         : 'border-line-strong hover:border-brand'
                 ]">
                 <div v-if="isUploading" class="flex flex-col items-center">
-                    <component :is="Loader2" class="w-8 h-8 text-brand animate-spin" />
+                    <component :is="Loader2" class="w-8 h-8 text-brand-ink animate-spin" />
                     <p class="mt-2 text-sm font-medium text-ink-secondary">Wird hochgeladen...</p>
                 </div>
                 <div v-else>
                     <component :is="Upload" class="mx-auto w-8 h-8 text-ink-muted" />
                     <div class="mt-2">
                         <p class="text-sm font-medium text-ink-secondary">
-                            <span class="text-brand">Datei auswählen</span> oder per Drag & Drop
+                            <span class="text-brand-ink">Datei auswählen</span> oder per Drag & Drop
                         </p>
                         <p class="mt-1 text-xs text-ink-muted">
                             Nur PDF-Dateien, max. 10 MB ({{ props.attachments.length }}/{{ maxAttachments }} Anhänge)

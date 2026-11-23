@@ -41,7 +41,7 @@
       v-if="open"
       class="absolute left-0 right-0 lg:right-auto lg:w-[25rem] top-full mt-2 z-30 py-2 bg-surface border border-line rounded-lg shadow-lg"
     >
-      <div class="px-4 py-1.5 flex items-center justify-between text-xs font-medium uppercase tracking-wider text-ink-muted">
+      <div class="px-4 py-1.5 flex items-center justify-between text-xs font-medium text-ink-muted">
         <span>{{ hasQuery ? 'Mitglieder' : 'Zuletzt angesehen' }}</span>
         <span v-if="hasQuery && !loading" class="normal-case tracking-normal text-ink-muted">
           {{ rows.length === 1 ? '1 Treffer' : `${rows.length} Treffer` }}

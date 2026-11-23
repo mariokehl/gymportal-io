@@ -158,10 +158,10 @@
             <!-- Info Box -->
             <div class="mt-6 bg-brand-subtle border border-brand-line rounded-lg p-4">
                 <div class="flex">
-                    <component :is="Info" class="w-5 h-5 text-brand mr-3 mt-0.5 flex-shrink-0" />
+                    <component :is="Info" class="w-5 h-5 text-brand-ink mr-3 mt-0.5 flex-shrink-0" />
                     <div>
-                        <h4 class="text-sm font-medium text-brand-strong">Information</h4>
-                        <p class="text-sm text-brand-strong mt-1">
+                        <h4 class="text-sm font-medium text-brand-ink-strong">Information</h4>
+                        <p class="text-sm text-brand-ink-strong mt-1">
                             Nach der Erstellung werden Sie automatisch als Administrator der neuen Organisation
                             hinzugefügt.
                             Sie können anschließend weitere Mitarbeiter einladen und die Einstellungen anpassen.

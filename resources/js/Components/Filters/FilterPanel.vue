@@ -6,7 +6,7 @@
         :class="[
           'inline-flex h-[34px] items-center gap-1.5 rounded-md border pl-3 pr-2.5 text-sm font-medium',
           open || activeCount > 0
-            ? 'border-brand-line bg-brand-subtle text-brand-strong hover:bg-brand-soft'
+            ? 'border-brand-line bg-brand-subtle text-brand-ink-strong hover:bg-brand-soft'
             : 'border-line-strong bg-surface text-ink-secondary hover:bg-surface-muted'
         ]"
         :aria-expanded="open"
@@ -35,7 +35,7 @@
           <div class="max-h-72 overflow-y-auto">
             <div v-for="saved in savedFilters" :key="saved.id" class="flex items-center hover:bg-surface-muted">
               <button type="button" class="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm text-ink" @click="loadSaved(saved)">
-                <span class="flex w-3.5 shrink-0 text-brand"><Check v-if="saved.id === activeSavedId" class="h-3.5 w-3.5" /></span>
+                <span class="flex w-3.5 shrink-0 text-brand-ink"><Check v-if="saved.id === activeSavedId" class="h-3.5 w-3.5" /></span>
                 <span class="truncate">{{ saved.name }}</span>
                 <span v-if="saved.id === activeSavedId && dirty" class="whitespace-nowrap text-xs text-warning">· geändert</span>
               </button>
@@ -53,7 +53,7 @@
           <div class="my-1 h-px bg-fill" />
           <button
             type="button"
-            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-brand hover:bg-brand-subtle disabled:cursor-not-allowed disabled:text-ink-muted disabled:hover:bg-transparent"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-brand-ink hover:bg-brand-subtle disabled:cursor-not-allowed disabled:text-ink-muted disabled:hover:bg-transparent"
             :disabled="activeCount === 0"
             :title="activeCount === 0 ? 'Legen Sie zuerst mindestens eine Bedingung fest.' : undefined"
             @click="openSave"
@@ -84,7 +84,7 @@
               <X class="h-3 w-3" />
             </button>
           </span>
-          <span v-else-if="token.kind === 'logic'" class="text-2xs font-semibold tracking-wider text-brand-strong">{{ token.text }}</span>
+          <span v-else-if="token.kind === 'logic'" class="text-2xs font-semibold tracking-wider text-brand-ink-strong">{{ token.text }}</span>
           <span v-else class="font-semibold text-ink-muted">{{ token.text }}</span>
         </template>
       </div>
@@ -112,7 +112,7 @@
         class="flex flex-wrap items-center gap-2 border-b border-line-subtle bg-brand-subtle px-3 py-2.5"
         @submit.prevent="confirmSave"
       >
-        <label for="saved-filter-name" class="text-sm font-medium text-brand-strong">Name des Filters</label>
+        <label for="saved-filter-name" class="text-sm font-medium text-brand-ink-strong">Name des Filters</label>
         <input
           id="saved-filter-name"
           ref="saveNameInput"
@@ -130,9 +130,9 @@
         >
           Speichern
         </button>
-        <button type="button" class="h-[34px] rounded-md px-3 text-sm font-medium text-brand-strong" @click="saving = false">Abbrechen</button>
+        <button type="button" class="h-[34px] rounded-md px-3 text-sm font-medium text-brand-ink-strong" @click="saving = false">Abbrechen</button>
         <span v-if="saveError" class="text-xs text-danger">{{ saveError }}</span>
-        <span v-else-if="overwrites" class="text-xs text-brand">Vorhandener Filter wird überschrieben.</span>
+        <span v-else-if="overwrites" class="text-xs text-brand-ink">Vorhandener Filter wird überschrieben.</span>
       </form>
 
       <FilterBuilder

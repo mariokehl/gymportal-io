@@ -4,7 +4,7 @@
     <div class="p-4 border-b border-line flex items-start justify-between">
       <div>
         <Logo class="h-5 w-auto" />
-        <p class="mt-1 text-xs text-ink-muted tracking-wide">Mitgliederverwaltung</p>
+        <p class="mt-1 text-xs text-ink-muted">Mitgliederverwaltung</p>
       </div>
       <!-- Close button (drawer only) -->
       <button
@@ -46,7 +46,7 @@
             :class="[
               'flex items-center px-4 py-2 text-xs font-medium transition-colors',
               isCurrent('blocklist.*')
-                ? 'text-brand-strong'
+                ? 'text-brand-ink-strong'
                 : 'text-ink-muted hover:text-ink-secondary'
             ]"
           >
@@ -73,7 +73,7 @@
             :class="[
               'flex items-center px-4 py-2 text-xs font-medium transition-colors',
               isCurrent('contracts.addons.*')
-                ? 'text-brand-strong'
+                ? 'text-brand-ink-strong'
                 : 'text-ink-muted hover:text-ink-secondary'
             ]"
           >
@@ -134,42 +134,26 @@
     <!-- Trial/Subscription Status + Version -->
     <div class="p-4 border-t border-line flex flex-col gap-3">
       <template v-if="subscriptionStatus">
-        <div v-if="subscriptionStatus.trial.is_active" class="bg-brand-subtle border border-brand-line rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-brand mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-brand-strong">Testphase</p>
-              <p class="text-xs text-brand">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</p>
-            </div>
-          </div>
-        </div>
+        <!-- One quiet status line with a live dot (the product's status
+             signature); only the expired trial asks for action. -->
+        <p v-if="subscriptionStatus.trial.is_active" class="flex items-center gap-2 px-1 text-xs">
+          <span class="size-2 flex-none rounded-full bg-brand" aria-hidden="true"></span>
+          <span class="font-medium text-ink-secondary">Testphase</span>
+          <span class="ml-auto tabular-nums text-ink-muted">{{ subscriptionStatus.trial.days_left }} Tage verbleibend</span>
+        </p>
 
-        <div v-else-if="subscriptionStatus.subscription.is_active" class="bg-success-subtle border border-success-line rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-success mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-success">SaaS Hosted</p>
-              <p class="text-xs text-success">Aktiv</p>
-            </div>
-          </div>
-        </div>
+        <p v-else-if="subscriptionStatus.subscription.is_active" class="flex items-center gap-2 px-1 text-xs">
+          <span class="size-2 flex-none rounded-full bg-success-solid" aria-hidden="true"></span>
+          <span class="font-medium text-ink-secondary">SaaS Hosted</span>
+          <span class="ml-auto text-ink-muted">Aktiv</span>
+        </p>
 
-        <div v-else class="bg-danger-subtle border border-danger-line rounded-lg p-3">
-          <div class="flex items-center">
-            <svg class="h-4 w-4 text-danger mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.084 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <div>
-              <p class="text-xs font-medium text-danger">Testphase abgelaufen</p>
-              <Link :href="route('billing.index')" class="text-xs text-danger underline">
-                Jetzt upgraden
-              </Link>
-            </div>
-          </div>
+        <div v-else class="flex items-center gap-2 px-1 text-xs">
+          <span class="size-2 flex-none rounded-full bg-danger-solid" aria-hidden="true"></span>
+          <span class="font-medium text-danger">Testphase abgelaufen</span>
+          <Link :href="route('billing.index')" class="ml-auto font-medium text-brand-ink underline underline-offset-2 hover:text-brand-ink-strong">
+            Jetzt upgraden
+          </Link>
         </div>
       </template>
 

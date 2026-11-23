@@ -6,7 +6,7 @@
         v-else
         type="button"
         title="UND / ODER umschalten"
-        class="rounded-full border border-brand-line bg-brand-subtle px-2 py-0.5 text-2xs font-semibold tracking-wider text-brand-strong hover:bg-brand-soft"
+        class="rounded-full border border-brand-line bg-brand-subtle px-2 py-0.5 text-2xs font-semibold tracking-wider text-brand-ink-strong hover:bg-brand-soft"
         @click="emit('toggle-logic')"
       >
         {{ LOGIC_LABELS[logic] }}
@@ -91,7 +91,7 @@
           'inline-flex items-center gap-1 rounded-full border px-2.5 py-[3px] text-compact font-medium',
           isSelected(option.value)
             ? 'border-brand bg-brand text-white'
-            : 'border-line-strong bg-surface text-ink-secondary hover:border-brand-line hover:text-brand-strong'
+            : 'border-line-strong bg-surface text-ink-secondary hover:border-brand-line hover:text-brand-ink-strong'
         ]"
         @click="toggleOption(option.value)"
       >

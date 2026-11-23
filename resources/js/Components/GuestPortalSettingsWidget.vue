@@ -5,7 +5,7 @@
             <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
                     <h3 class="text-xl font-semibold text-ink flex items-center">
-                        <Ticket class="w-6 h-6 text-brand mr-3 flex-none" />
+                        <Ticket class="w-6 h-6 text-brand-ink mr-3 flex-none" />
                         Gästeportal
                     </h3>
                     <p class="mt-1 text-sm text-ink-muted">
@@ -29,7 +29,7 @@
 
             <div v-if="guestEnabled && portalUrl" class="mt-4 flex flex-wrap items-center gap-2 text-sm">
                 <span class="text-ink-muted">Ihr Gästeportal:</span>
-                <a :href="portalUrl" target="_blank" rel="noopener noreferrer" class="text-brand hover:text-brand-strong break-all">
+                <a :href="portalUrl" target="_blank" rel="noopener noreferrer" class="text-brand-ink hover:text-brand-ink-strong break-all">
                     {{ portalUrl }}
                 </a>
             </div>
@@ -89,7 +89,7 @@
                         <input id="guest-portal-settings-widget-form-sort-order" v-model="form.sort_order" type="number" min="0" max="999" class="field w-full px-3 py-2">
                     </div>
                     <label class="flex items-center gap-2 self-end pb-2 text-sm text-ink-secondary">
-                        <input v-model="form.active" type="checkbox" class="rounded border-line-strong text-brand">
+                        <input v-model="form.active" type="checkbox" class="rounded border-line-strong text-brand-ink">
                         Im Gästeportal anbieten
                     </label>
                 </div>
@@ -122,7 +122,7 @@
                         </p>
                         <p class="text-sm text-ink-muted">{{ product.type_label }} · {{ product.quantity_label }} · {{ formatCurrency(product.price) }}</p>
                     </div>
-                    <button type="button" class="p-2 text-ink-muted hover:text-brand-strong" title="Bearbeiten" @click="startEdit(product)">
+                    <button type="button" class="p-2 text-ink-muted hover:text-brand-ink-strong" title="Bearbeiten" @click="startEdit(product)">
                         <Pencil class="w-4 h-4" />
                     </button>
                 </li>

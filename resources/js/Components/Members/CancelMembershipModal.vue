@@ -24,7 +24,7 @@
                       v-model="form.cancellation_type"
                       type="radio"
                       value="ordinary"
-                      class="mt-0.5 border-line-strong text-brand"
+                      class="mt-0.5 border-line-strong text-brand-ink"
                     />
                     <span class="ml-2 text-sm text-ink-secondary">
                       Ordentliche Kündigung
@@ -137,7 +137,7 @@
                   <input
                     v-model="form.send_confirmation"
                     type="checkbox"
-                    class="rounded border-line-strong text-brand"
+                    class="rounded border-line-strong text-brand-ink"
                   />
                   <span class="ml-2 text-sm text-ink-secondary">
                     Bestätigungsmail an das Mitglied senden

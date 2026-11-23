@@ -141,7 +141,7 @@
                                         <component
                                             :is="deviceTaskIcon(scanner.device_task)"
                                             v-if="deviceTaskIcon(scanner.device_task)"
-                                            class="w-4 h-4 mr-1.5 shrink-0 text-brand"
+                                            class="w-4 h-4 mr-1.5 shrink-0 text-brand-ink"
                                         />
                                         {{ deviceTaskLabel(scanner.device_task) }}
                                     </span>
@@ -211,7 +211,7 @@
                                     <div class="flex items-center justify-end space-x-2">
                                         <button
                                             @click="openEditModal(scanner)"
-                                            class="text-brand hover:text-brand-strong p-1"
+                                            class="text-brand-ink hover:text-brand-ink-strong p-1"
                                             title="Bearbeiten"
                                         >
                                             <Settings class="w-4 h-4" />
@@ -321,7 +321,7 @@
                             v-if="isAddonLinkedTask(form.device_task)"
                             class="bg-brand-subtle border border-brand-line rounded-lg p-4"
                         >
-                            <div class="flex items-center text-sm font-semibold text-brand-strong mb-3">
+                            <div class="flex items-center text-sm font-semibold text-brand-ink-strong mb-3">
                                 <component
                                     :is="deviceTaskIcon(form.device_task)"
                                     v-if="deviceTaskIcon(form.device_task)"
@@ -357,7 +357,7 @@
                                                 v-model="form.addon_ids"
                                                 type="checkbox"
                                                 :value="addon.id"
-                                                class="rounded text-brand"
+                                                class="rounded text-brand-ink"
                                             />
                                             <span class="ml-2 text-sm text-ink-secondary">{{ addon.name }}</span>
                                         </label>
@@ -382,7 +382,7 @@
                                             v-model="form.enforce_quota"
                                             type="radio"
                                             :value="true"
-                                            class="text-brand"
+                                            class="text-brand-ink"
                                         />
                                         <span class="ml-2 text-sm text-ink-secondary">
                                             Kontingent prüfen &amp; Nutzung freischalten
@@ -393,7 +393,7 @@
                                             v-model="form.enforce_quota"
                                             type="radio"
                                             :value="false"
-                                            class="text-brand"
+                                            class="text-brand-ink"
                                         />
                                         <span class="ml-2 text-sm text-ink-secondary">
                                             Nur protokollieren (keine Sperre)
@@ -408,7 +408,7 @@
                                 <input
                                     v-model="form.is_active"
                                     type="checkbox"
-                                    class="rounded border-line-strong text-brand shadow-sm"
+                                    class="rounded border-line-strong text-brand-ink shadow-sm"
                                 />
                                 <span class="ml-2 text-sm text-ink-secondary">Gerät aktiv</span>
                             </label>
@@ -443,7 +443,7 @@
                                 <button
                                     type="button"
                                     @click="addIp"
-                                    class="text-sm text-brand hover:text-brand-strong"
+                                    class="text-sm text-brand-ink hover:text-brand-ink-strong"
                                 >
                                     + IP-Adresse hinzufügen
                                 </button>
@@ -465,7 +465,7 @@
                                 <input
                                     v-model="tokenNeverExpires"
                                     type="checkbox"
-                                    class="rounded border-line-strong text-brand"
+                                    class="rounded border-line-strong text-brand-ink"
                                 />
                                 <span class="ml-2 text-sm text-ink-secondary">Token läuft nie ab</span>
                             </label>
@@ -514,7 +514,7 @@
                             type="button"
                             @click="regenerateToken"
                             :disabled="isRegeneratingToken"
-                            class="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
+                            class="inline-flex items-center px-4 py-2 bg-danger-solid text-white rounded-md text-sm font-medium hover:bg-danger-solid-strong disabled:opacity-50 transition-colors"
                         >
                             <RefreshCw
                                 class="w-4 h-4 mr-1"
@@ -593,7 +593,7 @@
                         <button
                             @click="regenerateSecretKey"
                             :disabled="isRegeneratingKey"
-                            class="w-full px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
+                            class="w-full px-4 py-2 bg-danger-solid text-white rounded-md text-sm font-medium hover:bg-danger-solid-strong disabled:opacity-50 transition-colors"
                         >
                             {{ isRegeneratingKey ? 'Generiere...' : 'Ja, Key erneuern' }}
                         </button>

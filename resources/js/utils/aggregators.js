@@ -28,5 +28,12 @@ export const aggregatorBadgeStyle = (aggregator, status) => {
     return { background: aggregator.bg, color: aggregator.fg, border: `1px solid ${aggregator.bg}` }
   }
 
-  return { background: '#ffffff', color: aggregator.pendingFg, border: `1px dashed ${aggregator.border}` }
+  // Pending: outline only, on whatever surface the badge sits on. The text
+  // keeps the aggregator's color; on dark it switches to the lighter outline
+  // tone so it stays readable (light-dark() follows the page's color-scheme).
+  return {
+    background: 'transparent',
+    color: `light-dark(${aggregator.pendingFg}, ${aggregator.border})`,
+    border: `1px dashed ${aggregator.border}`,
+  }
 }

@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* `dark:` follows the .dark class set from the user's preference, not only
+   the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
@@ -73,81 +77,281 @@
  * and is reserved for action, selection and focus.
  */
 @theme inline {
-    /* Surfaces */
-    --color-canvas: var(--color-gray-100);
-    --color-surface: var(--color-white);
-    --color-surface-muted: var(--color-gray-50);
-    --color-inverse: var(--color-gray-900); /* tooltips, dark chips */
-
-    /* Neutral fills: badges, hover tints, disabled controls, tracks */
-    --color-fill: var(--color-gray-100);
-    --color-fill-strong: var(--color-gray-200);
-
-    /* Lines */
-    --color-line-subtle: var(--color-gray-100);
-    --color-line: var(--color-gray-200);
-    --color-line-strong: var(--color-gray-300);
-
-    /* Text. ink-muted is the lightest shade allowed for readable text: tuned
-       between gray-500 and gray-600 so it holds 4.5:1 not only on white
-       (5.5:1) but also on the canvas and fills (5.0:1). ink-disabled is for
-       disabled controls and decoration only. */
-    --color-ink: var(--color-gray-900);
-    --color-ink-secondary: var(--color-gray-700);
-    --color-ink-muted: oklch(52% 0.027 264.4);
-    --color-ink-disabled: var(--color-gray-400);
-
-    /* Brand: action, selection, focus */
-    --color-brand: var(--color-indigo-600);
-    --color-brand-strong: var(--color-indigo-700);
-    --color-brand-subtle: var(--color-indigo-50);
-    --color-brand-soft: var(--color-indigo-100);
-    --color-brand-line: var(--color-indigo-200);
-    --color-focus: var(--color-indigo-500);
-
-    /* Status. Per tone:
-       `*`             text/icon ink, ≥4.5:1 on white and on its tints
-       `*-strong`      text on `*-soft` badges and alert headings
-       `*-subtle`      tinted panel surface
-       `*-soft`        badge / chip fill
-       `*-line`        border on tinted surfaces
-       `*-solid`       filled controls and dots
-       `*-solid-strong` hover/pressed state of `*-solid` */
-    --color-success: var(--color-green-700);
-    --color-success-strong: var(--color-green-800);
-    --color-success-subtle: var(--color-green-50);
-    --color-success-soft: var(--color-green-100);
-    --color-success-line: var(--color-green-200);
-    --color-success-solid: var(--color-green-600);
-    --color-success-solid-strong: var(--color-green-700);
-
-    --color-warning: var(--color-amber-700);
-    --color-warning-strong: var(--color-amber-800);
-    --color-warning-subtle: var(--color-amber-50);
-    --color-warning-soft: var(--color-amber-100);
-    --color-warning-line: var(--color-amber-200);
-    --color-warning-solid: var(--color-amber-500);
-    --color-warning-solid-strong: var(--color-amber-600);
-
-    --color-danger: var(--color-red-700);
-    --color-danger-strong: var(--color-red-800);
-    --color-danger-subtle: var(--color-red-50);
-    --color-danger-soft: var(--color-red-100);
-    --color-danger-line: var(--color-red-200);
-    --color-danger-solid: var(--color-red-600); /* white text 4.6:1 */
-    --color-danger-solid-strong: var(--color-red-700);
-
-    --color-info: var(--color-blue-700);
-    --color-info-strong: var(--color-blue-800);
-    --color-info-subtle: var(--color-blue-50);
-    --color-info-soft: var(--color-blue-100);
-    --color-info-line: var(--color-blue-200);
-    --color-info-solid: var(--color-blue-600);
-    --color-info-solid-strong: var(--color-blue-700);
+    --color-canvas: var(--canvas);
+    --color-surface: var(--surface);
+    --color-surface-muted: var(--surface-muted);
+    --color-inverse: var(--inverse);
+    --color-fill: var(--fill);
+    --color-fill-strong: var(--fill-strong);
+    --color-line-subtle: var(--line-subtle);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-ink: var(--ink);
+    --color-ink-secondary: var(--ink-secondary);
+    --color-ink-muted: var(--ink-muted);
+    --color-ink-disabled: var(--ink-disabled);
+    --color-brand: var(--brand);
+    --color-brand-strong: var(--brand-strong);
+    --color-brand-subtle: var(--brand-subtle);
+    --color-brand-soft: var(--brand-soft);
+    --color-brand-line: var(--brand-line);
+    --color-brand-ink: var(--brand-ink);
+    --color-brand-ink-strong: var(--brand-ink-strong);
+    --color-focus: var(--focus);
+    --color-guest-solid: var(--guest-solid);
+    --color-success: var(--success);
+    --color-success-strong: var(--success-strong);
+    --color-success-subtle: var(--success-subtle);
+    --color-success-soft: var(--success-soft);
+    --color-success-line: var(--success-line);
+    --color-success-solid: var(--success-solid);
+    --color-success-solid-strong: var(--success-solid-strong);
+    --color-warning: var(--warning);
+    --color-warning-strong: var(--warning-strong);
+    --color-warning-subtle: var(--warning-subtle);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-line: var(--warning-line);
+    --color-warning-solid: var(--warning-solid);
+    --color-warning-solid-strong: var(--warning-solid-strong);
+    --color-danger: var(--danger);
+    --color-danger-strong: var(--danger-strong);
+    --color-danger-subtle: var(--danger-subtle);
+    --color-danger-soft: var(--danger-soft);
+    --color-danger-line: var(--danger-line);
+    --color-danger-solid: var(--danger-solid);
+    --color-danger-solid-strong: var(--danger-solid-strong);
+    --color-info: var(--info);
+    --color-info-strong: var(--info-strong);
+    --color-info-subtle: var(--info-subtle);
+    --color-info-soft: var(--info-soft);
+    --color-info-line: var(--info-line);
+    --color-info-solid: var(--info-solid);
+    --color-info-solid-strong: var(--info-solid-strong);
 }
 
-/* `@theme inline` roles are not emitted as CSS variables; --theme() resolves
-   them at build time for use outside utilities. */
+/*
+ * Role values per theme. Light is the default; `.dark` on <html> (set from
+ * the user's profile preference, see app.blade.php) swaps in the cool
+ * graphite ramp. Filled controls (`*-solid`, brand) keep their light values
+ * so white labels hold 4.5:1; text roles step lighter on dark.
+ */
+@layer base {
+    :root {
+        --canvas: --theme(--color-gray-100);
+        --surface: #ffffff;
+        --surface-muted: --theme(--color-gray-50);
+        --inverse: --theme(--color-gray-900);
+        --fill: --theme(--color-gray-100);
+        --fill-strong: --theme(--color-gray-200);
+        --line-subtle: --theme(--color-gray-100);
+        --line: --theme(--color-gray-200);
+        --line-strong: --theme(--color-gray-300);
+        --ink: --theme(--color-gray-900);
+        --ink-secondary: --theme(--color-gray-700);
+        --ink-muted: oklch(52% 0.027 264.4);
+        --ink-disabled: --theme(--color-gray-400);
+        --brand: --theme(--color-indigo-600);
+        --brand-strong: --theme(--color-indigo-700);
+        --brand-subtle: --theme(--color-indigo-50);
+        --brand-soft: --theme(--color-indigo-100);
+        --brand-line: --theme(--color-indigo-200);
+        --brand-ink: --theme(--color-indigo-600);
+        --brand-ink-strong: --theme(--color-indigo-700);
+        --focus: --theme(--color-indigo-500);
+        --success: --theme(--color-green-700);
+        --success-strong: --theme(--color-green-800);
+        --success-subtle: --theme(--color-green-50);
+        --success-soft: --theme(--color-green-100);
+        --success-line: --theme(--color-green-200);
+        --success-solid: --theme(--color-green-600);
+        --success-solid-strong: --theme(--color-green-700);
+        --warning: --theme(--color-amber-700);
+        --warning-strong: --theme(--color-amber-800);
+        --warning-subtle: --theme(--color-amber-50);
+        --warning-soft: --theme(--color-amber-100);
+        --warning-line: --theme(--color-amber-200);
+        --warning-solid: --theme(--color-amber-500);
+        --warning-solid-strong: --theme(--color-amber-600);
+        --danger: --theme(--color-red-700);
+        --danger-strong: --theme(--color-red-800);
+        --danger-subtle: --theme(--color-red-50);
+        --danger-soft: --theme(--color-red-100);
+        --danger-line: --theme(--color-red-200);
+        --danger-solid: --theme(--color-red-600);
+        --danger-solid-strong: --theme(--color-red-700);
+        --info: --theme(--color-blue-700);
+        --info-strong: --theme(--color-blue-800);
+        --info-subtle: --theme(--color-blue-50);
+        --info-soft: --theme(--color-blue-100);
+        --info-line: --theme(--color-blue-200);
+        --info-solid: --theme(--color-blue-600);
+        --info-solid-strong: --theme(--color-blue-700);
+        --guest-solid: --theme(--color-orange-700 inline);
+        --selection-bg: --theme(--color-indigo-100);
+        --selection-ink: --theme(--color-indigo-950);
+    }
+
+    .dark {
+        color-scheme: dark;
+        --canvas: #0f1218;
+        --surface: #161a21;
+        --surface-muted: #1b2029;
+        --inverse: #2b313c;
+        --fill: #1e232c;
+        --fill-strong: #272d37;
+        --line-subtle: rgb(238 240 244 / 0.06);
+        --line: rgb(238 240 244 / 0.1);
+        --line-strong: rgb(238 240 244 / 0.18);
+        --ink: #eef0f4;
+        --ink-secondary: #c5cad3;
+        --ink-muted: #9aa1ae;
+        --ink-disabled: #6b7280;
+        --brand: --theme(--color-indigo-600);
+        --brand-strong: --theme(--color-indigo-700);
+        --brand-subtle: rgb(99 102 241 / 0.14);
+        --brand-soft: rgb(99 102 241 / 0.22);
+        --brand-line: rgb(129 140 248 / 0.35);
+        --brand-ink: --theme(--color-indigo-300);
+        --brand-ink-strong: --theme(--color-indigo-200);
+        --focus: --theme(--color-indigo-400);
+        --success: --theme(--color-green-400);
+        --success-strong: --theme(--color-green-300);
+        --success-subtle: rgb(34 197 94 / 0.08);
+        --success-soft: rgb(34 197 94 / 0.16);
+        --success-line: rgb(34 197 94 / 0.3);
+        --success-solid: --theme(--color-green-600);
+        --success-solid-strong: --theme(--color-green-700);
+        --warning: --theme(--color-amber-400);
+        --warning-strong: --theme(--color-amber-300);
+        --warning-subtle: rgb(245 158 11 / 0.08);
+        --warning-soft: rgb(245 158 11 / 0.16);
+        --warning-line: rgb(245 158 11 / 0.3);
+        --warning-solid: --theme(--color-amber-500);
+        --warning-solid-strong: --theme(--color-amber-600);
+        --danger: --theme(--color-red-400);
+        --danger-strong: --theme(--color-red-300);
+        --danger-subtle: rgb(239 68 68 / 0.08);
+        --danger-soft: rgb(239 68 68 / 0.16);
+        --danger-line: rgb(239 68 68 / 0.3);
+        --danger-solid: --theme(--color-red-600);
+        --danger-solid-strong: --theme(--color-red-700);
+        --info: --theme(--color-blue-400);
+        --info-strong: --theme(--color-blue-300);
+        --info-subtle: rgb(59 130 246 / 0.08);
+        --info-soft: rgb(59 130 246 / 0.16);
+        --info-line: rgb(59 130 246 / 0.3);
+        --info-solid: --theme(--color-blue-600);
+        --info-solid-strong: --theme(--color-blue-700);
+        --guest-solid: --theme(--color-orange-700 inline);
+        --selection-bg: rgb(99 102 241 / 0.4);
+        --selection-ink: #eef0f4;
+
+        /* Category hues (pending/guest orange, admin and aggregator purple,
+           teal, rose …) are still raw palette in markup; remap their shades
+           so tints read as dark washes and text shades turn light. */
+        --color-orange-50: color-mix(in oklab, --theme(--color-orange-500 inline) 10%, #161a21);
+        --color-orange-100: color-mix(in oklab, --theme(--color-orange-500 inline) 16%, #161a21);
+        --color-orange-200: color-mix(in oklab, --theme(--color-orange-500 inline) 26%, #161a21);
+        --color-orange-300: color-mix(in oklab, --theme(--color-orange-500 inline) 42%, #161a21);
+        --color-orange-700: --theme(--color-orange-300 inline);
+        --color-orange-800: --theme(--color-orange-200 inline);
+        --color-orange-900: --theme(--color-orange-100 inline);
+        --color-purple-50: color-mix(in oklab, --theme(--color-purple-500 inline) 10%, #161a21);
+        --color-purple-100: color-mix(in oklab, --theme(--color-purple-500 inline) 16%, #161a21);
+        --color-purple-200: color-mix(in oklab, --theme(--color-purple-500 inline) 26%, #161a21);
+        --color-purple-300: color-mix(in oklab, --theme(--color-purple-500 inline) 42%, #161a21);
+        --color-purple-700: --theme(--color-purple-300 inline);
+        --color-purple-800: --theme(--color-purple-200 inline);
+        --color-purple-900: --theme(--color-purple-100 inline);
+        --color-purple-600: --theme(--color-purple-400 inline);
+        --color-violet-50: color-mix(in oklab, --theme(--color-violet-500 inline) 10%, #161a21);
+        --color-violet-100: color-mix(in oklab, --theme(--color-violet-500 inline) 16%, #161a21);
+        --color-violet-200: color-mix(in oklab, --theme(--color-violet-500 inline) 26%, #161a21);
+        --color-violet-300: color-mix(in oklab, --theme(--color-violet-500 inline) 42%, #161a21);
+        --color-violet-700: --theme(--color-violet-300 inline);
+        --color-violet-800: --theme(--color-violet-200 inline);
+        --color-violet-900: --theme(--color-violet-100 inline);
+        --color-violet-600: --theme(--color-violet-400 inline);
+        --color-teal-50: color-mix(in oklab, --theme(--color-teal-500 inline) 10%, #161a21);
+        --color-teal-100: color-mix(in oklab, --theme(--color-teal-500 inline) 16%, #161a21);
+        --color-teal-200: color-mix(in oklab, --theme(--color-teal-500 inline) 26%, #161a21);
+        --color-teal-300: color-mix(in oklab, --theme(--color-teal-500 inline) 42%, #161a21);
+        --color-teal-700: --theme(--color-teal-300 inline);
+        --color-teal-800: --theme(--color-teal-200 inline);
+        --color-teal-900: --theme(--color-teal-100 inline);
+        --color-rose-50: color-mix(in oklab, --theme(--color-rose-500 inline) 10%, #161a21);
+        --color-rose-100: color-mix(in oklab, --theme(--color-rose-500 inline) 16%, #161a21);
+        --color-rose-200: color-mix(in oklab, --theme(--color-rose-500 inline) 26%, #161a21);
+        --color-rose-300: color-mix(in oklab, --theme(--color-rose-500 inline) 42%, #161a21);
+        --color-rose-700: --theme(--color-rose-300 inline);
+        --color-rose-800: --theme(--color-rose-200 inline);
+        --color-rose-900: --theme(--color-rose-100 inline);
+        --color-rose-600: --theme(--color-rose-400 inline);
+        --color-emerald-50: color-mix(in oklab, --theme(--color-emerald-500 inline) 10%, #161a21);
+        --color-emerald-100: color-mix(in oklab, --theme(--color-emerald-500 inline) 16%, #161a21);
+        --color-emerald-200: color-mix(in oklab, --theme(--color-emerald-500 inline) 26%, #161a21);
+        --color-emerald-300: color-mix(in oklab, --theme(--color-emerald-500 inline) 42%, #161a21);
+        --color-emerald-700: --theme(--color-emerald-300 inline);
+        --color-emerald-800: --theme(--color-emerald-200 inline);
+        --color-emerald-900: --theme(--color-emerald-100 inline);
+        --color-cyan-50: color-mix(in oklab, --theme(--color-cyan-500 inline) 10%, #161a21);
+        --color-cyan-100: color-mix(in oklab, --theme(--color-cyan-500 inline) 16%, #161a21);
+        --color-cyan-200: color-mix(in oklab, --theme(--color-cyan-500 inline) 26%, #161a21);
+        --color-cyan-300: color-mix(in oklab, --theme(--color-cyan-500 inline) 42%, #161a21);
+        --color-cyan-700: --theme(--color-cyan-300 inline);
+        --color-cyan-800: --theme(--color-cyan-200 inline);
+        --color-cyan-900: --theme(--color-cyan-100 inline);
+        --color-pink-50: color-mix(in oklab, --theme(--color-pink-500 inline) 10%, #161a21);
+        --color-pink-100: color-mix(in oklab, --theme(--color-pink-500 inline) 16%, #161a21);
+        --color-pink-200: color-mix(in oklab, --theme(--color-pink-500 inline) 26%, #161a21);
+        --color-pink-300: color-mix(in oklab, --theme(--color-pink-500 inline) 42%, #161a21);
+        --color-pink-700: --theme(--color-pink-300 inline);
+        --color-pink-800: --theme(--color-pink-200 inline);
+        --color-pink-900: --theme(--color-pink-100 inline);
+        --color-pink-600: --theme(--color-pink-400 inline);
+        --color-lime-50: color-mix(in oklab, --theme(--color-lime-500 inline) 10%, #161a21);
+        --color-lime-100: color-mix(in oklab, --theme(--color-lime-500 inline) 16%, #161a21);
+        --color-lime-200: color-mix(in oklab, --theme(--color-lime-500 inline) 26%, #161a21);
+        --color-lime-300: color-mix(in oklab, --theme(--color-lime-500 inline) 42%, #161a21);
+        --color-lime-700: --theme(--color-lime-300 inline);
+        --color-lime-800: --theme(--color-lime-200 inline);
+        --color-lime-900: --theme(--color-lime-100 inline);
+        --color-sky-50: color-mix(in oklab, --theme(--color-sky-500 inline) 10%, #161a21);
+        --color-sky-100: color-mix(in oklab, --theme(--color-sky-500 inline) 16%, #161a21);
+        --color-sky-200: color-mix(in oklab, --theme(--color-sky-500 inline) 26%, #161a21);
+        --color-sky-300: color-mix(in oklab, --theme(--color-sky-500 inline) 42%, #161a21);
+        --color-sky-700: --theme(--color-sky-300 inline);
+        --color-sky-800: --theme(--color-sky-200 inline);
+        --color-sky-900: --theme(--color-sky-100 inline);
+        --color-yellow-50: color-mix(in oklab, --theme(--color-yellow-500 inline) 10%, #161a21);
+        --color-yellow-100: color-mix(in oklab, --theme(--color-yellow-500 inline) 16%, #161a21);
+        --color-yellow-200: color-mix(in oklab, --theme(--color-yellow-500 inline) 26%, #161a21);
+        --color-yellow-300: color-mix(in oklab, --theme(--color-yellow-500 inline) 42%, #161a21);
+        --color-yellow-700: --theme(--color-yellow-300 inline);
+        --color-yellow-800: --theme(--color-yellow-200 inline);
+        --color-yellow-900: --theme(--color-yellow-100 inline);
+        --color-fuchsia-50: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 10%, #161a21);
+        --color-fuchsia-100: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 16%, #161a21);
+        --color-fuchsia-200: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 26%, #161a21);
+        --color-fuchsia-300: color-mix(in oklab, --theme(--color-fuchsia-500 inline) 42%, #161a21);
+        --color-fuchsia-700: --theme(--color-fuchsia-300 inline);
+        --color-fuchsia-800: --theme(--color-fuchsia-200 inline);
+        --color-fuchsia-900: --theme(--color-fuchsia-100 inline);
+        --color-fuchsia-600: --theme(--color-fuchsia-400 inline);
+        --color-slate-50: color-mix(in oklab, --theme(--color-slate-500 inline) 10%, #161a21);
+        --color-slate-100: color-mix(in oklab, --theme(--color-slate-500 inline) 16%, #161a21);
+        --color-slate-200: color-mix(in oklab, --theme(--color-slate-500 inline) 26%, #161a21);
+        --color-slate-300: color-mix(in oklab, --theme(--color-slate-500 inline) 42%, #161a21);
+        --color-slate-700: --theme(--color-slate-300 inline);
+        --color-slate-800: --theme(--color-slate-200 inline);
+        --color-slate-900: --theme(--color-slate-100 inline);
+        --color-slate-600: --theme(--color-slate-400 inline);
+    }
+}
+
+
+/* Role colors are runtime variables (see above), so --theme(--color-…)
+   resolves to var(--…) and follows the active theme. */
 @layer base {
     /* Headings: brand tracking (STYLEGUIDE: headlines run slightly tight) and
        balanced breaks. Utilities on an element still win. */
@@ -171,8 +375,8 @@
     }
 
     ::selection {
-        background-color: --theme(--color-indigo-100);
-        color: --theme(--color-indigo-950);
+        background-color: var(--selection-bg);
+        color: var(--selection-ink);
     }
 
     /* The one keyboard focus indicator for buttons, links and custom
@@ -273,6 +477,19 @@
         width: 1.375rem;
         height: 1.375rem;
     }
+}
+
+/*
+ * Dark: depth comes from surface steps and hairlines. Resting shadows would
+ * vanish on the graphite canvas, so they become a hairline; floating layers
+ * keep a deep shadow plus a hairline edge.
+ */
+.dark :is(.shadow-sm, .shadow, .shadow-md) {
+    box-shadow: 0 0 0 1px var(--line-subtle);
+}
+
+.dark :is(.shadow-lg, .shadow-xl, .shadow-2xl) {
+    box-shadow: 0 0 0 1px var(--line), 0 16px 40px rgb(0 0 0 / 0.5);
 }
 
 /* Lift the Chatwoot launcher above a bar pinned to the bottom of the screen

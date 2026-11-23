@@ -47,7 +47,7 @@
                     </button>
                     <div v-if="showGuide" class="px-4 pb-4 text-sm text-ink-secondary space-y-2">
                         <ol class="list-decimal list-inside space-y-2">
-                            <li>Öffnen Sie die <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" class="text-brand hover:underline">Google Cloud Console</a> und legen Sie ein Projekt an.</li>
+                            <li>Öffnen Sie die <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" class="text-brand-ink hover:underline">Google Cloud Console</a> und legen Sie ein Projekt an.</li>
                             <li>Aktivieren Sie darin die <strong>Google Sheets API</strong>.</li>
                             <li>Erstellen Sie einen <strong>Dienstkonto (Service Account)</strong> und laden Sie dessen <strong>JSON-Schlüssel</strong> herunter.</li>
                             <li>Laden Sie den JSON-Schlüssel unten hoch.</li>
@@ -65,7 +65,7 @@
                                 id="google_sheet_enabled"
                                 v-model="form.enabled"
                                 type="checkbox"
-                                class="h-4 w-4 text-brand border-line-strong rounded"
+                                class="h-4 w-4 text-brand-ink border-line-strong rounded"
                             />
                         </div>
                         <div class="ml-3">
@@ -88,7 +88,7 @@
                                 ref="fileInput"
                                 type="file"
                                 accept="application/json,.json"
-                                class="block w-full text-sm text-ink-secondary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-brand-subtle file:text-brand-strong hover:file:bg-brand-soft"
+                                class="block w-full text-sm text-ink-secondary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-brand-subtle file:text-brand-ink-strong hover:file:bg-brand-soft"
                                 @change="onFileChange"
                             />
                             <p v-if="state.service_account_email && !selectedFileName" class="mt-1 text-xs text-ink-muted">
@@ -101,14 +101,14 @@
 
                         <!-- Dienstkonto-E-Mail -->
                         <div v-if="displayedServiceAccountEmail" class="bg-brand-subtle border border-brand-line rounded-lg p-3">
-                            <p class="text-xs font-medium text-brand-strong mb-1">
+                            <p class="text-xs font-medium text-brand-ink-strong mb-1">
                                 Teilen Sie Ihr Sheet mit dieser Adresse (als Bearbeiter):
                             </p>
                             <div class="flex items-center space-x-2">
-                                <code class="text-xs text-brand-strong break-all">{{ displayedServiceAccountEmail }}</code>
+                                <code class="text-xs text-brand-ink-strong break-all">{{ displayedServiceAccountEmail }}</code>
                                 <button
                                     type="button"
-                                    class="text-brand hover:text-brand-strong flex-shrink-0"
+                                    class="text-brand-ink hover:text-brand-ink-strong flex-shrink-0"
                                     title="Kopieren"
                                     @click="copyEmail"
                                 >

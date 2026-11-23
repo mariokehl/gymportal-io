@@ -98,7 +98,7 @@
 
           <div class="flex justify-between">
             <span class="text-ink-secondary text-sm">Aktive Mitglieder:</span>
-            <span class="font-medium text-brand">{{ plan.member_count || 0 }}</span>
+            <span class="font-medium text-brand-ink">{{ plan.member_count || 0 }}</span>
           </div>
         </div>
 
@@ -120,7 +120,7 @@
           <Link
             v-if="isOwnerOrAdmin"
             :href="route('contracts.edit', plan.id)"
-            class="flex-1 bg-brand-soft hover:bg-brand-line text-brand-strong px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
+            class="flex-1 bg-brand-soft hover:bg-brand-line text-brand-ink-strong px-3 py-2 rounded-md text-sm font-medium text-center transition-colors"
           >
             Bearbeiten
           </Link>

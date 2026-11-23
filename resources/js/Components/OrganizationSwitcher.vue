@@ -37,7 +37,7 @@
                  organization. Staff and trainers never see them. -->
             <template v-if="canManage">
                 <div class="p-3 border-b border-line-subtle">
-                    <h2 class="text-xs font-medium text-ink-muted uppercase tracking-wide">Organisation verwalten</h2>
+                    <h2 class="text-xs font-medium text-ink-muted">Organisation verwalten</h2>
                 </div>
                 <div class="py-1">
                     <Link :href="route('settings.index')"
@@ -62,7 +62,7 @@
             </template>
             <template v-if="allOrganizations.length > 1">
                 <div class="p-3 border-b border-line-subtle">
-                    <h2 class="text-xs font-medium text-ink-muted uppercase tracking-wide">Organisation wechseln</h2>
+                    <h2 class="text-xs font-medium text-ink-muted">Organisation wechseln</h2>
                 </div>
                 <div class="py-1">
                     <template v-for="organization in allOrganizations" :key="organization.id">

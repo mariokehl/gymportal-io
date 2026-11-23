@@ -4,7 +4,7 @@
         <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center mb-4">
-                    <component :is="FileSignature" class="w-6 h-6 text-brand mr-3" />
+                    <component :is="FileSignature" class="w-6 h-6 text-brand-ink mr-3" />
                     <h3 class="text-lg leading-6 font-semibold text-ink">
                         Vertragseinstellungen
                     </h3>
@@ -31,7 +31,7 @@
                                 id="contracts_start_first_of_month"
                                 v-model="contractsStartFirstOfMonth"
                                 type="checkbox"
-                                class="h-4 w-4 text-brand border-line-strong rounded" />
+                                class="h-4 w-4 text-brand-ink border-line-strong rounded" />
                         </div>
                         <div class="ml-3">
                             <label for="contracts_start_first_of_month" class="text-sm font-medium text-ink-secondary">
@@ -74,7 +74,7 @@
                             type="radio"
                             v-model="signingMethod"
                             value="offline"
-                            class="rounded-full border-line-strong text-brand"
+                            class="rounded-full border-line-strong text-brand-ink"
                         >
                         <div class="ml-3">
                             <span class="text-sm font-medium text-ink">Offline unterzeichnet</span>
@@ -88,7 +88,7 @@
                             type="radio"
                             v-model="signingMethod"
                             value="online"
-                            class="rounded-full border-line-strong text-brand"
+                            class="rounded-full border-line-strong text-brand-ink"
                         >
                         <div class="ml-3">
                             <span class="text-sm font-medium text-ink">Automatisch generierter Online-Vertrag per E-Mail</span>
@@ -507,7 +507,7 @@ const previewTemplate = async () => {
 }
 
 .prose :deep(a) {
-    color: #2563eb;
+    color: var(--brand-ink);
     text-decoration: underline;
 }
 
@@ -526,13 +526,13 @@ const previewTemplate = async () => {
 }
 
 .prose :deep(th), .prose :deep(td) {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--line-strong);
     padding: 0.5em 0.75em;
     text-align: left;
 }
 
 .prose :deep(th) {
-    background-color: #f9fafb;
+    background-color: var(--surface-muted);
     font-weight: 600;
 }
 </style>

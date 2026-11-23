@@ -23,8 +23,8 @@
 
             <!-- Hint: only enabled payment methods can be configured -->
             <div v-if="inactiveMethods.length" class="flex gap-3 rounded-lg bg-brand-subtle border border-brand-line p-4 mt-5">
-                <component :is="Info" class="w-5 h-5 text-brand flex-none mt-px" />
-                <p class="text-sm text-brand-strong">
+                <component :is="Info" class="w-5 h-5 text-brand-ink flex-none mt-px" />
+                <p class="text-sm text-brand-ink-strong">
                     Nur aktivierte Zahlungsarten sind konfigurierbar. Deaktivierte Zahlungsarten aktivieren Sie unter
                     <strong class="font-semibold">Standard Zahlungsarten</strong>.
                 </p>
@@ -51,7 +51,7 @@
 
                     <!-- Method name -->
                     <div class="flex items-start gap-3 min-w-0">
-                        <div class="w-9 h-9 flex-none rounded-lg bg-brand-subtle text-brand flex items-center justify-center">
+                        <div class="w-9 h-9 flex-none rounded-lg bg-brand-subtle text-brand-ink flex items-center justify-center">
                             <component :is="CalendarClock" class="w-4.5 h-4.5" />
                         </div>
                         <div class="min-w-0 flex flex-col justify-center min-h-9">
@@ -155,7 +155,7 @@
                             type="button"
                             :disabled="isSaving"
                             @click="resetMethod(method)"
-                            class="text-xs font-semibold text-brand hover:text-brand-strong disabled:opacity-50">
+                            class="text-xs font-semibold text-brand-ink hover:text-brand-ink-strong disabled:opacity-50">
                             Zurücksetzen
                         </button>
                     </div>
@@ -310,7 +310,7 @@ const OffsetStepper = (props, { emit: emitStep }) => {
             'flex-none w-8 h-9 text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
             props.highlight
                 ? 'text-orange-600 hover:bg-orange-100 border-orange-300'
-                : 'text-ink-secondary hover:bg-surface-muted hover:text-brand-strong border-line',
+                : 'text-ink-secondary hover:bg-surface-muted hover:text-brand-ink-strong border-line',
             extraClass,
         ].join(' '),
     }, label)

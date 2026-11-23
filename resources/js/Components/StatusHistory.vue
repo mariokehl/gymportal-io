@@ -11,7 +11,7 @@
         <button
           v-if="member.status_history && member.status_history.length > 5"
           @click="showAllHistory = !showAllHistory"
-          class="text-compact font-medium text-brand hover:text-brand-strong"
+          class="text-compact font-medium text-brand-ink hover:text-brand-ink-strong"
         >
           {{ showAllHistory ? 'Weniger anzeigen' : 'Alle anzeigen' }}
         </button>

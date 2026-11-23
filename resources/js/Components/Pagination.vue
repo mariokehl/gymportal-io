@@ -64,7 +64,7 @@
             <!-- Active Page -->
             <span
               v-if="link.active"
-              class="relative inline-flex items-center px-4 py-2 border border-brand bg-brand-subtle text-sm font-medium text-brand z-10"
+              class="relative inline-flex items-center px-4 py-2 border border-brand bg-brand-subtle text-sm font-medium text-brand-ink z-10"
               v-html="link.label"
             />
             <!-- Clickable Page -->

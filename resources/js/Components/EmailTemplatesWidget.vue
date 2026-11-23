@@ -114,13 +114,13 @@
                             <div class="flex border-b border-line">
                                 <button type="button"
                                     @click="editMode = 'edit'"
-                                    :class="editMode === 'edit' ? 'border-brand text-brand' : 'border-transparent text-ink-muted hover:text-ink'"
+                                    :class="editMode === 'edit' ? 'border-brand text-brand-ink' : 'border-transparent text-ink-muted hover:text-ink'"
                                     class="px-4 py-2 text-sm font-medium border-b-2">
                                     HTML Editor
                                 </button>
                                 <button type="button"
                                     @click="editMode = 'preview'"
-                                    :class="editMode === 'preview' ? 'border-brand text-brand' : 'border-transparent text-ink-muted hover:text-ink'"
+                                    :class="editMode === 'preview' ? 'border-brand text-brand-ink' : 'border-transparent text-ink-muted hover:text-ink'"
                                     class="px-4 py-2 text-sm font-medium border-b-2">
                                     Live-Vorschau
                                 </button>
@@ -211,14 +211,14 @@
                         <div>
                             <label class="flex items-center">
                                 <input type="checkbox" v-model="currentTemplate.is_active"
-                                    class="rounded border-line-strong text-brand" />
+                                    class="rounded border-line-strong text-brand-ink" />
                                 <span class="ml-2 text-sm text-ink-secondary">Template aktiv</span>
                             </label>
                         </div>
                         <div>
                             <label class="flex items-center">
                                 <input type="checkbox" v-model="currentTemplate.is_default"
-                                    class="rounded border-line-strong text-brand" />
+                                    class="rounded border-line-strong text-brand-ink" />
                                 <span class="ml-2 text-sm text-ink-secondary">Als Standard verwenden</span>
                             </label>
                         </div>
@@ -294,7 +294,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                     <button @click="editTemplate(template)"
-                                        class="text-brand hover:text-brand-strong">
+                                        class="text-brand-ink hover:text-brand-ink-strong">
                                         <component :is="Edit" class="w-4 h-4" />
                                     </button>
                                     <button @click="duplicateTemplate(template)"
@@ -842,7 +842,7 @@ const getTypeColor = (type) => {
         invoice: 'bg-purple-100 text-purple-800',
         payment_failed: 'bg-danger-soft text-danger-strong',
         login_code: 'bg-cyan-100 text-cyan-800',
-        member_app_access: 'bg-brand-soft text-brand-strong',
+        member_app_access: 'bg-brand-soft text-brand-ink-strong',
         general: 'bg-fill text-ink'
     }
     return colors[type] || 'bg-fill text-ink'
@@ -893,7 +893,7 @@ onMounted(async () => {
 }
 
 .prose :deep(a) {
-    color: #2563eb;
+    color: var(--brand-ink);
     text-decoration: underline;
 }
 

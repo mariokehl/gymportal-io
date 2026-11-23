@@ -11,7 +11,7 @@
               :checked="isAllSelected"
               @change="toggleSelectAll"
               :disabled="batchExecutingPayments"
-              class="h-4 w-4 text-brand border-line-strong rounded disabled:opacity-50"
+              class="h-4 w-4 text-brand-ink border-line-strong rounded disabled:opacity-50"
             />
             <label for="select-all" class="ml-2 text-sm font-medium text-ink-secondary">
               Alle auswählen
@@ -23,7 +23,7 @@
           </span>
 
           <!-- Batch Progress Indicator -->
-          <div v-if="batchExecutingPayments" class="flex items-center text-sm text-brand">
+          <div v-if="batchExecutingPayments" class="flex items-center text-sm text-brand-ink">
             <div class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin mr-2"></div>
             Zahlungen werden ausgeführt...
           </div>
@@ -68,7 +68,7 @@
                   :checked="isAllSelected"
                   @change="toggleSelectAll"
                   aria-label="Alle Zahlungen dieser Seite auswählen"
-                  class="h-4 w-4 text-brand border-line-strong rounded"
+                  class="h-4 w-4 text-brand-ink border-line-strong rounded"
                 />
               </th>
               <th
@@ -106,7 +106,7 @@
                   v-model="selectedPayments"
                   :aria-label="`Zahlung #${payment.id} auswählen`"
                   :disabled="executingPaymentId === payment.id || batchExecutingPayments"
-                  class="h-4 w-4 text-brand border-line-strong rounded disabled:opacity-50"
+                  class="h-4 w-4 text-brand-ink border-line-strong rounded disabled:opacity-50"
                 />
               </td>
               <td
@@ -181,7 +181,7 @@
                     <button
                       v-if="hasCreditRedemption(payment)"
                       @click.stop="toggleRowExpansion(payment.id)"
-                      class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand-subtle text-brand hover:bg-brand-soft transition-colors cursor-pointer"
+                      class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand-subtle text-brand-ink hover:bg-brand-soft transition-colors cursor-pointer"
                       :title="isRowExpanded(payment.id) ? 'Guthaben-Einlösung ausblenden' : 'Guthaben-Einlösung anzeigen'"
                     >
                       1
@@ -203,12 +203,12 @@
                   <span class="text-sm text-ink inline-flex items-center gap-1.5">
                     <BanknoteArrowUp
                       v-if="isCreditTopup(payment)"
-                      class="w-4 h-4 text-brand flex-none"
+                      class="w-4 h-4 text-brand-ink flex-none"
                       title="Guthaben-Aufladung"
                     />
                     <BanknoteArrowDown
                       v-else-if="hasCreditRedemption(payment)"
-                      class="w-4 h-4 text-brand flex-none"
+                      class="w-4 h-4 text-brand-ink flex-none"
                       title="Guthaben-Einlösung"
                     />
                     <component
@@ -277,7 +277,7 @@
                   <!-- Credit redemption -->
                   <div v-if="getCreditRedemption(payment)">
                     <h4 class="text-sm font-semibold text-ink flex items-center mb-2">
-                      <RotateCcw class="w-4 h-4 mr-2 text-brand" />
+                      <RotateCcw class="w-4 h-4 mr-2 text-brand-ink" />
                       Guthaben-Einlösung (1)
                     </h4>
                     <div class="bg-surface rounded-lg border border-line overflow-hidden">
@@ -296,7 +296,7 @@
                           <tr class="hover:bg-surface-muted">
                             <td class="px-4 py-2 text-sm text-ink font-mono">{{ getCreditRedemption(payment).evId }}</td>
                             <td class="px-4 py-2 text-sm text-ink-secondary">{{ formatDate(payment.paid_date || payment.due_date || payment.created_at) }}</td>
-                            <td class="px-4 py-2 text-sm font-semibold text-brand">− {{ formatCentsEuro(getCreditRedemption(payment).redeemedCents) }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold text-brand-ink">− {{ formatCentsEuro(getCreditRedemption(payment).redeemedCents) }}</td>
                             <td class="px-4 py-2">
                               <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success">
                                 <span class="w-1.5 h-1.5 rounded-full bg-success-solid"></span>
