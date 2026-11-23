@@ -15,7 +15,7 @@
 
     {{-- Brand typeface, self-hosted (no third-party request). The latin subset
          covers German; latin-ext loads only when such glyphs appear. --}}
-    <link rel="preload" href="{{ Vite::asset('resources/fonts/instrument-sans-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ Vite::asset('resources/fonts/archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     @routes
     @vite(['resources/js/app.js', 'resources/css/app.css'])
