@@ -21,8 +21,24 @@ const props = defineProps({
 
 const page = usePage()
 
-onMounted(() => {
-  // Chatwoot Einstellungen
+function identifyUser() {
+  const user = page.props.auth?.user
+  if (!user || !window.$chatwoot) return
+
+  const userData = {
+    email: user.email,
+    name: `${user.first_name} ${user.last_name}`,
+  }
+
+  // Add HMAC hash for identity validation if provided
+  if (props.identityHash) {
+    userData.identifier_hash = props.identityHash
+  }
+
+  window.$chatwoot.setUser(`${user.id}`, userData)
+}
+
+function loadSdk() {
   window.chatwootSettings = {
     hideMessageBubble: false,
     position: 'right',
@@ -31,11 +47,11 @@ onMounted(() => {
     launcherTitle: 'Feedback'
   }
 
-  // SDK laden
   const script = document.createElement('script')
   script.src = `${props.baseUrl}/packs/js/sdk.js`
   script.defer = true
   script.async = true
+  script.dataset.chatwootSdk = ''
   script.onload = () => {
     window.chatwootSDK.run({
       websiteToken: props.websiteToken,
@@ -43,28 +59,31 @@ onMounted(() => {
     })
   }
   document.body.appendChild(script)
+}
 
-  // User-Daten hinzufügen falls eingeloggt
-  window.addEventListener('chatwoot:ready', function() {
-    if (page.props.auth?.user) {
-      const userData = {
-          email: page.props.auth.user.email,
-          name: `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`,
-      };
+onMounted(() => {
+  window.addEventListener('chatwoot:ready', identifyUser)
 
-      // Add HMAC hash for identity validation if provided
-      if (props.identityHash) {
-        userData.identifier_hash = props.identityHash;
-      }
-
-      window.$chatwoot.setUser(`${page.props.auth.user.id}`, userData);
-    }
-  })
+  // The shell persists across visits, but it remounts after a page without
+  // it (e.g. billing). Load the SDK only once per document and re-show the
+  // bubble that was hidden on unmount.
+  if (window.$chatwoot) {
+    window.$chatwoot.toggleBubbleVisibility('show')
+    identifyUser()
+  } else if (!document.querySelector('script[data-chatwoot-sdk]')) {
+    loadSdk()
+  }
 })
 
 onUnmounted(() => {
-  // Cleanup bei Bedarf
-  if (window.$chatwoot) {
+  window.removeEventListener('chatwoot:ready', identifyUser)
+  if (!window.$chatwoot) return
+
+  // Only end the chat session when the user is gone (logout); otherwise just
+  // hide the bubble on pages that render without the shell.
+  if (page.props.auth?.user) {
+    window.$chatwoot.toggleBubbleVisibility('hide')
+  } else {
     window.$chatwoot.reset()
   }
 })

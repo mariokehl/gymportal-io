@@ -6,15 +6,15 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-indigo-600 hover:text-indigo-800">
+      <Link :href="route('contracts.index')" class="text-brand-ink underline decoration-brand-line underline-offset-4 hover:text-brand-ink-strong hover:decoration-current">
         Verträge
       </Link>
-      <span class="text-gray-500 mx-2">/</span>
-      <Link :href="route('contracts.addons.index')" class="text-indigo-600 hover:text-indigo-800">
+      <span class="text-ink-muted mx-2">/</span>
+      <Link :href="route('contracts.addons.index')" class="text-brand-ink hover:text-brand-ink-strong">
         Add-ons
       </Link>
-      <span class="text-gray-500 mx-2">/</span>
-      <span class="text-gray-900">{{ addon.name }}</span>
+      <span class="text-ink-muted mx-2">/</span>
+      <span class="text-ink">{{ addon.name }}</span>
     </nav>
 
     <AddonForm
@@ -30,7 +30,10 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import AddonForm from './AddonForm.vue'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   addon: { type: Object, required: true },

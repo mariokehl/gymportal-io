@@ -4,9 +4,9 @@
     <!-- Loading Overlay -->
     <div
       v-if="isChanging"
-      class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-full z-20"
+      class="absolute inset-0 flex items-center justify-center bg-surface bg-opacity-75 rounded-full z-20"
     >
-      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
     </div>
 
     <!-- Editierbares Status Badge Button -->
@@ -34,20 +34,20 @@
       >
         <div
           v-if="showMenu"
-          class="fixed z-[9999] w-64 rounded-lg shadow-xl bg-white ring-1 ring-gray-300 ring-opacity-5 divide-y divide-gray-100 overflow-hidden"
+          class="fixed z-[9999] w-64 rounded-lg shadow-xl bg-surface ring-1 ring-line-strong ring-opacity-5 divide-y divide-line-subtle overflow-hidden"
           :style="menuStyle"
           @click.stop
         >
           <!-- Status Options -->
           <div class="p-2">
-            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
+            <div class="text-xs font-semibold text-ink-muted uppercase tracking-wider px-3 py-2">
               Status forcieren:
             </div>
 
             <div v-for="option in availableOptions" :key="option.value">
               <button
                 @click.stop="handleStatusChange(option.value)"
-                class="w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between group hover:bg-gray-50 cursor-pointer"
+                class="w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between group hover:bg-surface-muted cursor-pointer"
               >
                 <div class="flex items-center gap-3">
                   <span :class="['inline-block w-2.5 h-2.5 rounded-full', option.dotClass]"></span>
@@ -55,16 +55,16 @@
                     <div class="font-medium">{{ option.label }}</div>
                   </div>
                 </div>
-                <ArrowRight class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                <ArrowRight class="w-4 h-4 text-ink-muted group-hover:text-ink transition-colors" />
               </button>
             </div>
           </div>
 
           <!-- Info Footer -->
-          <div class="p-3 bg-gray-50">
+          <div class="p-3 bg-surface-muted">
             <div class="flex items-start gap-2">
-              <Info class="w-4 h-4 text-gray-400 mt-0.5" />
-              <div class="text-xs text-gray-500">
+              <Info class="w-4 h-4 text-ink-muted mt-0.5" />
+              <div class="text-xs text-ink-muted">
                 Statuswechsel ohne weitere Prüfung. Vorhandene Aktionen werden als Bestätigung angezeigt.
               </div>
             </div>
@@ -105,7 +105,7 @@ const menuStyle = ref({})
 // Computed
 const currentStatus = computed(() => allStatuses.find(s => s.value === props.membership.status))
 const currentStatusText = computed(() => currentStatus.value?.label || props.membership.status)
-const currentStatusClasses = computed(() => currentStatus.value?.badgeClass || 'bg-gray-100 text-gray-800')
+const currentStatusClasses = computed(() => currentStatus.value?.badgeClass || 'bg-fill text-ink')
 
 const availableOptions = computed(() =>
   allStatuses.filter(s => s.value !== props.membership.status)

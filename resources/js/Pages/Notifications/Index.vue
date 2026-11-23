@@ -8,8 +8,8 @@
       <!-- Header Actions -->
       <div class="flex justify-between items-center mb-6">
         <div class="flex items-center space-x-4">
-          <h2 class="text-2xl font-bold text-gray-900">Alle Benachrichtigungen</h2>
-          <span class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">
+          <h2 class="text-2xl font-bold text-ink tabular-nums">Alle Benachrichtigungen</h2>
+          <span class="bg-brand-soft text-brand-ink-strong px-3 py-1 rounded-full text-sm font-medium">
             {{ unreadCount }} ungelesen
           </span>
         </div>
@@ -17,28 +17,28 @@
         <button
           v-if="unreadCount > 0"
           @click="markAllAsRead"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+          class="bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-strong transition-colors"
         >
           Alle als gelesen markieren
         </button>
       </div>
 
       <!-- Notifications List -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div class="bg-surface rounded-lg shadow-sm border border-line">
         <div v-if="notifications.data.length === 0" class="p-8 text-center">
-          <Bell class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Keine Benachrichtigungen</h3>
-          <p class="text-gray-500">Sie haben noch keine Benachrichtigungen erhalten.</p>
+          <Bell class="w-16 h-16 text-ink-muted mx-auto mb-4" />
+          <h3 class="text-lg font-semibold text-ink mb-2">Keine Benachrichtigungen</h3>
+          <p class="text-ink-muted">Sie haben noch keine Benachrichtigungen erhalten.</p>
         </div>
 
         <div v-else>
           <div
             v-for="(notification, index) in notifications.data"
             :key="notification.id"
-            class="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
+            class="p-6 hover:bg-surface-muted cursor-pointer transition-colors"
             :class="[
-              !notification.read_at ? 'bg-indigo-50 border-l-4 border-indigo-500' : '',
-              index !== notifications.data.length - 1 ? 'border-b border-gray-200' : ''
+              !notification.read_at ? 'bg-brand-subtle border-l-4 border-brand' : '',
+              index !== notifications.data.length - 1 ? 'border-b border-line' : ''
             ]"
             @click="handleNotificationClick(notification)"
           >
@@ -47,22 +47,22 @@
               <div class="flex-shrink-0 mt-1">
                 <div
                   class="w-3 h-3 rounded-full"
-                  :class="notification.read_at ? 'bg-gray-300' : 'bg-indigo-500'"
+                  :class="notification.read_at ? 'bg-line-strong' : 'bg-brand'"
                 ></div>
               </div>
 
               <!-- Notification Content -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between">
-                  <h4 class="text-lg font-medium text-gray-900">
+                  <h4 class="text-lg font-semibold text-ink">
                     {{ notification.data.title || 'Benachrichtigung' }}
                   </h4>
-                  <span class="text-sm text-gray-500">
+                  <span class="text-sm text-ink-muted">
                     {{ formatDate(notification.created_at) }}
                   </span>
                 </div>
 
-                <p class="text-gray-600 mt-1">
+                <p class="text-ink-secondary mt-1">
                   {{ notification.data.message || '' }}
                 </p>
 
@@ -82,7 +82,7 @@
                 <button
                   v-if="!notification.read_at"
                   @click.stop="markAsRead(notification)"
-                  class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  class="text-brand-ink hover:text-brand-ink-strong text-sm font-medium"
                 >
                   Als gelesen markieren
                 </button>
@@ -112,9 +112,12 @@ import { computed } from 'vue'
 import { Bell } from '@lucide/vue'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import Pagination from '@/Components/Pagination.vue'
 import axios from 'axios'
 import { formatDateRelative as formatDate } from '@/utils/formatters'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   notifications: {
@@ -246,17 +249,17 @@ const getTypeText = (type) => {
 
 const getTypeBadgeClass = (type) => {
   const classes = {
-    'member_registered': 'bg-green-100 text-green-800',
-    'contract_expiring': 'bg-yellow-100 text-yellow-800',
+    'member_registered': 'bg-success-soft text-success-strong',
+    'contract_expiring': 'bg-warning-soft text-warning-strong',
     'contract_withdrawn': 'bg-purple-100 text-purple-800',
-    'contract_cancelled': 'bg-blue-100 text-blue-800',
+    'contract_cancelled': 'bg-info-soft text-info-strong',
     'suspicious_registration': 'bg-orange-100 text-orange-800',
-    'payment_failed': 'bg-red-100 text-red-800',
-    'announcement': 'bg-indigo-100 text-indigo-800',
+    'payment_failed': 'bg-danger-soft text-danger-strong',
+    'announcement': 'bg-brand-soft text-brand-ink-strong',
     'promotion': 'bg-purple-100 text-purple-800',
-    'system': 'bg-gray-100 text-gray-800',
+    'system': 'bg-fill text-ink',
     'reminder': 'bg-orange-100 text-orange-800'
   }
-  return classes[type] || 'bg-gray-100 text-gray-800'
+  return classes[type] || 'bg-fill text-ink'
 }
 </script>

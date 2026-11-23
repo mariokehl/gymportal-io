@@ -326,6 +326,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+        Route::put('/appearance', [ProfileController::class, 'updateAppearance'])->name('appearance.update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 });

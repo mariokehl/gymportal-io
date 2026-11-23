@@ -6,54 +6,54 @@
 
     <!-- Breadcrumb -->
     <nav class="mb-6 text-sm">
-      <Link :href="route('contracts.index')" class="text-indigo-600 hover:text-indigo-800">
+      <Link :href="route('contracts.index')" class="text-brand-ink underline decoration-brand-line underline-offset-4 hover:text-brand-ink-strong hover:decoration-current">
         Verträge
       </Link>
-      <span class="text-gray-500 mx-2">/</span>
-      <span class="text-gray-900">Neuer Vertrag</span>
+      <span class="text-ink-muted mx-2">/</span>
+      <span class="text-ink">Neuer Vertrag</span>
     </nav>
 
     <form class="flex flex-col xl:flex-row gap-6 items-start" @submit.prevent="submit">
       <!-- Contract form -->
-      <div class="w-full xl:flex-1 xl:min-w-0 max-w-3xl bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="w-full xl:flex-1 xl:min-w-0 max-w-3xl bg-surface rounded-lg shadow-sm border border-line p-6">
         <!-- Name -->
         <div class="mb-6">
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-            Name des Vertrags <span class="text-red-500">*</span>
+          <label for="name" class="block text-sm font-medium text-ink-secondary mb-2">
+            Name des Vertrags <span class="text-danger">*</span>
           </label>
           <input
             id="name"
             v-model="form.name"
             type="text"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-            :class="{ 'border-red-500': errors.name }"
+            class="field w-full px-3 py-2"
+            :class="{ 'border-danger': errors.name }"
             placeholder="z.B. Standard Mitgliedschaft"
             required
           />
-          <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+          <p v-if="errors.name" class="mt-1 text-sm text-danger">{{ errors.name }}</p>
         </div>
 
         <!-- Description -->
         <div class="mb-6">
-          <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="description" class="block text-sm font-medium text-ink-secondary mb-2">
             Beschreibung
           </label>
           <textarea
             id="description"
             v-model="form.description"
             rows="3"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-            :class="{ 'border-red-500': errors.description }"
+            class="field w-full px-3 py-2"
+            :class="{ 'border-danger': errors.description }"
             placeholder="Optionale Beschreibung des Vertrags..."
           ></textarea>
-          <p v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</p>
+          <p v-if="errors.description" class="mt-1 text-sm text-danger">{{ errors.description }}</p>
         </div>
 
         <!-- Price, Original Price (UVP), Setup Fee and Billing Cycle -->
         <div class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
-              Preis (€) <span class="text-red-500">*</span>
+            <label for="price" class="block text-sm font-medium text-ink-secondary mb-2">
+              Preis (€) <span class="text-danger">*</span>
             </label>
             <input
               id="price"
@@ -62,16 +62,16 @@
               step="0.01"
               min="0"
               max="9999.99"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-              :class="{ 'border-red-500': errors.price }"
+              class="field w-full px-3 py-2"
+              :class="{ 'border-danger': errors.price }"
               placeholder="0.00"
               required
             />
-            <p v-if="errors.price" class="mt-1 text-sm text-red-600">{{ errors.price }}</p>
+            <p v-if="errors.price" class="mt-1 text-sm text-danger">{{ errors.price }}</p>
           </div>
 
           <div>
-            <label for="original_price" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="original_price" class="block text-sm font-medium text-ink-secondary mb-2">
               UVP (€)
             </label>
             <input
@@ -81,16 +81,16 @@
               step="0.01"
               min="0"
               max="9999.99"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-              :class="{ 'border-red-500': errors.original_price }"
+              class="field w-full px-3 py-2"
+              :class="{ 'border-danger': errors.original_price }"
               placeholder="0.00"
             />
-            <p v-if="errors.original_price" class="mt-1 text-sm text-red-600">{{ errors.original_price }}</p>
-            <p class="mt-1 text-xs text-gray-500">Optionaler Originalpreis; wird im Widget durchgestrichen angezeigt</p>
+            <p v-if="errors.original_price" class="mt-1 text-sm text-danger">{{ errors.original_price }}</p>
+            <p class="mt-1 text-xs text-ink-muted">Optionaler Originalpreis; wird im Widget durchgestrichen angezeigt</p>
           </div>
 
           <div>
-            <label for="setup_fee" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="setup_fee" class="block text-sm font-medium text-ink-secondary mb-2">
               Aktivierungsgebühr (€)
             </label>
             <input
@@ -100,23 +100,23 @@
               step="0.01"
               min="0"
               max="999.99"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-              :class="{ 'border-red-500': errors.setup_fee }"
+              class="field w-full px-3 py-2"
+              :class="{ 'border-danger': errors.setup_fee }"
               placeholder="0.00"
             />
-            <p v-if="errors.setup_fee" class="mt-1 text-sm text-red-600">{{ errors.setup_fee }}</p>
-            <p class="mt-1 text-xs text-gray-500">Einmalige Gebühr bei Vertragsabschluss</p>
+            <p v-if="errors.setup_fee" class="mt-1 text-sm text-danger">{{ errors.setup_fee }}</p>
+            <p class="mt-1 text-xs text-ink-muted">Einmalige Gebühr bei Vertragsabschluss</p>
           </div>
 
           <div>
-            <label for="billing_cycle" class="block text-sm font-medium text-gray-700 mb-2">
-              Abrechnungszyklus <span class="text-red-500">*</span>
+            <label for="billing_cycle" class="block text-sm font-medium text-ink-secondary mb-2">
+              Abrechnungszyklus <span class="text-danger">*</span>
             </label>
             <select
               id="billing_cycle"
               v-model="form.billing_cycle"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-              :class="{ 'border-red-500': errors.billing_cycle }"
+              class="field w-full px-3 py-2"
+              :class="{ 'border-danger': errors.billing_cycle }"
               required
             >
               <option value="">Bitte wählen</option>
@@ -125,14 +125,14 @@
               <option value="biannual">Halbjährlich</option>
               <option value="yearly">Jährlich</option>
             </select>
-            <p v-if="errors.billing_cycle" class="mt-1 text-sm text-red-600">{{ errors.billing_cycle }}</p>
+            <p v-if="errors.billing_cycle" class="mt-1 text-sm text-danger">{{ errors.billing_cycle }}</p>
           </div>
         </div>
 
         <!-- Commitment and Cancellation -->
         <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="commitment_months" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="commitment_months" class="block text-sm font-medium text-ink-secondary mb-2">
               Mindestlaufzeit (Monate)
             </label>
             <input
@@ -141,17 +141,17 @@
               type="number"
               min="0"
               max="36"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-              :class="{ 'border-red-500': errors.commitment_months }"
+              class="field w-full px-3 py-2"
+              :class="{ 'border-danger': errors.commitment_months }"
               placeholder="0 = keine Mindestlaufzeit"
             />
-            <p v-if="errors.commitment_months" class="mt-1 text-sm text-red-600">{{ errors.commitment_months }}</p>
-            <p class="mt-1 text-xs text-gray-500">Leer lassen für keine Mindestlaufzeit</p>
+            <p v-if="errors.commitment_months" class="mt-1 text-sm text-danger">{{ errors.commitment_months }}</p>
+            <p class="mt-1 text-xs text-ink-muted">Leer lassen für keine Mindestlaufzeit</p>
           </div>
 
           <div>
-            <label for="cancellation_period" class="block text-sm font-medium text-gray-700 mb-2">
-              Kündigungsfrist <span class="text-red-500">*</span>
+            <label for="cancellation_period" class="block text-sm font-medium text-ink-secondary mb-2">
+              Kündigungsfrist <span class="text-danger">*</span>
             </label>
             <div class="flex gap-2">
               <input
@@ -160,29 +160,30 @@
                 type="number"
                 min="0"
                 :max="form.cancellation_period_unit === 'months' ? 24 : 365"
-                class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                :class="{ 'border-red-500': errors.cancellation_period }"
+                class="field flex-1 px-3 py-2"
+                :class="{ 'border-danger': errors.cancellation_period }"
                 placeholder="30"
                 required
               />
               <select
                 id="cancellation_period_unit"
+                aria-label="Einheit der Kündigungsfrist"
                 v-model="form.cancellation_period_unit"
-                class="w-28 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                :class="{ 'border-red-500': errors.cancellation_period_unit }"
+                class="field w-28 px-3 py-2"
+                :class="{ 'border-danger': errors.cancellation_period_unit }"
               >
                 <option value="days">Tage</option>
                 <option value="months">Monate</option>
               </select>
             </div>
-            <p v-if="errors.cancellation_period" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period }}</p>
-            <p v-if="errors.cancellation_period_unit" class="mt-1 text-sm text-red-600">{{ errors.cancellation_period_unit }}</p>
+            <p v-if="errors.cancellation_period" class="mt-1 text-sm text-danger">{{ errors.cancellation_period }}</p>
+            <p v-if="errors.cancellation_period_unit" class="mt-1 text-sm text-danger">{{ errors.cancellation_period_unit }}</p>
           </div>
         </div>
 
         <!-- Auto Renewal Type (nach Erstlaufzeit) -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-ink-secondary mb-2">
             Verlängerung nach Erstlaufzeit
           </label>
           <div class="space-y-2">
@@ -191,11 +192,11 @@
                 v-model="form.auto_renew_type"
                 type="radio"
                 value="indefinite"
-                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
-                <span class="text-sm font-medium text-gray-700">Unbefristet</span>
-                <p class="text-xs text-gray-500">Vertrag geht in unbefristete Mitgliedschaft über</p>
+                <span class="text-sm font-medium text-ink-secondary">Unbefristet</span>
+                <p class="text-xs text-ink-muted">Vertrag geht in unbefristete Mitgliedschaft über</p>
               </div>
             </label>
             <label class="flex items-start space-x-3 cursor-pointer">
@@ -203,11 +204,11 @@
                 v-model="form.auto_renew_type"
                 type="radio"
                 value="monthly"
-                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
-                <span class="text-sm font-medium text-gray-700">Monatlich rollierend</span>
-                <p class="text-xs text-gray-500">Vertrag verlängert sich monatlich um jeweils 1 Monat</p>
+                <span class="text-sm font-medium text-ink-secondary">Monatlich rollierend</span>
+                <p class="text-xs text-ink-muted">Vertrag verlängert sich monatlich um jeweils 1 Monat</p>
               </div>
             </label>
             <label class="flex items-start space-x-3 cursor-pointer">
@@ -215,11 +216,11 @@
                 v-model="form.auto_renew_type"
                 type="radio"
                 value="fixed"
-                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
-                <span class="text-sm font-medium text-gray-700">Feste Verlängerung (Altverträge)</span>
-                <p class="text-xs text-gray-500">Nur für Verträge mit Beginn vor dem 01.03.2022. Neuere Verträge mit diesem Tarif verlängern sich monatlich. Der Tarif kann nicht online abgeschlossen werden.</p>
+                <span class="text-sm font-medium text-ink-secondary">Feste Verlängerung (Altverträge)</span>
+                <p class="text-xs text-ink-muted">Nur für Verträge mit Beginn vor dem 01.03.2022. Neuere Verträge mit diesem Tarif verlängern sich monatlich. Der Tarif kann nicht online abgeschlossen werden.</p>
               </div>
             </label>
             <div v-if="form.auto_renew_type === 'fixed'" class="ml-7 flex items-center gap-2">
@@ -228,18 +229,18 @@
                 type="number"
                 min="2"
                 max="24"
-                class="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-                :class="{ 'border-red-500': errors.renewal_months }"
+                class="field w-24 px-3 py-2"
+                :class="{ 'border-danger': errors.renewal_months }"
               />
-              <span class="text-sm text-gray-700">Monate je Verlängerung</span>
+              <span class="text-sm text-ink-secondary">Monate je Verlängerung</span>
             </div>
-            <p v-if="errors.renewal_months" class="ml-7 text-sm text-red-600">{{ errors.renewal_months }}</p>
+            <p v-if="errors.renewal_months" class="ml-7 text-sm text-danger">{{ errors.renewal_months }}</p>
           </div>
         </div>
 
         <!-- Vertragsstart -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-ink-secondary mb-2">
             Vertragsstart
           </label>
           <div class="space-y-2">
@@ -248,11 +249,11 @@
                 v-model="form.start_date_mode"
                 type="radio"
                 value="next_possible"
-                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
-                <span class="text-sm font-medium text-gray-700">Nächstmöglich</span>
-                <p class="text-xs text-gray-500">Die Mitgliedschaft startet zum Registrierungszeitpunkt</p>
+                <span class="text-sm font-medium text-ink-secondary">Nächstmöglich</span>
+                <p class="text-xs text-ink-muted">Die Mitgliedschaft startet zum Registrierungszeitpunkt</p>
               </div>
             </label>
             <label class="flex items-start space-x-3 cursor-pointer">
@@ -260,11 +261,11 @@
                 v-model="form.start_date_mode"
                 type="radio"
                 value="fixed"
-                class="mt-1 w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                class="mt-1 w-4 h-4 text-brand-ink border-line-strong"
               />
               <div>
-                <span class="text-sm font-medium text-gray-700">Fester Starttermin</span>
-                <p class="text-xs text-gray-500">
+                <span class="text-sm font-medium text-ink-secondary">Fester Starttermin</span>
+                <p class="text-xs text-ink-muted">
                   Bis zu diesem Datum startet jede neue Mitgliedschaft am angegebenen Tag (ohne vorgeschalteten Gratis-Zeitraum).
                   Ab diesem Datum gilt wieder „Nächstmöglich“.
                 </p>
@@ -272,17 +273,17 @@
             </label>
           </div>
           <div v-if="form.start_date_mode === 'fixed'" class="mt-3">
-            <label for="fixed_start_date" class="block text-sm font-medium text-gray-700 mb-2">
-              Startdatum <span class="text-red-500">*</span>
+            <label for="fixed_start_date" class="block text-sm font-medium text-ink-secondary mb-2">
+              Startdatum <span class="text-danger">*</span>
             </label>
             <input
               id="fixed_start_date"
               v-model="form.fixed_start_date"
               type="date"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
-              :class="{ 'border-red-500': errors.fixed_start_date }"
+              class="field w-full px-3 py-2"
+              :class="{ 'border-danger': errors.fixed_start_date }"
             />
-            <p v-if="errors.fixed_start_date" class="mt-1 text-sm text-red-600">{{ errors.fixed_start_date }}</p>
+            <p v-if="errors.fixed_start_date" class="mt-1 text-sm text-danger">{{ errors.fixed_start_date }}</p>
           </div>
         </div>
 
@@ -293,13 +294,13 @@
               id="is_active"
               v-model="form.is_active"
               type="checkbox"
-              class="mt-0.5 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              class="mt-0.5 w-4 h-4 text-brand-ink border-line-strong rounded"
             />
-            <span class="text-sm font-medium text-gray-700">
+            <span class="text-sm font-medium text-ink-secondary">
               Vertrag ist aktiv und kann von Mitgliedern gewählt werden
             </span>
           </label>
-          <p class="mt-1 text-xs text-gray-500">
+          <p class="mt-1 text-xs text-ink-muted">
             Inaktive Verträge sind für neue Mitgliedschaften nicht verfügbar
           </p>
         </div>
@@ -309,7 +310,7 @@
           <button
             type="submit"
             :disabled="processing"
-            class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+            class="bg-brand hover:bg-brand-strong disabled:bg-brand text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
           >
             <Save class="w-4 h-4" />
             <span>{{ processing ? 'Speichern...' : 'Vertrag erstellen' }}</span>
@@ -317,7 +318,7 @@
 
           <Link
             :href="route('contracts.index')"
-            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+            class="bg-fill hover:bg-fill-strong text-ink-secondary px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
           >
             <X class="w-4 h-4" />
             <span>Abbrechen</span>
@@ -346,9 +347,12 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import AppShell from '@/Layouts/AppShell.vue'
 import AddonAssignmentSection from '@/Components/MembershipPlans/AddonAssignmentSection.vue'
 import DiscountPhasesSection from '@/Components/MembershipPlans/DiscountPhasesSection.vue'
 import { Save, X } from '@lucide/vue'
+
+defineOptions({ layout: AppShell })
 
 const props = defineProps({
   addons: { type: Array, default: () => [] },

@@ -5,7 +5,7 @@
 
     <form @submit.prevent="submit" class="space-y-6">
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700">
+        <label for="email" class="block text-sm font-medium text-ink-secondary">
           E-Mail-Adresse
         </label>
         <div class="mt-1">
@@ -15,17 +15,17 @@
             type="email"
             autocomplete="email"
             required
-            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            :class="{ 'border-red-300': errors.email }"
+            class="field appearance-none block w-full px-3 py-2"
+            :class="{ 'border-danger': errors.email }"
           />
-          <p v-if="errors.email" class="mt-2 text-sm text-red-600">
+          <p v-if="errors.email" class="mt-2 text-sm text-danger">
             {{ errors.email }}
           </p>
         </div>
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">
+        <label for="password" class="block text-sm font-medium text-ink-secondary">
           Passwort
         </label>
         <div class="mt-1">
@@ -35,10 +35,10 @@
             type="password"
             autocomplete="current-password"
             required
-            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            :class="{ 'border-red-300': errors.password }"
+            class="field appearance-none block w-full px-3 py-2"
+            :class="{ 'border-danger': errors.password }"
           />
-          <p v-if="errors.password" class="mt-2 text-sm text-red-600">
+          <p v-if="errors.password" class="mt-2 text-sm text-danger">
             {{ errors.password }}
           </p>
         </div>
@@ -50,15 +50,15 @@
             id="remember"
             v-model="form.remember"
             type="checkbox"
-            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            class="h-4 w-4 text-brand-ink border-line-strong rounded"
           />
-          <label for="remember" class="ml-2 block text-sm text-gray-900">
+          <label for="remember" class="ml-2 block text-sm text-ink">
             Angemeldet bleiben
           </label>
         </div>
 
         <div class="text-sm">
-          <Link href="/forgot-password" class="font-medium text-indigo-600 hover:text-indigo-500">
+          <Link href="/forgot-password" class="font-medium text-brand-ink hover:text-brand-ink-strong">
             Passwort vergessen?
           </Link>
         </div>
@@ -68,7 +68,7 @@
         <button
           type="submit"
           :disabled="processing"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand hover:bg-brand-strong disabled:opacity-50"
         >
           <span v-if="processing">Wird angemeldet...</span>
           <span v-else>Anmelden</span>
@@ -76,7 +76,7 @@
       </div>
 
       <div class="text-center">
-        <Link href="/register" class="text-sm text-indigo-600 hover:text-indigo-500">
+        <Link href="/register" class="text-sm text-brand-ink hover:text-brand-ink-strong">
           Noch kein Konto? Hier registrieren
         </Link>
       </div>

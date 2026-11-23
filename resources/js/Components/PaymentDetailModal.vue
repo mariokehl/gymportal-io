@@ -5,19 +5,19 @@
     @click="close"
   >
     <div
-      class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
+      class="relative top-20 mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-surface"
       @click.stop
     >
       <!-- Header -->
       <div class="flex items-start justify-between mb-5">
-        <h3 class="text-lg font-medium text-gray-900">
+        <h3 class="text-lg font-semibold text-ink">
           {{ payment && isCreditTopup(payment) ? 'Guthaben-Aufladung' : 'Zahlung' }} #{{ payment?.id }}
         </h3>
         <div class="flex items-center gap-2">
           <button
             v-if="payment?.status === 'pending' && showMarkAsPaid"
             @click="emit('mark-as-paid', payment)"
-            class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+            class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-success bg-success-subtle border border-success-line rounded-lg hover:bg-success-soft transition-colors"
             title="Als bezahlt markieren"
           >
             <CheckCircle class="w-4 h-4" />
@@ -26,7 +26,7 @@
           <button
             v-if="payment?.status === 'pending' && showCancelPayment"
             @click="emit('cancel-payment', payment)"
-            class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+            class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium text-danger bg-danger-subtle border border-danger-line rounded-lg hover:bg-danger-soft transition-colors"
             title="Zahlung abbrechen"
           >
             <Ban class="w-4 h-4" />
@@ -34,7 +34,7 @@
           </button>
           <button
             @click="close"
-            class="ml-1 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            class="ml-1 p-1.5 text-ink-muted hover:text-ink rounded-lg hover:bg-fill transition-colors"
           >
             <X class="w-5 h-5" />
           </button>
@@ -45,66 +45,66 @@
         <!-- Kerndaten -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-500">Betrag</label>
+            <label class="block text-sm font-medium text-ink-muted">Betrag</label>
             <div class="mt-1 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
-              <span class="text-sm text-gray-900 font-semibold">{{ formatCurrency(payment.amount) }}</span>
+              <span class="text-sm text-ink font-semibold">{{ formatCurrency(payment.amount) }}</span>
               <DiscountBadge :discount="payment.metadata?.discount" />
               <PaymentStatusBadge :status="payment.status" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-500">Zahlungsart</label>
-            <p class="mt-1 text-sm text-gray-900 inline-flex items-center gap-1.5">
+            <label class="block text-sm font-medium text-ink-muted">Zahlungsart</label>
+            <p class="mt-1 text-sm text-ink inline-flex items-center gap-1.5">
               <BanknoteArrowUp
                 v-if="isCreditTopup(payment)"
-                class="w-4 h-4 text-indigo-600 flex-none"
+                class="w-4 h-4 text-brand-ink flex-none"
                 title="Guthaben-Aufladung"
               />
               <BanknoteArrowDown
                 v-else-if="hasCreditRedemption(payment)"
-                class="w-4 h-4 text-indigo-600 flex-none"
+                class="w-4 h-4 text-brand-ink flex-none"
                 title="Guthaben-Einlösung"
               />
               {{ payment.payment_method_text }}
             </p>
           </div>
           <div v-if="payment.metadata?.discount" class="col-span-2">
-            <label class="block text-sm font-medium text-gray-500">Rabatt</label>
-            <dl class="mt-1 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-sm">
+            <label class="block text-sm font-medium text-ink-muted">Rabatt</label>
+            <dl class="mt-1 rounded-lg border border-success-line bg-success-subtle px-3 py-2.5 text-sm">
               <div class="flex justify-between">
-                <dt class="text-gray-600">Regulärer Beitrag</dt>
-                <dd class="text-gray-900 line-through">
+                <dt class="text-ink-secondary">Regulärer Beitrag</dt>
+                <dd class="text-ink line-through">
                   {{ formatCurrency(payment.metadata.discount.regular_price) }}
                 </dd>
               </div>
               <div class="mt-1 flex justify-between">
-                <dt class="text-gray-600">Aktionspreis</dt>
-                <dd class="font-semibold text-gray-900">
+                <dt class="text-ink-secondary">Aktionspreis</dt>
+                <dd class="font-semibold text-ink">
                   {{ formatCurrency(payment.metadata.discount.discounted_price) }}
                 </dd>
               </div>
               <div class="mt-1 flex justify-between">
-                <dt class="text-gray-600">Ersparnis</dt>
-                <dd class="font-semibold text-green-700">
+                <dt class="text-ink-secondary">Ersparnis</dt>
+                <dd class="font-semibold text-success">
                   {{ formatCurrency(payment.metadata.discount.savings) }}
                 </dd>
               </div>
-              <div class="mt-2 border-t border-green-200 pt-2 text-xs text-gray-600">
+              <div class="mt-2 border-t border-success-line pt-2 text-xs text-ink-secondary">
                 {{ discountPhaseLabel }} · Rabattstaffel vom Vertragsabschluss
               </div>
             </dl>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-500">Erstellt am</label>
-            <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(payment.created_at) }}</p>
+            <label class="block text-sm font-medium text-ink-muted">Erstellt am</label>
+            <p class="mt-1 text-sm text-ink">{{ formatDateTime(payment.created_at) }}</p>
           </div>
           <div v-if="payment.execution_date || canEditExecutionDate">
             <div class="flex items-center justify-between">
-              <label class="block text-sm font-medium text-gray-500">Ausführungsdatum</label>
+              <label class="block text-sm font-medium text-ink-muted">Ausführungsdatum</label>
               <button
                 v-if="canEditExecutionDate && !editingExecutionDate"
                 @click="startEditingExecutionDate"
-                class="text-gray-400 hover:text-indigo-600 transition-colors"
+                class="text-ink-muted hover:text-brand-ink-strong transition-colors"
                 title="Ausführungsdatum bearbeiten"
               >
                 <Pencil class="w-3.5 h-3.5" />
@@ -116,23 +116,23 @@
                 v-model="executionDateForm"
                 type="date"
                 :min="today"
-                class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="field w-full"
                 @keydown.enter="saveExecutionDate"
                 @keydown.escape="cancelEditingExecutionDate"
               />
-              <p v-if="executionDateError" class="mt-1 text-xs text-red-600">{{ executionDateError }}</p>
+              <p v-if="executionDateError" class="mt-1 text-xs text-danger">{{ executionDateError }}</p>
               <div class="flex items-center justify-end gap-2 mt-1.5">
                 <button
                   @click="cancelEditingExecutionDate"
                   :disabled="savingExecutionDate"
-                  class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                  class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-ink-secondary bg-surface border border-line-strong rounded-md hover:bg-surface-muted disabled:opacity-50"
                 >
                   Abbrechen
                 </button>
                 <button
                   @click="saveExecutionDate"
                   :disabled="savingExecutionDate"
-                  class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-brand border border-transparent rounded-md hover:bg-brand-strong disabled:opacity-50"
                 >
                   <Loader2 v-if="savingExecutionDate" class="w-3 h-3 animate-spin" />
                   <Check v-else class="w-3 h-3" />
@@ -140,26 +140,26 @@
                 </button>
               </div>
             </div>
-            <p v-else-if="payment.execution_date" class="mt-1 text-sm text-gray-900">{{ formatDate(payment.execution_date) }}</p>
-            <p v-else class="mt-1 text-sm text-gray-400 italic cursor-pointer hover:text-indigo-600" @click="startEditingExecutionDate">Ausführungsdatum festlegen...</p>
+            <p v-else-if="payment.execution_date" class="mt-1 text-sm text-ink">{{ formatDate(payment.execution_date) }}</p>
+            <p v-else class="mt-1 text-sm text-ink-muted italic cursor-pointer hover:text-brand-ink-strong" @click="startEditingExecutionDate">Ausführungsdatum festlegen...</p>
           </div>
           <div v-if="payment.due_date">
-            <label class="block text-sm font-medium text-gray-500">Fälligkeitsdatum</label>
-            <p class="mt-1 text-sm text-gray-900">{{ formatDate(payment.due_date) }}</p>
+            <label class="block text-sm font-medium text-ink-muted">Fälligkeitsdatum</label>
+            <p class="mt-1 text-sm text-ink">{{ formatDate(payment.due_date) }}</p>
           </div>
           <div v-if="payment.paid_date">
-            <label class="block text-sm font-medium text-gray-500">Bezahlt am</label>
-            <p class="mt-1 text-sm text-gray-900">{{ formatDate(payment.paid_date) }}</p>
+            <label class="block text-sm font-medium text-ink-muted">Bezahlt am</label>
+            <p class="mt-1 text-sm text-ink">{{ formatDate(payment.paid_date) }}</p>
           </div>
           <div v-if="payment.canceled_at">
-            <label class="block text-sm font-medium text-gray-500">Abgebrochen am</label>
-            <p class="mt-1 text-sm text-gray-900">{{ formatDateTime(payment.canceled_at) }}</p>
+            <label class="block text-sm font-medium text-ink-muted">Abgebrochen am</label>
+            <p class="mt-1 text-sm text-ink">{{ formatDateTime(payment.canceled_at) }}</p>
           </div>
         </div>
 
         <!-- Mitglied -->
         <div v-if="payment.member">
-          <label class="block text-sm font-medium text-gray-500">Mitglied</label>
+          <label class="block text-sm font-medium text-ink-muted">Mitglied</label>
           <MemberIdentity
             :member="payment.member"
             size="sm"
@@ -169,32 +169,32 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-500">Beschreibung</label>
-          <p class="mt-1 text-sm text-gray-900">{{ payment.description }}</p>
+          <label class="block text-sm font-medium text-ink-muted">Beschreibung</label>
+          <p class="mt-1 text-sm text-ink">{{ payment.description }}</p>
         </div>
 
         <div v-if="isCreditTopup(payment)">
-          <label class="block text-sm font-medium text-gray-500">Erfassung</label>
-          <p class="mt-1 text-sm text-gray-900">{{ creditTopupSource(payment) }}</p>
+          <label class="block text-sm font-medium text-ink-muted">Erfassung</label>
+          <p class="mt-1 text-sm text-ink">{{ creditTopupSource(payment) }}</p>
         </div>
 
         <div v-else-if="payment.transaction_id">
-          <label class="block text-sm font-medium text-gray-500">Transaktions-ID</label>
-          <p class="mt-1 text-sm text-gray-900 font-mono">{{ payment.transaction_id }}</p>
+          <label class="block text-sm font-medium text-ink-muted">Transaktions-ID</label>
+          <p class="mt-1 text-sm text-ink font-mono">{{ payment.transaction_id }}</p>
         </div>
 
         <div v-if="payment.mollie_payment_id">
-          <label class="block text-sm font-medium text-gray-500">Zahlungs-ID (Mollie)</label>
-          <p class="mt-1 text-sm text-gray-900 font-mono">{{ payment.mollie_payment_id }}</p>
+          <label class="block text-sm font-medium text-ink-muted">Zahlungs-ID (Mollie)</label>
+          <p class="mt-1 text-sm text-ink font-mono">{{ payment.mollie_payment_id }}</p>
         </div>
 
         <div>
           <div class="flex items-center justify-between">
-            <label class="block text-sm font-medium text-gray-500">Notizen</label>
+            <label class="block text-sm font-medium text-ink-muted">Notizen</label>
             <button
               v-if="!editingNotes"
               @click="startEditingNotes"
-              class="text-gray-400 hover:text-indigo-600 transition-colors"
+              class="text-ink-muted hover:text-brand-ink-strong transition-colors"
               title="Notizen bearbeiten"
             >
               <Pencil class="w-3.5 h-3.5" />
@@ -205,7 +205,7 @@
               ref="notesTextarea"
               v-model="notesForm"
               rows="3"
-              class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              class="field w-full"
               placeholder="Notizen hinzufügen..."
               @keydown.ctrl.enter="saveNotes"
               @keydown.meta.enter="saveNotes"
@@ -215,14 +215,14 @@
               <button
                 @click="cancelEditingNotes"
                 :disabled="savingNotes"
-                class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-ink-secondary bg-surface border border-line-strong rounded-md hover:bg-surface-muted disabled:opacity-50"
               >
                 Abbrechen
               </button>
               <button
                 @click="saveNotes"
                 :disabled="savingNotes"
-                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-brand border border-transparent rounded-md hover:bg-brand-strong disabled:opacity-50"
               >
                 <Loader2 v-if="savingNotes" class="w-3 h-3 animate-spin" />
                 <Check v-else class="w-3 h-3" />
@@ -230,24 +230,24 @@
               </button>
             </div>
           </div>
-          <p v-else-if="payment.notes" class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ payment.notes }}</p>
-          <p v-else class="mt-1 text-sm text-gray-400 italic cursor-pointer hover:text-indigo-600" @click="startEditingNotes">Notiz hinzufügen...</p>
+          <p v-else-if="payment.notes" class="mt-1 text-sm text-ink whitespace-pre-line">{{ payment.notes }}</p>
+          <p v-else class="mt-1 text-sm text-ink-muted italic cursor-pointer hover:text-brand-ink-strong" @click="startEditingNotes">Notiz hinzufügen...</p>
         </div>
 
         <!-- Mollie Zahlungslink -->
         <div
           v-if="payment.checkout_url || (payment.status === 'pending' && !payment.mollie_payment_id && page.props.mollie_configured)"
-          class="border-t border-gray-200 pt-4"
+          class="border-t border-line pt-4"
         >
-          <div v-if="payment.checkout_url" class="flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3">
+          <div v-if="payment.checkout_url" class="flex items-center justify-between gap-3 bg-brand-subtle border border-brand-line rounded-lg px-4 py-3">
             <div class="flex items-center gap-2 min-w-0">
-              <Link2 class="w-4 h-4 text-indigo-500 shrink-0" />
-              <span class="text-sm font-medium text-indigo-900 truncate">{{ payment.checkout_url }}</span>
+              <Link2 class="w-4 h-4 text-brand-ink shrink-0" />
+              <span class="text-sm font-medium text-brand-ink-strong truncate">{{ payment.checkout_url }}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button
                 @click="copyPaymentLink"
-                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-brand-ink-strong bg-surface border border-brand-line rounded-md hover:bg-brand-subtle transition-colors"
               >
                 <component :is="paymentLinkCopied ? ClipboardCheck : Clipboard" class="w-3.5 h-3.5" />
                 {{ paymentLinkCopied ? 'Kopiert!' : 'Kopieren' }}
@@ -256,7 +256,7 @@
                 :href="payment.checkout_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
+                class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-brand-ink-strong bg-surface border border-brand-line rounded-md hover:bg-brand-subtle transition-colors"
                 title="Link extern öffnen"
               >
                 <ExternalLink class="w-3.5 h-3.5" />
@@ -267,10 +267,10 @@
             v-else
             @click="createPaymentLink"
             :disabled="creatingPaymentLink"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-ink-strong bg-brand-subtle border border-brand-line rounded-lg hover:bg-brand-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <template v-if="creatingPaymentLink">
-              <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              <div class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
               Wird erstellt...
             </template>
             <template v-else>

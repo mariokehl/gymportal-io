@@ -1,20 +1,20 @@
 <template>
   <div class="md:col-span-2">
-    <label class="block text-sm/6 font-medium text-gray-700">Logo</label>
+    <label class="block text-sm/6 font-medium text-ink-secondary">Logo</label>
 
     <!-- Upload Area - nur anzeigen wenn kein Logo vorhanden -->
     <div v-if="!logoPreview" class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10"
-         :class="{ 'border-indigo-500 bg-indigo-50': isDragging }"
+         :class="{ 'border-brand bg-brand-subtle': isDragging }"
          @drop="handleDrop"
          @dragover.prevent="isDragging = true"
          @dragleave.prevent="isDragging = false"
          @dragenter.prevent>
       <div class="text-center">
-        <svg class="mx-auto size-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg class="mx-auto size-12 text-ink-disabled" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clip-rule="evenodd"></path>
         </svg>
-        <div class="mt-4 flex text-sm/6 text-gray-600">
-          <label for="logo-upload" class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:outline-hidden hover:text-indigo-500">
+        <div class="mt-4 flex text-sm/6 text-ink-secondary">
+          <label for="logo-upload" class="relative cursor-pointer rounded-md bg-surface font-semibold text-brand-ink focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:outline-hidden hover:text-brand-ink-strong">
             <span>Hochladen einer Datei</span>
             <input id="logo-upload"
                    ref="fileInput"
@@ -26,7 +26,7 @@
           </label>
           <p class="pl-1">oder per Drag & Drop</p>
         </div>
-        <p class="text-xs/5 text-gray-600">PNG, JPG, GIF bis zu 10 MB</p>
+        <p class="text-xs/5 text-ink-secondary">PNG, JPG, GIF bis zu 10 MB</p>
       </div>
     </div>
 
@@ -40,15 +40,16 @@
         <!-- Remove Button -->
         <button @click="removeLogo"
                 type="button"
-                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                aria-label="Logo entfernen"
+                class="touch-target absolute -top-2 -right-2 bg-danger-solid text-white rounded-full p-1 hover:bg-danger-solid">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
       </div>
 
       <!-- Info über die hochgeladene Datei -->
-      <div v-if="fileName" class="mt-2 text-sm text-gray-600">
+      <div v-if="fileName" class="mt-2 text-sm text-ink-secondary">
         <p><strong>Datei:</strong> {{ fileName }}</p>
         <p><strong>Größe:</strong> {{ formatFileSize(fileSize) }}</p>
       </div>
@@ -56,15 +57,15 @@
 
     <!-- Upload Progress -->
     <div v-if="isUploading" class="mt-2">
-      <div class="bg-gray-200 rounded-full h-2">
-        <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+      <div class="bg-fill-strong rounded-full h-2">
+        <div class="bg-brand h-2 rounded-full transition-all duration-300"
              :style="{ width: uploadProgress + '%' }"></div>
       </div>
-      <p class="text-sm text-gray-600 mt-1">Wird hochgeladen... {{ uploadProgress }}%</p>
+      <p class="text-sm text-ink-secondary mt-1">Wird hochgeladen... {{ uploadProgress }}%</p>
     </div>
 
     <!-- Error Messages -->
-    <div v-if="errorMessage" class="mt-2 text-sm text-red-600">
+    <div v-if="errorMessage" class="mt-2 text-sm text-danger">
       {{ errorMessage }}
     </div>
   </div>

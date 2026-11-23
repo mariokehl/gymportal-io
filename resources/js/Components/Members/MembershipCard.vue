@@ -5,18 +5,18 @@
     <!-- Body -->
     <div :class="detail ? '' : 'p-4 flex-1'">
       <div :class="detail
-        ? 'px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-gray-100'
+        ? 'px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-line-subtle'
         : 'flex items-start justify-between gap-3'"
       >
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <span v-if="membership.is_free_trial" :class="['flex', isSecondary ? 'text-gray-400' : 'text-green-700']">
+            <span v-if="membership.is_free_trial" :class="['flex', isSecondary ? 'text-ink-muted' : 'text-success']">
               <Gift class="w-[18px] h-[18px]" />
             </span>
-            <h4 :class="['text-lg font-bold leading-tight', isSecondary ? 'text-gray-600' : 'text-gray-900']">
+            <h4 :class="['text-lg font-bold leading-tight', isSecondary ? 'text-ink-secondary' : 'text-ink']">
               <span v-if="membership.is_free_trial">{{ membership.membership_plan?.name }}</span>
               <template v-else>
-                <span v-if="membership.membership_plan?.deleted_at" class="text-red-600">Gelöschter Vertrag: </span>
+                <span v-if="membership.membership_plan?.deleted_at" class="text-danger">Gelöschter Vertrag: </span>
                 {{ membership.membership_plan?.name || 'Unbekannter Vertrag' }}
               </template>
             </h4>
@@ -34,7 +34,7 @@
               @force-status="(m, s) => $emit('force-status', m, s)"
             />
           </div>
-          <p :class="['text-sm', detail ? 'mt-1.5' : 'mt-2.5', isSecondary ? 'text-gray-500' : 'text-gray-700']">
+          <p :class="['text-sm', detail ? 'mt-1.5' : 'mt-2.5', isSecondary ? 'text-ink-muted' : 'text-ink-secondary']">
             {{ membership.is_free_trial ? 'Kostenloser Testzeitraum' : (membership.membership_plan?.description || 'Keine Beschreibung verfügbar') }}
           </p>
         </div>
@@ -55,8 +55,8 @@
               :class="[
                 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 action.filled
-                  ? 'bg-green-700 text-white hover:bg-green-800'
-                  : ['border border-gray-300 bg-white hover:bg-gray-50', action.colorClass],
+                  ? 'bg-success-solid-strong text-white hover:bg-success-solid-strong'
+                  : ['border border-line-strong bg-surface hover:bg-surface-muted', action.colorClass],
               ]"
             >
               <component :is="action.icon" class="w-4 h-4" />
@@ -71,68 +71,68 @@
           <p :class="['text-xl font-bold leading-tight', priceColorClass]">
             {{ membership.is_free_trial ? 'Gratis' : formatCurrency(membership.membership_plan?.price || 0) }}
           </p>
-          <p v-if="!membership.is_free_trial" class="text-xs text-gray-500">
+          <p v-if="!membership.is_free_trial" class="text-xs text-ink-muted">
             pro {{ getBillingCycleText(membership.membership_plan?.billing_cycle || 'monthly') }}
           </p>
         </div>
       </div>
 
       <!-- Detail facts: grid (detail view) -->
-      <div v-if="detail" class="grid sm:grid-flow-col sm:auto-cols-fr py-2 sm:py-0 border-b border-gray-100">
-        <div class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-gray-100">
-          <div class="w-32 flex-none text-[13px] sm:w-auto sm:text-xs text-gray-500">Laufzeit</div>
-          <div :class="['text-[13px] sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ termText }}</div>
+      <div v-if="detail" class="grid sm:grid-flow-col sm:auto-cols-fr py-2 sm:py-0 border-b border-line-subtle">
+        <div class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-line-subtle">
+          <div class="w-32 flex-none text-compact sm:w-auto sm:text-xs text-ink-muted">Laufzeit</div>
+          <div :class="['text-compact sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-ink-secondary' : 'text-ink']">{{ termText }}</div>
         </div>
-        <div v-if="!membership.is_free_trial && membership.membership_plan?.commitment_months" class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-gray-100">
-          <div class="w-32 flex-none text-[13px] sm:w-auto sm:text-xs text-gray-500">Mindestlaufzeit</div>
-          <div :class="['text-[13px] sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.commitment_months }} Monate</div>
+        <div v-if="!membership.is_free_trial && membership.membership_plan?.commitment_months" class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-line-subtle">
+          <div class="w-32 flex-none text-compact sm:w-auto sm:text-xs text-ink-muted">Mindestlaufzeit</div>
+          <div :class="['text-compact sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-ink-secondary' : 'text-ink']">{{ membership.membership_plan.commitment_months }} Monate</div>
         </div>
-        <div v-if="!membership.is_free_trial && membership.membership_plan?.cancellation_period" class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-gray-100">
-          <div class="w-32 flex-none text-[13px] sm:w-auto sm:text-xs text-gray-500">Kündigungsfrist</div>
-          <div :class="['text-[13px] sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.formatted_cancellation_period }}</div>
+        <div v-if="!membership.is_free_trial && membership.membership_plan?.cancellation_period" class="flex gap-3 px-4 py-0.5 sm:block sm:px-6 sm:py-3.5 sm:border-r last:border-0 border-line-subtle">
+          <div class="w-32 flex-none text-compact sm:w-auto sm:text-xs text-ink-muted">Kündigungsfrist</div>
+          <div :class="['text-compact sm:text-sm font-medium sm:mt-0.5', isSecondary ? 'text-ink-secondary' : 'text-ink']">{{ membership.membership_plan.formatted_cancellation_period }}</div>
         </div>
       </div>
 
       <!-- Detail rows (card view) -->
       <div v-else class="flex flex-col gap-[5px] mt-3.5">
         <div class="flex gap-1.5 text-sm">
-          <span class="text-gray-500">Laufzeit:</span>
-          <span :class="['font-medium', isSecondary ? 'text-gray-600' : 'text-gray-900']">
+          <span class="text-ink-muted">Laufzeit:</span>
+          <span :class="['font-medium', isSecondary ? 'text-ink-secondary' : 'text-ink']">
             {{ termText }}
           </span>
         </div>
         <div v-if="!membership.is_free_trial && membership.membership_plan?.commitment_months" class="flex gap-1.5 text-sm">
-          <span class="text-gray-500">Mindestlaufzeit:</span>
-          <span :class="['font-medium', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.commitment_months }} Monate</span>
+          <span class="text-ink-muted">Mindestlaufzeit:</span>
+          <span :class="['font-medium', isSecondary ? 'text-ink-secondary' : 'text-ink']">{{ membership.membership_plan.commitment_months }} Monate</span>
         </div>
         <div v-if="!membership.is_free_trial && membership.membership_plan?.cancellation_period" class="flex gap-1.5 text-sm">
-          <span class="text-gray-500">Kündigungsfrist:</span>
-          <span :class="['font-medium', isSecondary ? 'text-gray-600' : 'text-gray-900']">{{ membership.membership_plan.formatted_cancellation_period }}</span>
+          <span class="text-ink-muted">Kündigungsfrist:</span>
+          <span :class="['font-medium', isSecondary ? 'text-ink-secondary' : 'text-ink']">{{ membership.membership_plan.formatted_cancellation_period }}</span>
         </div>
       </div>
 
       <!-- Notice banners -->
       <div :class="detail ? 'px-4 sm:px-6' : ''">
-        <div v-if="membership.membership_plan?.deleted_at" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-red-50">
-          <AlertCircle class="w-[17px] h-[17px] text-red-500 flex-none" />
-          <span class="text-[13.5px] font-medium text-red-700">Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.</span>
+        <div v-if="membership.membership_plan?.deleted_at" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-danger-subtle">
+          <AlertCircle class="w-[17px] h-[17px] text-danger flex-none" />
+          <span class="text-compact font-medium text-danger">Der Vertragsplan wurde gelöscht. Die Mitgliedschaft bleibt jedoch bestehen.</span>
         </div>
 
         <div v-if="membership.status === 'pending'" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-orange-100">
           <AlertCircle class="w-[17px] h-[17px] text-orange-500 flex-none" />
-          <span class="text-[13.5px] font-medium text-orange-700">Diese Mitgliedschaft wartet auf Aktivierung</span>
+          <span class="text-compact font-medium text-orange-700">Diese Mitgliedschaft wartet auf Aktivierung</span>
         </div>
 
-        <div v-if="membership.pause_start_date" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-yellow-100">
-          <Clock class="w-[17px] h-[17px] text-yellow-700 flex-none" />
-          <span class="text-[13.5px] font-medium text-yellow-800">
+        <div v-if="membership.pause_start_date" class="mt-3.5 flex items-center gap-2 px-3 py-2.5 rounded-md bg-warning-soft">
+          <Clock class="w-[17px] h-[17px] text-warning flex-none" />
+          <span class="text-compact font-medium text-warning-strong">
             Pausiert vom {{ formatDate(membership.pause_start_date) }} bis {{ formatDate(membership.pause_end_date) }}
           </span>
         </div>
 
-        <div v-if="membership.cancellation_date" class="mt-3.5 flex items-start gap-2 px-3 py-2.5 rounded-md bg-red-50">
-          <AlertCircle class="w-[17px] h-[17px] text-red-500 flex-none mt-px" />
-          <span class="text-[13.5px] font-medium text-red-700">
+        <div v-if="membership.cancellation_date" class="mt-3.5 flex items-start gap-2 px-3 py-2.5 rounded-md bg-danger-subtle">
+          <AlertCircle class="w-[17px] h-[17px] text-danger flex-none mt-px" />
+          <span class="text-compact font-medium text-danger">
             Kündigung wirksam zum {{ formatDate(membership.cancellation_date) }}
             <span v-if="membership.cancellation_reason" class="block mt-1 font-normal">
               Grund: {{ membership.cancellation_reason }}
@@ -145,17 +145,17 @@
     <!-- Action footer bar (card view; detail view on mobile) -->
     <div
       v-if="hasActions"
-      :class="['flex border-t border-gray-100', detail ? 'sm:hidden order-last' : '']"
+      :class="['flex border-t border-line-subtle', detail ? 'sm:hidden order-last' : '']"
     >
       <template v-for="(action, index) in actions" :key="action.key">
-        <div v-if="index > 0" class="w-px bg-gray-100 flex-none"></div>
+        <div v-if="index > 0" class="w-px bg-fill flex-none"></div>
         <button
           @click="action.handler"
           type="button"
           :disabled="action.loading"
           :title="action.title"
           :class="[
-            'flex-1 inline-flex items-center justify-center gap-1.5 p-3 text-sm font-semibold transition-colors active:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed',
+            'flex-1 inline-flex items-center justify-center gap-1.5 p-3 text-sm font-semibold transition-colors active:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed',
             action.colorClass,
           ]"
         >
@@ -243,9 +243,9 @@ const termText = computed(() => {
 
 const priceColorClass = computed(() => {
   if (props.membership.is_free_trial) {
-    return props.isSecondary ? 'text-gray-500' : 'text-indigo-600'
+    return props.isSecondary ? 'text-ink-muted' : 'text-brand-ink'
   }
-  return props.isSecondary ? 'text-gray-500' : 'text-gray-900'
+  return props.isSecondary ? 'text-ink-muted' : 'text-ink'
 })
 
 // Action bar: build the list of available actions for this membership.
@@ -261,7 +261,7 @@ const actions = computed(() => {
       loadingLabel: 'Wird aktiviert...',
       loading: props.activatingMembership === m.id,
       icon: CheckCircle,
-      colorClass: 'text-green-700',
+      colorClass: 'text-success',
       filled: true,
       handler: () => emit('activate', m),
     })
@@ -273,7 +273,7 @@ const actions = computed(() => {
       key: 'pause',
       label: 'Stilllegen',
       icon: Clock,
-      colorClass: 'text-amber-600',
+      colorClass: 'text-warning',
       handler: () => emit('pause', m),
     })
   }
@@ -286,7 +286,7 @@ const actions = computed(() => {
       loadingLabel: 'Wird aktiviert...',
       loading: props.resumingMembership === m.id,
       icon: PlayCircle,
-      colorClass: 'text-green-700',
+      colorClass: 'text-success',
       handler: () => emit('resume', m),
     })
   }
@@ -297,7 +297,7 @@ const actions = computed(() => {
       key: 'cancel',
       label: 'Kündigen',
       icon: XCircle,
-      colorClass: 'text-red-600',
+      colorClass: 'text-danger',
       handler: () => emit('cancel', m),
     })
   }
@@ -324,7 +324,7 @@ const actions = computed(() => {
       loadingLabel: 'Wird gestoppt...',
       loading: props.abortingMembership === m.id,
       icon: StopCircle,
-      colorClass: 'text-red-600',
+      colorClass: 'text-danger',
       handler: () => emit('abort', m),
     })
   }
@@ -337,7 +337,7 @@ const actions = computed(() => {
       loadingLabel: 'Wird zurückgenommen...',
       loading: props.revokingCancellation === m.id,
       icon: RotateCcw,
-      colorClass: 'text-blue-600',
+      colorClass: 'text-info',
       handler: () => emit('revoke-cancellation', m),
     })
   }

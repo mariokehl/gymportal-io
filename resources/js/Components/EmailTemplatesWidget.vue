@@ -1,14 +1,14 @@
 <template>
     <div class="space-y-6">
         <!-- Header mit Template-Auswahl -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    <h3 class="text-lg leading-6 font-semibold text-ink">
                         E-Mail-Vorlagen verwalten
                     </h3>
                     <button @click="showCreateTemplate = true"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md flex items-center">
+                        class="bg-brand hover:bg-brand-strong text-white font-medium py-2 px-4 rounded-md flex items-center">
                         <component :is="Plus" class="w-4 h-4 mr-2" />
                         Neue Vorlage
                     </button>
@@ -16,9 +16,9 @@
 
                 <!-- Template Selection -->
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Vorlage auswählen</label>
-                    <select v-model="selectedTemplateId" @change="loadSelectedTemplate"
-                        class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <label for="email-templates-widget-selected-template-id" class="block text-sm font-medium text-ink-secondary mb-2">Vorlage auswählen</label>
+                    <select id="email-templates-widget-selected-template-id" v-model="selectedTemplateId" @change="loadSelectedTemplate"
+                        class="field w-full p-2">
                         <option value="">Bitte wählen Sie eine Vorlage aus</option>
                         <option v-for="template in templates" :key="template.id" :value="template.id">
                             {{ template.name }} ({{ template.type }})
@@ -29,24 +29,24 @@
         </div>
 
         <!-- Template Editor (nur wenn Template ausgewählt) -->
-        <div v-if="currentTemplate" class="bg-white shadow-sm rounded-lg">
+        <div v-if="currentTemplate" class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h4 class="text-lg font-medium text-gray-900">{{ currentTemplate.name }} bearbeiten</h4>
+                    <h4 class="text-lg font-semibold text-ink">{{ currentTemplate.name }} bearbeiten</h4>
                     <div class="flex space-x-2">
                         <button @click="toggleEditMode"
-                            :class="editMode === 'preview' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
-                            class="hover:bg-indigo-700 hover:text-white font-medium py-2 px-4 rounded-md transition-colors">
+                            :class="editMode === 'preview' ? 'bg-brand text-white' : 'bg-fill text-ink-secondary'"
+                            class="hover:bg-brand-strong hover:text-white font-medium py-2 px-4 rounded-md transition-colors">
                             <component :is="Eye" class="w-4 h-4 mr-2 inline" />
                             {{ editMode === 'preview' ? 'Bearbeiten' : 'Vorschau' }}
                         </button>
                         <button @click="previewTemplate"
-                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md">
+                            class="bg-fill hover:bg-fill-strong text-ink-secondary font-medium py-2 px-4 rounded-md">
                             <component :is="Monitor" class="w-4 h-4 mr-2 inline" />
                             Vollbild-Vorschau
                         </button>
                         <button @click="saveTemplate" :disabled="isSaving"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50">
+                            class="bg-brand hover:bg-brand-strong text-white font-medium py-2 px-4 rounded-md disabled:opacity-50">
                             <component :is="Save" class="w-4 h-4 mr-2 inline" />
                             {{ isSaving ? 'Speichert...' : 'Speichern' }}
                         </button>
@@ -56,17 +56,17 @@
                 <form @submit.prevent="saveTemplate" class="space-y-6">
                     <!-- Template Name -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Vorlagen-Name</label>
-                        <input v-model="currentTemplate.name" type="text"
-                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                        <label for="email-templates-widget-current-template-name" class="block text-sm font-medium text-ink-secondary mb-1">Vorlagen-Name</label>
+                        <input id="email-templates-widget-current-template-name" v-model="currentTemplate.name" type="text"
+                            class="field block w-full px-3 py-1.5"
                             required />
                     </div>
 
                     <!-- Template Type -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Template-Typ</label>
-                        <select v-model="currentTemplate.type"
-                            class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <label for="email-templates-widget-current-template-type" class="block text-sm font-medium text-ink-secondary mb-1">Template-Typ</label>
+                        <select id="email-templates-widget-current-template-type" v-model="currentTemplate.type"
+                            class="field w-full p-2">
                             <option value="welcome">Willkommen</option>
                             <!-- Not wired to any mailer yet, hidden until a send flow uses these types -->
                             <!-- <option value="confirmation">Bestätigung</option> -->
@@ -82,93 +82,93 @@
 
                     <!-- Subject -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail-Betreff</label>
-                        <input v-model="currentTemplate.subject" type="text"
-                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                        <label for="email-templates-widget-current-template-subject" class="block text-sm font-medium text-ink-secondary mb-1">E-Mail-Betreff</label>
+                        <input id="email-templates-widget-current-template-subject" v-model="currentTemplate.subject" type="text"
+                            class="field block w-full px-3 py-1.5"
                             placeholder="z.B. Herzlich willkommen, [Vorname]!"
                             required />
                     </div>
 
                     <!-- Placeholder Helper -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h5 class="text-sm font-medium text-blue-800 mb-2">Verfügbare Platzhalter:</h5>
+                    <div class="bg-info-subtle border border-info-line rounded-lg p-4">
+                        <h5 class="text-sm font-medium text-info-strong mb-2">Verfügbare Platzhalter:</h5>
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                             <span v-for="placeholder in availablePlaceholders" :key="placeholder.key"
                                 @click="insertPlaceholder(placeholder.key)"
-                                class="bg-white border border-blue-300 rounded px-2 py-1 cursor-pointer hover:bg-blue-100 transition-colors">
+                                class="bg-surface border border-info rounded px-2 py-1 cursor-pointer hover:bg-info-soft transition-colors">
                                 {{ placeholder.key }} - {{ placeholder.description }}
                                 <Tooltip v-if="placeholder.hint" :text="placeholder.hint" max-width="none" class="align-middle ml-0.5">
-                                    <Info class="w-3.5 h-3.5 text-blue-600" :aria-label="placeholder.hint" />
+                                    <Info class="w-3.5 h-3.5 text-info" :aria-label="placeholder.hint" />
                                 </Tooltip>
                             </span>
                         </div>
-                        <p class="text-xs text-blue-600 mt-2">Klicken Sie auf einen Platzhalter, um ihn in den Editor einzufügen.</p>
+                        <p class="text-xs text-info mt-2">Klicken Sie auf einen Platzhalter, um ihn in den Editor einzufügen.</p>
                     </div>
 
                     <!-- Editor Section -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">E-Mail-Inhalt</label>
+                        <label class="block text-sm font-medium text-ink-secondary mb-1">E-Mail-Inhalt</label>
 
                         <!-- Edit/Preview Toggle -->
                         <div class="mb-4">
-                            <div class="flex border-b border-gray-200">
+                            <div class="flex border-b border-line">
                                 <button type="button"
                                     @click="editMode = 'edit'"
-                                    :class="editMode === 'edit' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                                    class="px-4 py-2 text-sm font-medium border-b-2 focus:outline-none">
+                                    :class="editMode === 'edit' ? 'border-brand text-brand-ink' : 'border-transparent text-ink-muted hover:text-ink'"
+                                    class="px-4 py-2 text-sm font-medium border-b-2">
                                     HTML Editor
                                 </button>
                                 <button type="button"
                                     @click="editMode = 'preview'"
-                                    :class="editMode === 'preview' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                                    class="px-4 py-2 text-sm font-medium border-b-2 focus:outline-none">
+                                    :class="editMode === 'preview' ? 'border-brand text-brand-ink' : 'border-transparent text-ink-muted hover:text-ink'"
+                                    class="px-4 py-2 text-sm font-medium border-b-2">
                                     Live-Vorschau
                                 </button>
                             </div>
                         </div>
 
                         <!-- Editor Content -->
-                        <div class="border border-gray-300 rounded-lg overflow-hidden">
+                        <div class="border border-line-strong rounded-lg overflow-hidden">
                             <!-- Formatting Toolbar (nur im Edit-Modus) -->
-                            <div v-if="editMode === 'edit'" class="bg-gray-50 border-b border-gray-300 p-2 flex flex-wrap gap-1">
+                            <div v-if="editMode === 'edit'" class="bg-surface-muted border-b border-line-strong p-2 flex flex-wrap gap-1">
                                 <button type="button" @click="insertHtmlTag('strong')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm font-bold">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm font-bold">
                                     B
                                 </button>
                                 <button type="button" @click="insertHtmlTag('em')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm italic">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm italic">
                                     I
                                 </button>
                                 <button type="button" @click="insertHtmlTag('u')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm underline">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm underline">
                                     U
                                 </button>
-                                <div class="w-px bg-gray-300 mx-1"></div>
+                                <div class="w-px bg-line-strong mx-1"></div>
                                 <button type="button" @click="insertHtmlTag('h2')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm font-bold">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm font-bold">
                                     H2
                                 </button>
                                 <button type="button" @click="insertHtmlTag('h3')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm font-bold">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm font-bold">
                                     H3
                                 </button>
-                                <div class="w-px bg-gray-300 mx-1"></div>
+                                <div class="w-px bg-line-strong mx-1"></div>
                                 <button type="button" @click="insertList('ul')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm">
                                     <component :is="List" class="w-4 h-4" />
                                 </button>
                                 <button type="button" @click="insertList('ol')"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm">
                                     <component :is="ListOrdered" class="w-4 h-4" />
                                 </button>
-                                <div class="w-px bg-gray-300 mx-1"></div>
+                                <div class="w-px bg-line-strong mx-1"></div>
                                 <button type="button" @click="insertLink"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-sm">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-sm">
                                     <component :is="Link" class="w-4 h-4" />
                                 </button>
-                                <div class="w-px bg-gray-300 mx-1"></div>
+                                <div class="w-px bg-line-strong mx-1"></div>
                                 <button type="button" @click="insertParagraph"
-                                    class="p-2 hover:bg-gray-200 rounded border border-gray-300 bg-white text-xs">
+                                    class="p-2 hover:bg-fill-strong rounded border border-line-strong bg-surface text-xs">
                                     <p>¶</p>
                                 </button>
                             </div>
@@ -180,27 +180,27 @@
                                     v-model="currentTemplate.body"
                                     @keydown="handleKeyDown"
                                     @input="updateContent"
-                                    class="w-full h-96 p-4 font-mono text-sm border-none resize-none focus:outline-none focus:ring-0"
+                                    class="w-full h-96 p-4 font-mono text-sm border-none resize-none"
                                     placeholder="<p>Beginnen Sie hier mit dem Schreiben...</p>"
                                     spellcheck="false">
                                 </textarea>
-                                <div class="absolute bottom-2 right-2 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow">
+                                <div class="absolute bottom-2 right-2 text-xs text-ink-muted bg-surface px-2 py-1 rounded shadow">
                                     HTML-Modus
                                 </div>
                             </div>
 
                             <!-- Live Preview -->
-                            <div v-else-if="editMode === 'preview'" class="min-h-96 p-4 bg-white">
+                            <div v-else-if="editMode === 'preview'" class="min-h-96 p-4 bg-surface">
                                 <div class="prose max-w-none"
                                      v-html="replacePlaceholders(currentTemplate.body)">
                                 </div>
-                                <div class="mt-4 text-xs text-gray-500 border-t pt-2">
+                                <div class="mt-4 text-xs text-ink-muted border-t pt-2">
                                     Vorschau-Modus - Platzhalter werden durch Beispieldaten ersetzt
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mt-2 text-xs text-gray-500 space-y-1">
+                        <div class="mt-2 text-xs text-ink-muted space-y-1">
                             <p><strong>Tipp:</strong> Verwenden Sie HTML-Tags für Formatierung (z.B. &lt;strong&gt;fett&lt;/strong&gt;, &lt;em&gt;kursiv&lt;/em&gt;)</p>
                             <p><strong>Tastenkürzel:</strong> Ctrl+B = Fett, Ctrl+I = Kursiv, Ctrl+Enter = Neuer Absatz</p>
                         </div>
@@ -211,22 +211,22 @@
                         <div>
                             <label class="flex items-center">
                                 <input type="checkbox" v-model="currentTemplate.is_active"
-                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                <span class="ml-2 text-sm text-gray-700">Template aktiv</span>
+                                    class="rounded border-line-strong text-brand-ink" />
+                                <span class="ml-2 text-sm text-ink-secondary">Template aktiv</span>
                             </label>
                         </div>
                         <div>
                             <label class="flex items-center">
                                 <input type="checkbox" v-model="currentTemplate.is_default"
-                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                <span class="ml-2 text-sm text-gray-700">Als Standard verwenden</span>
+                                    class="rounded border-line-strong text-brand-ink" />
+                                <span class="ml-2 text-sm text-ink-secondary">Als Standard verwenden</span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Anhänge -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h5 class="text-sm font-medium text-gray-900 mb-3">Anhänge (z.B. AGB, Widerrufsbelehrung)</h5>
+                    <div class="mt-6 pt-6 border-t border-line">
+                        <h5 class="text-sm font-medium text-ink mb-3">Anhänge (z.B. AGB, Widerrufsbelehrung)</h5>
                         <EmailAttachmentsDropzone
                             :template-id="currentTemplate.id"
                             :attachments="currentTemplate.file_attachments || []"
@@ -238,36 +238,36 @@
         </div>
 
         <!-- Template List -->
-        <div class="bg-white shadow-sm rounded-lg">
+        <div class="bg-surface shadow-sm rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Alle Vorlagen</h4>
+                <h4 class="text-lg font-semibold text-ink mb-4">Alle Vorlagen</h4>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-line">
+                        <thead class="bg-surface-muted">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Name
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Typ
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Erstellt am
                                 </th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
                                     Aktionen
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-surface divide-y divide-line">
                             <tr v-for="template in templates" :key="template.id">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ template.name }}</div>
-                                    <div class="text-sm text-gray-500 truncate max-w-xs">{{ template.subject }}</div>
+                                    <div class="text-sm font-medium text-ink">{{ template.name }}</div>
+                                    <div class="text-sm text-ink-muted truncate max-w-xs">{{ template.subject }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
@@ -277,32 +277,32 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <span :class="template.is_active ? 'text-green-600' : 'text-gray-400'"
+                                        <span :class="template.is_active ? 'text-success' : 'text-ink-muted'"
                                             class="text-xs font-medium">
                                             {{ template.is_active ? 'Aktiv' : 'Inaktiv' }}
                                         </span>
                                         <div class="ml-2 w-2 h-2 rounded-full"
-                                            :class="template.is_active ? 'bg-green-400' : 'bg-gray-300'"></div>
+                                            :class="template.is_active ? 'bg-success-solid' : 'bg-line-strong'"></div>
                                         <span v-if="template.is_default"
-                                            class="ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            class="ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-info-soft text-info-strong">
                                             Standard
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
                                     {{ formatDate(template.created_at) }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                     <button @click="editTemplate(template)"
-                                        class="text-indigo-600 hover:text-indigo-900">
+                                        class="text-brand-ink hover:text-brand-ink-strong">
                                         <component :is="Edit" class="w-4 h-4" />
                                     </button>
                                     <button @click="duplicateTemplate(template)"
-                                        class="text-gray-600 hover:text-gray-900">
+                                        class="text-ink-secondary hover:text-ink">
                                         <component :is="Copy" class="w-4 h-4" />
                                     </button>
                                     <button @click="deleteTemplate(template)"
-                                        class="text-red-600 hover:text-red-900">
+                                        class="text-danger hover:text-danger-strong">
                                         <component :is="Trash2" class="w-4 h-4" />
                                     </button>
                                 </td>
@@ -315,27 +315,27 @@
 
         <!-- Preview Modal -->
         <div v-if="showPreview" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
+            <div class="relative top-20 mx-auto p-5 border border-line-subtle w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-surface">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">E-Mail-Vollbild-Vorschau</h3>
-                    <button @click="showPreview = false" class="text-gray-400 hover:text-gray-600">
+                    <h3 class="text-lg font-semibold text-ink">E-Mail-Vollbild-Vorschau</h3>
+                    <button @click="showPreview = false" class="text-ink-muted hover:text-ink">
                         <component :is="X" class="w-5 h-5" />
                     </button>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                        <div class="text-sm text-gray-600">
+                <div class="border border-line rounded-lg overflow-hidden">
+                    <div class="bg-surface-muted px-4 py-2 border-b border-line">
+                        <div class="text-sm text-ink-secondary">
                             <strong>Betreff:</strong> {{ replacePlaceholders(currentTemplate.subject) }}
                         </div>
                     </div>
-                    <div class="p-4 bg-white prose max-w-none" v-html="replacePlaceholders(currentTemplate.body)">
+                    <div class="p-4 bg-surface prose max-w-none" v-html="replacePlaceholders(currentTemplate.body)">
                     </div>
                 </div>
 
                 <div class="flex justify-end mt-4">
                     <button @click="showPreview = false"
-                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md">
+                        class="bg-fill-strong hover:bg-line-strong text-ink-secondary font-medium py-2 px-4 rounded-md">
                         Schließen
                     </button>
                 </div>
@@ -344,26 +344,26 @@
 
         <!-- Create Template Modal -->
         <div v-if="showCreateTemplate" class="fixed inset-0 bg-gray-500/75 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border border-gray-50 w-96 shadow-lg rounded-md bg-white">
+            <div class="relative top-20 mx-auto p-5 border border-line-subtle w-96 shadow-lg rounded-md bg-surface">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Neue E-Mail-Vorlage</h3>
-                    <button @click="showCreateTemplate = false" class="text-gray-400 hover:text-gray-600">
+                    <h3 class="text-lg font-semibold text-ink">Neue E-Mail-Vorlage</h3>
+                    <button @click="showCreateTemplate = false" class="text-ink-muted hover:text-ink">
                         <component :is="X" class="w-5 h-5" />
                     </button>
                 </div>
 
                 <form @submit.prevent="createTemplate" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Vorlagen-Name</label>
-                        <input v-model="newTemplate.name" type="text"
-                            class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-700 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                        <label for="email-templates-widget-new-template-name" class="block text-sm font-medium text-ink-secondary mb-1">Vorlagen-Name</label>
+                        <input id="email-templates-widget-new-template-name" v-model="newTemplate.name" type="text"
+                            class="field block w-full px-3 py-1.5"
                             required />
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Template-Typ</label>
-                        <select v-model="newTemplate.type"
-                            class="w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <label for="email-templates-widget-new-template-type" class="block text-sm font-medium text-ink-secondary mb-1">Template-Typ</label>
+                        <select id="email-templates-widget-new-template-type" v-model="newTemplate.type"
+                            class="field w-full p-2">
                             <option value="welcome">Willkommen</option>
                             <!-- Not wired to any mailer yet, hidden until a send flow uses these types -->
                             <!-- <option value="confirmation">Bestätigung</option> -->
@@ -379,11 +379,11 @@
 
                     <div class="flex justify-end space-x-3 pt-4">
                         <button type="button" @click="showCreateTemplate = false"
-                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md hover:bg-gray-300">
+                            class="px-4 py-2 text-sm font-medium text-ink-secondary bg-fill-strong border border-line-strong rounded-md hover:bg-line-strong">
                             Abbrechen
                         </button>
                         <button type="submit" :disabled="isCreating"
-                            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                            class="px-4 py-2 text-sm font-medium text-white bg-brand border border-transparent rounded-md hover:bg-brand-strong disabled:opacity-50">
                             {{ isCreating ? 'Erstellt...' : 'Erstellen' }}
                         </button>
                     </div>
@@ -835,17 +835,17 @@ const getTypeLabel = (type) => {
 
 const getTypeColor = (type) => {
     const colors = {
-        welcome: 'bg-green-100 text-green-800',
-        confirmation: 'bg-blue-100 text-blue-800',
-        reminder: 'bg-yellow-100 text-yellow-800',
-        cancellation: 'bg-red-100 text-red-800',
+        welcome: 'bg-success-soft text-success-strong',
+        confirmation: 'bg-info-soft text-info-strong',
+        reminder: 'bg-warning-soft text-warning-strong',
+        cancellation: 'bg-danger-soft text-danger-strong',
         invoice: 'bg-purple-100 text-purple-800',
-        payment_failed: 'bg-red-100 text-red-800',
+        payment_failed: 'bg-danger-soft text-danger-strong',
         login_code: 'bg-cyan-100 text-cyan-800',
-        member_app_access: 'bg-indigo-100 text-indigo-800',
-        general: 'bg-gray-100 text-gray-800'
+        member_app_access: 'bg-brand-soft text-brand-ink-strong',
+        general: 'bg-fill text-ink'
     }
-    return colors[type] || 'bg-gray-100 text-gray-800'
+    return colors[type] || 'bg-fill text-ink'
 }
 
 // Lifecycle
@@ -893,7 +893,7 @@ onMounted(async () => {
 }
 
 .prose :deep(a) {
-    color: #2563eb;
+    color: var(--brand-ink);
     text-decoration: underline;
 }
 

@@ -1,16 +1,16 @@
 <template>
   <div class="flex flex-col gap-3">
-    <h3 class="text-lg font-bold text-gray-900">Firmenfitness / Aggregator</h3>
+    <h3 class="text-lg font-semibold text-ink">Firmenfitness / Aggregator</h3>
 
-    <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-4 flex flex-col gap-4">
-      <p class="text-sm text-gray-500">
+    <div class="rounded-lg border border-line bg-surface shadow-sm p-4 flex flex-col gap-4">
+      <p class="text-sm text-ink-muted">
         Tragen Sie die Account-ID des Anbieters ein. Das Mitglied wird beim nächsten Check-in automatisch verknüpft.
       </p>
 
       <!-- Stored account -->
       <div
         v-if="provider && !editing"
-        class="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-gray-200 px-4 py-3.5"
+        class="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-line px-4 py-3.5"
       >
         <span
           class="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold flex-none"
@@ -19,14 +19,14 @@
           {{ provider.short }}
         </span>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-gray-900">{{ provider.name }}</p>
-          <p class="text-sm text-gray-500 truncate">
-            Account-ID <span class="font-mono text-gray-700">{{ config.aggregator_account_id }}</span>
+          <p class="text-sm font-semibold text-ink">{{ provider.name }}</p>
+          <p class="text-sm text-ink-muted truncate">
+            Account-ID <span class="font-mono text-ink-secondary">{{ config.aggregator_account_id }}</span>
           </p>
         </div>
         <span
           class="px-2.5 py-0.5 rounded-full text-xs font-medium"
-          :class="isLinked ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+          :class="isLinked ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'"
         >
           {{ aggregatorStatusLabel(config.aggregator_status) }}
         </span>
@@ -35,7 +35,7 @@
             type="button"
             title="Bearbeiten"
             aria-label="Aggregator bearbeiten"
-            class="p-1.5 rounded-md text-indigo-600 hover:bg-indigo-50"
+            class="p-1.5 rounded-md text-brand-ink hover:bg-brand-subtle"
             @click="startEdit"
           >
             <Pencil class="w-4 h-4" />
@@ -44,7 +44,7 @@
             type="button"
             title="Entfernen"
             aria-label="Aggregator entfernen"
-            class="p-1.5 rounded-md text-red-600 hover:bg-red-50"
+            class="p-1.5 rounded-md text-danger hover:bg-danger-subtle"
             @click="confirmingRemoval = true"
           >
             <Trash2 class="w-4 h-4" />
@@ -55,18 +55,18 @@
       <!-- Form (no account yet, or editing) -->
       <form v-else class="flex flex-col gap-2" @submit.prevent="save">
         <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr_auto] gap-3 sm:items-end">
-          <label class="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+          <label class="flex flex-col gap-1.5 text-sm font-medium text-ink-secondary">
             Anbieter
             <select
               v-model="form.aggregator"
-              class="p-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="field p-2"
             >
               <option v-for="option in aggregators" :key="option.key" :value="option.key">
                 {{ option.name }}
               </option>
             </select>
           </label>
-          <label class="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+          <label class="flex flex-col gap-1.5 text-sm font-medium text-ink-secondary">
             Account-ID
             <input
               v-model="form.aggregator_account_id"
@@ -74,14 +74,14 @@
               maxlength="100"
               autocomplete="off"
               placeholder="Account-ID des Anbieters"
-              class="p-2 border border-gray-300 rounded-md font-mono text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="field p-2 font-mono"
             >
           </label>
           <div class="flex gap-2">
             <button
               v-if="editing"
               type="button"
-              class="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
+              class="px-4 py-2 rounded-md border border-line-strong text-ink-secondary text-sm hover:bg-surface-muted"
               @click="cancelEdit"
             >
               Abbrechen
@@ -89,14 +89,14 @@
             <button
               type="submit"
               :disabled="!canSave"
-              class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <Loader2 v-if="form.processing" class="w-4 h-4 animate-spin" />
               Speichern
             </button>
           </div>
         </div>
-        <p v-if="form.errors.aggregator || form.errors.aggregator_account_id" class="text-sm text-red-600">
+        <p v-if="form.errors.aggregator || form.errors.aggregator_account_id" class="text-sm text-danger">
           {{ form.errors.aggregator || form.errors.aggregator_account_id }}
         </p>
       </form>
@@ -108,14 +108,14 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-gray-500/75 p-4"
       @click.self="confirmingRemoval = false"
     >
-      <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg flex flex-col gap-4" role="dialog" aria-modal="true">
+      <div class="w-full max-w-md rounded-lg bg-surface p-6 shadow-lg flex flex-col gap-4" role="dialog" aria-modal="true">
         <div class="flex gap-3.5">
-          <span class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center flex-none">
+          <span class="w-10 h-10 rounded-full bg-danger-soft text-danger flex items-center justify-center flex-none">
             <AlertTriangle class="w-5 h-5" />
           </span>
           <div class="flex flex-col gap-1.5">
-            <h4 class="text-lg font-semibold text-gray-900">Verknüpfung entfernen?</h4>
-            <p class="text-sm text-gray-600 leading-relaxed">
+            <h4 class="text-lg font-semibold text-ink">Verknüpfung entfernen?</h4>
+            <p class="text-sm text-ink-secondary leading-relaxed">
               Die Account-ID <b class="font-mono">{{ config.aggregator_account_id }}</b> ({{ provider?.name }})
               wird von {{ memberName }} entfernt. Check-ins über {{ provider?.name }} werden diesem Mitglied
               danach nicht mehr zugeordnet.
@@ -125,7 +125,7 @@
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
+            class="px-4 py-2 rounded-md border border-line-strong text-ink-secondary text-sm hover:bg-surface-muted"
             @click="confirmingRemoval = false"
           >
             Abbrechen
@@ -133,7 +133,7 @@
           <button
             type="button"
             :disabled="removing"
-            class="px-4 py-2 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 flex items-center gap-1.5"
+            class="px-4 py-2 rounded-md bg-danger-solid text-white text-sm font-medium hover:bg-danger-solid-strong disabled:opacity-50 flex items-center gap-1.5"
             @click="remove"
           >
             <Loader2 v-if="removing" class="w-4 h-4 animate-spin" />

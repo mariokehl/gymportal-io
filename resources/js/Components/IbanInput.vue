@@ -9,6 +9,7 @@
       :disabled="disabled"
       :maxlength="maxDisplayLength"
       :class="inputClasses"
+      :aria-invalid="validation.errors.length > 0 ? 'true' : undefined"
       type="text"
       autocomplete="off"
       spellcheck="false"
@@ -19,7 +20,7 @@
       <div
         v-for="error in validation.errors"
         :key="error"
-        class="text-red-600 text-sm flex items-center gap-1"
+        class="text-danger text-sm flex items-center gap-1"
       >
         <XCircle class="w-3 h-3 flex-shrink-0" />
         {{ error }}
@@ -28,14 +29,14 @@
 
     <!-- Success Message -->
     <div v-else-if="validation.isValid && modelValue" class="mt-1">
-      <div class="text-green-600 text-sm flex items-center gap-1">
+      <div class="text-success text-sm flex items-center gap-1">
         <CheckCircle class="w-3 h-3 flex-shrink-0" />
         Gültige IBAN für {{ validation.countryName }}
       </div>
     </div>
 
     <!-- Format Hint -->
-    <div v-if="showHint && !modelValue" class="mt-1 text-xs text-gray-500">
+    <div v-if="showHint && !modelValue" class="mt-1 text-xs text-ink-muted">
       {{ formatHint }}
     </div>
   </div>
@@ -85,19 +86,11 @@ const inputRef = ref(null)
 const maxDisplayLength = MAX_FORMATTED_IBAN_LENGTH
 
 // Computed
-const inputClasses = computed(() => {
-  const baseClasses = 'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors'
-
-  if (validation.value.errors.length > 0) {
-    return `${baseClasses} border-red-300 focus:ring-red-500 focus:border-red-500`
-  }
-
-  if (validation.value.isValid) {
-    return `${baseClasses} border-green-300 focus:ring-green-500 focus:border-green-500`
-  }
-
-  return `${baseClasses} border-gray-300 focus:ring-indigo-500 focus:border-indigo-500`
-})
+// Border, focus and the error state (aria-invalid) come from `.field`.
+const inputClasses = computed(() => [
+  'field w-full px-3 py-2',
+  { 'border-success': validation.value.isValid && validation.value.errors.length === 0 },
+])
 
 // Reactive validation state
 const validation = ref({

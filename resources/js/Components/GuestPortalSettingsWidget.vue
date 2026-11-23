@@ -1,14 +1,14 @@
 <template>
     <div class="space-y-6">
         <!-- Activation -->
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-surface rounded-lg shadow p-6">
             <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
-                    <h3 class="text-xl font-semibold text-gray-900 flex items-center">
-                        <Ticket class="w-6 h-6 text-indigo-600 mr-3 flex-none" />
+                    <h3 class="text-xl font-semibold text-ink flex items-center">
+                        <Ticket class="w-6 h-6 text-brand-ink mr-3 flex-none" />
                         Gästeportal
                     </h3>
-                    <p class="mt-1 text-sm text-gray-500">
+                    <p class="mt-1 text-sm text-ink-muted">
                         Laufkunden können sich im Gästeportal registrieren, Tageskarten, Mehrfachkarten und Solarium-Minuten kaufen und mit ihrem QR-Code einlösen.
                         Aufgeladenes Guthaben wird beim Kauf zuerst verrechnet.
                     </p>
@@ -17,35 +17,37 @@
                     <input
                         v-model="guestEnabled"
                         type="checkbox"
+                        role="switch"
+                        aria-label="Gästeportal aktivieren"
                         class="sr-only peer"
                         :disabled="loading || savingPortal"
                         @change="savePortal"
                     >
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div class="w-11 h-6 bg-fill-strong peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-line rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-line-strong after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
                 </label>
             </div>
 
             <div v-if="guestEnabled && portalUrl" class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-                <span class="text-gray-500">Ihr Gästeportal:</span>
-                <a :href="portalUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 break-all">
+                <span class="text-ink-muted">Ihr Gästeportal:</span>
+                <a :href="portalUrl" target="_blank" rel="noopener noreferrer" class="text-brand-ink hover:text-brand-ink-strong break-all">
                     {{ portalUrl }}
                 </a>
             </div>
 
-            <div v-if="!mollieConfigured" class="mt-4 flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+            <div v-if="!mollieConfigured" class="mt-4 flex items-start gap-2 rounded-md bg-warning-subtle border border-warning-line px-3 py-2 text-sm text-warning-strong">
                 <AlertTriangle class="w-4 h-4 mt-0.5 flex-none" />
                 <span>Mollie ist nicht eingerichtet. Gäste können dann nur mit aufgeladenem Guthaben bezahlen.</span>
             </div>
         </div>
 
         <!-- Products -->
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-surface rounded-lg shadow p-6">
             <div class="flex items-center justify-between gap-4 mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Produkte</h3>
+                <h3 class="text-lg font-semibold text-ink">Produkte</h3>
                 <button
                     v-if="!form"
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-strong"
                     @click="startCreate"
                 >
                     <Plus class="w-4 h-4" />
@@ -54,73 +56,73 @@
             </div>
 
             <!-- Form -->
-            <form v-if="form" class="mb-6 rounded-lg border border-gray-200 p-4 space-y-4" @submit.prevent="saveProduct">
+            <form v-if="form" class="mb-6 rounded-lg border border-line p-4 space-y-4" @submit.prevent="saveProduct">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Art</label>
-                        <select
+                        <label for="guest-portal-settings-widget-form-type" class="block text-sm font-medium text-ink-secondary mb-1">Art</label>
+                        <select id="guest-portal-settings-widget-form-type"
                             v-model="form.type"
                             :disabled="!!form.id"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-50"
+                            class="field w-full px-3 py-2 disabled:bg-surface-muted"
                         >
                             <option v-for="type in productTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                        <input v-model="form.name" type="text" maxlength="255" required class="w-full px-3 py-2 border border-gray-300 rounded-md" :placeholder="namePlaceholder">
+                        <label for="guest-portal-settings-widget-form-name" class="block text-sm font-medium text-ink-secondary mb-1">Name</label>
+                        <input id="guest-portal-settings-widget-form-name" v-model="form.name" type="text" maxlength="255" required class="field w-full px-3 py-2" :placeholder="namePlaceholder">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Preis (€)</label>
-                        <input v-model="form.price" type="number" min="0.5" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <label for="guest-portal-settings-widget-form-price" class="block text-sm font-medium text-ink-secondary mb-1">Preis (€)</label>
+                        <input id="guest-portal-settings-widget-form-price" v-model="form.price" type="number" min="0.5" step="0.01" required class="field w-full px-3 py-2">
                     </div>
                     <div v-if="form.type !== 'day_pass'">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.type === 'solarium_minutes' ? 'Minuten' : 'Eintritte' }}</label>
-                        <input v-model="form.quantity" type="number" min="1" max="1000" step="1" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <label class="block text-sm font-medium text-ink-secondary mb-1">{{ form.type === 'solarium_minutes' ? 'Minuten' : 'Eintritte' }}</label>
+                        <input v-model="form.quantity" type="number" min="1" max="1000" step="1" required class="field w-full px-3 py-2">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Beschreibung (optional)</label>
-                        <textarea v-model="form.description" rows="2" maxlength="1000" class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                        <label for="guest-portal-settings-widget-form-description" class="block text-sm font-medium text-ink-secondary mb-1">Beschreibung (optional)</label>
+                        <textarea id="guest-portal-settings-widget-form-description" v-model="form.description" rows="2" maxlength="1000" class="field w-full px-3 py-2"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Reihenfolge</label>
-                        <input v-model="form.sort_order" type="number" min="0" max="999" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <label for="guest-portal-settings-widget-form-sort-order" class="block text-sm font-medium text-ink-secondary mb-1">Reihenfolge</label>
+                        <input id="guest-portal-settings-widget-form-sort-order" v-model="form.sort_order" type="number" min="0" max="999" class="field w-full px-3 py-2">
                     </div>
-                    <label class="flex items-center gap-2 self-end pb-2 text-sm text-gray-700">
-                        <input v-model="form.active" type="checkbox" class="rounded border-gray-300 text-indigo-600">
+                    <label class="flex items-center gap-2 self-end pb-2 text-sm text-ink-secondary">
+                        <input v-model="form.active" type="checkbox" class="rounded border-line-strong text-brand-ink">
                         Im Gästeportal anbieten
                     </label>
                 </div>
 
-                <p v-if="formError" class="text-sm text-red-600">{{ formError }}</p>
+                <p v-if="formError" class="text-sm text-danger">{{ formError }}</p>
 
                 <div class="flex justify-end gap-2">
-                    <button type="button" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" @click="form = null">
+                    <button type="button" class="px-3 py-2 text-sm font-medium text-ink-secondary bg-surface border border-line-strong rounded-md hover:bg-surface-muted" @click="form = null">
                         Abbrechen
                     </button>
-                    <button type="submit" :disabled="savingProduct" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                    <button type="submit" :disabled="savingProduct" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-brand rounded-md hover:bg-brand-strong disabled:opacity-50">
                         <Loader2 v-if="savingProduct" class="w-4 h-4 animate-spin" />
                         Speichern
                     </button>
                 </div>
             </form>
 
-            <div v-if="loading" class="py-6 text-center text-sm text-gray-500">Wird geladen …</div>
+            <div v-if="loading" class="py-6 text-center text-sm text-ink-muted">Wird geladen …</div>
 
-            <p v-else-if="products.length === 0" class="py-6 text-center text-sm text-gray-500">
+            <p v-else-if="products.length === 0" class="py-6 text-center text-sm text-ink-muted">
                 Sie haben noch keine Produkte angelegt.
             </p>
 
-            <ul v-else class="divide-y divide-gray-100">
+            <ul v-else class="divide-y divide-line-subtle">
                 <li v-for="product in products" :key="product.id" class="flex items-center justify-between gap-4 py-3">
                     <div class="min-w-0">
-                        <p class="font-medium text-gray-900 truncate">
+                        <p class="font-medium text-ink truncate">
                             {{ product.name }}
-                            <span v-if="!product.active" class="ml-2 inline-flex px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">inaktiv</span>
+                            <span v-if="!product.active" class="ml-2 inline-flex px-2 py-0.5 text-xs rounded-full bg-fill text-ink-secondary">inaktiv</span>
                         </p>
-                        <p class="text-sm text-gray-500">{{ product.type_label }} · {{ product.quantity_label }} · {{ formatCurrency(product.price) }}</p>
+                        <p class="text-sm text-ink-muted">{{ product.type_label }} · {{ product.quantity_label }} · {{ formatCurrency(product.price) }}</p>
                     </div>
-                    <button type="button" class="p-2 text-gray-400 hover:text-indigo-600" title="Bearbeiten" @click="startEdit(product)">
+                    <button type="button" class="p-2 text-ink-muted hover:text-brand-ink-strong" title="Bearbeiten" @click="startEdit(product)">
                         <Pencil class="w-4 h-4" />
                     </button>
                 </li>
