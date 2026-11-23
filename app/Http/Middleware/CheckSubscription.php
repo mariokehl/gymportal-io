@@ -2,10 +2,12 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use App\Models\Gym;
 use App\Models\User;
+use Closure;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class CheckSubscription
@@ -13,13 +15,12 @@ class CheckSubscription
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
-     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     * @param  Closure(Request): (Response|RedirectResponse)  $next
+     * @return Response|RedirectResponse
      */
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return $next($request);
         }
 
@@ -28,7 +29,7 @@ class CheckSubscription
         /** @var Gym $gym */
         $gym = $user->currentGym;
 
-        if (!$gym) {
+        if (! $gym) {
             return $next($request);
         }
 
@@ -49,6 +50,14 @@ class CheckSubscription
             'profile.index',
             'profile.password.update',
             'profile.destroy',
+            'profile.appearance.update',
+            // Leaving an expired organization for another one must stay
+            // possible; the target organization is checked on the next request.
+            'user.switch-organization',
+            // A new organization starts with its own trial and becomes the
+            // current one, so it is not bound by this organization's status.
+            'gyms.create',
+            'gyms.store',
             // Import/Export (Datenexport soll immer möglich sein)
             'data-transfer.index',
             'data-transfer.export',
@@ -57,11 +66,11 @@ class CheckSubscription
         ];
 
         // Wenn weder Testphase noch aktive Subscription
-        if (!$isInTrial && !$gym->hasActiveSubscription()) {
+        if (! $isInTrial && ! $gym->hasActiveSubscription()) {
             $routeName = $request->route()->getName();
 
             // Redirect zu Billing-Seite wenn Route nicht erlaubt
-            if (!in_array($routeName, $allowedRoutes)) {
+            if (! in_array($routeName, $allowedRoutes)) {
                 return redirect()->route('billing.index')
                     ->with('error', 'Ihre Testphase ist abgelaufen. Bitte schließen Sie ein Abonnement ab, um alle Funktionen zu nutzen.');
             }
