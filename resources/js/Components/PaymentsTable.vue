@@ -154,8 +154,13 @@
 
                 <!-- Description Column -->
                 <template v-else-if="column.key === 'description'">
-                  <!-- Wraps (within a readable width) so the table fits narrower screens -->
-                  <div class="min-w-48 max-w-sm text-sm text-ink">{{ payment.description }}</div>
+                  <!-- One line, so rows stay at most two lines high together with
+                       the Tx line; the full text shows as a tooltip and in the
+                       payment details. Teleported: the table scrolls horizontally. -->
+                  <Tooltip position="top" teleport only-when-truncated class="max-w-sm align-top">
+                    <span class="block min-w-48 max-w-sm truncate text-sm text-ink">{{ payment.description }}</span>
+                    <template #content>{{ payment.description }}</template>
+                  </Tooltip>
                   <div v-if="isCreditTopup(payment)" class="max-w-sm truncate text-xs text-ink-muted font-mono">
                     {{ creditTopupSource(payment) }}
                   </div>
@@ -433,6 +438,7 @@ import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import Pagination from '@/Components/Pagination.vue'
 import TableSkeletonRows from '@/Components/Common/TableSkeletonRows.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import { useDelayedFlag } from '@/composables/useDelayedFlag'
 import { averageRowHeight } from '@/utils/skeletonSize'
 import PaymentStatusBadge from '@/Components/PaymentStatusBadge.vue'
