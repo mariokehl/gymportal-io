@@ -1,7 +1,7 @@
 {
     "private": true,
     "name": "gymportal-io",
-    "version": "0.0.158",
+    "version": "0.0.159",
     "type": "module",
     "scripts": {
         "build": "vite build",
@@ -20,7 +20,7 @@
         "laravel-vite-plugin": "^1.2.0",
         "tailwindcss": "~4.1.18",
         "vite": "^6.2.4",
-        "vitest": "^3.2.6"
+        "vitest": "^4.1.12"
     },
     "dependencies": {
         "@inertiajs/vue3": "^2.0.8",
