@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\Web\AccessControlController;
@@ -337,6 +338,11 @@ Route::middleware(['auth:web', 'basic.auth'])->prefix('admin')->group(function (
     Route::post('/impersonate/{user}', [ImpersonationController::class, 'impersonate'])->name('impersonate.start');
     Route::delete('/impersonate/stop', [ImpersonationController::class, 'stopImpersonating'])->name('impersonate.stop');
     Route::get('/impersonate/status', [ImpersonationController::class, 'status'])->name('impersonate.status');
+
+    // User management (block / delete)
+    Route::post('/users/{user}/block', [AdminUserController::class, 'block'])->name('admin.users.block');
+    Route::delete('/users/{user}/block', [AdminUserController::class, 'unblock'])->name('admin.users.unblock');
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
 });
 
 // Zusätzliche Widget-Admin-Routes für AJAX-Calls
