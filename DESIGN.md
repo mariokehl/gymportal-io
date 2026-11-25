@@ -379,7 +379,7 @@ for focus only.
 
 ### Chips / Status Badges
 - **Style:** fully round, `-soft` fill with status text, 12 px semibold, often
-  with a Lucide icon. Member status comes from `utils/memberStatus.js`.
+  with a Lucide icon. Member status comes from `resources/js/utils/memberStatus.js`.
 - **State:** color never carries the meaning alone; the status word is always
   there.
 
