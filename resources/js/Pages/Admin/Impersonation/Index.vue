@@ -8,7 +8,7 @@
               Benutzer-Simulation
             </h2>
             <p class="mt-2 text-ink-secondary">
-              Wählen Sie einen Benutzer aus, um sich als dieser anzumelden.
+              Simulieren, blockieren oder löschen Sie Benutzerkonten.
             </p>
           </div>
         </div>
@@ -39,32 +39,78 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Nach Namen oder E-Mail suchen..."
+                aria-label="Benutzer nach Namen oder E-Mail suchen"
                 class="field w-full pl-10 pr-4 py-2"
               />
-              <Search class="absolute left-3 top-2.5 h-5 w-5 text-ink-muted" />
+              <Search class="absolute left-3 top-2.5 h-5 w-5 text-ink-muted" aria-hidden="true" />
             </div>
           </div>
         </div>
 
         <!-- Benutzerliste -->
-        <div class="bg-surface shadow-sm sm:rounded-lg">
-          <div class="overflow-hidden">
+        <div class="@container bg-surface shadow-sm sm:rounded-lg overflow-clip">
+          <!-- Narrow containers: one row per user, the table needs ~1150px -->
+          <ul class="@6xl:hidden divide-y divide-line-subtle">
+            <li
+              v-for="user in filteredUsers"
+              :key="user.id"
+              :class="['px-4 py-3 space-y-2.5', user.paid_gyms_count > 0 ? 'bg-success-subtle/60' : '']"
+            >
+              <div class="flex items-center gap-3">
+                <div class="size-9 shrink-0 rounded-full bg-brand flex items-center justify-center">
+                  <span class="text-white font-medium text-xs">{{ getInitials(user.first_name, user.last_name) }}</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="flex items-center gap-2 text-sm font-medium text-ink">
+                    <span class="truncate">{{ user.first_name }} {{ user.last_name }}</span>
+                    <span
+                      v-if="user.is_blocked"
+                      class="shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-warning-soft text-warning"
+                      :title="user.blocked_reason || undefined"
+                    >
+                      Blockiert
+                    </span>
+                  </p>
+                  <p class="flex items-center gap-1 text-xs text-ink-muted">
+                    <span class="truncate">{{ user.email }}</span>
+                    <BadgeCheck v-if="user.email_verified_at" class="h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />
+                    <span class="sr-only">{{ user.email_verified_at ? 'E-Mail verifiziert' : 'E-Mail nicht verifiziert' }}</span>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3 pl-12">
+                <UserSubscriptionBadges :user="user" />
+                <UserRowActions
+                  :user="user"
+                  @impersonate="startImpersonation(user.id)"
+                  @block="userToBlock = $event"
+                  @unblock="unblockUser"
+                  @delete="userToDelete = $event"
+                />
+              </div>
+            </li>
+          </ul>
+
+          <div class="hidden @6xl:block overflow-x-auto">
             <table class="min-w-full divide-y divide-line">
               <thead class="bg-surface-muted">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap">
                     ID
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap">
                     Name
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap">
                     E-Mail
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap">
+                    Abo
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap">
                     Registriert am
                   </th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  <th class="px-4 py-3 text-right text-xs font-medium text-ink-muted uppercase tracking-wider whitespace-nowrap">
                     Aktionen
                   </th>
                 </tr>
@@ -72,11 +118,14 @@
               <tbody class="bg-surface divide-y divide-line">
                 <tr v-for="user in filteredUsers"
                     :key="user.id"
-                    class="hover:bg-surface-muted transition-colors">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-ink">
+                    :class="[
+                      'transition-colors',
+                      user.paid_gyms_count > 0 ? 'bg-success-subtle/60 hover:bg-success-subtle' : 'hover:bg-surface-muted'
+                    ]">
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-ink-muted tabular-nums">
                     {{ user.id }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center">
                       <div class="flex-shrink-0 h-10 w-10">
                         <div class="h-10 w-10 rounded-full bg-brand flex items-center justify-center">
@@ -85,136 +134,106 @@
                           </span>
                         </div>
                       </div>
-                      <div class="ml-4">
-                        <div class="text-sm font-medium text-ink">
-                          {{ user.first_name }} {{ user.last_name }}
+                      <div class="ml-3 min-w-0">
+                        <div class="flex items-center gap-2 text-sm font-medium text-ink">
+                          <span class="max-w-56 truncate" :title="`${user.first_name} ${user.last_name}`">{{ user.first_name }} {{ user.last_name }}</span>
+                          <span
+                            v-if="user.is_blocked"
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-warning-soft text-warning"
+                            :title="user.blocked_reason || undefined"
+                          >
+                            Blockiert
+                          </span>
+                        </div>
+                        <div v-if="user.owned_gyms_count > 0" class="text-xs text-ink-muted">
+                          {{ user.owned_gyms_count }} {{ user.owned_gyms_count === 1 ? 'Studio' : 'Studios' }}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
-                    {{ user.email }}
+                  <td class="px-4 py-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center gap-1.5">
+                      <span :class="['max-w-64 truncate', user.email_verified_at ? 'text-ink' : 'text-ink-muted']" :title="user.email">{{ user.email }}</span>
+                      <span
+                        v-if="user.email_verified_at"
+                        :title="`E-Mail verifiziert am ${formatDate(user.email_verified_at)}`"
+                        class="inline-flex"
+                      >
+                        <BadgeCheck class="h-4 w-4 text-success flex-shrink-0" aria-hidden="true" />
+                        <span class="sr-only">E-Mail verifiziert</span>
+                      </span>
+                    </div>
+                    <div v-if="!user.email_verified_at" class="text-xs text-ink-muted">Nicht verifiziert</div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-ink-muted">
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <UserSubscriptionBadges :user="user" />
+                  </td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-ink-muted tabular-nums">
                     {{ formatDate(user.created_at) }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      @click="startImpersonation(user.id)"
-                      class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-info-solid hover:bg-info-solid-strong transition-colors"
-                    >
-                      <UserCheck class="h-4 w-4 mr-1" />
-                      Simulieren
-                    </button>
+                  <td class="px-4 py-3 whitespace-nowrap text-right">
+                    <UserRowActions
+                      :user="user"
+                      @impersonate="startImpersonation(user.id)"
+                      @block="userToBlock = $event"
+                      @unblock="unblockUser"
+                      @delete="userToDelete = $event"
+                    />
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
 
-            <!-- Keine Ergebnisse -->
+          <!-- Keine Ergebnisse -->
             <div v-if="filteredUsers.length === 0" class="text-center py-12">
               <Users class="mx-auto h-12 w-12 text-ink-muted" />
               <h3 class="mt-2 text-sm font-medium text-ink">
                 Keine Benutzer gefunden
               </h3>
               <p class="mt-1 text-sm text-ink-muted">
-                {{ searchQuery ? 'Versuchen Sie eine andere Suche.' : 'Es sind keine Benutzer zur Simulation verfügbar.' }}
+                {{ searchQuery ? 'Versuchen Sie eine andere Suche.' : 'Es sind keine Benutzer vorhanden.' }}
               </p>
             </div>
-          </div>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="users.links && users.links.length > 3" class="mt-6">
-          <nav class="flex items-center justify-between">
-            <div class="flex-1 flex justify-between sm:hidden">
-              <Link
-                v-if="users.prev_page_url"
-                :href="users.prev_page_url"
-                class="relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
-              >
-                <ChevronLeft class="h-4 w-4 mr-1" />
-                Zurück
-              </Link>
-              <Link
-                v-if="users.next_page_url"
-                :href="users.next_page_url"
-                class="ml-3 relative inline-flex items-center px-4 py-2 border border-line-strong text-sm font-medium rounded-md text-ink-secondary bg-surface hover:bg-surface-muted"
-              >
-                Weiter
-                <ChevronRight class="h-4 w-4 ml-1" />
-              </Link>
-            </div>
-            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p class="text-sm text-ink-secondary">
-                  Zeige <span class="font-medium">{{ users.from }}</span> bis
-                  <span class="font-medium">{{ users.to }}</span> von
-                  <span class="font-medium">{{ users.total }}</span> Ergebnissen
-                </p>
-              </div>
-              <div>
-                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <template v-for="(link, index) in users.links" :key="index">
-                    <Link
-                      v-if="link.url"
-                      :href="link.url"
-                      :class="[
-                        link.active
-                          ? 'z-10 bg-info-subtle border-info text-info'
-                          : 'bg-surface border-line-strong text-ink-muted hover:bg-surface-muted',
-                        index === 0 ? 'rounded-l-md' : '',
-                        index === users.links.length - 1 ? 'rounded-r-md' : '',
-                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                      ]"
-                      v-html="link.label"
-                    />
-                    <span
-                      v-else
-                      :class="[
-                        index === 0 ? 'rounded-l-md' : '',
-                        index === users.links.length - 1 ? 'rounded-r-md' : '',
-                        'relative inline-flex items-center px-4 py-2 border border-line-strong bg-surface text-sm font-medium text-ink-disabled cursor-not-allowed'
-                      ]"
-                      v-html="link.label"
-                    />
-                  </template>
-                </nav>
-              </div>
-            </div>
-          </nav>
         </div>
       </div>
+
+      <BlockUserModal v-if="userToBlock" :user="userToBlock" @close="userToBlock = null" />
+      <DeleteUserModal v-if="userToDelete" :user="userToDelete" @close="userToDelete = null" />
     </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { router, Link } from '@inertiajs/vue3'
+import { router } from '@inertiajs/vue3'
 import {
   Info,
   Search,
-  UserCheck,
   Users,
-  ChevronLeft,
-  ChevronRight
+  BadgeCheck
 } from '@lucide/vue'
+import BlockUserModal from './BlockUserModal.vue'
+import DeleteUserModal from './DeleteUserModal.vue'
+import UserRowActions from './UserRowActions.vue'
+import UserSubscriptionBadges from './UserSubscriptionBadges.vue'
 import { formatDateShort as formatDate } from '@/utils/formatters'
 
 const props = defineProps({
-  users: Object,
+  users: Array,
   flash: Object
 })
 
 const searchQuery = ref('')
+const userToBlock = ref(null)
+const userToDelete = ref(null)
 
 const filteredUsers = computed(() => {
   if (!searchQuery.value) {
-    return props.users.data || []
+    return props.users
   }
 
   const query = searchQuery.value.toLowerCase()
-  return (props.users.data || []).filter(user => {
+  return props.users.filter(user => {
     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase()
     return fullName.includes(query) || user.email.toLowerCase().includes(query)
   })
@@ -231,6 +250,14 @@ const startImpersonation = (userId) => {
     router.post(`/admin/impersonate/${userId}`, {}, {
       preserveScroll: true,
       preserveState: false
+    })
+  }
+}
+
+const unblockUser = (user) => {
+  if (confirm(`Möchten Sie ${user.first_name} ${user.last_name} wirklich entsperren?`)) {
+    router.delete(route('admin.users.unblock', { user: user.id }), {
+      preserveScroll: true
     })
   }
 }

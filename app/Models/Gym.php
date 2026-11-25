@@ -1130,11 +1130,28 @@ class Gym extends Model
 
         return $query->where(function ($q) use ($now) {
             $q->where('trial_ends_at', '>', $now)
-                ->orWhere(function ($subscription) use ($now) {
-                    $subscription->where('subscription_status', 'active')
-                        ->where('subscription_ends_at', '>', $now->copy()->subHours(self::SUBSCRIPTION_GRACE_HOURS));
-                });
+                ->orWhere(fn ($subscription) => $subscription->withActiveSubscription());
         });
+    }
+
+    /**
+     * Limit the query to gyms with an active paid subscription. This is the
+     * query counterpart of hasActiveSubscription().
+     */
+    public function scopeWithActiveSubscription($query)
+    {
+        return $query->where('subscription_status', 'active')
+            ->where('subscription_ends_at', '>', now()->subHours(self::SUBSCRIPTION_GRACE_HOURS));
+    }
+
+    /**
+     * Limit the query to gyms that are still in their trial and have no
+     * active paid subscription yet.
+     */
+    public function scopeInTrialWithoutSubscription($query)
+    {
+        return $query->where('trial_ends_at', '>', now())
+            ->whereNotIn('id', static::withActiveSubscription()->select('id'));
     }
 
     /**

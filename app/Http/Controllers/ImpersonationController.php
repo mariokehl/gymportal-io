@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -13,27 +15,38 @@ use Inertia\Response;
 class ImpersonationController extends Controller
 {
     private const SESSION_KEY = 'impersonator_id';
+
     private const ADMIN_ROLE_ID = 1;
 
     /**
      * Zeigt eine Liste aller Benutzer, die simuliert werden können
-     *
-     * @return Response
      */
     public function index(): Response
     {
         // Prüfe ob Benutzer eingeloggt und Administrator ist
-        if (!Auth::check() || Auth::user()->role_id !== self::ADMIN_ROLE_ID) {
+        if (! Auth::check() || Auth::user()->role_id !== self::ADMIN_ROLE_ID) {
             abort(403, 'Sie haben keine Berechtigung für diese Aktion.');
         }
 
         $users = User::where('id', '!=', Auth::id())
             ->where('role_id', '!=', self::ADMIN_ROLE_ID)
-            ->where('is_blocked', '!=', 1)
-            ->select('id', 'first_name', 'last_name', 'email', 'created_at')
+            ->select('id', 'first_name', 'last_name', 'email', 'email_verified_at', 'created_at', 'is_blocked', 'blocked_reason')
+            ->withCount([
+                'ownedGyms',
+                'ownedGyms as paid_gyms_count' => fn ($query) => $query->withActiveSubscription(),
+                'ownedGyms as trial_gyms_count' => fn ($query) => $query->inTrialWithoutSubscription(),
+                'ownedGyms as expired_gyms_count' => fn ($query) => $query->withoutActiveAccess(),
+            ])
             ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+            ->get()
+            // Paying customers first (most paid subscriptions on top), then running
+            // trials, then everyone else; the newest user first within a group.
+            // Sorted in PHP: Postgres cannot use count aliases in ORDER BY expressions.
+            ->sortBy([
+                fn (User $a, User $b) => $this->listingGroup($a) <=> $this->listingGroup($b),
+                fn (User $a, User $b) => $b->paid_gyms_count <=> $a->paid_gyms_count,
+            ])
+            ->values();
 
         return Inertia::render('Admin/Impersonation/Index', [
             'users' => $users,
@@ -41,21 +54,31 @@ class ImpersonationController extends Controller
                 'success' => session('success'),
                 'error' => session('error'),
                 'warning' => session('warning'),
-            ]
+            ],
         ]);
+    }
+
+    /**
+     * Listing group of a user: 0 = paid subscription, 1 = running trial, 2 = rest.
+     */
+    private function listingGroup(User $user): int
+    {
+        return match (true) {
+            $user->paid_gyms_count > 0 => 0,
+            $user->trial_gyms_count > 0 => 1,
+            default => 2,
+        };
     }
 
     /**
      * Startet die Impersonation eines anderen Benutzers
      *
-     * @param Request $request
-     * @param User $user
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function impersonate(Request $request, User $user)
     {
         // Prüfe ob Benutzer eingeloggt und Administrator ist
-        if (!Auth::check() || Auth::user()->role_id !== self::ADMIN_ROLE_ID) {
+        if (! Auth::check() || Auth::user()->role_id !== self::ADMIN_ROLE_ID) {
             return redirect()->back()->with('error', 'Keine Berechtigung für diese Aktion.');
         }
 
@@ -74,6 +97,11 @@ class ImpersonationController extends Controller
             return redirect()->back()->with('error', 'Administratoren können nicht simuliert werden.');
         }
 
+        // Blocked users would be logged out right away by the blocked.check middleware
+        if ($user->isBlocked()) {
+            return redirect()->back()->with('error', 'Blockierte Benutzer können nicht simuliert werden.');
+        }
+
         // Speichere die ID des ursprünglichen Benutzers
         $originalUserId = Auth::id();
         $originalUser = Auth::user();
@@ -88,12 +116,12 @@ class ImpersonationController extends Controller
         Log::info('Benutzer-Impersonation gestartet', [
             'impersonator_id' => $originalUserId,
             'impersonator_email' => $originalUser->email,
-            'impersonator_name' => $originalUser->first_name . ' ' . $originalUser->last_name,
+            'impersonator_name' => $originalUser->first_name.' '.$originalUser->last_name,
             'target_user_id' => $user->id,
             'target_user_email' => $user->email,
-            'target_user_name' => $user->first_name . ' ' . $user->last_name,
+            'target_user_name' => $user->first_name.' '.$user->last_name,
             'ip_address' => $request->ip(),
-            'timestamp' => now()->toIso8601String()
+            'timestamp' => now()->toIso8601String(),
         ]);
 
         // Führe die Impersonation durch
@@ -102,18 +130,17 @@ class ImpersonationController extends Controller
 
         return redirect()->route('dashboard')
             ->with('impersonation_started', true)
-            ->with('success', 'Simulation von ' . $user->full_name . ' erfolgreich gestartet.');
+            ->with('success', 'Simulation von '.$user->full_name.' erfolgreich gestartet.');
     }
 
     /**
      * Beendet die aktuelle Impersonation und kehrt zum ursprünglichen Benutzer zurück
      *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function stopImpersonating(Request $request)
     {
-        if (!$this->isImpersonating()) {
+        if (! $this->isImpersonating()) {
             return redirect()->route('dashboard')
                 ->with('info', 'Es ist keine Simulation aktiv.');
         }
@@ -129,12 +156,12 @@ class ImpersonationController extends Controller
             Log::info('Benutzer-Impersonation beendet', [
                 'impersonator_id' => $originalUserId,
                 'impersonator_email' => $originalUser->email,
-                'impersonator_name' => $originalUser->first_name . ' ' . $originalUser->last_name,
+                'impersonator_name' => $originalUser->first_name.' '.$originalUser->last_name,
                 'impersonated_user_id' => $currentUser->id,
                 'impersonated_user_email' => $currentUser->email,
-                'impersonated_user_name' => $currentUser->first_name . ' ' . $currentUser->last_name,
+                'impersonated_user_name' => $currentUser->first_name.' '.$currentUser->last_name,
                 'ip_address' => $request->ip(),
-                'timestamp' => now()->toIso8601String()
+                'timestamp' => now()->toIso8601String(),
             ]);
         }
 
@@ -147,7 +174,7 @@ class ImpersonationController extends Controller
             self::SESSION_KEY,
             'impersonator_name',
             'impersonated_user_name',
-            'impersonated_user_email'
+            'impersonated_user_email',
         ]);
 
         return redirect()->route('dashboard')
@@ -158,7 +185,7 @@ class ImpersonationController extends Controller
     /**
      * API Endpoint: Gibt den aktuellen Impersonation-Status zurück
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function status()
     {
@@ -173,8 +200,6 @@ class ImpersonationController extends Controller
 
     /**
      * Prüft, ob aktuell eine Impersonation aktiv ist
-     *
-     * @return bool
      */
     private function isImpersonating(): bool
     {
@@ -183,8 +208,6 @@ class ImpersonationController extends Controller
 
     /**
      * Gibt die ID des ursprünglichen Benutzers zurück (falls Impersonation aktiv)
-     *
-     * @return int|null
      */
     private function getImpersonatorId(): ?int
     {
