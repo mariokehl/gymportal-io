@@ -62,6 +62,7 @@ class MemberExportService
             'Nachname' => fn (Member $member) => $member->last_name,
             'E-Mail' => fn (Member $member) => $member->email,
             'Alter' => fn (Member $member) => $member->age,
+            'Geburtsdatum' => fn (Member $member) => $date($member->birth_date),
             'Status' => fn (Member $member) => $member->status_text,
             'PLZ' => fn (Member $member) => $member->postal_code,
             'Ort' => fn (Member $member) => $member->city,

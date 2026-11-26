@@ -384,7 +384,7 @@ class MemberFilterTest extends TestCase
     public function it_exports_the_filtered_members_as_csv(): void
     {
         $lea = $this->member(['first_name' => 'Lea', 'last_name' => '=HYPERLINK("x")', 'status' => 'active']);
-        $tim = $this->member(['first_name' => 'Tim', 'status' => 'active']);
+        $tim = $this->member(['first_name' => 'Tim', 'status' => 'active', 'birth_date' => '1990-03-15']);
         $this->member(['first_name' => 'Eva', 'status' => 'paused']);
         $foreign = Member::factory()->create(['first_name' => 'Fremd', 'status' => 'active']);
         $filter = $this->filterFor('status', 'any', ['values' => ['active']]);
@@ -400,6 +400,9 @@ class MemberFilterTest extends TestCase
         $this->assertStringContainsString($tim->member_number, $csv);
         $this->assertStringNotContainsString('Eva', $csv);
         $this->assertStringNotContainsString('Fremd', $csv);
+        // Birth date follows the age column.
+        $this->assertStringContainsString(';Alter;Geburtsdatum;', $csv);
+        $this->assertStringContainsString(';15.03.1990;', $csv);
         // Formula cells are neutralized.
         $this->assertStringContainsString('"\'=HYPERLINK(""x"")"', $csv);
 
