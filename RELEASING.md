@@ -1,42 +1,42 @@
-# Release-Prozess
+# Release process
 
-Versionierung folgt [SemVer](https://semver.org/lang/de/) (`vMAJOR.MINOR.PATCH`).
-Single Source of Truth für die Version ist die `version` in der `package.json`;
-Vite brennt sie zur Build-Zeit ins Frontend (Anzeige in der Sidebar).
+Versioning follows [SemVer](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
+The single source of truth for the version is `version` in `package.json`;
+Vite bakes it into the frontend at build time (shown in the sidebar).
 
-**Grundsatz:** Der git-Tag markiert den **Merge-Commit auf `main`** – also exakt
-den Stand, der als Release ausgeliefert wird. Deshalb wird der Tag **erst nach
-dem Merge** gesetzt, nicht auf `develop`.
+**Principle:** the git tag marks the **merge commit on `main`**, i.e. exactly
+the state that ships as the release. That is why the tag is set **only after
+the merge**, not on `develop`.
 
-## Ablauf
+## Steps
 
-1. **Version bumpen** auf `develop` (committet nur `package.json`, **kein** Tag –
-   so konfiguriert via `.npmrc` → `git-tag-version=false`):
+1. **Bump the version** on `develop` (commits only `package.json`, **no** tag,
+   as configured in `.npmrc` → `git-tag-version=false`):
 
    ```bash
-   npm version patch   # oder: minor / major
+   npm version patch   # or: minor / major
    ```
 
-   Ergebnis: Commit `chore(release): vX.Y.Z` auf `develop`.
+   Result: commit `chore(release): vX.Y.Z` on `develop`.
 
-2. **MR `develop` → `main`** erstellen und mergen (erzeugt den Merge-Commit).
+2. **Create and merge the MR `develop` → `main`** (this creates the merge commit).
 
-3. **Tag auf den Merge-Commit setzen** (lokal auf aktuellem `main`):
+3. **Tag the merge commit** (locally on an up-to-date `main`):
 
    ```bash
    git checkout main && git pull
    git tag -a vX.Y.Z -m "chore(release): vX.Y.Z"
    git push origin vX.Y.Z      # GitLab
-   git push github vX.Y.Z      # GitHub-Spiegel
+   git push github vX.Y.Z      # GitHub mirror
    ```
 
-4. **GitHub-Release** manuell anlegen (Changelog) – z. B. Compare-Ansicht
-   `…/compare/vX.Y.Z-1...vX.Y.Z`. Die App verlinkt aus der Sidebar auf
-   `…/releases`.
+4. **Create the GitHub release** manually (changelog), e.g. from the compare view
+   `…/compare/vX.Y.Z-1...vX.Y.Z`. The app links to `…/releases` from the
+   sidebar.
 
-## Warum nicht `npm version` taggen lassen?
+## Why not let `npm version` create the tag?
 
-`npm version` würde den Tag auf den `develop`-Commit setzen – **vor** dem Merge.
-Nach dem Merge nach `main` entsteht aber ein neuer Merge-Commit; der Tag zeigte
-dann nicht auf den `main`-Tip, was GitLab-Tags/-Releases/-Compare verfälscht.
-Darum: Tag immer manuell nach dem Merge (Schritt 3).
+`npm version` would put the tag on the `develop` commit, **before** the merge.
+Merging into `main` creates a new merge commit, though, so the tag would not
+point at the tip of `main`, which skews GitLab tags, releases and compare views.
+Hence: always tag manually after the merge (step 3).

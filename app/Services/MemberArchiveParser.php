@@ -765,7 +765,7 @@ class MemberArchiveParser
 
     /**
      * Map an export payment frequency ("1M", "3M", "12M") or its German label
-     * onto a gymportal billing cycle.
+     * onto a gymportal.io billing cycle.
      */
     private function mapBillingCycle(?string $value): string
     {
