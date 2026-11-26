@@ -10,8 +10,8 @@ use Illuminate\Support\Carbon;
 /**
  * Issues, lists and revokes Agent API tokens.
  *
- *   php artisan agent:token create --gym=my-gym --name="Assistent" \
- *       --purpose="Beantwortet Mitgliederfragen" --abilities=read
+ *   php artisan agent:token create --gym=my-gym --name="Assistant" \
+ *       --purpose="Answers member questions" --abilities=read
  *   php artisan agent:token list --gym=my-gym
  *   php artisan agent:token revoke --id=3
  */
@@ -20,7 +20,7 @@ class AgentTokenCommand extends Command
     protected $signature = 'agent:token
         {action : create, list or revoke}
         {--gym= : Gym id or slug}
-        {--name= : Name of the client, e.g. "Assistent"}
+        {--name= : Name of the client, e.g. "Assistant"}
         {--purpose= : What the client is for (required on create)}
         {--abilities=read : "read", "all" or a comma separated list}
         {--expires= : Expiry date, e.g. 2027-01-31}
