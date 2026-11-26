@@ -1,0 +1,86 @@
+openapi: 3.0.3
+info:
+  title: gymportal Agent API
+  version: 1.0.0
+  description: >
+    Schnittstelle für KI-Agenten und Automatisierungen eines Studios. Das Studio
+    ergibt sich aus dem Token, jeder Bereich hat ein eigenes Leserecht.
+servers:
+  - url: /api/v1/agent
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  parameters:
+    memberId: { name: memberId, in: path, required: true, schema: { type: integer } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+  responses:
+    Ok: { description: "success=true, Nutzdaten unter data" }
+    Unauthenticated: { description: Token fehlt, ist unbekannt, widerrufen oder abgelaufen, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: Dem Token fehlt das Recht (error.required_ability) }
+    NotFound: { description: Kein solches Mitglied in diesem Studio }
+paths:
+  /health:
+    get: { summary: Studio und Rechte des Tokens, responses: { '200': { $ref: '#/components/responses/Ok' }, '401': { $ref: '#/components/responses/Unauthenticated' } } }
+  /plans:
+    get: { summary: Aktive Tarife, x-ability: plans.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /members:
+    get:
+      summary: Mitglieder suchen
+      x-ability: members.read
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer } }
+        - { name: per_page, in: query, schema: { type: integer, maximum: 100 } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /members/lookup:
+    get:
+      summary: Genau ein Mitglied finden (match = unique, none, ambiguous)
+      x-ability: members.read
+      parameters:
+        - { name: email, in: query, schema: { type: string } }
+        - { name: member_number, in: query, schema: { type: string } }
+        - { name: phone, in: query, schema: { type: string } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '422': { description: Kein Suchkriterium } }
+  /members/{memberId}:
+    parameters: [ { $ref: '#/components/parameters/memberId' } ]
+    get: { summary: Stammdaten, x-ability: members.read, responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } } }
+  /members/{memberId}/contract:
+    parameters: [ { $ref: '#/components/parameters/memberId' } ]
+    get: { summary: "Vertrag mit Kündigungstermin, Frist, Pause, Widerruf", x-ability: contracts.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /members/{memberId}/access:
+    parameters: [ { $ref: '#/components/parameters/memberId' } ]
+    get: { summary: "Zutritt: sollte es gehen, und wenn nicht, warum", x-ability: access.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /members/{memberId}/check-ins:
+    parameters: [ { $ref: '#/components/parameters/memberId' } ]
+    get: { summary: Letzte Besuche, x-ability: access.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /members/{memberId}/payments:
+    parameters: [ { $ref: '#/components/parameters/memberId' } ]
+    get: { summary: Zahlungen mit Summe der fehlgeschlagenen, x-ability: payments.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /occupancy:
+    get:
+      summary: Besuche je Wochentag und Stunde
+      x-ability: stats.read
+      parameters: [ { name: days, in: query, schema: { type: integer, default: 56 } } ]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /stats:
+    get: { summary: "Kennzahlen des Studios (Umsatz nur mit payments.read)", x-ability: stats.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /insights/inactive-members:
+    get:
+      summary: Mitglieder mit laufendem Vertrag ohne Besuch seit N Tagen
+      x-ability: stats.read
+      parameters:
+        - { name: days, in: query, schema: { type: integer, default: 30 } }
+        - { name: limit, in: query, schema: { type: integer, default: 50 } }
+      responses: { '200': { $ref: '#/components/responses/Ok' } }

@@ -43,6 +43,9 @@ Route::prefix('v1')->name('v1.')->group(function () {
     Route::name('public.')->prefix('/public')->group(static function (): void {
         Route::post('/mollie/webhook', [MollieWebhookController::class, 'handle'])->name('mollie.webhook');
     });
+
+    // Agent API: automations acting for one gym, authenticated by a token per gym
+    Route::prefix('agent')->name('agent.')->group(base_path('routes/agent.php'));
 });
 
 /*

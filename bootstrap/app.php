@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\AuthenticateScanner;
 use App\Http\Middleware\BasicAuthMiddleware;
 use App\Http\Middleware\CheckIfUserBlocked;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription' => CheckSubscription::class,
             'paddleIp' => PaddleIpMiddleware::class,
             'scanner.auth' => AuthenticateScanner::class,
+            'agent.auth' => AuthenticateAgent::class,
             'blocked.check' => CheckIfUserBlocked::class,
             'basic.auth' => BasicAuthMiddleware::class,
             'full.session' => EnsureFullSession::class,
@@ -55,6 +57,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/pwa/*',
             'api/scanner/*',
+            'api/v1/agent/*',
             'api/widget/*',
             'api/guests/*',
             'billing/webhook/paddle',
