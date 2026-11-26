@@ -26,6 +26,7 @@ Route::prefix('members/{memberId}')->where(['memberId' => '[0-9]+'])->name('memb
     Route::get('/', [AgentReadController::class, 'showMember'])->middleware('agent.auth:members.read')->name('show');
     Route::get('contract', [AgentReadController::class, 'contract'])->middleware('agent.auth:contracts.read')->name('contract');
     Route::get('access', [AgentReadController::class, 'access'])->middleware('agent.auth:access.read')->name('access');
+    Route::get('access-attempts', [AgentReadController::class, 'accessAttempts'])->middleware('agent.auth:access.read')->name('access-attempts');
     Route::get('check-ins', [AgentReadController::class, 'checkIns'])->middleware('agent.auth:access.read')->name('check-ins');
     Route::get('payments', [AgentReadController::class, 'payments'])->middleware('agent.auth:payments.read')->name('payments');
 });

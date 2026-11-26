@@ -6,10 +6,12 @@ use App\Models\AgentApiLog;
 use App\Models\CheckIn;
 use App\Models\Gym;
 use App\Models\GymApiClient;
+use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MemberAccessConfig;
 use App\Models\Membership;
 use App\Models\MembershipPlan;
+use App\Models\ScannerAccessLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -298,6 +300,107 @@ class AgentApiTest extends TestCase
             ['member_not_active', 'no_active_membership'],
             array_column($data['blockers'], 'code'),
         );
+    }
+
+    #[Test]
+    public function access_follows_the_scanner_for_guests_future_starts_and_a_missing_configuration(): void
+    {
+        $access = fn (Member $member) => $this->agent()->getJson($this->url("members/{$member->id}/access"))->assertOk()->json('data');
+
+        // Without a configuration the QR code is on by default.
+        MemberAccessConfig::where('member_id', $this->member->id)->delete();
+        $data = $access($this->member);
+        $this->assertTrue($data['should_have_access']);
+        $this->assertSame([], $data['blockers']);
+
+        // A contract that has not started: the scanner refuses it until then.
+        $start = now()->addMonth()->toDateString();
+        $this->membership->update(['start_date' => $start]);
+        $data = $access($this->member);
+        $this->assertSame(['membership_not_started'], array_column($data['blockers'], 'code'));
+        $this->assertStringContainsString($start, $data['blockers'][0]['detail']);
+
+        // A guest has status "extern" and no contract, and still gets in at the door.
+        $guest = Member::factory()->create(['gym_id' => $this->gym->id, 'status' => 'extern', 'guest_access' => true]);
+        $data = $access($guest);
+        $this->assertTrue($data['should_have_access']);
+        $this->assertTrue($data['member']['guest_access']);
+        $this->assertNotSame([], $data['notes']);
+
+        // With both media switched off nobody gets in.
+        MemberAccessConfig::updateOrCreate(['member_id' => $guest->id], ['qr_code_enabled' => false, 'nfc_enabled' => false]);
+        $this->assertSame(['no_access_medium_enabled'], array_column($access($guest)['blockers'], 'code'));
+    }
+
+    #[Test]
+    public function access_attempts_carry_the_reason_the_portal_stored(): void
+    {
+        $sibling = Gym::factory()->create();
+        GymScanner::forceCreate(['gym_id' => $this->gym->id, 'device_number' => '0815', 'device_name' => 'Eingang', 'api_token' => Str::random(40)]);
+        // Same device number at another gym: the name must not leak across.
+        GymScanner::forceCreate(['gym_id' => $this->otherGym->id, 'device_number' => '0815', 'device_name' => 'Fremdgerät', 'api_token' => Str::random(40)]);
+
+        $log = fn (array $attributes) => ScannerAccessLog::create($attributes + [
+            'device_number' => '0815',
+            'scan_type' => 'qr_code',
+            'metadata' => ['nfc_card_id' => '04A1B2C3'],
+        ]);
+        $mine = ['member_id' => (string) $this->member->id, 'home_gym_id' => $this->gym->id];
+
+        $log(['gym_id' => $this->gym->id, 'access_granted' => true] + $mine);
+        $log(['gym_id' => $this->gym->id, 'access_granted' => false, 'denial_reason' => 'Keine aktive Mitgliedschaft'] + $mine);
+        // The same member id scanned in an unrelated studio carries no home location.
+        $log(['gym_id' => $this->otherGym->id, 'member_id' => (string) $this->member->id, 'home_gym_id' => null, 'access_granted' => false, 'denial_reason' => 'Mitglied nicht gefunden']);
+        $log(['gym_id' => $this->gym->id, 'member_id' => (string) $this->stranger->id, 'home_gym_id' => $this->otherGym->id, 'access_granted' => false, 'denial_reason' => 'Standort nicht freigegeben']);
+        // Newest: refused at a sibling location because the contract does not cover it.
+        $log(['gym_id' => $sibling->id, 'access_granted' => false, 'denial_reason' => 'Vertrag „Flex 12“ gilt nicht für diesen Standort.', 'metadata' => ['denial_kind' => 'contract']] + $mine);
+
+        $response = $this->agent()->getJson($this->url("members/{$this->member->id}/access"))->assertOk();
+        $data = $response->json('data');
+
+        // The rules at home still hold; the refusal happened at the other location.
+        $this->assertTrue($data['should_have_access']);
+        $this->assertSame('Vertrag „Flex 12“ gilt nicht für diesen Standort.', $data['last_denied_attempt']['reason']);
+        $this->assertSame('contract', $data['last_denied_attempt']['denial_kind']);
+        $this->assertSame(['gym_id' => $sibling->id, 'name' => $sibling->name, 'own' => false], $data['last_denied_attempt']['location']);
+        $this->assertSame('Scanner #0815', $data['last_denied_attempt']['device']);
+        $this->assertSame([false, false, true], array_column($data['recent_attempts'], 'granted'));
+        $this->assertSame('Eingang', $data['recent_attempts'][1]['device']);
+        $this->assertNull($data['recent_attempts'][2]['reason']);
+
+        $attempts = $this->agent()->getJson($this->url("members/{$this->member->id}/access-attempts?result=denied"))->assertOk();
+        $this->assertSame(3, $attempts->json('data.total'));
+        $this->assertSame(2, $attempts->json('data.denied'));
+        $this->assertSame(
+            ['Vertrag „Flex 12“ gilt nicht für diesen Standort.', 'Keine aktive Mitgliedschaft'],
+            array_column($attempts->json('data.attempts'), 'reason'),
+        );
+        $this->assertSame([true], array_column(
+            $this->agent()->getJson($this->url("members/{$this->member->id}/access-attempts?result=granted"))->assertOk()->json('data.attempts'),
+            'granted',
+        ));
+
+        // Neither request data from the log nor entries of other members or studios.
+        foreach ([$response->getContent(), $attempts->getContent()] as $json) {
+            $this->assertStringNotContainsString('04A1B2C3', $json);
+            $this->assertStringNotContainsString('"ip"', $json);
+            $this->assertStringNotContainsString('user_agent', $json);
+            $this->assertStringNotContainsString('Mitglied nicht gefunden', $json);
+            $this->assertStringNotContainsString('Standort nicht freigegeben', $json);
+            $this->assertStringNotContainsString('Fremdger', $json);
+        }
+
+        $this->agent()->getJson($this->url("members/{$this->stranger->id}/access-attempts"))->assertNotFound();
+        $this->agent()->getJson($this->url("members/{$this->member->id}/access-attempts?result=maybe"))->assertStatus(422);
+        $this->agent($this->issue(['members.read']))->getJson($this->url("members/{$this->member->id}/access-attempts"))->assertForbidden();
+
+        // A denial older than the latest scans is still the one reported.
+        foreach (range(1, 6) as $ignored) {
+            $log(['gym_id' => $this->gym->id, 'access_granted' => true] + $mine);
+        }
+        $data = $this->agent()->getJson($this->url("members/{$this->member->id}/access"))->assertOk()->json('data');
+        $this->assertSame([true, true, true, true, true], array_column($data['recent_attempts'], 'granted'));
+        $this->assertSame('contract', $data['last_denied_attempt']['denial_kind']);
     }
 
     #[Test]
