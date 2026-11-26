@@ -33,7 +33,7 @@ at predictable cost, and their members sign up online without paper.
 
 ## Positioning
 
-Four traits set gymportal apart from established gym software:
+Four traits set gymportal.io apart from established gym software:
 
 1. **Open source (GNU GPLv3):** the code is public; gyms can see it and adapt it
    to their own workflows.
@@ -83,7 +83,13 @@ on a plan), „Organisation“ or „Studio“ (tenant), „Check-in“, „Gäs
 
 ## Brand Commitments
 
-- **Name:** gymportal.io.
+- **Name:** always „gymportal.io“, lowercase and with „.io“, never just
+  „gymportal“, „Gymportal“ or „GymPortal“. This applies to interface copy,
+  emails, notifications, documentation, comments, commits and PR descriptions.
+  Where a dot is technically not possible (slugs, package, file, class or route
+  names, prefixes), use `gymportal-io`, or just `gpio` where it has to be short.
+  Existing technical identifiers stay unchanged as long as renaming them would
+  break something.
 - **Logo:** SVG wordmark with a violet `#8b5cf6` → cyan `#06b6d4` gradient; the
   backend (`resources/js/Components/Logo.vue`) and the landing page use the
   same path data.
