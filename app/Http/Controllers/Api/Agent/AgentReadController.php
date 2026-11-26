@@ -6,6 +6,7 @@ use App\Models\CheckIn;
 use App\Models\Gym;
 use App\Models\GymScanner;
 use App\Models\Member;
+use App\Models\Membership;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\ScannerAccessLog;
@@ -547,6 +548,101 @@ class AgentReadController extends AgentController
      * Members with a running contract who have not shown up for a while: the
      * raw material for "who is about to quit".
      */
+    /**
+     * Counts per calendar month for dashboards, with no person in the answer:
+     * joins, cancellations received, leavers, members at month end, churn rate
+     * and, with payments.read, the monthly fees of the running contracts.
+     * A member is the unit, so a change of plan is neither a join nor a leave;
+     * free trial plans do not count. "plans" counts contracts per plan that
+     * have not ended, including those that start later (presale).
+     */
+    public function monthlyInsights(Request $request): JsonResponse
+    {
+        $months = min(max((int) $request->query('months', 12), 1), 36);
+        $withMoney = $this->client($request)->can('payments.read');
+        $today = today();
+
+        $byMember = Membership::query()
+            ->whereHas('member', fn ($q) => $q->where('gym_id', $this->gym($request)->id))
+            ->with('membershipPlan:id,name,price,billing_cycle,is_free_trial_plan')
+            ->get()
+            ->map(function (Membership $m) {
+                $plan = $m->membershipPlan;
+                $start = $this->dateString($m->getRawOriginal('start_date'));
+                $end = $this->dateString($m->getRawOriginal('end_date'));
+                $cancelled = $this->dateString($m->getRawOriginal('cancellation_date'));
+                $exit = $cancelled ?: (in_array($m->status, ['expired', 'canceled', 'cancelled'], true) ? ($end ?: $start) : null);
+
+                return [
+                    'member' => $m->member_id,
+                    'start' => $start,
+                    'exit' => $exit,
+                    'received' => $this->dateString($m->getRawOriginal('cancellation_received_at')),
+                    'trial' => (bool) ($plan?->is_free_trial_plan),
+                    'plan' => $plan?->name,
+                    'monthly_fee' => $plan && $plan->price !== null
+                        ? (float) $plan->price / (['quarterly' => 3, 'biannual' => 6, 'yearly' => 12][$plan->billing_cycle] ?? 1)
+                        : 0.0,
+                ];
+            })
+            ->filter(fn (array $m) => $m['start'] !== null && ! $m['trial'])
+            ->groupBy('member');
+
+        $runs = fn (array $m, string $day) => $m['start'] <= $day && ($m['exit'] === null || $m['exit'] >= $day);
+
+        $rows = [];
+        for ($i = $months; $i >= 0; $i--) {
+            $first = $today->copy()->startOfMonth()->subMonthsNoOverflow($i);
+            $from = $first->toDateString();
+            $to = min($first->copy()->endOfMonth(), $today->copy())->toDateString();
+            // Members and fees are counted on the first day of the next month (today for the running month): whoever
+            // leaves on the last day is gone, whoever changes plan from one month to the next stays one member.
+            $snapshot = min($first->copy()->addMonthNoOverflow(), $today->copy())->toDateString();
+            $in = fn (?string $day) => $day !== null && $day >= $from && $day <= $to;
+            $row = ['month' => $first->format('Y-m'), 'joins' => 0, 'cancellations_received' => 0, 'leavers' => 0, 'members_at_end' => 0,
+                'fees' => 0.0, 'fees_joined' => 0.0, 'fees_left' => 0.0];
+            foreach ($byMember as $contracts) {
+                $contracts = $contracts->all();
+                $row['joins'] += $in(min(array_column($contracts, 'start'))) ? 1 : 0;
+                $row['cancellations_received'] += collect($contracts)->contains(fn ($m) => $in($m['received'])) ? 1 : 0;
+                // Whoever cancels a presale contract before it starts was never a member: no leaver, no fee lost
+                $exits = array_column($contracts, 'exit');
+                $row['leavers'] += ! in_array(null, $exits, true) && $in(max($exits)) && max($exits) >= min(array_column($contracts, 'start')) ? 1 : 0;
+                $row['members_at_end'] += collect($contracts)->contains(fn ($m) => $runs($m, $snapshot)) ? 1 : 0;
+                foreach ($contracts as $m) {
+                    $row['fees'] += $runs($m, $snapshot) ? $m['monthly_fee'] : 0;
+                    $row['fees_joined'] += $in($m['start']) ? $m['monthly_fee'] : 0;
+                    $row['fees_left'] += $in($m['exit']) && $m['exit'] >= $m['start'] ? $m['monthly_fee'] : 0;
+                }
+            }
+            $rows[] = $row;
+        }
+
+        $result = [];
+        foreach (array_slice($rows, 1) as $k => $row) {
+            $before = $rows[$k]['members_at_end'];
+            $row['members_at_start'] = $before;
+            $row['churn_rate_percent'] = $before > 0 ? round(100 * $row['leavers'] / $before, 1) : 0.0;
+            foreach (['fees', 'fees_joined', 'fees_left'] as $key) {
+                $row[$key] = round($row[$key], 2);
+                if (! $withMoney) {
+                    unset($row[$key]);
+                }
+            }
+            $result[] = $row;
+        }
+
+        $plans = $byMember->flatten(1)
+            ->filter(fn (array $m) => $m['exit'] === null || $m['exit'] >= $today->toDateString())
+            ->countBy('plan')->sortKeys()->all();
+
+        return $this->ok(array_filter([
+            'months' => $result,
+            'contracts_not_ended_by_plan' => $plans,
+            'money_omitted' => $withMoney ? null : 'needs ability payments.read',
+        ], static fn ($value) => $value !== null), ['as_of' => $today->toDateString()]);
+    }
+
     public function inactiveMembers(Request $request): JsonResponse
     {
         $days = min(max((int) $request->query('days', 30), 7), 365);

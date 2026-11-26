@@ -85,6 +85,12 @@ paths:
       responses: { '200': { $ref: '#/components/responses/Ok' } }
   /stats:
     get: { summary: "Key figures of the gym (revenue only with payments.read)", x-ability: stats.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
+  /insights/monthly:
+    get:
+      summary: "Counts per month: joins, cancellations, leavers, members, churn rate; monthly fees only with payments.read. No person in the answer"
+      x-ability: stats.read
+      parameters: [ { name: months, in: query, schema: { type: integer, default: 12, maximum: 36 } } ]
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
   /insights/inactive-members:
     get:
       summary: Members with a running contract and no visit for N days
