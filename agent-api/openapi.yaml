@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: gymportal Agent API
+  title: gymportal.io Agent API
   version: 1.0.0
   description: >
     Schnittstelle für KI-Agenten und Automatisierungen eines Studios. Das Studio

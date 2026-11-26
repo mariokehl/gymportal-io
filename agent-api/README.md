@@ -1,6 +1,6 @@
-# Agent API für gymportal
+# Agent API für gymportal.io
 
-Eine Schnittstelle, über die KI-Agenten und Automatisierungen für **ein Studio** auf gymportal
+Eine Schnittstelle, über die KI-Agenten und Automatisierungen für **ein Studio** auf gymportal.io
 zugreifen: Fragen zu Mitgliedern, Verträgen, Zutritt, Zahlungen und Auslastung beantworten.
 
 Aufsatz auf [mariokehl/gymportal-io](https://github.com/mariokehl/gymportal-io), Stand `develop`
@@ -8,7 +8,7 @@ v0.0.156. Lizenz wie das Projekt: GPL-3.0.
 
 ## Warum es das braucht
 
-gymportal hat Schnittstellen für die Mitglieder-App (`/api/pwa`), das Anmelde-Widget
+gymportal.io hat Schnittstellen für die Mitglieder-App (`/api/pwa`), das Anmelde-Widget
 (`/api/widget`), den Gäste-Shop (`/api/guests`) und die Scanner (`/api/scanner`). Für den
 Betreiber selbst gibt es nur die Oberfläche im Browser. Ein Agent, der dem Betreiber Arbeit
 abnimmt, hat damit keinen Zugang. Diese API schließt die Lücke, ohne Fachlogik zu kopieren:
@@ -80,7 +80,7 @@ Protocol bereit (Node ab 18, keine Abhängigkeiten). Damit kann jeder MCP-fähig
 ```json
 {
   "mcpServers": {
-    "gymportal": {
+    "gymportal-io": {
       "command": "node",
       "args": ["agent-api/mcp/server.mjs"],
       "env": { "GYMPORTAL_API_URL": "https://<portal>", "GYMPORTAL_API_TOKEN": "gpa_..." }
@@ -89,7 +89,7 @@ Protocol bereit (Node ab 18, keine Abhängigkeiten). Damit kann jeder MCP-fähig
 }
 ```
 
-## Einbau in gymportal
+## Einbau in gymportal.io
 
 Neue Dateien: `routes/agent.php`, `app/Http/Controllers/Api/Agent/*`,
 `app/Http/Middleware/AuthenticateAgent.php`, `app/Models/GymApiClient.php`,

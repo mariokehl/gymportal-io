@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// MCP server for the gymportal Agent API. No dependencies, Node 18+.
+// MCP server for the gymportal.io Agent API. No dependencies, Node 18+.
 //
 // Speaks the Model Context Protocol over stdio (newline-delimited JSON-RPC)
 // and turns each tool call into one HTTP request against /api/v1/agent.
