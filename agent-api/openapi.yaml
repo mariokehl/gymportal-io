@@ -87,7 +87,14 @@ paths:
     get: { summary: "Key figures of the gym (revenue only with payments.read)", x-ability: stats.read, responses: { '200': { $ref: '#/components/responses/Ok' } } }
   /insights/monthly:
     get:
-      summary: "Counts per month: joins, cancellations, leavers, members, churn rate; monthly fees only with payments.read. No person in the answer"
+      summary: "Counts per month: joins, cancellations, leavers, members, churn rate; list fees only with payments.read. No person in the answer"
+      description: >-
+        The member is the unit: a change of plan is neither a join nor a leave, free trial plans do not count.
+        Pending contracts (widget sign-ups not yet activated, presale) count only once active and are listed
+        in pending_contracts_by_plan. A withdrawn contract ends on the day of the withdrawal. Soft-deleted
+        members and contracts still count, so past months stay stable. list_fees, list_fees_joined and
+        list_fees_left are plan prices per month without discounts, add-ons, pauses or actual payments:
+        a measure of contract volume, not revenue.
       x-ability: stats.read
       parameters: [ { name: months, in: query, schema: { type: integer, default: 12, maximum: 36 } } ]
       responses: { '200': { $ref: '#/components/responses/Ok' } }

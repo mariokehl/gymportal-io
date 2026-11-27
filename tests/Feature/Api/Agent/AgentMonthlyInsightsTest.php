@@ -16,7 +16,8 @@ use Tests\TestCase;
 /**
  * insights/monthly gives a dashboard its counts per month without a single
  * person in the answer: joins, cancellations, leavers, members, churn rate,
- * and monthly fees only for a token that may read payments.
+ * and list fees only for a token that may read payments. The counting rules
+ * one by one are covered in MonthlyInsightsServiceTest.
  */
 class AgentMonthlyInsightsTest extends TestCase
 {
@@ -93,32 +94,38 @@ class AgentMonthlyInsightsTest extends TestCase
         $byMonth = collect($data['months'])->keyBy('month');
 
         $this->assertSame(['2026-09', '2026-10', '2026-11'], $byMonth->keys()->all());
+        $this->assertSame(['cancellations_received', 'churn_rate_percent', 'joins', 'leavers', 'list_fees', 'list_fees_joined', 'list_fees_left',
+            'members_at_end', 'members_at_start', 'month'], collect($byMonth['2026-10'])->keys()->sort()->values()->all());
         $this->assertSame([1, 1, 0], $byMonth->pluck('joins')->values()->all());
         $this->assertSame([0, 1, 2], $byMonth->pluck('cancellations_received')->values()->all());
         $this->assertSame([0, 1, 0], $byMonth->pluck('leavers')->values()->all());
         $this->assertSame([4, 4, 4], $byMonth->pluck('members_at_end')->values()->all());
         $this->assertEquals(25.0, $byMonth['2026-10']['churn_rate_percent']);
         $this->assertSame(4, $byMonth['2026-10']['members_at_start']);
-        // fees on the first of the next month: September 40 + 30 + 40 + 40, then the plan change to 30 a month
-        $this->assertEquals([150.0, 140.0, 140.0], $byMonth->pluck('fees')->values()->all());
-        $this->assertEquals(30.0, $byMonth['2026-11']['fees_joined']);
-        $this->assertEquals(80.0, $byMonth['2026-10']['fees_left']);    // the leaver and the old plan of the switcher
-        $this->assertSame(['Flex' => 3, 'Jahr' => 2], $data['contracts_not_ended_by_plan']);
+        // list fees at month end: September 40 + 30 + 40 + 40, then the plan change to 30 a month
+        $this->assertEquals([150.0, 140.0, 140.0], $byMonth->pluck('list_fees')->values()->all());
+        $this->assertEquals(30.0, $byMonth['2026-11']['list_fees_joined']);
+        $this->assertEquals(80.0, $byMonth['2026-10']['list_fees_left']);    // the leaver and the old plan of the switcher
+        $this->assertSame(['Flex' => 2, 'Jahr' => 2], $data['contracts_not_ended_by_plan']);
+        $this->assertSame(['Flex' => 1], $data['pending_contracts_by_plan']);    // the presale contract that was not cancelled
+        $this->assertStringContainsString('not revenue', $data['list_fees_basis']);
         $this->assertStringNotContainsString('@', json_encode($data));
     }
 
     #[Test]
-    public function without_payments_read_there_are_no_fees(): void
+    public function without_payments_read_there_are_no_list_fees(): void
     {
         $this->contract($this->flex, '2026-06-10');
 
         $data = $this->insights(['stats.read'])->assertOk()->json('data');
 
         $this->assertSame('needs ability payments.read', $data['money_omitted']);
+        $this->assertArrayNotHasKey('list_fees_basis', $data);
         foreach ($data['months'] as $row) {
-            $this->assertArrayNotHasKey('fees', $row);
-            $this->assertArrayNotHasKey('fees_joined', $row);
-            $this->assertArrayNotHasKey('fees_left', $row);
+            $this->assertSame([], array_values(array_filter(array_keys($row), fn ($key) => str_contains($key, 'fee'))));
+            $this->assertArrayNotHasKey('list_fees', $row);
+            $this->assertArrayNotHasKey('list_fees_joined', $row);
+            $this->assertArrayNotHasKey('list_fees_left', $row);
         }
     }
 
