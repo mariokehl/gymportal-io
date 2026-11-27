@@ -197,14 +197,32 @@ class PaymentMethod extends Model
 
     public function getMaskedIbanAttribute()
     {
-        if (! $this->iban) {
+        return self::maskIban($this->iban);
+    }
+
+    /**
+     * Masks an IBAN, keeping country code, check digits and the last four
+     * characters, grouped in blocks of four (e.g. "DE89 **** **** **** **30 00").
+     *
+     * Shared with account data fetched from Mollie, so the full IBAN never has
+     * to leave the server just to be displayed.
+     */
+    public static function maskIban(?string $iban): ?string
+    {
+        $iban = strtoupper(preg_replace('/\s+/', '', (string) $iban));
+
+        if ($iban === '') {
             return null;
         }
-        $length = strlen($this->iban);
-        $visible = 4;
-        $masked = str_repeat('*', $length - $visible);
 
-        return substr($this->iban, 0, 2).$masked.substr($this->iban, -$visible);
+        $visible = 4;
+        $length = strlen($iban);
+
+        $masked = $length <= $visible * 2
+            ? str_repeat('*', $length)
+            : substr($iban, 0, $visible).str_repeat('*', $length - $visible * 2).substr($iban, -$visible);
+
+        return implode(' ', str_split($masked, 4));
     }
 
     public function getIsExpiredAttribute()

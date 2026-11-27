@@ -134,6 +134,7 @@ Route::middleware(['auth:web', 'verified', 'subscription', 'blocked.check'])->gr
         Route::put('/{paymentMethod}/mark-signed', [PaymentMethodController::class, 'markSepaMandateAsSigned'])->name('mark-signed');
         Route::put('/{paymentMethod}/activate-mandate', [PaymentMethodController::class, 'activateSepaMandate'])->name('activate-mandate');
         Route::put('/{paymentMethod}/sync-mollie-mandate', [PaymentMethodController::class, 'syncMollieMandate'])->name('sync-mollie-mandate');
+        Route::get('/{paymentMethod}/mollie-iban', [PaymentMethodController::class, 'mollieIban'])->name('mollie-iban');
         Route::delete('/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->name('destroy');
     });
     Route::prefix('members/{member}/payments')->name('members.payments.')->scopeBindings()->group(function () {

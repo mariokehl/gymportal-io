@@ -25,215 +25,23 @@
       </button>
 
       <div v-if="member.payment_methods && member.payment_methods.length > 0" class="flex flex-col gap-3">
-        <!-- Collapsible payment-method card (accordion) -->
-        <div
+        <PaymentMethodCard
           v-for="paymentMethod in member.payment_methods"
           :key="paymentMethod.id"
-          class="rounded-lg border border-line bg-surface shadow-sm overflow-hidden"
-        >
-          <button
-            type="button"
-            @click="toggleMethod(paymentMethod.id)"
-            class="w-full flex items-center gap-3 p-4 text-left"
-          >
-            <div class="p-2 rounded-lg flex-none" :class="getPaymentMethodIconClass(paymentMethod.type)">
-              <component :is="getPaymentMethodIcon(paymentMethod.type)" class="w-6 h-6" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h4 class="font-semibold text-ink">{{ paymentMethod.type_text }}</h4>
-                <span v-if="paymentMethod.is_default" class="bg-info-soft text-info-strong text-xs px-2 py-0.5 rounded-full">
-                  Standard
-                </span>
-                <span :class="getStatusBadgeClass(paymentMethod.status)" class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full">
-                  {{ getStatusText(paymentMethod.status) }}
-                </span>
-              </div>
-            </div>
-            <ChevronDown
-              class="w-5 h-5 text-ink-muted flex-none transition-transform"
-              :class="expandedMethodId === paymentMethod.id ? 'rotate-180' : ''"
-            />
-          </button>
-
-          <!-- Expanded details -->
-          <div v-show="expandedMethodId === paymentMethod.id" class="px-4 pb-4 -mt-1">
-            <div class="border-t border-line-subtle pt-3 space-y-3">
-              <!-- SEPA Details -->
-              <div v-if="isSepaType(paymentMethod.type)" class="grid gap-x-10 gap-y-1.5 text-sm sm:grid-cols-[max-content_minmax(0,1fr)]">
-                <div class="space-y-1.5 min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-ink-muted">IBAN:</span>
-                    <span class="font-mono text-ink">{{ paymentMethod.masked_iban || '****' }}</span>
-                    <Tooltip
-                      v-if="isMollieManaged(paymentMethod)"
-                      position="top"
-                      text="IBAN wird von Mollie verwaltet"
-                    >
-                      <Link2
-                        class="w-4 h-4 text-brand-ink"
-                        aria-label="IBAN wird von Mollie verwaltet"
-                      />
-                    </Tooltip>
-                    <Tooltip
-                      v-else-if="isMollieLinkBroken(paymentMethod)"
-                      position="top"
-                      text="Keine Verknüpfung zu Mollie"
-                    >
-                      <Unlink
-                        class="w-4 h-4 text-danger"
-                        aria-label="Keine Verknüpfung zu Mollie"
-                      />
-                    </Tooltip>
-                  </div>
-                  <div v-if="paymentMethod.sepa_mandate_reference" class="flex gap-1.5">
-                    <span class="text-ink-muted flex-none">Mandatsreferenz:</span>
-                    <span class="font-mono text-ink break-all">{{ paymentMethod.sepa_mandate_reference }}</span>
-                  </div>
-                  <div v-if="paymentMethod.sepa_mandate_status" class="flex items-center gap-2 flex-wrap">
-                    <span class="text-ink-muted">SEPA-Mandat:</span>
-                    <span
-                      :class="getSepaMandateStatusClass(paymentMethod.sepa_mandate_status)"
-                      class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
-                    >
-                      {{ getSepaMandateStatusText(paymentMethod.sepa_mandate_status) }}
-                    </span>
-                    <!-- Mollie holds the account data, so a locally corrected IBAN
-                         only reaches it once the mandate is re-issued. -->
-                    <button
-                      v-if="canSyncMollieMandate(paymentMethod)"
-                      type="button"
-                      @click="syncMollieMandate(paymentMethod)"
-                      :disabled="syncingMandate === paymentMethod.id"
-                      class="inline-flex items-center gap-1 text-xs font-semibold text-brand-ink hover:text-brand-ink-strong hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
-                    >
-                      <RefreshCw
-                        class="w-3.5 h-3.5"
-                        :class="syncingMandate === paymentMethod.id ? 'animate-spin' : ''"
-                      />
-                      {{ syncingMandate === paymentMethod.id ? 'Wird übertragen …' : 'IBAN zu Mollie übertragen' }}
-                    </button>
-                  </div>
-                  <div v-if="paymentMethod.sepa_mandate_signed_at" class="flex gap-1.5">
-                    <span class="text-ink-muted">Unterschrieben am:</span>
-                    <span class="text-ink">{{ formatDate(paymentMethod.sepa_mandate_signed_at) }}</span>
-                  </div>
-                </div>
-
-                <!-- Mollie's own identifiers, kept in a second column so they do
-                     not push the account data apart. Wraps below it on mobile. -->
-                <div v-if="hasMollieIds(paymentMethod)" class="space-y-1.5 min-w-0">
-                  <div v-if="paymentMethod.mollie_customer_id" class="flex gap-1.5">
-                    <span class="text-ink-muted flex-none">Mollie-Kunde:</span>
-                    <span class="font-mono text-ink break-all">{{ paymentMethod.mollie_customer_id }}</span>
-                  </div>
-                  <div v-if="paymentMethod.mollie_mandate_id" class="flex gap-1.5">
-                    <span class="text-ink-muted flex-none">Mollie-Mandat:</span>
-                    <span class="font-mono text-ink break-all">{{ paymentMethod.mollie_mandate_id }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Credit Card Details -->
-              <div v-else-if="isCreditCardType(paymentMethod.type)" class="space-y-1.5 text-sm">
-                <p class="text-ink-secondary font-mono">**** **** **** {{ paymentMethod.last_four }}</p>
-                <p v-if="paymentMethod.cardholder_name" class="text-ink-secondary">{{ paymentMethod.cardholder_name }}</p>
-                <p v-if="paymentMethod.expiry_date" class="text-ink-secondary">
-                  Gültig bis: {{ formatMonthYear(paymentMethod.expiry_date) }}
-                </p>
-              </div>
-
-              <!-- Bank Transfer Details -->
-              <div v-else-if="isBankTransferType(paymentMethod.type) && paymentMethod.bank_name" class="text-sm">
-                <p class="text-ink-secondary">{{ paymentMethod.bank_name }}</p>
-              </div>
-
-              <!-- SEPA Mandate Actions -->
-              <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'pending'" class="bg-warning-soft border border-warning-line rounded-xl p-3.5">
-                <div class="flex gap-2.5">
-                  <AlertCircle class="w-[18px] h-[18px] text-warning flex-none mt-0.5" />
-                  <span class="text-compact font-semibold text-warning leading-snug">SEPA-Mandat muss noch unterschrieben werden</span>
-                </div>
-                <div class="flex flex-col gap-2 mt-3">
-                  <button
-                    type="button"
-                    @click="sendSepaMandate(paymentMethod)"
-                    :disabled="sendingMandate === paymentMethod.id"
-                    class="inline-flex items-center justify-center gap-2 w-full min-h-11 px-3.5 py-2.5 rounded-[10px] bg-brand text-white text-sm font-semibold hover:bg-brand-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send class="w-4 h-4" />
-                    {{ sendingMandate === paymentMethod.id ? 'Wird verarbeitet...' : 'Mandat versenden' }}
-                  </button>
-                  <button
-                    type="button"
-                    @click="markSepaMandateAsSigned(paymentMethod)"
-                    :disabled="markingAsSigned === paymentMethod.id"
-                    class="inline-flex items-center justify-center gap-2 w-full min-h-11 px-3.5 py-2.5 rounded-[10px] bg-surface border border-success text-success text-sm font-semibold hover:bg-success-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Check class="w-4 h-4" />
-                    {{ markingAsSigned === paymentMethod.id ? 'Wird markiert...' : 'Als unterschrieben markieren' }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Signed mandate actions -->
-              <div v-if="paymentMethod.requires_mandate && paymentMethod.sepa_mandate_status === 'signed'" class="p-3 bg-info-subtle rounded-md">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div class="flex items-center">
-                    <CheckCircle class="w-5 h-5 text-info mr-2 flex-none" />
-                    <span class="text-sm text-info-strong">SEPA-Mandat wurde unterschrieben und wartet auf Aktivierung</span>
-                  </div>
-                  <button
-                    type="button"
-                    @click="activateSepaMandate(paymentMethod)"
-                    :disabled="activatingMandate === paymentMethod.id"
-                    class="bg-info-solid text-white px-3 py-1 rounded text-sm hover:bg-info-solid-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                  >
-                    {{ activatingMandate === paymentMethod.id ? 'Wird aktiviert...' : 'Mandat aktivieren' }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Action links -->
-              <div class="flex flex-wrap items-center gap-4 pt-1">
-                <button
-                  v-if="!paymentMethod.is_default && paymentMethod.status === 'active'"
-                  @click="setAsDefault(paymentMethod)"
-                  type="button"
-                  class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
-                  :disabled="settingDefault === paymentMethod.id"
-                >
-                  {{ settingDefault === paymentMethod.id ? 'Wird gesetzt...' : 'Als Standard setzen' }}
-                </button>
-                <button
-                  @click="openEditPaymentMethod(paymentMethod)"
-                  type="button"
-                  class="text-sm font-semibold text-brand-ink hover:text-brand-ink-strong"
-                >
-                  Bearbeiten
-                </button>
-                <button
-                  v-if="paymentMethod.status === 'active'"
-                  @click="deactivatePaymentMethod(paymentMethod)"
-                  type="button"
-                  class="text-sm font-semibold text-danger hover:text-danger-strong"
-                  :disabled="deactivating === paymentMethod.id"
-                >
-                  {{ deactivating === paymentMethod.id ? 'Deaktivieren...' : 'Deaktivieren' }}
-                </button>
-                <button
-                  v-if="paymentMethod.status === 'expired'"
-                  @click="deletePaymentMethod(paymentMethod)"
-                  type="button"
-                  class="text-sm font-semibold text-danger hover:text-danger-strong"
-                  :disabled="deleting === paymentMethod.id"
-                >
-                  {{ deleting === paymentMethod.id ? 'Löschen...' : 'Löschen' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          :payment-method="paymentMethod"
+          :member-id="member.id"
+          :expanded="expandedMethodId === paymentMethod.id"
+          :busy-action="busyActionFor(paymentMethod)"
+          @toggle="toggleMethod(paymentMethod.id)"
+          @set-default="setAsDefault(paymentMethod)"
+          @edit="openEditPaymentMethod(paymentMethod)"
+          @deactivate="deactivatePaymentMethod(paymentMethod)"
+          @delete="deletePaymentMethod(paymentMethod)"
+          @send-mandate="sendSepaMandate(paymentMethod)"
+          @mark-signed="markSepaMandateAsSigned(paymentMethod)"
+          @activate-mandate="activateSepaMandate(paymentMethod)"
+          @sync-mandate="syncMollieMandate(paymentMethod)"
+        />
       </div>
 
       <div v-else class="text-center py-8 bg-surface-muted rounded-lg">
@@ -956,13 +764,12 @@ import { useForm, router } from '@inertiajs/vue3'
 import { useInertiaPayments } from '@/composables/useInertiaPayments'
 import PaymentsTable from '@/Components/PaymentsTable.vue'
 import IbanInput from '@/Components/IbanInput.vue'
+import PaymentMethodCard from '@/Components/Members/PaymentMethodCard.vue'
 import {
-  CreditCard, Plus, Wallet, AlertCircle, CheckCircle, XCircle,
-  Download, Building2, Banknote, PlayCircle, WalletCards,
-  FileText, AlertTriangle, ChevronDown, Send, Check, Info, Link2, Unlink, RefreshCw
+  CreditCard, Plus, Wallet, Download, PlayCircle, AlertTriangle, Info
 } from '@lucide/vue'
-import Tooltip from '@/Components/Tooltip.vue'
-import { formatDate, formatMonthYear, formatDateForInput } from '@/utils/formatters'
+import { formatDateForInput } from '@/utils/formatters'
+import { isBankTransferType, isCreditCardType, isSepaType } from '@/utils/paymentMethods'
 import { sortByScheduledDate } from '@/utils/payments'
 
 const props = defineProps({
@@ -1026,6 +833,21 @@ const sendingMandate = ref(null)
 const activatingMandate = ref(null)
 const syncingMandate = ref(null)
 const deleting = ref(null)
+
+// The action currently running for a payment method card, if any.
+const busyActionFor = (paymentMethod) => {
+  const running = {
+    'set-default': settingDefault,
+    'deactivate': deactivating,
+    'delete': deleting,
+    'send-mandate': sendingMandate,
+    'mark-signed': markingAsSigned,
+    'activate-mandate': activatingMandate,
+    'sync-mandate': syncingMandate
+  }
+
+  return Object.keys(running).find(action => running[action].value === paymentMethod.id) ?? null
+}
 
 // Computed properties
 const availablePaymentMethodTypes = computed(() => {
@@ -1093,42 +915,6 @@ const selectedPendingPaymentIds = computed(() => {
 const hasPendingPaymentsSelected = computed(() => {
   return selectedPendingPaymentIds.value.length > 0
 })
-
-// Helper functions
-const isSepaType = (type) => {
-  return type === 'sepa_direct_debit' ||
-         type === 'mollie_directdebit'
-}
-
-const isCreditCardType = (type) => {
-  return type === 'creditcard' ||
-         type === 'mollie_creditcard' ||
-         type?.includes('creditcard')
-}
-
-const isBankTransferType = (type) => {
-  return type === 'banktransfer' ||
-         type === 'mollie_banktransfer' ||
-         type?.includes('banktransfer')
-}
-
-// Both ids together mean Mollie holds the account data and the mandate: the
-// IBAN shown here is only a local copy that must not be edited on our side.
-const isMollieManaged = paymentMethod =>
-  Boolean(paymentMethod.mollie_customer_id && paymentMethod.mollie_mandate_id)
-
-// A Mollie direct debit is supposed to carry both ids. Missing either one means
-// the method cannot be collected through Mollie, which the operator has to fix.
-const isMollieLinkBroken = paymentMethod =>
-  paymentMethod.type === 'mollie_directdebit' && !isMollieManaged(paymentMethod)
-
-// Mollie stores the account data itself and the local iban is cleared once a
-// mandate is in place. A value sitting here again means the operator corrected
-// the IBAN afterwards, so it still has to be pushed over to Mollie.
-const canSyncMollieMandate = paymentMethod =>
-  paymentMethod.type === 'mollie_directdebit' &&
-  paymentMethod.sepa_mandate_status === 'active' &&
-  Boolean(paymentMethod.iban)
 
 // Forms für Zahlungsmethoden
 const paymentMethodForm = useForm({
@@ -1201,11 +987,6 @@ const ibanValidation = ref({
 const handleIbanValidation = (validation, context) => {
   ibanValidation.value[context] = validation
 }
-
-// Mollie stores its own identifiers for a direct debit; they are shown next to
-// the account data whenever Mollie knows this payment method at all.
-const hasMollieIds = paymentMethod =>
-  Boolean(paymentMethod.mollie_customer_id || paymentMethod.mollie_mandate_id)
 
 // A SEPA method normally needs a valid IBAN to be saved. Expiring it is the one
 // case where an empty field is the point: the operator retires the method and
@@ -1561,83 +1342,6 @@ Diese Funktion wird in einem zukünftigen Update automatisiert.`
   setTimeout(() => {
     sendingMandate.value = null
   }, 500)
-}
-
-// Utility functions
-const getStatusBadgeClass = (status) => {
-  const classes = {
-    active: 'bg-success-soft text-success-strong',
-    inactive: 'bg-fill text-ink',
-    paused: 'bg-warning-soft text-warning-strong',
-    cancelled: 'bg-danger-soft text-danger-strong',
-    paid: 'bg-success-soft text-success-strong',
-    pending: 'bg-orange-100 text-orange-800',
-    failed: 'bg-danger-soft text-danger-strong',
-    expired: 'bg-fill text-ink'
-  }
-  return classes[status] || 'bg-fill text-ink'
-}
-
-const getStatusText = (status) => {
-  const texts = {
-    active: 'Aktiv',
-    inactive: 'Inaktiv',
-    paused: 'Pausiert',
-    cancelled: 'Gekündigt',
-    paid: 'Bezahlt',
-    pending: 'Ausstehend',
-    failed: 'Fehlgeschlagen',
-    expired: 'Abgelaufen'
-  }
-  return texts[status] || status
-}
-
-const getPaymentMethodIcon = (type) => {
-  const icons = {
-    'sepa_direct_debit': Building2,
-    'creditcard': CreditCard,
-    'banktransfer': Building2,
-    'cash': Banknote,
-    'invoice': FileText,
-    'mollie_creditcard': CreditCard,
-    'mollie_directdebit': Building2,
-    'mollie_paypal': WalletCards,
-    'mollie_klarna': FileText,
-  }
-  return icons[type] || CreditCard
-}
-
-const getPaymentMethodIconClass = (type) => {
-  const classes = {
-    'sepa_direct_debit': 'bg-info-soft text-info',
-    'creditcard': 'bg-purple-100 text-purple-600',
-    'banktransfer': 'bg-success-soft text-success',
-    'cash': 'bg-warning-soft text-warning',
-    'invoice': 'bg-fill text-ink-secondary'
-  }
-  return classes[type] || 'bg-fill text-ink-secondary'
-}
-
-const getSepaMandateStatusClass = (status) => {
-  const classes = {
-    'pending': 'bg-warning-soft text-warning-strong',
-    'signed': 'bg-info-soft text-info-strong',
-    'active': 'bg-success-soft text-success-strong',
-    'revoked': 'bg-danger-soft text-danger-strong',
-    'expired': 'bg-fill text-ink'
-  }
-  return classes[status] || 'bg-fill text-ink'
-}
-
-const getSepaMandateStatusText = (status) => {
-  const texts = {
-    'pending': 'Unterschrift ausstehend',
-    'signed': 'Unterschrieben',
-    'active': 'Aktiv',
-    'revoked': 'Widerrufen',
-    'expired': 'Abgelaufen'
-  }
-  return texts[status] || status
 }
 
 // Watchers
