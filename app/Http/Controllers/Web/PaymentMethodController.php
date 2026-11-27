@@ -7,6 +7,7 @@ use App\Models\Member;
 use App\Models\PaymentMethod;
 use App\Services\MollieService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PaymentMethodController extends Controller
@@ -209,6 +210,50 @@ class PaymentMethodController extends Controller
         }
 
         return back()->with('error', 'Das SEPA-Mandat konnte nicht aktiviert werden.');
+    }
+
+    /**
+     * Returns the masked IBAN Mollie holds for a direct debit mandate.
+     *
+     * Loaded lazily by the payments tab: Mollie keeps the account data once a
+     * mandate is issued, so the local copy may be empty or outdated. Only the
+     * masked number is returned, the full IBAN never reaches the browser.
+     */
+    public function mollieIban(Member $member, PaymentMethod $paymentMethod): JsonResponse
+    {
+        $this->authorize('view', $paymentMethod);
+
+        if (
+            $paymentMethod->type !== 'mollie_directdebit'
+            || blank($paymentMethod->mollie_customer_id)
+            || blank($paymentMethod->mollie_mandate_id)
+        ) {
+            return response()->json([
+                'message' => 'Diese Zahlungsmethode ist nicht mit Mollie verknüpft.',
+            ], 422);
+        }
+
+        try {
+            $maskedIban = app(MollieService::class)->getMaskedMandateIban(
+                $member->gym,
+                $paymentMethod->mollie_customer_id,
+                $paymentMethod->mollie_mandate_id
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Die IBAN konnte nicht von Mollie abgerufen werden.',
+            ], 502);
+        }
+
+        if ($maskedIban === null) {
+            return response()->json([
+                'message' => 'Bei Mollie ist für dieses Mandat keine IBAN hinterlegt.',
+            ], 404);
+        }
+
+        return response()->json(['masked_iban' => $maskedIban]);
     }
 
     /**

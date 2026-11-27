@@ -478,6 +478,30 @@ class MollieService
     }
 
     /**
+     * Returns the IBAN Mollie stores on a direct debit mandate, masked.
+     *
+     * Mollie holds the account data once a mandate is issued, so this is the
+     * only reliable source of the IBAN being collected from. The full number is
+     * masked here and never handed on. Returns null when the mandate carries no
+     * account number (e.g. a card or PayPal mandate).
+     *
+     * @throws ApiException when Mollie cannot be reached or rejects the request
+     * @throws Exception when Mollie is not configured for the gym
+     */
+    public function getMaskedMandateIban(Gym $gym, string $customerId, string $mandateId): ?string
+    {
+        $client = $this->initializeClient($gym);
+
+        $mandate = $client->mandates->getForId($customerId, $mandateId);
+
+        if ($mandate->method !== MandateMethod::DIRECTDEBIT) {
+            return null;
+        }
+
+        return PaymentMethod::maskIban($mandate->details->consumerAccount ?? null);
+    }
+
+    /**
      * Create a mandate for a specific customer
      *
      * @param  Customer  $customer  Provide the related customer.
