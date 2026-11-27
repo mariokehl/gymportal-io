@@ -18,6 +18,7 @@ Route::get('plans', [AgentReadController::class, 'plans'])->middleware('agent.au
 Route::get('occupancy', [AgentReadController::class, 'occupancy'])->middleware('agent.auth:stats.read')->name('occupancy');
 Route::get('stats', [AgentReadController::class, 'stats'])->middleware('agent.auth:stats.read')->name('stats');
 Route::get('insights/inactive-members', [AgentReadController::class, 'inactiveMembers'])->middleware('agent.auth:stats.read')->name('insights.inactive-members');
+Route::get('insights/monthly', [AgentReadController::class, 'monthlyInsights'])->middleware('agent.auth:stats.read')->name('insights.monthly');
 
 Route::get('members', [AgentReadController::class, 'members'])->middleware('agent.auth:members.read')->name('members.index');
 Route::get('members/lookup', [AgentReadController::class, 'lookup'])->middleware('agent.auth:members.read')->name('members.lookup');

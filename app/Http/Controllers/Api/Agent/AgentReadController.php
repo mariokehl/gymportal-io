@@ -10,6 +10,7 @@ use App\Models\MembershipPlan;
 use App\Models\Payment;
 use App\Models\ScannerAccessLog;
 use App\Services\MemberService;
+use App\Services\MonthlyInsightsService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -541,6 +542,25 @@ class AgentReadController extends AgentController
         $stats['money_omitted'] = 'needs ability payments.read';
 
         return $stats;
+    }
+
+    /**
+     * Counts per calendar month for dashboards, with no person in the answer;
+     * the counting rules live in MonthlyInsightsService. List fees only with
+     * payments.read.
+     */
+    public function monthlyInsights(Request $request, MonthlyInsightsService $insights): JsonResponse
+    {
+        $months = min(max((int) $request->query('months', 12), 1), 36);
+        $withMoney = $this->client($request)->can('payments.read');
+        $today = today();
+
+        $data = $insights->forGym($this->gym($request), $months, $today, $withMoney);
+        $data += $withMoney
+            ? ['list_fees_basis' => MonthlyInsightsService::LIST_FEES_BASIS]
+            : ['money_omitted' => 'needs ability payments.read'];
+
+        return $this->ok($data, ['as_of' => $today->toDateString()]);
     }
 
     /**
