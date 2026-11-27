@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api\Agent;
 
 use App\Models\CheckIn;
+use App\Models\Gym;
+use App\Models\GymScanner;
 use App\Models\Member;
 use App\Models\MembershipPlan;
 use App\Models\Payment;
+use App\Models\ScannerAccessLog;
 use App\Services\MemberService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -194,6 +199,14 @@ class AgentReadController extends AgentController
 
     /**
      * Answers "why does my QR code not work" with facts, each naming its source.
+     *
+     * Two kinds of answer: `blockers` applies the rules the door scanner runs
+     * at the member's own location (ScannerController::verifyMembership), in
+     * the same order. `last_denied_attempt` and `recent_attempts` are what
+     * actually happened, read from the access log the scanners and the
+     * check-in station write, with the reason the portal stored at the time.
+     * Rules that depend on the device (add-on dispensers) or on another
+     * location (cross-location access) only show up there.
      */
     public function access(Request $request, string $memberId): JsonResponse
     {
@@ -203,7 +216,8 @@ class AgentReadController extends AgentController
             return $this->memberNotFound();
         }
 
-        $active = $member->activeMembership();
+        $guest = $member->hasGuestAccess();
+        $membership = $guest ? null : $member->activeMembership();
         $config = $member->accessConfig;
         $lastCheckIn = CheckIn::where('gym_id', $member->gym_id)
             ->where('member_id', $member->id)
@@ -211,21 +225,42 @@ class AgentReadController extends AgentController
             ->first();
 
         $blockers = [];
+        $notes = [];
 
-        if ($member->status !== 'active') {
-            $blockers[] = ['code' => 'member_not_active', 'detail' => 'Member status is "'.$member->status.'".'];
+        // The scanner lets "extern" through (guests are stored that way).
+        if (! $member->isActive() && ! $member->isExtern()) {
+            $blockers[] = [
+                'code' => 'member_not_active',
+                'detail' => 'Member status is "'.$member->status.'" ('.(Member::STATUS_LABELS[$member->status] ?? $member->status).').',
+            ];
         }
 
-        if (! $active) {
-            $blockers[] = ['code' => 'no_active_membership', 'detail' => 'No membership that is active today.'];
+        if ($member->isExtern()) {
+            $notes[] = 'Status "extern": the door scanner admits the member, the check-in station in the app does not.';
         }
 
+        // Guest access skips the contract check entirely.
+        if (! $guest) {
+            if (! $membership) {
+                $blockers[] = ['code' => 'no_active_membership', 'detail' => 'No membership with status "active".'];
+            } elseif ($membership->start_date->isFuture()) {
+                // activeMembership() falls back to a contract that has not
+                // started yet; the scanner refuses it until its start date.
+                $blockers[] = [
+                    'code' => 'membership_not_started',
+                    'detail' => 'Membership starts on '.$membership->start_date->toDateString().'.',
+                ];
+            }
+        }
+
+        // Without a configuration the app shows the QR code by default, and
+        // the scanner does not look at the configuration for QR scans.
         if ($config && ! $config->qr_code_enabled && ! $config->nfc_enabled) {
             $blockers[] = ['code' => 'no_access_medium_enabled', 'detail' => 'Neither QR code nor NFC is enabled.'];
         }
 
         if (! $config) {
-            $blockers[] = ['code' => 'no_access_config', 'detail' => 'No access configuration exists yet.'];
+            $notes[] = 'No access configuration yet: the QR code is on by default.';
         }
 
         $openPayments = Payment::where('gym_id', $member->gym_id)
@@ -233,10 +268,17 @@ class AgentReadController extends AgentController
             ->where('status', 'failed')
             ->count();
 
+        $recent = $this->accessAttemptQuery($member)->latest('id')->limit(5)->get();
+        $lastDenied = $recent->first(fn (ScannerAccessLog $log) => ! $log->access_granted)
+            ?? $this->accessAttemptQuery($member)->denied()->latest('id')->first();
+
+        $presented = $this->presentAttempts($member, $recent->concat([$lastDenied])->filter());
+
         return $this->ok([
-            'member' => ['id' => $member->id, 'status' => $member->status],
+            'member' => ['id' => $member->id, 'status' => $member->status, 'guest_access' => $guest],
             'should_have_access' => $blockers === [],
             'blockers' => $blockers,
+            'notes' => $notes,
             'access' => [
                 'qr_code_enabled' => $config ? (bool) $config->qr_code_enabled : null,
                 'qr_code_invalidated_at' => $config ? $this->dateTimeString($config->getRawOriginal('qr_code_invalidated_at')) : null,
@@ -247,7 +289,101 @@ class AgentReadController extends AgentController
                 'at' => $this->dateTimeString($lastCheckIn->getRawOriginal('check_in_time')),
                 'method' => $lastCheckIn->check_in_method,
             ] : null,
+            'last_denied_attempt' => $lastDenied ? $presented[$lastDenied->id] : null,
+            'recent_attempts' => $recent->map(fn (ScannerAccessLog $log) => $presented[$log->id])->values()->all(),
         ]);
+    }
+
+    /**
+     * Every scan and station check-in of a member, granted or denied, with the
+     * reason the portal stored when it refused.
+     */
+    public function accessAttempts(Request $request, string $memberId): JsonResponse
+    {
+        $member = $this->member($request, $memberId);
+
+        if (! $member) {
+            return $this->memberNotFound();
+        }
+
+        $result = $request->query('result', 'all');
+
+        if (! in_array($result, ['all', 'denied', 'granted'], true)) {
+            return $this->fail('invalid_result', 'result is all, denied or granted.', 422);
+        }
+
+        $limit = min(max((int) $request->query('limit', 20), 1), 200);
+
+        $query = $this->accessAttemptQuery($member);
+
+        if ($result === 'denied') {
+            $query->denied();
+        } elseif ($result === 'granted') {
+            $query->granted();
+        }
+
+        $rows = $query->latest('id')->limit($limit)->get();
+        $presented = $this->presentAttempts($member, $rows);
+
+        return $this->ok([
+            'total' => $this->accessAttemptQuery($member)->count(),
+            'denied' => $this->accessAttemptQuery($member)->denied()->count(),
+            'attempts' => $rows->map(fn (ScannerAccessLog $log) => $presented[$log->id])->values()->all(),
+        ]);
+    }
+
+    /**
+     * Log entries of one member: the ones at the member's own location and the
+     * ones other locations of the organisation wrote with this location as
+     * home. Scans of the same member id in an unrelated studio carry no home
+     * location and stay out.
+     */
+    private function accessAttemptQuery(Member $member): Builder
+    {
+        return ScannerAccessLog::where('member_id', (string) $member->id)
+            ->where(fn (Builder $q) => $q->where('gym_id', $member->gym_id)->orWhere('home_gym_id', $member->gym_id));
+    }
+
+    /**
+     * Shapes log entries without the request data the log also keeps (IP,
+     * user agent, NFC id), keyed by log id.
+     *
+     * @param  Collection<int, ScannerAccessLog>  $logs
+     * @return array<int, array<string, mixed>>
+     */
+    private function presentAttempts(Member $member, Collection $logs): array
+    {
+        $gymIds = $logs->pluck('gym_id')->unique()->all();
+
+        $locations = Gym::whereIn('id', $gymIds)->pluck('name', 'id');
+        $devices = GymScanner::whereIn('gym_id', $gymIds)
+            ->whereIn('device_number', $logs->pluck('device_number')->filter()->unique()->all())
+            ->get(['gym_id', 'device_number', 'device_name'])
+            ->keyBy(fn (GymScanner $scanner) => $scanner->gym_id.':'.$scanner->device_number);
+
+        return $logs->mapWithKeys(function (ScannerAccessLog $log) use ($member, $locations, $devices) {
+            $metadata = $log->metadata ?? [];
+            $device = $log->device_number === null ? null
+                : ($devices->get($log->gym_id.':'.$log->device_number)?->device_name ?? 'Scanner #'.$log->device_number);
+
+            return [$log->id => [
+                'at' => $this->dateTimeString($log->getRawOriginal('created_at')),
+                'granted' => (bool) $log->access_granted,
+                // The portal's own wording, as the studio sees it in the live log.
+                'reason' => $log->access_granted ? null : $log->denial_reason,
+                // contract or location: a denial the operator can resolve.
+                'denial_kind' => $metadata['denial_kind'] ?? null,
+                // Set by the check-in station, e.g. MEMBERSHIP_NOT_STARTED.
+                'code' => $metadata['code'] ?? null,
+                'scan_type' => $log->scan_type,
+                'device' => $device,
+                'location' => [
+                    'gym_id' => $log->gym_id,
+                    'name' => $locations->get($log->gym_id),
+                    'own' => (int) $log->gym_id === (int) $member->gym_id,
+                ],
+            ]];
+        })->all();
     }
 
     public function checkIns(Request $request, string $memberId): JsonResponse

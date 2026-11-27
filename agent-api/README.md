@@ -42,7 +42,8 @@ Base: `/api/v1/agent`, authentication via `Authorization: Bearer <token>`. Fully
 | GET | `/members/lookup` | `members.read` | Exactly one member by email, number or phone |
 | GET | `/members/{id}` | `members.read` | Master data |
 | GET | `/members/{id}/contract` | `contracts.read` | Contract, next possible cancellation date, pause, withdrawal; during a free period also the paid contract (`contract_membership`) |
-| GET | `/members/{id}/access` | `access.read` | Whether access should work, and if not, why |
+| GET | `/members/{id}/access` | `access.read` | Whether access should work by the scanner rules (`blockers`), and the last denied scan with the reason the portal stored (`last_denied_attempt`) |
+| GET | `/members/{id}/access-attempts` | `access.read` | Scans and station check-ins, granted or denied (`result=denied`), with the portal's own denial reason, including other locations of the organisation |
 | GET | `/members/{id}/check-ins` | `access.read` | Recent visits |
 | GET | `/members/{id}/payments` | `payments.read` | Payments, open and failed |
 | GET | `/occupancy` | `stats.read` | Visits by weekday and hour |

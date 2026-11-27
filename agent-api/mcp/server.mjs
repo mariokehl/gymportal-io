@@ -39,9 +39,10 @@ const TOOLS = [
   },
   {
     name: 'get_access_status',
-    description: 'Whether a member should get in, and if not, why (blockers), plus the last check-in.',
+    description: 'Whether a member should get in by the scanner rules (blockers), the last denied scan with the reason the portal stored at the time (last_denied_attempt), the latest scans and the last check-in.',
     props: { member_id: id }, required: ['member_id'], call: (a) => ['GET', `members/${num(a.member_id)}/access`],
   },
+  { name: 'get_access_attempts', description: 'Scans and check-ins of a member, granted or denied, each with the reason the portal stored, the device and the location. Use result=denied to answer why someone was turned away.', props: { member_id: id, result: { type: 'string', enum: ['all', 'denied', 'granted'] }, limit: { type: 'integer' } }, required: ['member_id'], call: (a) => ['GET', `members/${num(a.member_id)}/access-attempts`, pick(a, ['result', 'limit'])] },
   { name: 'get_check_ins', description: 'Recent visits of a member.', props: { member_id: id, limit: { type: 'integer' } }, required: ['member_id'], call: (a) => ['GET', `members/${num(a.member_id)}/check-ins`, pick(a, ['limit'])] },
   { name: 'get_payments', description: 'Recent payments of a member with a summary of failed and pending ones.', props: { member_id: id, limit: { type: 'integer' } }, required: ['member_id'], call: (a) => ['GET', `members/${num(a.member_id)}/payments`, pick(a, ['limit'])] },
   { name: 'get_occupancy', description: 'Visits by weekday and hour. Says insufficient_data instead of recommending an hour when there are too few visits.', props: { days: { type: 'integer' } }, call: (a) => ['GET', 'occupancy', pick(a, ['days'])] },
